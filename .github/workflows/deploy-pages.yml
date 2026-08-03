@@ -42,10 +42,11 @@ jobs:
         env:
           VITE_BASE_URL: /IT-Admin-Simulator/
 
-      - name: Add SPA routing support for GitHub Pages
+      - name: Ensure SPA routing fallback is present
         working-directory: ./frontend/dist
         run: |
-          cp index.html 404.html
+          # public/404.html is already copied by Vite and contains the GitHub Pages redirect.
+          test -f 404.html
           echo '{"version": "1.2.0"}' > version.json
 
       - name: Upload build artifact
