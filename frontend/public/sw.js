@@ -1,5 +1,8 @@
-const CACHE_NAME = 'cyberlearn-v3';
-const PRECACHE = ['/', '/index.html', '/offline.html', '/manifest.json', '/favicon.svg', '/icon.svg', '/icons.svg'];
+const CACHE_NAME = 'cyberlearn-v4';
+// self.registration.scope is the deployment base ('/' locally, '/IT-Admin-Simulator/'
+// on GitHub Pages), so precached URLs stay correct on every target.
+const BASE = new URL(self.registration.scope).pathname;
+const PRECACHE = ['', 'index.html', 'offline.html', 'manifest.json', 'favicon.svg', 'icon.svg', 'icons.svg'].map((p) => BASE + p);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -19,7 +22,7 @@ self.addEventListener('fetch', (event) => {
   }).catch(async () => {
     const cached = await caches.match(event.request);
     if (cached) return cached;
-    if (event.request.mode === 'navigate') return caches.match('/offline.html');
+    if (event.request.mode === 'navigate') return caches.match(`${BASE}offline.html`);
     return new Response('', { status: 503 });
   }));
 });

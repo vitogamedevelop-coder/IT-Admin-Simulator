@@ -1,4 +1,7 @@
-const ROOT = '/assets';
+// import.meta.env.BASE_URL already ends with a trailing slash (e.g. '/'
+// locally or '/IT-Admin-Simulator/' on GitHub Pages), so appending 'assets'
+// keeps all '${ROOT}/...' paths below correct in dev, APK and GitHub Pages.
+const ROOT = `${import.meta.env.BASE_URL}assets`;
 
 export const uiAssets = {
   pcMonitor: `${ROOT}/ui-objects/ui-pc-monitor.webp`,

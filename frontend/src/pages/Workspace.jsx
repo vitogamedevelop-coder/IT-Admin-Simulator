@@ -124,7 +124,7 @@ function BreakRoom({ onBack }) {
 // Panorama v2 - composed for gameplay, not photorealism:
 // Regal+Whiteboard (left) -> Arbeitsplatz mit sichtbarem NEXUS-Desktop (center)
 // -> Tür zum Flur (right) -> Tür zum Serverraum (far right)
-const PANORAMA_SRC = '/assets/location/Panorama2.png';
+const PANORAMA_SRC = `${import.meta.env.BASE_URL}assets/location/Panorama2.png`;
 // Intrinsic pixel size of Panorama2.png - required to project normalized
 // hotspot coordinates onto the actually rendered image (see projectHotspot).
 const PANORAMA_NATURAL = { w: 1672, h: 941 };
