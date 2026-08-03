@@ -1,0 +1,44 @@
+{
+  "id": "ipconfig-basics",
+  "version": 1,
+  "topic": "Netzwerkdiagnose",
+  "title": "IP-Konfiguration und APIPA",
+  "learningGoal": "Der Spieler erkennt eine fehlende DHCP-Zuweisung anhand einer APIPA-Adresse und verwendet ipconfig zur Diagnose.",
+  "explanation": "Wenn ein Windows-Client keinen DHCP-Lease erhält, vergibt er sich selbst eine Adresse aus dem 169.254.0.0/16-Netz (APIPA). Mit ipconfig /all lassen sich IPv4-Adresse, Subnetzmaske, Gateway und DNS-Server prüfen.",
+  "terms": ["DHCP", "APIPA", "Lease", "Gateway", "Subnetzmaske"],
+  "commands": [
+    {
+      "command": "ipconfig /all",
+      "syntax": "ipconfig /all",
+      "example": "ipconfig /all",
+      "useCase": "Zeigt die vollständige Netzwerkkonfiguration eines Windows-Clients."
+    }
+  ],
+  "commonMistakes": [
+    "169.254.x.x als normale Firmen-IP zu interpretieren",
+    "ipconfig ohne /all zu verwenden und Gateway/DNS zu übersehen"
+  ],
+  "mainMission": {
+    "id": "first-day",
+    "title": "Der erste Arbeitstag",
+    "channel": "email",
+    "briefing": "Ein neuer Mitarbeiter meldet, dass er das Netzwerk nicht erreicht. Seine IP-Adresse beginnt mit 169.254."
+  },
+  "sideMissions": [
+    {
+      "id": "apipa-wrong-mask",
+      "title": "Falsche Subnetzmaske",
+      "briefing": "Ein Client hat eine manuell eingetragene, zu große Subnetzmaske."
+    }
+  ],
+  "notebookEntries": ["note-ipconfig"],
+  "questions": [
+    {
+      "prompt": "Welche IP-Adresse ist ein typisches Zeichen für einen fehlenden DHCP-Lease?",
+      "options": ["169.254.44.12", "192.168.10.47", "8.8.8.8", "127.0.0.1"],
+      "answer": "169.254.44.12",
+      "type": "multiple-choice"
+    }
+  ],
+  "difficulty": 1
+}

@@ -1,0 +1,22 @@
+{
+  "name": "IT-Admin Simulator",
+  "short_name": "IT-Admin",
+  "description": "Lerne IT-Administration spielerisch – Netzwerke, Security, Linux, Active Directory und mehr.",
+  "lang": "de",
+  "start_url": "/IT-Admin-Simulator/",
+  "scope": "/IT-Admin-Simulator/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/IT-Admin-Simulator/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "games", "utilities"],
+  "screenshots": []
+}

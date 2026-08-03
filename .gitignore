@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/android/app/build/
+*.apk
+*.aab
+
+# Runtime data
+backend/data/cyberlearn.db
+backend/data/*.db-journal
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+backend/.env
+!backend/.env.example
+
+# Secrets and keystores
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.p8
+*.cer
+*.crt
+*.mobileprovision
+
+# Android signing
+frontend/android/app/release/
+frontend/android/keystore/
+
+# Runtime SQLite data and backups
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+backend/data/*.db-journal
+backend/data/backups/
+
+# Original asset sources (large / potentially proprietary)
+frontend/assets-src/originals/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

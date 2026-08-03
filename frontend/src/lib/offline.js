@@ -1,0 +1,12 @@
+const CACHE_PREFIX = 'cyberlearn:offline:';
+const QUEUE_KEY = 'cyberlearn:answer-queue';
+
+export function cacheApiResponse(path, data) { localStorage.setItem(`${CACHE_PREFIX}${path}`, JSON.stringify({ data, cachedAt: Date.now() })); }
+export function getCachedApiResponse(path) { try { return JSON.parse(localStorage.getItem(`${CACHE_PREFIX}${path}`) || 'null')?.data || null; } catch { return null; } }
+export async function downloadModulesForOffline(api) { const modules = await api('/api/modules'); await Promise.all(modules.filter((module) => !module.locked).map((module) => api(`/api/modules/${module.id}`))); return modules.length; }
+export function getQueuedAnswers() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch { return []; } }
+export function queueAnswer(item) { const queue = getQueuedAnswers(); queue.push({ ...item, queuedAt: Date.now() }); localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); window.dispatchEvent(new Event('cyberlearn:queue-changed')); }
+export async function syncQueuedAnswers(api) { const queue = getQueuedAnswers(); const remaining = []; let synced = 0; for (const item of queue) { try { await api(`/api/modules/${item.moduleId}/answer`, { method: 'POST', body: JSON.stringify({ questionId: item.questionId, answer: item.answer }) }); synced += 1; } catch { remaining.push(item); } } localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining)); window.dispatchEvent(new Event('cyberlearn:queue-changed')); return { synced, pending: remaining.length }; }
+export function getReminderEnabled() { return localStorage.getItem('cyberlearn:reminder') === 'enabled'; }
+export async function setDailyReminder(enabled) { if (!enabled) { localStorage.removeItem('cyberlearn:reminder'); return false; } if (!('Notification' in window)) throw new Error('Benachrichtigungen werden von diesem Gerät nicht unterstützt.'); const permission = await Notification.requestPermission(); if (permission !== 'granted') throw new Error('Benachrichtigungen wurden nicht erlaubt.'); localStorage.setItem('cyberlearn:reminder', 'enabled'); return true; }
+export function showDailyReminderIfDue() { if (!getReminderEnabled() || !('Notification' in window) || Notification.permission !== 'granted') return; const today = new Date().toISOString().slice(0, 10); if (localStorage.getItem('cyberlearn:last-reminder') === today) return; new Notification('IT-Learn: Tageschallenge', { body: 'Deine tägliche Aufgabe wartet. Verdiene Bonus-XP.' }); localStorage.setItem('cyberlearn:last-reminder', today); }

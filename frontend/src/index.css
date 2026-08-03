@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --cyber-bg: #050505;
+  --cyber-panel: #0d1117;
+  --cyber-green: #00ff66;
+  --cyber-cyan: #00f0ff;
+  --cyber-red: #ff3355;
+  --cyber-amber: #ffcc00;
+  --cyber-gray: #8b949e;
+  /* Central safe-area + header height variables. Android WebViews with an
+     older Chromium base sometimes don't support svh/dvh at all - the
+     min-height rules below always keep a 100vh fallback declared first so
+     the cascade degrades gracefully instead of collapsing to 0/auto. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --header-h: 3rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--cyber-bg);
+  color: var(--cyber-green);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cyber-bg);
+  padding-top: var(--safe-top);
+}
+
+.app-container {
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  /* Without this, the last element of a page (e.g. a bottom action button)
+     can end up underneath Android's on-screen navigation bar/gesture pill
+     on devices that don't reserve that space themselves. */
+  padding-bottom: calc(1rem + var(--safe-bottom));
+}
+
+/* Responsive layout: tablets and desktops get a wider readable column and
+   larger comfortable spacing while keeping the mobile-first feel. */
+@media (min-width: 640px) {
+  .app-container {
+    max-width: 42rem;
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 56rem;
+    padding: 2rem;
+  }
+}
+
+/* Prevent horizontal overflow and ensure text wraps on tiny screens. */
+html, body {
+  overflow-x: hidden;
+}
+img, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Keep tables and code blocks readable without breaking the layout. */
+table {
+  max-width: 100%;
+}
+code, pre {
+  word-break: break-word;
+}
+
+/* Compact AppShell header - kept as small as possible so the actual game
+   content gets maximum vertical space. */
+.app-header {
+  min-height: 36px;
+}
+
+/* MainContent for fullBleed pages (currently only Workspace). Edge-to-edge:
+   no max-width column, no padding, no page-level scroll - the page itself
+   fills this box exactly and manages any internal scrolling/transitions.
+   All of Workspace's sub-views (apps, dialogs, desktop) render as normal
+   children of this box instead of independent `position: fixed` overlays,
+   so they automatically inherit the correct height between the header and
+   the bottom safe area with zero per-page positioning math. */
+.app-main-fullbleed {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: var(--safe-bottom);
+}
+
+@media (min-width: 640px) {
+  .app-container {
+    padding: 1.5rem;
+    border-left: 1px solid #1f2937;
+    border-right: 1px solid #1f2937;
+  }
+}
+
+.cyber-card {
+  background: var(--cyber-panel);
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0.5rem rgba(0, 255, 102, 0.05);
+}
+
+.cyber-btn {
+  @apply inline-flex items-center justify-center px-4 py-3 rounded-lg font-bold tracking-wide transition active:scale-95;
+  background: #00ff66;
+  color: #050505;
+}
+
+.cyber-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cyber-btn-outline {
+  @apply inline-flex items-center justify-center px-4 py-3 rounded-lg font-bold tracking-wide border transition active:scale-95;
+  border-color: #00ff66;
+  color: #00ff66;
+  background: transparent;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #00f0ff;
+  outline-offset: 2px;
+}
+
+.cyber-input {
+  @apply w-full px-3 py-3 rounded-lg bg-[#0d1117] border border-[#30363d] text-[#00ff66] placeholder-[#8b949e] focus:outline-none focus:border-[#00ff66];
+}
+
+.cyber-label {
+  @apply text-xs uppercase tracking-widest text-cyber-gray mb-1;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

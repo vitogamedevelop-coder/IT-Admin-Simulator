@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IT-Admin Simulator</title>
+    <script>
+      // GitHub Pages SPA redirect: store the attempted path and redirect to the app root.
+      // The React Router inside the app will pick up the path from location.pathname.
+      (function () {
+        const path = window.location.pathname;
+        const base = '/IT-Admin-Simulator/';
+        if (path.startsWith(base)) {
+          const relative = path.slice(base.length);
+          const query = window.location.search || '';
+          const hash = window.location.hash || '';
+          sessionStorage.setItem('gh-pages-redirect', relative + query + hash);
+        }
+        window.location.replace(base);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Weiterleitung wird aufgebaut...</p>
+  </body>
+</html>
