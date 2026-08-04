@@ -114,10 +114,12 @@ assert(summary.estimatedMinutes > 0, `Estimated ${summary.estimatedMinutes} min`
 assert(Array.isArray(summary.topicNames) && summary.topicNames.length > 0, 'Has topic names');
 assert(typeof summary.progressPercent === 'number');
 assert(summary.completedLessons === 0, 'No completed lessons initially');
-// Verify it auto-updates (check non-existent category)
-const emptySummary = getCategorySummary('cisco-packet-tracer');
-assert(emptySummary.lessonCount === 0, 'Cisco has 0 lessons');
-assert(emptySummary.totalQuestions === 0, 'Cisco has 0 questions');
+// Verify it auto-updates (check a category with no lessons yet). Note:
+// "cisco-packet-tracer" now has a real "Grundlagen" lesson, so an
+// entirely-placeholder category is used here instead.
+const emptySummary = getCategorySummary('linux-virtualbox');
+assert(emptySummary.lessonCount === 0, 'Linux has 0 lessons');
+assert(emptySummary.totalQuestions === 0, 'Linux has 0 questions');
 console.log(`   Summary: ${summary.lessonCount} lessons, ${summary.totalQuestions} questions, ${summary.exerciseCount} exercises, ~${summary.estimatedMinutes} min.`);
 
 // ============================================================
@@ -233,12 +235,14 @@ console.log('   Scoring grades and Sam recommendations verified.');
 console.log('8. Testing availability logic...');
 store.clear();
 assert(!isThemencheckAvailable('fundamentals'), 'Not available without completions');
-assert(!isThemencheckAvailable('cisco-packet-tracer'), 'Not available for empty category');
+// "cisco-packet-tracer" now has a real "Grundlagen" lesson, so an
+// entirely-placeholder category is used here instead.
+assert(!isThemencheckAvailable('linux-virtualbox'), 'Not available for empty category');
 
 // Course mode: available
 store.set('cyberlearn:academy-mode-v1', JSON.stringify({ stateVersion: 1, mode: 'course', placementResults: {} }));
 assert(isThemencheckAvailable('fundamentals'), 'Available in course mode');
-assert(!isThemencheckAvailable('cisco-packet-tracer'), 'Still not for category without lessons');
+assert(!isThemencheckAvailable('linux-virtualbox'), 'Still not for category without lessons');
 store.clear();
 console.log('   Availability logic verified.');
 

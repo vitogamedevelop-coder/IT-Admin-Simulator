@@ -75,6 +75,7 @@ const EXPECTED_LESSONS = [
   'fundamentals/supernetting',
   'fundamentals/tcp-udp',
   'fundamentals/kommunikation-uebertragung',
+  'cisco-packet-tracer/grundlagen',
 ];
 
 // Grundbegriffe uses its own component (GrundbegriffeLesson), not LESSONS

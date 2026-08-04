@@ -116,7 +116,14 @@ export const ACADEMY_TOPICS = [
   // ---------------------------------------------------------------------
   // 2. Cisco – Packet Tracer
   // ---------------------------------------------------------------------
-  topic('cisco-packet-tracer', 'packet-tracer-ui', 'Packet Tracer Oberfläche', 'Werkzeuge und Ansicht von Packet Tracer kennenlernen.'),
+  // "Grundlagen" is the new entry-point lesson (hierarchical network design,
+  // device types, IOS, memory, boot process, CLI/config modes, ROMMON,
+  // factory reset, CLI conveniences) - inserted before the previous first
+  // topic "packet-tracer-ui", which now depends on it instead of being the
+  // entry point itself. Every other topic keeps its existing position and
+  // prerequisites unchanged.
+  topic('cisco-packet-tracer', 'grundlagen', 'Grundlagen', 'Hierarchisches Netzwerk-Design, Cisco-Geräte, IOS, Speicher, Bootvorgang und Konfigurationsmodi.'),
+  topic('cisco-packet-tracer', 'packet-tracer-ui', 'Packet Tracer Oberfläche', 'Werkzeuge und Ansicht von Packet Tracer kennenlernen.', ['grundlagen']),
   topic('cisco-packet-tracer', 'connect-end-devices', 'Endgeräte verbinden', 'Kabel und Endgeräte im Topologie-Editor verbinden.', ['packet-tracer-ui']),
   topic('cisco-packet-tracer', 'switch-basics', 'Switch-Grundlagen', 'Grundfunktionen eines Cisco-Switches.', ['connect-end-devices']),
   topic('cisco-packet-tracer', 'router-basics', 'Router-Grundlagen', 'Grundfunktionen eines Cisco-Routers.', ['connect-end-devices']),

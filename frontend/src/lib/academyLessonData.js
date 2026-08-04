@@ -9,6 +9,7 @@ import { buildVlsmLesson, VLSM_TOPIC_KEY } from './academyLessons/vlsm.js';
 import { buildSupernettingLesson, SUPERNETTING_TOPIC_KEY } from './academyLessons/supernetting.js';
 import { buildTcpUdpLesson, TCP_UDP_TOPIC_KEY } from './academyLessons/tcpUdp.js';
 import { buildKommunikationUebertragungLesson, KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY } from './academyLessons/kommunikationUebertragung.js';
+import { buildCiscoGrundlagenLesson, CISCO_GRUNDLAGEN_TOPIC_KEY } from './academyLessons/ciscoGrundlagen.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -261,6 +262,7 @@ export const LESSONS = {
   [SUPERNETTING_TOPIC_KEY]: buildSupernettingLesson(),
   [TCP_UDP_TOPIC_KEY]: buildTcpUdpLesson(),
   [KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY]: buildKommunikationUebertragungLesson(),
+  [CISCO_GRUNDLAGEN_TOPIC_KEY]: buildCiscoGrundlagenLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

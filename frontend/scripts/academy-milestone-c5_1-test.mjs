@@ -186,6 +186,8 @@ assert(!hasLessonContent('fundamentals', 'dns'), 'dns is placeholder');
 assert(!hasLessonContent('fundamentals', 'dhcp'), 'dhcp is placeholder');
 assert(!hasLessonContent('fundamentals', 'routing'), 'routing is placeholder');
 assert(!hasLessonContent('cisco-packet-tracer', 'packet-tracer-ui'), 'packet-tracer-ui is placeholder');
+// "Grundlagen" is now a real lesson - inserted before packet-tracer-ui.
+assert(hasLessonContent('cisco-packet-tracer', 'grundlagen'), 'cisco grundlagen has lesson');
 
 // AcademyCategory source should use hasLessonContent
 const categorySrc = fs.readFileSync(new URL('../src/pages/AcademyCategory.jsx', import.meta.url), 'utf8');

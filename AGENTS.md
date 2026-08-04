@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **1.3.0**
+Aktuelle Version: **1.4.0**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
@@ -505,6 +505,35 @@ Neue Spieler sollen nach ca. 10 Minuten wissen, wo sie sich befinden, welche Hot
   - Keine Sackgassen
   - Tutorial kann übersprungen werden
   - Abschluss startet die erste Mission
+
+### Acceptance checks
+- `npm run lint` ✅ (nur bekannte Warnungen).
+- `npm run build` ✅.
+
+## Cisco – "Grundlagen" als erste Lektion
+
+### Ziel
+Neue Einstiegslektion "Grundlagen" für die Kategorie "Cisco – Packet Tracer", direkt nach dem
+Themencheck und vor der bisherigen ersten Lektion "Packet Tracer Oberfläche".
+
+### Neue Dateien
+- `frontend/src/lib/academyLessons/ciscoGrundlagen.js` – vollständige LessonRunner-Lektion:
+  hierarchisches Netzwerk-Design (Access/Distribution/Core, Collapsed Core), L2-/Multilayer-Switch,
+  Router, Schnittstellenbezeichnungen/-geschwindigkeiten, Cisco IOS, Speicherkomponenten
+  (ROM/RAM/NVRAM/Flash), Konfigurationsdateien, Bootvorgang, serieller Zugriff, Konfigurationsmodi
+  und deren Wechsel, Setup Mode, ROMMON, Werksreset und dessen Auswirkungen, sowie
+  Befehlsvervollständigung/-verkürzung, Fehlermeldungen und Copy & Paste.
+- `frontend/scripts/academy-cisco-grundlagen-test.mjs` – Tests für Reihenfolge, Prerequisites,
+  Vollständigkeit der bisherigen Themen und Inhaltsabdeckung.
+
+### Geänderte Dateien
+- `frontend/src/lib/academyTopics.js` – neues Thema `grundlagen` als erstes Thema der Kategorie
+  `cisco-packet-tracer` (keine Prerequisites); `packet-tracer-ui` hat jetzt `grundlagen` als
+  Voraussetzung. Alle anderen Cisco-Themen unverändert (nur eine Position weiter hinten).
+- `frontend/src/lib/academyLessonData.js` – neue Lektion registriert.
+- `frontend/scripts/academy-milestone-c5_1-test.mjs`, `academy-milestone-c5_2-test.mjs`,
+  `academy-milestone-d5-test.mjs` – an die jetzt nicht mehr komplett leere Kategorie
+  `cisco-packet-tracer` angepasst (leere-Kategorie-Tests laufen jetzt gegen `linux-virtualbox`).
 
 ### Acceptance checks
 - `npm run lint` ✅ (nur bekannte Warnungen).
