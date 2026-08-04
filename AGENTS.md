@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **1.2.0**
+Aktuelle Version: **1.2.1**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
@@ -90,6 +90,49 @@ Aktuelle Version: **1.2.0**
 - Result: `frontend/android/app/build/outputs/apk/debug/IT-Admin-Simulator.apk` plus a timestamped copy in `frontend/apk-archive/`.
 - Example: `cd frontend; powershell -ExecutionPolicy Bypass -File scripts/build-apk.ps1`
 - Der Android-Workflow bleibt unverändert; GitHub Pages beeinflusst ihn nicht.
+
+## Verbindlicher Release-Ablauf (ab Milestone W1.1)
+
+Ab sofort gilt für **jede** abgeschlossene Änderung am Spiel — egal ob neues Quiz, neue Lektion,
+Bugfix, UI-Änderung, Performance-Verbesserung, neue Mission oder neue Funktion — verpflichtend der
+folgende Ablauf, bevor die Aufgabe als abgeschlossen gilt:
+
+1. **Version erhöhen (SemVer)** in `frontend/package.json` (und wo sonst die Version referenziert
+   wird, siehe „Versionierung" oben):
+   - **PATCH**: Bugfix, Performance, kleine UI-Korrektur, kleinere inhaltliche Korrektur.
+   - **MINOR**: neue Lektion, neues Quizpaket, neue Funktion, neuer größerer Spielinhalt.
+   - **MAJOR**: großer inkompatibler Umbau oder vollständiger neuer Hauptrelease.
+2. **Alle relevanten Tests ausführen** (z. B. `scripts/*-test.mjs` der betroffenen Milestones sowie
+   ggf. ein neuer Test für die aktuelle Änderung).
+3. **Lint ausführen**: `npm run lint` (frontend) — muss ohne neue Fehler/Warnungen durchlaufen.
+4. **Web-Production-Build erzeugen**: `npm run build` (frontend).
+5. **Android-/Capacitor-Sync ausführen**: `npx cap sync`.
+6. **Neue Android-APK erstellen** und wie bisher archivieren:
+   `powershell -ExecutionPolicy Bypass -File scripts/build-apk.ps1`.
+7. **Änderungen committen** (aussagekräftige Commit-Message, Versionsnummer im Body erwähnen).
+8. **Änderungen auf `main` pushen.**
+9. **GitHub Actions bis zum Abschluss prüfen** (`.github/workflows/deploy-pages.yml`), z. B. über die
+   GitHub Actions API (`GET /repos/.../actions/runs`), bis `status: completed` und
+   `conclusion: success`.
+10. **Sicherstellen, dass GitHub Pages erfolgreich aktualisiert wurde** (z. B. Live-Abruf eines
+    geänderten Assets/Bundles von `https://vitogamedevelop-coder.github.io/IT-Admin-Simulator/`).
+11. **Abschlussbericht ausgeben** mit:
+    - neuer Versionsnummer
+    - Commit-Hash
+    - geänderten Dateien
+    - Testergebnissen (Tests, Lint, Build)
+    - APK-Pfad
+    - GitHub-Actions-Ergebnis
+    - Live-Web-URL
+    - manuell zu prüfenden Punkten
+
+**Wichtig:**
+- Die Veröffentlichung auf GitHub Pages erfolgt ausschließlich automatisch über den bestehenden
+  GitHub-Actions-Workflow nach einem Push auf `main` — niemals eigenständig oder zeitgesteuert
+  außerhalb dieses Ablaufs.
+- Schlagen Tests, Build, APK-Erstellung oder Deployment fehl: **nicht** so tun, als wäre das Release
+  abgeschlossen. Stattdessen den Fehler konkret dokumentieren, die Ursache beheben und den
+  Release-Ablauf vollständig erneut durchführen.
 
 ## Milestone B: Sam als Mentor & Topologien
 

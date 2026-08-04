@@ -129,6 +129,38 @@ const PANORAMA_SRC = `${import.meta.env.BASE_URL}assets/location/Panorama2.png`;
 // hotspot coordinates onto the actually rendered image (see projectHotspot).
 const PANORAMA_NATURAL = { w: 1672, h: 941 };
 
+// Web/desktop viewport containment ("Workspace-Bühne"). Real phones (and the
+// Android app, which always reports phone-sized dimensions) keep filling the
+// screen edge-to-edge exactly as before. On larger browser viewports (desktop,
+// tablet) the same panorama is shown inside a capped, centered stage that
+// starts below the global header and never grows past an app-like size -
+// otherwise "background-size: cover" blows the scene up to fill the entire
+// window. Detection uses the shorter viewport side (Android's own sw600dp
+// tablet threshold) so it doesn't misfire on a phone rotated to landscape.
+const COMPACT_VIEWPORT_BREAKPOINT = 600;
+const STAGE_MAX_WIDTH = 1600;
+const STAGE_MAX_HEIGHT = 900;
+
+// Computes the capped, centered stage box for non-compact viewports. Reads
+// the real header height from the DOM (same approach already used by
+// NexusDesktop below) instead of hardcoding it, so it keeps working if the
+// header's height ever changes.
+function computeStageFrame() {
+  const headerEl = document.querySelector('header');
+  const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
+  const availW = window.innerWidth;
+  const availH = Math.max(window.innerHeight - headerBottom, 200);
+  const aspect = PANORAMA_NATURAL.w / PANORAMA_NATURAL.h;
+  let width = Math.min(availW, STAGE_MAX_WIDTH);
+  let height = width / aspect;
+  const capHeight = Math.min(availH, STAGE_MAX_HEIGHT);
+  if (height > capHeight) {
+    height = capHeight;
+    width = height * aspect;
+  }
+  return { top: headerBottom, left: Math.max(0, (availW - width) / 2), width: Math.round(width), height: Math.round(height) };
+}
+
 const ZONES = ['left', 'center', 'right', 'server'];
 const ZONE_LABELS = { left: 'Regal', center: 'Arbeitsplatz', right: 'Flur', server: 'Serverraum' };
 const ZONE_ICONS = { left: '📚', center: '💻', right: '🚪', server: '🖥' };
@@ -152,7 +184,11 @@ const HOTSPOTS = {
   runbooks:   { zone: 'left',   x: 0.065, y: 0.49,  w: 0.105, h: 0.21, label: 'Runbooks', app: 'runbooks' },
   directory:  { zone: 'left',   x: 0.065, y: 0.74,  w: 0.090, h: 0.16, label: 'Verzeichnis', app: 'directory' },
   whiteboard: { zone: 'left',   x: 0.175, y: 0.11,  w: 0.145, h: 0.44, label: 'Whiteboard', app: 'hints' },
-  workstation:{ zone: 'center', x: 0.185, y: 0.225, w: 0.475, h: 0.71, label: 'Arbeitsplatz', app: '__monitor__' },
+  // x starts right after the whiteboard hotspot (which ends at 0.32) so the
+  // two never overlap in landscape mode, where all zones render at once
+  // without zone-panning; previously the wider left edge (0.185) stole
+  // clicks from the whiteboard in that shared region.
+  workstation:{ zone: 'center', x: 0.33,  y: 0.225, w: 0.33,  h: 0.71, label: 'Arbeitsplatz', app: '__monitor__' },
   door:       { zone: 'right',  x: 0.655, y: 0.145, w: 0.175, h: 0.75, label: 'Tür zum Flur', app: 'people' },
   serverDoor: { zone: 'server', x: 0.855, y: 0.07,  w: 0.145, h: 0.86, label: 'Tür zum Serverraum', app: 'infrastructure' },
 };
@@ -240,6 +276,8 @@ export default function Workspace() {
   const [interactionMode, setInteractionMode] = useState(false); // shows all hotspots when active
   const [debugHotspots] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  const [isCompactViewport, setIsCompactViewport] = useState(() => Math.min(window.innerWidth, window.innerHeight) < COMPACT_VIEWPORT_BREAKPOINT);
+  const [stageFrame, setStageFrame] = useState(null); // {top,left,width,height} px, only used when !isCompactViewport
   const [activeHotspotKey, setActiveHotspotKey] = useState(null); // hotspot currently pressed/highlighted (tap or longpress in progress)
   const gestureRef = useRef({ pointerId: null, startX: 0, startY: 0, startTime: 0, targetKey: null, mode: 'pending' });
   const longPressTimer = useRef(null);
@@ -314,6 +352,21 @@ export default function Workspace() {
       window.removeEventListener('resize', orientationHandler);
       clearInterval(timer);
       stopAmbient();
+    };
+  }, []);
+
+  useEffect(() => {
+    function recomputeStage() {
+      const compact = Math.min(window.innerWidth, window.innerHeight) < COMPACT_VIEWPORT_BREAKPOINT;
+      setIsCompactViewport(compact);
+      setStageFrame(compact ? null : computeStageFrame());
+    }
+    recomputeStage();
+    window.addEventListener('resize', recomputeStage);
+    window.addEventListener('orientationchange', recomputeStage);
+    return () => {
+      window.removeEventListener('resize', recomputeStage);
+      window.removeEventListener('orientationchange', recomputeStage);
     };
   }, []);
 
@@ -744,9 +797,22 @@ export default function Workspace() {
 
   // (workstation modal removed – phone is now a desktop icon)
 
+  // Stage container: unchanged full-bleed fixed-to-viewport box on phones and
+  // in the Android app. On larger (desktop/tablet) viewports it's instead
+  // capped and centered below the header via computeStageFrame() above, so
+  // the panorama can't blow up to fill an entire desktop window. This only
+  // changes the outer box's position/size - the panorama ref div inside it
+  // still fills it exactly via `absolute inset-0`, so containerSize (and
+  // therefore every hotspot projection) automatically adapts with zero
+  // changes to the hotspot/gesture/zoom logic itself.
+  const stagePositionStyle = (isCompactViewport || !stageFrame)
+    ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }
+    : { position: 'fixed', top: stageFrame.top, left: stageFrame.left, width: stageFrame.width, height: stageFrame.height };
+  const stageClassName = `overflow-hidden bg-[#030508] select-none${isCompactViewport ? '' : ' rounded-2xl border border-[#1f2937]/80 shadow-[0_0_2.5rem_rgba(0,0,0,0.6)]'}`;
+
   // === LANDSCAPE ===
   if (isLandscape) return (
-    <div className="fixed inset-0 overflow-hidden bg-[#030508] select-none" style={zoomStyle}>
+    <div className={stageClassName} style={{ ...stagePositionStyle, ...zoomStyle }}>
       <div ref={setPanoramaRef} className="absolute inset-0" style={{ backgroundImage: `url(${PANORAMA_SRC})`, backgroundSize: 'cover', backgroundPosition: '50% center', backgroundRepeat: 'no-repeat' }} />
       <div className="absolute inset-0 bg-black/10" />
       {/* Hotspots - invisible by default, revealed in interaction mode or while
@@ -778,7 +844,7 @@ export default function Workspace() {
 
   // === PORTRAIT ===
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#030508] select-none">
+    <div className={`flex flex-col ${stageClassName}`} style={stagePositionStyle}>
       <div className="flex-1 relative overflow-hidden" style={zoomStyle}>
         <div ref={setPanoramaRef} className="absolute inset-0 transition-all duration-500 ease-out" style={{ backgroundImage: `url(${PANORAMA_SRC})`, backgroundSize: 'auto 100%', backgroundPosition: `${panX}% center`, backgroundRepeat: 'no-repeat' }} />
         <div className="absolute inset-0 bg-black/5" />
