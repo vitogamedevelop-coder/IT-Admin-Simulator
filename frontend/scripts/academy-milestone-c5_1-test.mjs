@@ -11,7 +11,7 @@
  * 7. checkAnswer prefix normalization
  */
 import assert from 'node:assert/strict';
-import { LESSONS, hasLessonContent, getTopicScoreDimensions } from '../src/lib/academyLessonData.js';
+import { LESSONS, hasLessonContent } from '../src/lib/academyLessonData.js';
 import {
   generateQuestion, generateSubnettingQuestion, generateExamQuestions,
   checkAnswer, getRandomTip, DIFFICULTY_NAMES, DIFFICULTY_LABELS,
@@ -173,14 +173,15 @@ assert(hasLessonContent('fundamentals', 'tcp-ip-model'), 'tcp-ip-model has lesso
 assert(hasLessonContent('fundamentals', 'ipv4'), 'ipv4 has lesson');
 assert(hasLessonContent('fundamentals', 'subnetting'), 'subnetting has lesson');
 
-// Custom mini-lessons (not in LESSONS but not placeholders)
+// Custom mini-lesson (not in LESSONS but not a placeholder)
 assert(hasLessonContent('fundamentals', 'grundbegriffe'), 'grundbegriffe has lesson');
-assert(hasLessonContent('fundamentals', 'tcp'), 'tcp has lesson');
-assert(hasLessonContent('fundamentals', 'udp'), 'udp has lesson');
-assert(hasLessonContent('fundamentals', 'tcp-vs-udp'), 'tcp-vs-udp has lesson');
+// Merged (Milestone C5.3): tcp/udp/tcp-vs-udp -> tcp-udp; the four separate
+// "Grundlagen" placeholders -> kommunikation-uebertragung. Both are now full
+// LessonRunner lessons registered in LESSONS.
+assert(hasLessonContent('fundamentals', 'tcp-udp'), 'tcp-udp has lesson');
+assert(hasLessonContent('fundamentals', 'kommunikation-uebertragung'), 'kommunikation-uebertragung has lesson');
 
 // Placeholder topics (no content yet)
-assert(!hasLessonContent('fundamentals', 'kommunikationsarten'), 'kommunikationsarten is placeholder');
 assert(!hasLessonContent('fundamentals', 'dns'), 'dns is placeholder');
 assert(!hasLessonContent('fundamentals', 'dhcp'), 'dhcp is placeholder');
 assert(!hasLessonContent('fundamentals', 'routing'), 'routing is placeholder');

@@ -80,7 +80,11 @@ function inputExercise(id, title, question, answer, explanation, placeholder = '
     type: 'input',
     title,
     question,
-    acceptedAnswers: [String(answer)],
+    // NOTE: the InputExercise component in LessonRunner.jsx reads
+    // `exercise.answers` (see the "answers.some(...)" check) - this field
+    // must be named exactly "answers", not "acceptedAnswers", or every
+    // input exercise built with this helper throws immediately on render.
+    answers: [String(answer)],
     placeholder,
     explanation,
   };

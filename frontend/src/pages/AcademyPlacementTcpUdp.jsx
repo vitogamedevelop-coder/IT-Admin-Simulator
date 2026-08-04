@@ -26,6 +26,7 @@ const QUESTIONS = [
   { id: 'stmt-tcp-connection', type: 'statement', prompt: 'TCP baut vor der Datenübertragung eine Verbindung auf.', options: ['Wahr', 'Falsch'], correct: 'Wahr', topic: 'tcp' },
   { id: 'stmt-udp-delivery', type: 'statement', prompt: 'UDP garantiert die Zustellung jedes Pakets.', options: ['Wahr', 'Falsch'], correct: 'Falsch', topic: 'udp' },
   { id: 'stmt-udp-latency', type: 'statement', prompt: 'UDP hat im Vergleich zu TCP eine geringere Verzögerung (Latenz).', options: ['Wahr', 'Falsch'], correct: 'Wahr', topic: 'tcp-vs-udp' },
+  { id: 'stmt-handshake-order', type: 'statement', prompt: 'Der TCP Three-Way Handshake läuft in der Reihenfolge SYN → SYN-ACK → ACK ab.', options: ['Wahr', 'Falsch'], correct: 'Wahr', topic: 'tcp' },
 ];
 
 export default function AcademyPlacementTcpUdp() {
@@ -61,9 +62,7 @@ export default function AcademyPlacementTcpUdp() {
     const weakTopics = [...new Set(QUESTIONS.filter((q) => answers[q.id] !== q.correct).map((q) => q.topic))];
     if (evaluation.passed) {
       markLearnedFromPlacement([
-        { categoryId: 'fundamentals', topicId: 'tcp' },
-        { categoryId: 'fundamentals', topicId: 'udp' },
-        { categoryId: 'fundamentals', topicId: 'tcp-vs-udp' },
+        { categoryId: 'fundamentals', topicId: 'tcp-udp' },
       ]);
     }
     recordPlacementResult(TEST_ID, { percent: evaluation.percent, passed: evaluation.passed, weakTopics });

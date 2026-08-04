@@ -7,6 +7,8 @@ import { buildSubnetMasksLesson, SUBNET_MASKS_TOPIC_KEY } from './academyLessons
 import { buildSubnettingLesson, SUBNETTING_TOPIC_KEY } from './academyLessons/subnetting.js';
 import { buildVlsmLesson, VLSM_TOPIC_KEY } from './academyLessons/vlsm.js';
 import { buildSupernettingLesson, SUPERNETTING_TOPIC_KEY } from './academyLessons/supernetting.js';
+import { buildTcpUdpLesson, TCP_UDP_TOPIC_KEY } from './academyLessons/tcpUdp.js';
+import { buildKommunikationUebertragungLesson, KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY } from './academyLessons/kommunikationUebertragung.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -257,14 +259,13 @@ export const LESSONS = {
   [SUBNETTING_TOPIC_KEY]: buildSubnettingLesson(),
   [VLSM_TOPIC_KEY]: buildVlsmLesson(),
   [SUPERNETTING_TOPIC_KEY]: buildSupernettingLesson(),
+  [TCP_UDP_TOPIC_KEY]: buildTcpUdpLesson(),
+  [KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY]: buildKommunikationUebertragungLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)
 const CUSTOM_LESSON_TOPICS = new Set([
   'fundamentals/grundbegriffe',
-  'fundamentals/tcp',
-  'fundamentals/udp',
-  'fundamentals/tcp-vs-udp',
 ]);
 
 /** Returns true if a topic has actual lesson content (LessonRunner, custom, or mini-lesson). */
@@ -276,9 +277,6 @@ export function hasLessonContent(categoryId, topicId) {
 export function getTopicScoreDimensions(categoryId, topicId) {
   const key = topicKey(categoryId, topicId);
   // Special interactive mini lessons that do not use the generic LessonRunner.
-  if (categoryId === 'fundamentals' && ['tcp', 'udp', 'tcp-vs-udp'].includes(topicId)) {
-    return { theory: true, practice: false, retention: false };
-  }
   if (categoryId === 'fundamentals' && topicId === 'grundbegriffe') {
     return { theory: true, practice: false, retention: false };
   }

@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **1.2.1**
+Aktuelle Version: **1.3.0**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
@@ -505,6 +505,69 @@ Neue Spieler sollen nach ca. 10 Minuten wissen, wo sie sich befinden, welche Hot
   - Keine Sackgassen
   - Tutorial kann übersprungen werden
   - Abschluss startet die erste Mission
+
+### Acceptance checks
+- `npm run lint` ✅ (nur bekannte Warnungen).
+- `npm run build` ✅.
+
+## Milestone C5.3: Grundlagen überarbeiten und Inhalte konsolidieren
+
+### Ziel
+Themencheck an den Anfang jeder Kategorie verschieben, TCP/UDP/TCP-vs-UDP zu einer vollständigen
+Lektion mit Three-Way-Handshake zusammenführen, und die vier separaten Platzhalter-Themen
+Kommunikationsarten/Betriebsarten/Ausbreitungsarten/Übertragungsmedien zu einer Lektion vereinen.
+
+### Neue Dateien
+- `frontend/src/lib/academyLessons/tcpUdp.js` – vollständige LessonRunner-Lektion „TCP & UDP“
+  (TCP/UDP ausgeschrieben, Eigenschaften, Vergleich, Three-Way Handshake, Ports, Admin-Bezug).
+- `frontend/src/lib/academyLessons/kommunikationUebertragung.js` – vollständige Lektion
+  „Kommunikations- und Übertragungsarten“ mit vier Abschnitten.
+- `frontend/scripts/academy-milestone-c5_3-test.mjs` – automatisierte Tests für dieses Milestone.
+
+### Geänderte Dateien
+- `frontend/src/lib/academyTopics.js` – Themen `tcp`, `udp`, `tcp-vs-udp` zu `tcp-udp` zusammengeführt;
+  `kommunikationsarten`, `betriebsarten`, `ausbreitungsarten`, `uebertragungsmedien` zu
+  `kommunikation-uebertragung` zusammengeführt.
+- `frontend/src/lib/academyLessonData.js` – neue Lektionen registriert, alte Custom-Mini-Lesson-Fälle
+  für TCP/UDP entfernt (laufen jetzt über den generischen LessonRunner).
+- `frontend/src/lib/academyProgress.js` – `STATE_VERSION` 7: `migrateLegacyTopicMerges()` überführt
+  vorhandenen Fortschritt unter den alten Themen-IDs automatisch in die neuen, zusammengeführten Themen
+  (bester Status, höchste Scores, Vereinigung der Resume-Felder).
+- `frontend/src/pages/AcademyCategory.jsx` – Themencheck-Karte direkt nach Lernzielen/Übersicht
+  gerendert, nicht mehr am Ende der Themenliste.
+- `frontend/src/pages/AcademyTopic.jsx` – TCP/UDP-Sonderfälle (`TcpUdpLesson`, `TcpVsUdpQuiz`,
+  `isTcpUdpFamily`) entfernt; TCP & UDP läuft jetzt wie jede andere Lektion über `LessonRunner`.
+- `frontend/src/pages/AcademyPlacementTcpUdp.jsx` – Einstufungstest markiert jetzt das zusammengeführte
+  Thema `tcp-udp` statt drei einzelner Themen; zusätzliche Handshake-Frage ergänzt.
+
+### Tests
+- `npx tsx scripts/academy-milestone-c5_3-test.mjs` prüft Themencheck-Position, Inhalt und Struktur
+  beider neuer Lektionen, Entfernen der alten Themen-IDs, Fortschrittsmigration und Konsistenz der
+  Kategorie-Zusammenfassung.
+- Bestehende Tests (C1–D7, Recovery) wurden an die neue Themenstruktur angepasst.
+
+### Acceptance checks
+- `npm run lint` ✅ (nur bekannte Warnungen).
+- `npm run build` ✅.
+
+## Hotfix H1: Übungen in Subnetting/VLSM/Supernetting funktionierten nicht
+
+### Ursache
+`subnetting.js`, `vlsm.js` und `supernetting.js` hatten jeweils eine lokale `inputExercise()`-
+Hilfsfunktion, die das Feld `acceptedAnswers` statt `answers` zurückgab. Die `InputExercise`-
+Komponente in `LessonRunner.jsx` liest aber unbedingt `exercise.answers.some(...)` bei **jedem**
+Render – bei `undefined` wirft das sofort eine `TypeError`, die vom umgebenden `ErrorBoundary`
+abgefangen wurde und statt der Übung einen Fehlerdialog zeigte. Nur diese drei Themen nutzten diese
+fehlerhafte Hilfsfunktion; alle anderen Lektionen (z. B. Binärsystem, Subnetzmasken) verwendeten
+bereits korrekt `answers`.
+
+### Fix
+- `answers` statt `acceptedAnswers` in allen drei Dateien.
+- `frontend/src/lib/validateLessonDefinition.js` prüft jetzt zusätzlich, dass jede `input`-Übung ein
+  nicht-leeres `answers`-Array besitzt – verhindert ein Wiederauftreten, statt nur das Symptom zu
+  beheben.
+- `frontend/scripts/hotfix-h1-test.mjs` (neu) validiert alle registrierten Lektionen und simuliert die
+  echte Antwortprüfung für Binärsystem, IPv4, Subnetzmasken, Subnetting, VLSM und Supernetting.
 
 ### Acceptance checks
 - `npm run lint` ✅ (nur bekannte Warnungen).

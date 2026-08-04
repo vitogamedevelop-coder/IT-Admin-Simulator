@@ -17,18 +17,11 @@ import BackBar from '../components/BackBar';
 import { useAppBack, pushBackHandler } from '../lib/useAppBack';
 
 // -----------------------------------------------------------------------
-// TCP / UDP / TCP-vs-UDP have small custom mini-lessons. All other finished
-// lessons use the generic LessonRunner. Topics without lesson content show
+// "Grundbegriffe" has a small custom mini-lesson (guided Sam dialogue). All
+// other finished lessons - including the merged "TCP & UDP" topic (Milestone
+// C5.3) - use the generic LessonRunner. Topics without lesson content show
 // a clearly-labeled placeholder.
 // -----------------------------------------------------------------------
-const TCP_POINTS = ['Verbindungsorientiert', 'Zuverlässige Übertragung', 'Bestätigungen (ACKs)', 'Einhaltung der Reihenfolge', 'Erneute Übertragung bei Verlust'];
-const UDP_POINTS = ['Verbindungslos', 'Geringer Verwaltungsaufwand', 'Keine Zustellgarantie', 'Keine garantierte Reihenfolge'];
-
-const TCP_VS_UDP_SCENARIOS = [
-  { id: 'file-transfer', label: 'Dateiübertragung', correct: 'TCP', reasonTcp: 'Richtig: Beim Dateitransfer darf kein Byte verloren gehen oder in falscher Reihenfolge ankommen - TCP passt hier.', reasonUdp: 'TCP wäre hier besser: Bei Dateien muss jedes Paket zuverlässig und in der richtigen Reihenfolge ankommen.' },
-  { id: 'voice-chat', label: 'Sprachchat', correct: 'UDP', reasonTcp: 'UDP wäre hier besser: Bei Live-Sprache stört Verzögerung durch erneute Übertragung mehr als ein kurzer Aussetzer.', reasonUdp: 'Richtig: Geringe Verzögerung ist wichtiger als hundertprozentige Zuverlässigkeit - UDP passt hier.' },
-  { id: 'dns-query', label: 'DNS-Anfrage', correct: 'UDP', reasonTcp: 'UDP wäre hier passender: DNS-Anfragen sind klein und sollen schnell beantwortet werden, ohne Verbindungsaufbau.', reasonUdp: 'Richtig: DNS-Anfragen sind klein, schnell und werden bei Bedarf einfach wiederholt - UDP passt hier.' },
-];
 
 const STATUS_LABEL = {
   [TOPIC_STATUS.LOCKED]: 'Gesperrt', [TOPIC_STATUS.AVAILABLE]: 'Verfügbar', [TOPIC_STATUS.STARTED]: 'Begonnen',
@@ -44,73 +37,12 @@ function PlaceholderLesson({ title }) {
   );
 }
 
-function TcpUdpLesson({ points, title }) {
-  return (
-    <div className="cyber-card p-4">
-      <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Sam erklärt</div>
-      <h3 className="font-bold text-white mt-1">{title}</h3>
-      <ul className="mt-3 flex flex-col gap-2">
-        {points.map((point) => (
-          <li key={point} className="flex items-center gap-2 text-sm text-[#c9d1d9]">
-            <CheckCircle2 size={15} className="text-[#00ff66] shrink-0" />{point}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function TcpVsUdpQuiz() {
-  const [step, setStep] = useState(0);
-  const [feedback, setFeedback] = useState(null);
-  const scenario = TCP_VS_UDP_SCENARIOS[step];
-  const done = step >= TCP_VS_UDP_SCENARIOS.length;
-
-  function answer(choice) {
-    setFeedback({ choice, text: choice === 'TCP' ? scenario.reasonTcp : scenario.reasonUdp, correct: choice === scenario.correct });
-  }
-
-  function next() {
-    setFeedback(null);
-    setStep((s) => s + 1);
-  }
-
-  if (done) {
-    return (
-      <div className="cyber-card p-4">
-        <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Sam</div>
-        <p className="text-sm text-[#c9d1d9] mt-2">Gut gemacht. Genau nach diesem Muster entscheidest du später auch bei echten Vorfällen zwischen TCP und UDP.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="cyber-card p-4">
-      <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Sam · Situation {step + 1}/{TCP_VS_UDP_SCENARIOS.length}</div>
-      <h3 className="font-bold text-white mt-1">{scenario.label}</h3>
-      <p className="text-sm text-[#c9d1d9] mt-2">Nutzt du hier eher TCP oder UDP?</p>
-      {!feedback ? (
-        <div className="flex gap-2 mt-3">
-          <button onClick={() => answer('TCP')} className="cyber-btn-outline flex-1 py-2 text-sm">TCP</button>
-          <button onClick={() => answer('UDP')} className="cyber-btn-outline flex-1 py-2 text-sm">UDP</button>
-        </div>
-      ) : (
-        <>
-          <p className={`text-xs mt-3 ${feedback.correct ? 'text-[#00ff66]' : 'text-[#ffcc00]'}`}>{feedback.text}</p>
-          <button onClick={next} className="cyber-btn w-full mt-3 text-sm py-2">Weiter</button>
-        </>
-      )}
-    </div>
-  );
-}
-
-
 // "Grundbegriffe" (Milestone A) - short Sam dialogue beats grouped into 3
 // sections, each ending in a small, non-punitive comprehension question.
 // Explicitly covers: Was ist ein Netzwerk? / Warum genutzt? / Dienste /
-// Protokolle (references, does NOT duplicate, the existing TCP/UDP topics)
+// Protokolle (references, does NOT duplicate, the "TCP & UDP" topic)
 // / Kommunikationsarten / Betriebsarten (both only briefly introduced here -
-// their own dedicated topics go deeper later).
+// the "Kommunikations- und Übertragungsarten" topic goes deeper later).
 // -----------------------------------------------------------------------
 const BASICS_BEATS = [
   { type: 'say', text: 'Fangen wir ganz vorne an: Ein Netzwerk verbindet mehrere Geräte, damit sie miteinander Daten austauschen können.' },
@@ -120,8 +52,8 @@ const BASICS_BEATS = [
   { type: 'say', text: 'Damit sich zwei Geräte überhaupt verstehen, brauchen sie eine gemeinsame Sprache - ein Protokoll. Ein Protokoll legt fest, wie Daten aufgebaut und ausgetauscht werden.' },
   { type: 'say', text: 'Zwei der wichtigsten Protokolle - TCP und UDP - lernst du gleich im eigenen Thema im Detail. Hier reicht erstmal: Ein Protokoll ist ein Regelwerk für die Kommunikation.', endOfSection: true },
   { type: 'question', prompt: 'Was ist ein Protokoll am ehesten?', options: ['Ein physisches Netzwerkkabel', 'Ein Regelwerk für die Kommunikation zwischen Geräten'], correct: 1, explanation: 'Ein Protokoll definiert die Regeln, nach denen Geräte Daten austauschen.' },
-  { type: 'say', text: 'Kommunikation kann unterschiedlich ablaufen: Unicast (eins zu eins), Broadcast (an alle) oder Multicast (an eine bestimmte Gruppe). Die Details dazu gehen wir später im Thema „Kommunikationsarten“ durch.' },
-  { type: 'say', text: 'Und es gibt die Betriebsart: Simplex (nur eine Richtung), Halbduplex (abwechselnd in beide Richtungen) oder Vollduplex (gleichzeitig in beide Richtungen). Auch das vertiefen wir später im Thema „Betriebsarten“.', endOfSection: true },
+  { type: 'say', text: 'Kommunikation kann unterschiedlich ablaufen: Unicast (eins zu eins), Broadcast (an alle) oder Multicast (an eine bestimmte Gruppe). Die Details dazu gehen wir später im Thema „Kommunikations- und Übertragungsarten“ durch.' },
+  { type: 'say', text: 'Und es gibt die Betriebsart: Simplex (nur eine Richtung), Halbduplex (abwechselnd in beide Richtungen) oder Vollduplex (gleichzeitig in beide Richtungen). Auch das vertiefen wir dort weiter.', endOfSection: true },
   { type: 'question', prompt: 'Ein Videoanruf, bei dem beide Seiten gleichzeitig sprechen und hören können, ist ein Beispiel für...', options: ['Simplex', 'Vollduplex'], correct: 1, explanation: 'Bei Vollduplex können beide Seiten gleichzeitig senden und empfangen, wie bei einem Videoanruf.' },
 ];
 
@@ -304,7 +236,7 @@ export default function AcademyTopic() {
   const courseMode = mode === LEARNING_MODES.COURSE;
   const locked = topic.status === TOPIC_STATUS.LOCKED;
   const effectiveLocked = locked && !courseMode;
-  const isTcpUdpFamily = ['tcp', 'udp', 'tcp-vs-udp'].includes(topic.topicId) && topic.categoryId === 'fundamentals';
+  const isTcpUdpTopic = topic.topicId === 'tcp-udp' && topic.categoryId === 'fundamentals';
 
   const isBasicsTopic = topic.topicId === 'grundbegriffe' && topic.categoryId === 'fundamentals';
   const hasLessonRunner = !!LESSONS[topicKey(categoryId, topicId)];
@@ -342,10 +274,7 @@ export default function AcademyTopic() {
       );
     }
 
-    if (!isTcpUdpFamily) return <PlaceholderLesson title={topic.title} />;
-    if (topic.topicId === 'tcp') return <TcpUdpLesson points={TCP_POINTS} title="TCP" />;
-    if (topic.topicId === 'udp') return <TcpUdpLesson points={UDP_POINTS} title="UDP" />;
-    return <TcpVsUdpQuiz />;
+    return <PlaceholderLesson title={topic.title} />;
   }
 
   return (
@@ -380,7 +309,7 @@ export default function AcademyTopic() {
           categoryId={categoryId}
           topicId={topicId}
           isBasicsTopic={isBasicsTopic}
-          isTcpUdpFamily={isTcpUdpFamily}
+          isTcpUdpFamily={isTcpUdpTopic}
           onIntro={openIntro}
           onReview={openReview}
           onBack={() => navigate(`/academy/${categoryId}`)}

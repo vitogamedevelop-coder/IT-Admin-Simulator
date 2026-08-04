@@ -48,6 +48,8 @@ const FINISHED_LESSONS = [
   'fundamentals/subnetting',
   'fundamentals/vlsm',
   'fundamentals/supernetting',
+  'fundamentals/tcp-udp',
+  'fundamentals/kommunikation-uebertragung',
 ];
 
 // ============================================================
@@ -302,7 +304,7 @@ for (const key of FINISHED_LESSONS) {
     }
   }
 }
-console.log('   All 9 lessons initialize correctly.');
+console.log(`   All ${FINISHED_LESSONS.length} lessons initialize correctly.`);
 
 // ============================================================
 // 8. Corridor touch-through guard exists in source

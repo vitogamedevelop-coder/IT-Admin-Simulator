@@ -86,10 +86,12 @@ export const ACADEMY_TOPICS = [
   // has been removed; Grundbegriffe covers its content.
   topic('fundamentals', 'grundbegriffe', 'Grundbegriffe', 'Was ein Netzwerk ist, wozu es dient, und die wichtigsten Grundbegriffe (Dienste, Protokolle, Kommunikations- und Betriebsarten).'),
   topic('fundamentals', 'topologien', 'Topologien', 'Wie Geräte in einem Netzwerk physisch/logisch angeordnet sind.', ['grundbegriffe']),
-  topic('fundamentals', 'kommunikationsarten', 'Kommunikationsarten', 'Unicast, Broadcast und Multicast im Detail.', ['grundbegriffe']),
-  topic('fundamentals', 'betriebsarten', 'Betriebsarten', 'Simplex, Halbduplex und Vollduplex im Detail.', ['grundbegriffe']),
-  topic('fundamentals', 'ausbreitungsarten', 'Ausbreitungsarten', 'Wie sich Signale in einem Übertragungsmedium ausbreiten.', ['grundbegriffe']),
-  topic('fundamentals', 'uebertragungsmedien', 'Übertragungsmedien', 'Kupferkabel, Glasfaser und Funk im Vergleich.', ['grundbegriffe']),
+  // Merged (Milestone C5.3) from the four previously separate placeholder
+  // topics "Kommunikationsarten", "Betriebsarten", "Ausbreitungsarten" and
+  // "Übertragungsmedien" into one topic with four sections - see
+  // academyLessons/kommunikationUebertragung.js. academyProgress.js migrates
+  // any pre-existing progress under the old topicIds into this one.
+  topic('fundamentals', 'kommunikation-uebertragung', 'Kommunikations- und Übertragungsarten', 'Unicast/Broadcast/Multicast, Simplex/Halbduplex/Vollduplex, Ausbreitungsarten und Übertragungsmedien im Vergleich.', ['grundbegriffe']),
   topic('fundamentals', 'osi-model', 'OSI-Modell', 'Die sieben Schichten der Netzwerkkommunikation.'),
   topic('fundamentals', 'tcp-ip-model', 'TCP/IP-Modell', 'Das praxisnahe Schichtenmodell des Internets.', ['osi-model']),
   topic('fundamentals', 'ipv4', 'IPv4', 'Aufbau und Notation von IPv4-Adressen.', ['tcp-ip-model']),
@@ -100,9 +102,11 @@ export const ACADEMY_TOPICS = [
   topic('fundamentals', 'supernetting', 'Supernetting', 'Mehrere Netze zu einem größeren zusammenfassen.', ['vlsm']),
   topic('fundamentals', 'ports', 'Ports', 'Wie Ports Dienste auf einem Host unterscheiden.', ['tcp-ip-model']),
   topic('fundamentals', 'transport-protocols', 'Transportprotokolle', 'Aufgabe der Transportschicht im TCP/IP-Modell.', ['tcp-ip-model']),
-  topic('fundamentals', 'tcp', 'TCP', 'verbindungsorientiert, zuverlässig, Reihenfolge, Bestätigungen, erneute Übertragung', ['transport-protocols']),
-  topic('fundamentals', 'udp', 'UDP', 'verbindungslos, geringer Overhead, keine Zustell- oder Reihenfolgegarantie', ['transport-protocols']),
-  topic('fundamentals', 'tcp-vs-udp', 'TCP vs. UDP', 'Entscheidung nach Zuverlässigkeit, Verzögerung und Anwendungsszenario', ['tcp', 'udp']),
+  // Merged (Milestone C5.3) from the three previously separate topics "TCP",
+  // "UDP" and "TCP vs. UDP" into one topic - see academyLessons/tcpUdp.js.
+  // academyProgress.js migrates any pre-existing progress under the old
+  // topicIds into this one.
+  topic('fundamentals', 'tcp-udp', 'TCP & UDP', 'Verbindungsorientiert vs. verbindungslos, Zuverlässigkeit, Reihenfolge, Fehlerkontrolle und der Three-Way Handshake.', ['transport-protocols']),
   topic('fundamentals', 'dns', 'DNS', 'Namensauflösung von Domainnamen zu IP-Adressen.', ['ports']),
   topic('fundamentals', 'dhcp', 'DHCP', 'Automatische Vergabe von IP-Konfigurationen.', ['ports']),
   topic('fundamentals', 'routing', 'Routing', 'Wie Pakete zwischen Netzwerken weitergeleitet werden.', ['ipv4']),

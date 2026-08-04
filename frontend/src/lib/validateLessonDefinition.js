@@ -84,6 +84,14 @@ export function validateLessonDefinition(lesson, key) {
       } else if (!VALID_TYPES.includes(ex.type)) {
         errors.push(`${prefix}exercise '${ex.id || i}' has unknown type: ${ex.type}`);
       }
+      // Hotfix H1: an "input" exercise without a valid `answers` array makes
+      // the LessonRunner's InputExercise component throw as soon as it
+      // renders (exercise.answers.some(...) on undefined) - caught by the
+      // ErrorBoundary, which showed a dead-end error dialog instead of the
+      // exercise. Catch this at validation time instead of at runtime.
+      if (ex.type === 'input' && (!Array.isArray(ex.answers) || ex.answers.length === 0)) {
+        errors.push(`${prefix}exercise '${ex.id || i}' is type "input" but has no non-empty "answers" array`);
+      }
     }
   }
 

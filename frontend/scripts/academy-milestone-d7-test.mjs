@@ -142,7 +142,7 @@ console.log('4. Testing full unlock chain...');
 store.clear();
 
 const CHAIN = [
-  { cat: 'fundamentals', topic: 'grundbegriffe', unlocks: ['topologien', 'kommunikationsarten', 'betriebsarten', 'ausbreitungsarten', 'uebertragungsmedien'] },
+  { cat: 'fundamentals', topic: 'grundbegriffe', unlocks: ['topologien', 'kommunikation-uebertragung'] },
   { cat: 'fundamentals', topic: 'topologien', unlocks: ['osi-model'] },
   { cat: 'fundamentals', topic: 'osi-model', unlocks: ['tcp-ip-model'] },
   { cat: 'fundamentals', topic: 'tcp-ip-model', unlocks: ['ipv4'] },

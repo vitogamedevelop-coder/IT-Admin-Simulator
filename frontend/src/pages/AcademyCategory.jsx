@@ -112,6 +112,37 @@ export default function AcademyCategory() {
         </div>
       )}
 
+      {/* Themencheck: always the first quiz-style entry in a category, right
+          after the overview/learning goals and before the individual lessons
+          (Milestone C5.3). Locking logic is unchanged: locked in Anfänger-Modus
+          until all lessons are completed, always available in Lehrgangsmodus. */}
+      {(() => {
+        const available = isThemencheckAvailable(categoryId);
+        return (
+          <button
+            disabled={!available}
+            onClick={() => navigate(`/academy/themencheck/${categoryId}`)}
+            className={`cyber-card p-3 text-left flex items-center gap-3 ${available ? 'border-[#00f0ff]/40 active:border-[#00f0ff]' : 'opacity-50'}`}
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#00f0ff]/10 border border-[#00f0ff]/20 shrink-0">
+              <ClipboardCheck size={20} className="text-[#00f0ff]" />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-white text-sm">Themencheck</div>
+              <div className="text-xs text-[#8b949e]">
+                {available
+                  ? bestScore !== null
+                    ? `Bisheriges bestes Ergebnis: ${bestScore}% – erneut testen?`
+                    : 'Teste dein Wissen über alle Lektionen dieser Kategorie.'
+                  : 'Schließe zuerst alle Lektionen ab, um den Themencheck freizuschalten.'}
+              </div>
+            </div>
+            {available && <ChevronRight size={18} className="text-[#8b949e] shrink-0" />}
+            {!available && <Lock size={16} className="text-[#8b949e] shrink-0" />}
+          </button>
+        );
+      })()}
+
       {/* Topic list */}
       <div className="flex flex-col gap-2">
         {catalogTopics.length === 0 && (
@@ -170,34 +201,6 @@ export default function AcademyCategory() {
           );
         })}
       </div>
-
-      {/* Themencheck card at bottom */}
-      {(() => {
-        const available = isThemencheckAvailable(categoryId);
-        return (
-          <button
-            disabled={!available}
-            onClick={() => navigate(`/academy/themencheck/${categoryId}`)}
-            className={`cyber-card p-3 text-left flex items-center gap-3 ${available ? 'border-[#00f0ff]/40 active:border-[#00f0ff]' : 'opacity-50'}`}
-          >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#00f0ff]/10 border border-[#00f0ff]/20 shrink-0">
-              <ClipboardCheck size={20} className="text-[#00f0ff]" />
-            </div>
-            <div className="flex-1">
-              <div className="font-bold text-white text-sm">Themencheck</div>
-              <div className="text-xs text-[#8b949e]">
-                {available
-                  ? bestScore !== null
-                    ? `Bisheriges bestes Ergebnis: ${bestScore}% – erneut testen?`
-                    : 'Teste dein Wissen über alle Lektionen dieser Kategorie.'
-                  : 'Schließe zuerst alle Lektionen ab, um den Themencheck freizuschalten.'}
-              </div>
-            </div>
-            {available && <ChevronRight size={18} className="text-[#8b949e] shrink-0" />}
-            {!available && <Lock size={16} className="text-[#8b949e] shrink-0" />}
-          </button>
-        );
-      })()}
     </div>
   );
 }

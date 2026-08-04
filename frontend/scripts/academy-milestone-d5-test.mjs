@@ -73,6 +73,8 @@ const EXPECTED_LESSONS = [
   'fundamentals/subnetting',
   'fundamentals/vlsm',
   'fundamentals/supernetting',
+  'fundamentals/tcp-udp',
+  'fundamentals/kommunikation-uebertragung',
 ];
 
 // Grundbegriffe uses its own component (GrundbegriffeLesson), not LESSONS
@@ -95,8 +97,7 @@ for (const key of LESSON_RUNNER_TOPICS) {
 
 // Verify topics without lessons don't have entries
 const topicsWithoutLesson = ACADEMY_TOPICS
-  .filter((t) => !EXPECTED_LESSONS.includes(topicKey(t.categoryId, t.topicId)))
-  .filter((t) => !['tcp', 'udp', 'tcp-vs-udp'].includes(t.topicId));
+  .filter((t) => !EXPECTED_LESSONS.includes(topicKey(t.categoryId, t.topicId)));
 for (const t of topicsWithoutLesson) {
   const key = topicKey(t.categoryId, t.topicId);
   assert(!LESSONS[key], `Topic ${key} without lesson is not in LESSONS`);
@@ -157,7 +158,7 @@ console.log('Testing no false placeholder for finished lessons...');
 // This test verifies the inverse: PlaceholderLesson topics DON'T have LESSONS
 const placeholderTopics = ACADEMY_TOPICS.filter((t) => {
   const key = topicKey(t.categoryId, t.topicId);
-  return !LESSONS[key] && !['grundbegriffe', 'tcp', 'udp', 'tcp-vs-udp'].includes(t.topicId);
+  return !LESSONS[key] && t.topicId !== 'grundbegriffe';
 });
 for (const t of placeholderTopics) {
   const key = topicKey(t.categoryId, t.topicId);

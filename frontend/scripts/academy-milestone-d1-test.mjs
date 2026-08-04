@@ -141,8 +141,10 @@ assert(subnetDims.theory && subnetDims.practice && !subnetDims.retention, 'Subne
 // network-basics topic removed; grundbegriffe replaces it
 const grundDims = getTopicScoreDimensions('fundamentals', 'grundbegriffe');
 assert(grundDims.theory && !grundDims.practice && !grundDims.retention, 'Grundbegriffe shows theory only');
-const tcpDims = getTopicScoreDimensions('fundamentals', 'tcp');
-assert(tcpDims.theory && !tcpDims.practice && !tcpDims.retention, 'TCP shows theory');
+// Merged (Milestone C5.3): "tcp-udp" is now a full LessonRunner lesson with
+// both explanations/quiz (theory) and exercises (practice).
+const tcpUdpDims = getTopicScoreDimensions('fundamentals', 'tcp-udp');
+assert(tcpUdpDims.theory && tcpUdpDims.practice && !tcpUdpDims.retention, 'TCP & UDP shows theory + practice');
 const placeholderDims = getTopicScoreDimensions('fundamentals', 'dhcp');
 assert(!placeholderDims.theory && !placeholderDims.practice && !placeholderDims.retention, 'Placeholder shows no scores');
 

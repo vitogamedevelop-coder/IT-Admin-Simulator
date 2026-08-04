@@ -25,7 +25,59 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // completedSectionIds, completedQuestionIds, completedExerciseIds) so the
 // LessonRunner can persist progress across sessions without awarding points
 // for unfinished or repeated visits. Migration fills these automatically.
-const STATE_VERSION = 6;
+// v7 (Milestone C5.3): "tcp"/"udp"/"tcp-vs-udp" merged into "tcp-udp", and
+// "kommunikationsarten"/"betriebsarten"/"ausbreitungsarten"/"uebertragungsmedien"
+// merged into "kommunikation-uebertragung". migrateLegacyTopicMerges() below
+// folds any pre-existing progress under the old topicIds into the new,
+// merged topic before the normal per-topic migration runs.
+const STATE_VERSION = 7;
+
+// Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
+// advanced status across a group of legacy topics being merged into one.
+const STATUS_RANK = ['locked', 'available', 'started', 'learned', 'applied', 'consolidated'];
+
+// Each entry merges progress from `oldKeys` (pre-Milestone-C5.3 topicIds,
+// dropped from the catalog) into `newKey` (the new, merged topic). Purely a
+// one-time save-data migration - the actual lesson content lives in
+// academyLessons/tcpUdp.js and academyLessons/kommunikationUebertragung.js.
+const LEGACY_TOPIC_MERGES = [
+  { newKey: 'fundamentals/tcp-udp', oldKeys: ['fundamentals/tcp', 'fundamentals/udp', 'fundamentals/tcp-vs-udp'] },
+  { newKey: 'fundamentals/kommunikation-uebertragung', oldKeys: ['fundamentals/kommunikationsarten', 'fundamentals/betriebsarten', 'fundamentals/ausbreitungsarten', 'fundamentals/uebertragungsmedien'] },
+];
+
+// Returns a copy of `savedTopics` where, for every LEGACY_TOPIC_MERGES entry
+// that has progress under any of its `oldKeys`, a combined entry is written
+// under `newKey` (numeric fields take the max across the group, status takes
+// the most advanced one, array fields are unioned). Old keys are left as-is;
+// the generic per-topic migration loop drops them afterward since they no
+// longer exist in the current catalog.
+function migrateLegacyTopicMerges(savedTopics) {
+  const result = { ...savedTopics };
+  LEGACY_TOPIC_MERGES.forEach(({ newKey, oldKeys }) => {
+    const legacyEntries = oldKeys.map((k) => savedTopics[k]).filter(Boolean);
+    if (legacyEntries.length === 0) return;
+    const combined = legacyEntries.reduce((acc, entry) => ({
+      status: STATUS_RANK.indexOf(entry.status) > STATUS_RANK.indexOf(acc.status) ? entry.status : acc.status,
+      theoryScore: Math.max(acc.theoryScore, Number(entry.theoryScore) || 0),
+      practiceScore: Math.max(acc.practiceScore, Number(entry.practiceScore) || 0),
+      retentionScore: Math.max(acc.retentionScore, Number(entry.retentionScore) || 0),
+      contentSeenPercent: Math.max(acc.contentSeenPercent, Number(entry.contentSeenPercent) || 0),
+      lessonCompletions: Math.max(acc.lessonCompletions, Number(entry.lessonCompletions) || 0),
+      quizAttempts: Math.max(acc.quizAttempts, Number(entry.quizAttempts) || 0),
+      quizPerfectCount: Math.max(acc.quizPerfectCount, Number(entry.quizPerfectCount) || 0),
+      quizBestScore: Math.max(acc.quizBestScore, Number(entry.quizBestScore) || 0),
+      completedSectionIds: [...new Set([...acc.completedSectionIds, ...(entry.completedSectionIds || [])])],
+      completedQuestionIds: [...new Set([...acc.completedQuestionIds, ...(entry.completedQuestionIds || [])])],
+      completedExerciseIds: [...new Set([...acc.completedExerciseIds, ...(entry.completedExerciseIds || [])])],
+    }), {
+      status: 'locked', theoryScore: 0, practiceScore: 0, retentionScore: 0, contentSeenPercent: 0,
+      lessonCompletions: 0, quizAttempts: 0, quizPerfectCount: 0, quizBestScore: 0,
+      completedSectionIds: [], completedQuestionIds: [], completedExerciseIds: [],
+    });
+    result[newKey] = { ...(result[newKey] || {}), ...combined };
+  });
+  return result;
+}
 
 function defaultProgressForTopic(topicDef) {
   return {
@@ -85,7 +137,8 @@ function migrateProgress(saved) {
     playerProfile: { ...base.playerProfile, ...(saved.playerProfile || {}) },
     topics: { ...base.topics },
   };
-  Object.entries(saved.topics || {}).forEach(([key, value]) => {
+  const savedTopics = migrateLegacyTopicMerges(saved.topics || {});
+  Object.entries(savedTopics).forEach(([key, value]) => {
     // Fresh defaults (incl. any newly-added fields like appliedCount) are
     // spread FIRST, then the old saved value is layered on top - fields the
     // old save doesn't know about simply keep their default.

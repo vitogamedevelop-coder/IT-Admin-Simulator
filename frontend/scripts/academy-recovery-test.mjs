@@ -47,13 +47,13 @@ const FINISHED_LESSONS = [
   'fundamentals/subnetting',
   'fundamentals/vlsm',
   'fundamentals/supernetting',
+  'fundamentals/tcp-udp',
+  'fundamentals/kommunikation-uebertragung',
 ];
 
 const PLACEHOLDER_TOPICS = [
-  { categoryId: 'fundamentals', topicId: 'kommunikationsarten' },
-  { categoryId: 'fundamentals', topicId: 'betriebsarten' },
-  { categoryId: 'fundamentals', topicId: 'ausbreitungsarten' },
-  { categoryId: 'fundamentals', topicId: 'uebertragungsmedien' },
+  { categoryId: 'fundamentals', topicId: 'dns' },
+  { categoryId: 'fundamentals', topicId: 'dhcp' },
 ];
 
 // ============================================================
@@ -67,7 +67,7 @@ for (const key of FINISHED_LESSONS) {
   assert(lesson.explanations.length > 0, `${key} has explanations`);
   assert(Array.isArray(lesson.exercises), `${key} exercises is array`);
 }
-console.log('   All 9 finished lessons registered.');
+console.log(`   All ${FINISHED_LESSONS.length} finished lessons registered.`);
 
 // ============================================================
 // 2. validateLessonDefinition passes for all finished lessons
@@ -202,7 +202,7 @@ ensureInitialUnlocks();
 
 const postData = readAcademyProgress();
 // Topics depending on grundbegriffe should now be AVAILABLE
-const dependents = ['topologien', 'kommunikationsarten', 'betriebsarten', 'ausbreitungsarten', 'uebertragungsmedien'];
+const dependents = ['topologien', 'kommunikation-uebertragung'];
 for (const dep of dependents) {
   const depKey = `fundamentals/${dep}`;
   assert.equal(postData.topics[depKey].status, TOPIC_STATUS.AVAILABLE,
