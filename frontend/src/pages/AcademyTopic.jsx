@@ -5,11 +5,12 @@ import { findTopic, topicKey, TOPIC_STATUS } from '../lib/academyTopics';
 import { getFullTopic } from '../lib/academyProgress';
 import {
   applyMentorLesson, applyQuiz,
-  recordContentSeen, isTopicMastered, topicOverallProgress,
+  recordContentSeen, topicOverallProgress,
 } from '../lib/academyEngine';
 import { LESSONS, getTopicScoreDimensions } from '../lib/academyLessonData';
 import { LEARNING_MODES, readAcademyMode } from '../lib/academyMode';
 import { shuffleOptions } from '../lib/shuffleOptions';
+import { collectQuestionsFromLesson } from '../lib/academyThemencheck';
 import LessonRunner from '../components/LessonRunner';
 import { characterAsset } from '../lib/rpgAssets';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -144,31 +145,50 @@ function GrundbegriffeLesson({ onDone }) {
   );
 }
 
+// Every normal lesson inside an Academy category now offers exactly the same
+// three-mode entry screen first: Theorie, Praxis, Fachgespräch. The player
+// chooses the mode; only then does the matching LessonRunner mode start.
+// The old single "Lektion starten" / "Einführung" button is removed from
+// this level. If a mode has no data (e.g. no question pool yet) it is shown
+// disabled with "Noch nicht verfügbar", but the selection screen itself is
+// always visible. ThemenChecks are unaffected and bypass this component.
+function ModeButton({ icon, title, description, onClick, disabled }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={
+        'w-full text-left p-3 rounded-lg border transition ' +
+        (disabled
+          ? 'opacity-50 cursor-not-allowed bg-[#0a1628]/30 border-[#30363d] text-[#8b949e]'
+          : 'bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9] hover:border-[#00f0ff]/60')
+      }
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{icon}</span>
+        <div className="font-bold text-sm">{title}</div>
+      </div>
+      <div className="text-xs text-[#8b949e] mt-1 pl-7">{description}</div>
+      {disabled && <div className="text-[10px] text-[#ffcc00] mt-1 pl-7">Noch nicht verfügbar</div>}
+    </button>
+  );
+}
+
 function AcademyEntryCard({
-  topic, categoryId, topicId, isBasicsTopic, isTcpUdpFamily,
-  onIntro, onReview, onBack, onPlacement,
+  topic, isBasicsTopic, isTcpUdpFamily, hasPractice, hasInterview,
+  onTheory, onPractice, onInterview, onBack, onPlacement,
 }) {
   const portrait = characterAsset('sam');
-  const hasExercises = (LESSONS[topicKey(categoryId, topicId)]?.exercises || []).length > 0;
-  const hasQuiz = (LESSONS[topicKey(categoryId, topicId)]?.quiz || []).length > 0;
-  const scoreDimensions = getTopicScoreDimensions(categoryId, topicId);
   const contentSeen = topic.contentSeenPercent || 0;
-  const perfectQuizzes = topic.quizPerfectCount || 0;
-  const mastered = isTopicMastered(categoryId, topicId, scoreDimensions.practice);
   const overall = topicOverallProgress(topic);
 
-  let greeting;
+  let greeting = '„Wie möchtest du diese Lektion angehen?"';
   let subtext = null;
-  if (mastered) {
-    greeting = '„Das Thema sitzt. Du kannst es trotzdem wiederholen oder direkt zu den Übungen gehen.“';
-  } else if (contentSeen >= 100 && perfectQuizzes < 3) {
-    greeting = '„Die Erklärung kennst du bereits. Für einen sicheren Abschluss fehlen dir noch fehlerfreie Wiederholungen.“';
-    subtext = `Fehlerfreie Quizze: ${perfectQuizzes} / 3`;
-  } else if (topic.status !== TOPIC_STATUS.AVAILABLE && (topic.theoryScore > 0 || topic.practiceScore > 0 || topic.retentionScore > 0 || contentSeen > 0)) {
-    greeting = '„Du hast das Thema schon einmal angefangen. Ein paar Punkte sollten wir noch festigen.“';
+  if (contentSeen >= 100) {
     subtext = `Gesamtfortschritt: ${overall}%`;
-  } else {
-    greeting = isBasicsTopic ? '„Bereit? Dann gehen wir die Grundbegriffe zusammen durch.“' : '„Lass uns das Thema Schritt für Schritt durchgehen.“';
+  } else if (topic.status !== TOPIC_STATUS.AVAILABLE && (topic.theoryScore > 0 || topic.practiceScore > 0 || topic.retentionScore > 0 || contentSeen > 0)) {
+    greeting = '„Du hast das Thema schon angefangen. Wie geht es weiter?"';
+    subtext = `Gesamtfortschritt: ${overall}%`;
   }
 
   return (
@@ -181,16 +201,27 @@ function AcademyEntryCard({
           {subtext && <p className="text-xs text-[#8b949e] mt-1">{subtext}</p>}
         </div>
       </div>
-      <div className="flex flex-col gap-2 mt-4">
-        {mastered && hasExercises && (
-          <button onClick={onReview} className="cyber-btn-outline w-full py-2 text-sm">Direkt zu den Übungen</button>
-        )}
-        {!mastered && !isBasicsTopic && contentSeen >= 100 && (
-          <button onClick={onReview} className="cyber-btn-outline w-full py-2 text-sm">{hasQuiz ? 'Abschlussquiz starten' : 'Kurze Wiederholung'}</button>
-        )}
-        <button onClick={onIntro} className="cyber-btn w-full py-2 text-sm">
-          {contentSeen >= 100 ? 'Erklärung wiederholen' : (isBasicsTopic ? 'Lektion starten' : 'Einführung')}
-        </button>
+      <div className="flex flex-col gap-3 mt-4">
+        <ModeButton
+          icon="📖"
+          title="Theorie"
+          description="Lerne die Inhalte Schritt für Schritt."
+          onClick={onTheory}
+        />
+        <ModeButton
+          icon="🧠"
+          title="Praxis"
+          description="Starte direkt eine zufällige Übungsrunde ohne Theorie."
+          onClick={onPractice}
+          disabled={isBasicsTopic || !hasPractice}
+        />
+        <ModeButton
+          icon="🎤"
+          title="Fachgespräch"
+          description="Beantworte offene Fragen und erkläre Zusammenhänge frei."
+          onClick={onInterview}
+          disabled={isBasicsTopic || !hasInterview}
+        />
         <button onClick={onBack} className="w-full text-xs text-[#8b949e] py-1 flex items-center justify-center gap-1">
           ← Zur Themenübersicht
         </button>
@@ -208,7 +239,7 @@ export default function AcademyTopic() {
   const { categoryId, topicId } = useParams();
   const navigate = useNavigate();
   useAppBack();
-  const [activeSection, setActiveSection] = useState(null); // null | 'intro' | 'review'
+  const [activeSection, setActiveSection] = useState(null); // null | 'theory' | 'practice' | 'interview'
   // Bumped after any engine call so the component re-renders and re-reads
   // the just-updated scores/status from academyProgress.js (getFullTopic is
   // not memoized - it always reflects the latest localStorage state on
@@ -240,6 +271,9 @@ export default function AcademyTopic() {
 
   const isBasicsTopic = topic.topicId === 'grundbegriffe' && topic.categoryId === 'fundamentals';
   const hasLessonRunner = !!LESSONS[topicKey(categoryId, topicId)];
+  const questionPool = hasLessonRunner ? collectQuestionsFromLesson(LESSONS[topicKey(categoryId, topicId)], topicId) : [];
+  const hasPractice = questionPool.length > 0;
+  const hasInterview = questionPool.length > 0;
   const scoreDimensions = getTopicScoreDimensions(categoryId, topicId);
   const scoreCols = [scoreDimensions.theory, scoreDimensions.practice, scoreDimensions.retention].filter(Boolean).length;
 
@@ -247,12 +281,16 @@ export default function AcademyTopic() {
   // the lesson (questions, exercises, quizzes, full completion) call the
   // engine themselves, and the engine guards against locked topics and
   // repeated farming. Placeholder topics therefore cannot be used to score.
-  function openIntro() {
-    setActiveSection('intro');
+  function openTheory() {
+    setActiveSection('theory');
     setRefreshTick((t) => t + 1);
   }
-  function openReview() {
-    setActiveSection('review');
+  function openPractice() {
+    setActiveSection('practice');
+    setRefreshTick((t) => t + 1);
+  }
+  function openInterview() {
+    setActiveSection('interview');
     setRefreshTick((t) => t + 1);
   }
   function closeLesson() {
@@ -269,6 +307,7 @@ export default function AcademyTopic() {
           categoryId={categoryId}
           topicId={topicId}
           topic={topic}
+          mode={activeSection}
           onDone={closeLesson}
         />
       );
@@ -306,12 +345,13 @@ export default function AcademyTopic() {
       ) : !activeSection ? (
         <AcademyEntryCard
           topic={topic}
-          categoryId={categoryId}
-          topicId={topicId}
           isBasicsTopic={isBasicsTopic}
           isTcpUdpFamily={isTcpUdpTopic}
-          onIntro={openIntro}
-          onReview={openReview}
+          hasPractice={hasPractice}
+          hasInterview={hasInterview}
+          onTheory={openTheory}
+          onPractice={openPractice}
+          onInterview={openInterview}
           onBack={() => navigate(`/academy/${categoryId}`)}
           onPlacement={() => navigate('/academy/placement/tcp-udp')}
         />

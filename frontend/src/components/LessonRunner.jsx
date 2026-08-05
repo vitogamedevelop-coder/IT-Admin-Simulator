@@ -11,6 +11,7 @@ import {
   recordQuizResult,
 } from '../lib/academyEngine';
 import { shuffleOptions } from '../lib/shuffleOptions';
+import { collectQuestionsFromLesson } from '../lib/academyThemencheck';
 import {
   calculateNetworkId, calculateBroadcast, calculateFirstHost, calculateLastHost,
   calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems,
@@ -22,11 +23,24 @@ import {
 
 const STYLE_SEQUENCE = ['classic', 'intuitive', 'example', 'visual', 'mnemonic'];
 
+// Every lesson now exposes three independent ways to engage with it, chosen
+// by the player on AcademyTopic's entry card before LessonRunner mounts:
+//  - 'theory'    (default): the existing explanation -> exercises -> quiz
+//    flow, now with a short comprehension check after every section.
+//  - 'practice': skips straight to a quiz drawn from a random subset of the
+//    lesson's full question pool (quiz + inline questions) - no theory.
+//  - 'interview': skips straight to a simulated oral exam ("Fachgespräch")
+//    built from the same question pool, presented as a Sam dialogue.
+// Both new modes deliberately reuse collectQuestionsFromLesson() (already
+// used by the Themencheck) instead of introducing a second question format.
+const PRACTICE_QUESTION_COUNT = 5;
+const INTERVIEW_QUESTION_COUNT = 5;
+
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
-export default function LessonRunner({ lesson, categoryId, topicId, topic, onDone }) {
+export default function LessonRunner({ lesson, categoryId, topicId, topic, mode = 'theory', onDone }) {
   const portrait = characterAsset('sam');
   const progress = readAcademyProgress().topics[`${categoryId}/${topicId}`];
   const savedStyle = readAcademyProgress().playerProfile?.preferredExplanationStyle;
@@ -57,12 +71,17 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, onDon
   const [phase, setPhase] = useState('explanation');
   const [currentSectionIndex, setCurrentSectionIndex] = useState(resumeIndex);
   const [currentStyle, setCurrentStyle] = useState(initialStyle);
-  const [answeredQuestions, setAnsweredQuestions] = useState({});
   const [completedExercises, setCompletedExercises] = useState({});
   const [quizAnswers, setQuizAnswers] = useState({});
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [quizResults, setQuizResults] = useState({});
   const [finished, setFinished] = useState(false);
+  // Comprehension check shown after every theory section (see
+  // findSectionCheckQuestion below): either a real question reused from
+  // that section's own content, or - if the section has none - a short
+  // generic self-assessment. null while no check is pending.
+  const [sectionCheckQuestion, setSectionCheckQuestion] = useState(null);
+  const [sectionCheckAnswer, setSectionCheckAnswer] = useState(null);
   const explanationRef = useRef(null);
   const hasScrolledRef = useRef(false);
   const sectionMountedRef = useRef(false);
@@ -116,14 +135,42 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, onDon
     recordPreferredStyle(style);
   }
 
-  function advanceSection() {
-    recordSectionCompletion(categoryId, topicId, currentSectionId, currentExplanation.title || '');
+  // Looks for an inline `type: 'question'` block anywhere in the current
+  // section (any explanation style) so the same content already authored
+  // for that section can double as its comprehension check - no new
+  // per-section content had to be written for this.
+  function findSectionCheckQuestion(sectionId) {
+    const section = explanationsBySection.get(sectionId) || {};
+    for (const style of Object.keys(section)) {
+      const q = (section[style]?.blocks || []).find((b) => b.type === 'question');
+      if (q) return q;
+    }
+    return null;
+  }
+
+  // Moves on to the next section (or exercises/quiz once the last section
+  // is done) - shared by both the question-based and generic self-check.
+  function proceedPastSection() {
+    setSectionCheckQuestion(null);
+    setSectionCheckAnswer(null);
     if (currentSectionIndex < sectionIds.length - 1) {
       setCurrentSectionIndex((i) => i + 1);
+      setPhase('explanation');
     } else {
       const hasExercises = (lesson.exercises || []).length > 0;
       setPhase(hasExercises ? 'exercises' : 'quiz');
     }
+  }
+
+  // "Weiter" on a theory section no longer advances directly - it first
+  // records the section as read, then always shows one short comprehension
+  // check (reusing the section's own inline question if it has one, or a
+  // generic self-assessment otherwise) before moving on.
+  function advanceSection() {
+    recordSectionCompletion(categoryId, topicId, currentSectionId, currentExplanation.title || '');
+    setSectionCheckQuestion(findSectionCheckQuestion(currentSectionId));
+    setSectionCheckAnswer(null);
+    setPhase('section-check');
   }
 
   function previousSection() {
@@ -191,7 +238,8 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, onDon
       const nextStyle = getNextAlternativeStyle();
       if (nextStyle) {
         setCurrentSectionIndex(0);
-        setAnsweredQuestions({});
+        setSectionCheckQuestion(null);
+        setSectionCheckAnswer(null);
         setCompletedExercises({});
         setQuizAnswers({});
         setQuizResults({});
@@ -211,6 +259,17 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, onDon
   }
 
   // ---------- Render phases ----------
+  // Practice and Fachgespräch never touch the theory/exercises/quiz state
+  // machine above - they're short-circuited here into their own small,
+  // self-contained components, both fed from the exact same question pool
+  // (collectQuestionsFromLesson) as the Themencheck already uses.
+  if (mode === 'practice') {
+    return <PracticeQuiz lesson={lesson} categoryId={categoryId} topicId={topicId} onDone={onDone} />;
+  }
+  if (mode === 'interview') {
+    return <FachgespraechRunner lesson={lesson} categoryId={categoryId} topicId={topicId} onDone={onDone} />;
+  }
+
   if (finished) {
     return (
       <div className="flex flex-col gap-4">
@@ -234,6 +293,40 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, onDon
             ))}
           </ul>
           <button onClick={onDone} className="cyber-btn w-full mt-4 py-2 text-sm">Fertig</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'section-check') {
+    if (sectionCheckQuestion) {
+      return (
+        <SectionCheckQuestion
+          question={sectionCheckQuestion}
+          onContinue={proceedPastSection}
+          answer={sectionCheckAnswer}
+          setAnswer={setSectionCheckAnswer}
+          categoryId={categoryId}
+          topicId={topicId}
+          sectionId={currentSectionId}
+        />
+      );
+    }
+    // No inline question authored for this section - a short, generic
+    // self-assessment still confirms understanding before moving on, using
+    // the exact same wording/pattern as the end-of-lesson check below.
+    return (
+      <div className="cyber-card p-4">
+        <div className="flex items-center gap-3">
+          {portrait ? <img src={portrait} alt="Sam" className="h-12 w-12 rounded-full border border-[#00f0ff] object-cover" /> : null}
+          <div>
+            <div className="text-xs text-[#00f0ff]">Sam Richter</div>
+            <p className="text-sm text-[#c9d1d9] mt-1">„Kurze Zwischenfrage: Hast du diesen Abschnitt soweit verstanden?“</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 mt-4">
+          <button onClick={proceedPastSection} className="cyber-btn w-full py-2 text-sm">Ja, weiter geht's.</button>
+          <button onClick={() => setPhase('explanation')} className="cyber-btn-outline w-full py-2 text-sm">Ich schau mir den Abschnitt nochmal an.</button>
         </div>
       </div>
     );
@@ -371,7 +464,11 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, onDon
         </div>
         <div className="mt-3 flex flex-col gap-3">
           {currentExplanation.blocks.map((block, i) => {
-            if (block.type === 'question') return <QuestionBlock key={i} block={block} currentSectionId={currentSectionId} answeredQuestions={answeredQuestions} setAnsweredQuestions={setAnsweredQuestions} categoryId={categoryId} topicId={topicId} />;
+            // Inline question blocks are no longer shown here - they're
+            // reused as the section's comprehension check (see
+            // findSectionCheckQuestion/phase 'section-check') so the same
+            // question isn't presented twice.
+            if (block.type === 'question') return null;
             return <StaticBlock key={i} block={block} index={i} />;
           })}
         </div>
@@ -462,38 +559,45 @@ function StaticBlock({ block }) {
   return null;
 }
 
-// ---------- Question block ----------
-function QuestionBlock({ block, currentSectionId, answeredQuestions, setAnsweredQuestions, categoryId, topicId }) {
-  const key = block.id || `${currentSectionId}-${block.question}`;
-  const answered = answeredQuestions[key];
-  const { options, correct } = useMemo(() => shuffleOptions(block.options, block.correct), [block.options, block.correct]);
-  const isCorrect = answered === correct;
+// ---------- Section comprehension check ----------
+// Reuses a section's own inline `question` block (see
+// findSectionCheckQuestion in LessonRunner) as its post-section check,
+// instead of introducing a second question format. Answering immediately
+// unlocks a "Weiter" that moves straight to the next section - no need to
+// revisit the theory text.
+function SectionCheckQuestion({ question, onContinue, answer, setAnswer, categoryId, topicId, sectionId }) {
+  const key = question.id || `${sectionId}-${question.question}`;
+  const { options, correct } = useMemo(() => shuffleOptions(question.options, question.correct), [question]);
+  const isCorrect = answer === correct;
 
-  function answer(index) {
-    if (answered !== undefined) return;
-    setAnsweredQuestions((prev) => ({ ...prev, [key]: index }));
+  function handleAnswer(index) {
+    if (answer !== null) return;
+    setAnswer(index);
     recordQuestionAnswer(categoryId, topicId, key, 'theory', index === correct);
   }
 
   return (
-    <div className="mt-4 p-3 rounded-xl border border-[#00f0ff]/20 bg-[#0a1628]/40">
+    <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Verständnisfrage</div>
-      <p className="text-sm text-white font-bold mt-1">{block.question}</p>
-      {answered === undefined ? (
+      <p className="text-sm text-white font-bold mt-2">{question.question}</p>
+      {answer === null ? (
         <div className="flex flex-col gap-2 mt-3">
           {options.map((opt, i) => (
-            <button key={i} onClick={() => answer(i)} className="cyber-btn-outline w-full py-2 text-sm text-left px-3">
+            <button key={i} onClick={() => handleAnswer(i)} className="cyber-btn-outline w-full py-2 text-sm text-left px-3">
               {opt}
             </button>
           ))}
         </div>
       ) : (
-        <div className="mt-3 flex items-start gap-2">
-          {isCorrect ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
-          <p className={classNames('text-xs', isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-            {isCorrect ? 'Richtig!' : 'Nicht ganz.'} {block.explanation}
-          </p>
-        </div>
+        <>
+          <div className="mt-3 flex items-start gap-2">
+            {isCorrect ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
+            <p className={classNames('text-xs', isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
+              {isCorrect ? 'Richtig!' : 'Nicht ganz.'} {question.explanation}
+            </p>
+          </div>
+          <button onClick={onContinue} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
+        </>
       )}
     </div>
   );
@@ -1309,6 +1413,222 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
       {savedExamsPassed.includes(difficultyLevel) && difficultyLevel >= 2 && (
         <button onClick={onComplete} className="cyber-btn w-full mt-3 py-2 text-sm">Übung abschließen</button>
       )}
+    </div>
+  );
+}
+
+// Picks `count` random, non-repeating questions from `pool` (or the whole
+// pool if it's smaller than `count`). Re-rolled once per mount via useMemo,
+// so every practice/interview run gets a different combination.
+function pickRandomQuestions(pool, count) {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+// ---------- Praxis (practice quiz) ----------
+// No theory, no exercises - just `PRACTICE_QUESTION_COUNT` random questions
+// drawn from the lesson's full pool (quiz + inline theory questions, via the
+// same collectQuestionsFromLesson used by the Themencheck). A fresh random
+// subset is picked every time this mounts, so repeated practice runs feel
+// varied instead of always asking the same five questions.
+function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
+  const pool = useMemo(() => collectQuestionsFromLesson(lesson, topicId), [lesson, topicId]);
+  const questions = useMemo(() => pickRandomQuestions(pool, PRACTICE_QUESTION_COUNT), [pool]);
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [results, setResults] = useState({});
+  const [finished, setFinished] = useState(false);
+  const resultRecordedRef = useRef(false);
+  const question = questions[index];
+  const shuffled = useMemo(() => (question ? shuffleOptions(question.options, question.correct) : null), [question]);
+
+  useEffect(() => {
+    if (!finished || resultRecordedRef.current || questions.length === 0) return;
+    const correct = Object.values(results).filter(Boolean).length;
+    recordQuizResult(categoryId, topicId, { total: questions.length, correct });
+    resultRecordedRef.current = true;
+  }, [finished, results, categoryId, topicId, questions.length]);
+
+  function answer(i) {
+    if (answers[index] !== undefined) return;
+    setAnswers((prev) => ({ ...prev, [index]: i }));
+    const isCorrect = i === shuffled.correct;
+    setResults((prev) => ({ ...prev, [index]: isCorrect }));
+    recordQuestionAnswer(categoryId, topicId, `practice-${index}`, 'retention', isCorrect);
+  }
+
+  function next() {
+    if (index + 1 >= questions.length) setFinished(true);
+    else setIndex((i) => i + 1);
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="cyber-card p-4">
+        <p className="text-sm text-[#c9d1d9]">Für dieses Thema gibt es noch keinen Übungsfragenpool.</p>
+        <button onClick={onDone} className="cyber-btn w-full mt-3 py-2 text-sm">Zurück</button>
+      </div>
+    );
+  }
+
+  if (finished) {
+    const correct = Object.values(results).filter(Boolean).length;
+    return (
+      <div className="cyber-card p-4">
+        <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Praxis abgeschlossen</div>
+        <p className="text-sm text-white font-bold mt-2">{correct} von {questions.length} richtig</p>
+        <p className="text-xs text-[#8b949e] mt-1">Jede Runde stellt eine neue, zufällige Auswahl aus dem Fragenpool zusammen - probier es gern noch einmal.</p>
+        <button onClick={onDone} className="cyber-btn w-full mt-3 py-2 text-sm">Fertig</button>
+      </div>
+    );
+  }
+
+  const answered = answers[index];
+  const isCorrect = answered === shuffled.correct;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="cyber-card p-3">
+        <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">🧠 Praxis · Frage {index + 1} von {questions.length}</div>
+      </div>
+      <div className="cyber-card p-4">
+        <p className="text-sm text-white font-bold">{question.question}</p>
+        {answered === undefined ? (
+          <div className="flex flex-col gap-2 mt-3">
+            {shuffled.options.map((opt, i) => (
+              <button key={i} onClick={() => answer(i)} className="cyber-btn-outline w-full py-2 text-sm text-left px-3">{opt}</button>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="mt-3 flex items-start gap-2">
+              {isCorrect ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
+              <p className={classNames('text-xs', isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
+                {isCorrect ? 'Richtig!' : 'Nicht ganz.'} {question.explanation}
+              </p>
+            </div>
+            <button onClick={next} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Fachgespräch (simulated oral exam) ----------
+// Same question pool as Praxis, but presented as a spoken Sam dialogue
+// instead of a plain quiz card - Sam "asks" the question and reacts
+// in-character, matching how the rest of the app's Sam dialogues read.
+const FACHGESPRAECH_INTROS = [
+  'Lass uns das Ganze mal im Gespräch durchgehen - erklär mir einfach, was du weißt.',
+  'Stell dir vor, das hier ist ein kurzes Fachgespräch. Ich frage, du antwortest - ganz entspannt.',
+  'Kleines Fachgespräch zwischendurch. Keine Sorge, das ist keine Prüfung mit Punktabzug.',
+];
+const FACHGESPRAECH_CORRECT_REACTIONS = [
+  'Genau, so hätte ich das auch erklärt.',
+  'Richtig. Man merkt, dass du dich damit beschäftigt hast.',
+  'Gut erklärt.',
+];
+const FACHGESPRAECH_INCORRECT_REACTIONS = [
+  'Fast - lass es mich kurz einordnen:',
+  'Nicht ganz, aber das ist ein guter Ansatzpunkt:',
+  'Da würde ich widersprechen. Schau mal:',
+];
+
+function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
+  const portrait = characterAsset('sam');
+  const pool = useMemo(() => collectQuestionsFromLesson(lesson, topicId), [lesson, topicId]);
+  const questions = useMemo(() => pickRandomQuestions(pool, INTERVIEW_QUESTION_COUNT), [pool]);
+  const [index, setIndex] = useState(0);
+  const [answer, setAnswer] = useState(null);
+  const [results, setResults] = useState({});
+  const [finished, setFinished] = useState(false);
+  const resultRecordedRef = useRef(false);
+  const question = questions[index];
+  const shuffled = useMemo(() => (question ? shuffleOptions(question.options, question.correct) : null), [question]);
+  const reaction = useMemo(() => {
+    const pickFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    return { intro: pickFrom(FACHGESPRAECH_INTROS), correct: pickFrom(FACHGESPRAECH_CORRECT_REACTIONS), incorrect: pickFrom(FACHGESPRAECH_INCORRECT_REACTIONS) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!finished || resultRecordedRef.current || questions.length === 0) return;
+    const correct = Object.values(results).filter(Boolean).length;
+    recordQuizResult(categoryId, topicId, { total: questions.length, correct });
+    resultRecordedRef.current = true;
+  }, [finished, results, categoryId, topicId, questions.length]);
+
+  function respond(i) {
+    if (answer !== null) return;
+    setAnswer(i);
+    const isCorrect = i === shuffled.correct;
+    setResults((prev) => ({ ...prev, [index]: isCorrect }));
+    recordQuestionAnswer(categoryId, topicId, `interview-${index}`, 'retention', isCorrect);
+  }
+
+  function next() {
+    setAnswer(null);
+    if (index + 1 >= questions.length) setFinished(true);
+    else setIndex((i) => i + 1);
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="cyber-card p-4">
+        <p className="text-sm text-[#c9d1d9]">Für dieses Thema gibt es noch keinen Fragenpool für ein Fachgespräch.</p>
+        <button onClick={onDone} className="cyber-btn w-full mt-3 py-2 text-sm">Zurück</button>
+      </div>
+    );
+  }
+
+  if (finished) {
+    const correct = Object.values(results).filter(Boolean).length;
+    return (
+      <div className="cyber-card p-4">
+        <div className="flex items-center gap-3">
+          {portrait ? <img src={portrait} alt="Sam" className="h-12 w-12 rounded-full border border-[#00ff66] object-cover" /> : null}
+          <div>
+            <div className="text-xs text-[#00ff66]">Sam Richter</div>
+            <p className="text-sm text-[#c9d1d9] mt-1">„Gutes Gespräch. {correct} von {questions.length} Antworten haben direkt gepasst.“</p>
+          </div>
+        </div>
+        <button onClick={onDone} className="cyber-btn w-full mt-4 py-2 text-sm">Fertig</button>
+      </div>
+    );
+  }
+
+  const isCorrect = answer === shuffled.correct;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="cyber-card p-4">
+        <div className="flex items-center gap-3">
+          {portrait ? <img src={portrait} alt="Sam" className="h-12 w-12 rounded-full border border-[#00f0ff] object-cover" /> : null}
+          <div>
+            <div className="text-xs text-[#00f0ff]">Sam Richter · 🎤 Fachgespräch</div>
+            <p className="text-[10px] text-[#8b949e]">Frage {index + 1} von {questions.length}</p>
+          </div>
+        </div>
+        <p className="text-sm text-[#c9d1d9] mt-3">„{index === 0 ? `${reaction.intro} ` : ''}{question.question}“</p>
+      </div>
+      <div className="cyber-card p-4">
+        {answer === null ? (
+          <div className="flex flex-col gap-2">
+            {shuffled.options.map((opt, i) => (
+              <button key={i} onClick={() => respond(i)} className="cyber-btn-outline w-full py-2 text-sm text-left px-3">{opt}</button>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start gap-2">
+              {isCorrect ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
+              <p className={classNames('text-sm', isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
+                „{isCorrect ? reaction.correct : reaction.incorrect}“ {!isCorrect && question.explanation}
+              </p>
+            </div>
+            <button onClick={next} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
