@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cyberlearn-v4';
+const CACHE_NAME = 'cyberlearn-v5';
 // self.registration.scope is the deployment base ('/' locally, '/IT-Admin-Simulator/'
 // on GitHub Pages), so precached URLs stay correct on every target.
 const BASE = new URL(self.registration.scope).pathname;
