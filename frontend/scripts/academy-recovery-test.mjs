@@ -49,11 +49,18 @@ const FINISHED_LESSONS = [
   'fundamentals/supernetting',
   'fundamentals/tcp-udp',
   'fundamentals/kommunikation-uebertragung',
+  // Added by the "Themenstruktur-Anpassung" milestone.
+  'fundamentals/dns',
+  'fundamentals/dhcp',
+  'fundamentals/routing',
+  'fundamentals/switching',
+  'fundamentals/vlan-basics',
+  'cisco-packet-tracer/grundkonfiguration',
 ];
 
 const PLACEHOLDER_TOPICS = [
-  { categoryId: 'fundamentals', topicId: 'dns' },
-  { categoryId: 'fundamentals', topicId: 'dhcp' },
+  { categoryId: 'cisco-packet-tracer', topicId: 'packet-tracer-ui' },
+  { categoryId: 'cisco-packet-tracer', topicId: 'connect-end-devices' },
 ];
 
 // ============================================================

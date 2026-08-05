@@ -182,9 +182,11 @@ assert(hasLessonContent('fundamentals', 'tcp-udp'), 'tcp-udp has lesson');
 assert(hasLessonContent('fundamentals', 'kommunikation-uebertragung'), 'kommunikation-uebertragung has lesson');
 
 // Placeholder topics (no content yet)
-assert(!hasLessonContent('fundamentals', 'dns'), 'dns is placeholder');
-assert(!hasLessonContent('fundamentals', 'dhcp'), 'dhcp is placeholder');
-assert(!hasLessonContent('fundamentals', 'routing'), 'routing is placeholder');
+// dns/dhcp/routing gained full LessonRunner lessons in the
+// "Themenstruktur-Anpassung" milestone (see academy-themenstruktur-test.mjs).
+assert(hasLessonContent('fundamentals', 'dns'), 'dns has lesson');
+assert(hasLessonContent('fundamentals', 'dhcp'), 'dhcp has lesson');
+assert(hasLessonContent('fundamentals', 'routing'), 'routing has lesson');
 assert(!hasLessonContent('cisco-packet-tracer', 'packet-tracer-ui'), 'packet-tracer-ui is placeholder');
 // "Grundlagen" is now a real lesson - inserted before packet-tracer-ui.
 assert(hasLessonContent('cisco-packet-tracer', 'grundlagen'), 'cisco grundlagen has lesson');

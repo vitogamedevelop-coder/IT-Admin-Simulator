@@ -123,6 +123,14 @@ export const ACADEMY_TOPICS = [
   // entry point itself. Every other topic keeps its existing position and
   // prerequisites unchanged.
   topic('cisco-packet-tracer', 'grundlagen', 'Grundlagen', 'Hierarchisches Netzwerk-Design, Cisco-Geräte, IOS, Speicher, Bootvorgang und Konfigurationsmodi.'),
+  // Inserted directly after "Grundlagen" (Milestone: Themenstruktur-Anpassung).
+  // Self-contained hands-on primer: VLANs, Access-/Trunk-Ports, unused-port
+  // hardening, IOS basic configuration and troubleshooting show-commands -
+  // each CLI section preceded by a short conceptual refresher. Deliberately
+  // independent of the existing packet-tracer-ui -> ... -> basic-device-
+  // configuration chain below, which is unchanged and still covers the same
+  // ground again in more depth with actual Packet Tracer practice.
+  topic('cisco-packet-tracer', 'grundkonfiguration', 'Grundkonfiguration', 'VLANs, Access- und Trunk-Ports, ungenutzte Ports absichern, IOS-Grundkonfiguration und Troubleshooting-Befehle.', ['grundlagen']),
   topic('cisco-packet-tracer', 'packet-tracer-ui', 'Packet Tracer Oberfläche', 'Werkzeuge und Ansicht von Packet Tracer kennenlernen.', ['grundlagen']),
   topic('cisco-packet-tracer', 'connect-end-devices', 'Endgeräte verbinden', 'Kabel und Endgeräte im Topologie-Editor verbinden.', ['packet-tracer-ui']),
   topic('cisco-packet-tracer', 'switch-basics', 'Switch-Grundlagen', 'Grundfunktionen eines Cisco-Switches.', ['connect-end-devices']),

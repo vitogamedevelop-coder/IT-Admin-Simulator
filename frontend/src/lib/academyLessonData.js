@@ -10,6 +10,12 @@ import { buildSupernettingLesson, SUPERNETTING_TOPIC_KEY } from './academyLesson
 import { buildTcpUdpLesson, TCP_UDP_TOPIC_KEY } from './academyLessons/tcpUdp.js';
 import { buildKommunikationUebertragungLesson, KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY } from './academyLessons/kommunikationUebertragung.js';
 import { buildCiscoGrundlagenLesson, CISCO_GRUNDLAGEN_TOPIC_KEY } from './academyLessons/ciscoGrundlagen.js';
+import { buildDnsLesson, DNS_TOPIC_KEY } from './academyLessons/dns.js';
+import { buildDhcpLesson, DHCP_TOPIC_KEY } from './academyLessons/dhcp.js';
+import { buildRoutingLesson, ROUTING_TOPIC_KEY } from './academyLessons/routing.js';
+import { buildSwitchingLesson, SWITCHING_TOPIC_KEY } from './academyLessons/switching.js';
+import { buildVlanBasicsLesson, VLAN_BASICS_TOPIC_KEY } from './academyLessons/vlanBasics.js';
+import { buildCiscoGrundkonfigurationLesson, CISCO_GRUNDKONFIGURATION_TOPIC_KEY } from './academyLessons/ciscoGrundkonfiguration.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -263,6 +269,12 @@ export const LESSONS = {
   [TCP_UDP_TOPIC_KEY]: buildTcpUdpLesson(),
   [KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY]: buildKommunikationUebertragungLesson(),
   [CISCO_GRUNDLAGEN_TOPIC_KEY]: buildCiscoGrundlagenLesson(),
+  [DNS_TOPIC_KEY]: buildDnsLesson(),
+  [DHCP_TOPIC_KEY]: buildDhcpLesson(),
+  [ROUTING_TOPIC_KEY]: buildRoutingLesson(),
+  [SWITCHING_TOPIC_KEY]: buildSwitchingLesson(),
+  [VLAN_BASICS_TOPIC_KEY]: buildVlanBasicsLesson(),
+  [CISCO_GRUNDKONFIGURATION_TOPIC_KEY]: buildCiscoGrundkonfigurationLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

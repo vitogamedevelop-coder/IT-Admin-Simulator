@@ -76,6 +76,13 @@ const EXPECTED_LESSONS = [
   'fundamentals/tcp-udp',
   'fundamentals/kommunikation-uebertragung',
   'cisco-packet-tracer/grundlagen',
+  // Added by the "Themenstruktur-Anpassung" milestone.
+  'fundamentals/dns',
+  'fundamentals/dhcp',
+  'fundamentals/routing',
+  'fundamentals/switching',
+  'fundamentals/vlan-basics',
+  'cisco-packet-tracer/grundkonfiguration',
 ];
 
 // Grundbegriffe uses its own component (GrundbegriffeLesson), not LESSONS

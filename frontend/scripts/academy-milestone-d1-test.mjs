@@ -145,7 +145,10 @@ assert(grundDims.theory && !grundDims.practice && !grundDims.retention, 'Grundbe
 // both explanations/quiz (theory) and exercises (practice).
 const tcpUdpDims = getTopicScoreDimensions('fundamentals', 'tcp-udp');
 assert(tcpUdpDims.theory && tcpUdpDims.practice && !tcpUdpDims.retention, 'TCP & UDP shows theory + practice');
-const placeholderDims = getTopicScoreDimensions('fundamentals', 'dhcp');
+// "dhcp" gained a full LessonRunner lesson in the "Themenstruktur-Anpassung"
+// milestone, so it now shows theory + practice like any other real lesson -
+// use a topic that is still an actual placeholder instead.
+const placeholderDims = getTopicScoreDimensions('cisco-packet-tracer', 'packet-tracer-ui');
 assert(!placeholderDims.theory && !placeholderDims.practice && !placeholderDims.retention, 'Placeholder shows no scores');
 
 console.log('All Milestone D1 tests passed.');

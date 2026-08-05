@@ -44,8 +44,12 @@ console.log('   grundlagen is first; packet-tracer-ui shifted to depend on it.')
 // 3. All previously existing Cisco topics still present
 // ============================================================
 console.log('3. Testing all previous Cisco topics are unchanged...');
+// Note: "grundkonfiguration" was inserted after "grundlagen" by the later
+// "Themenstruktur-Anpassung" milestone (see academy-themenstruktur-test.mjs)
+// - included here too so this test keeps passing without re-litigating that
+// change.
 const EXPECTED_EXISTING = [
-  'packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'router-basics',
+  'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'router-basics',
   'basic-device-configuration', 'ip-configuration', 'vlan', 'access-port',
   'trunk', 'inter-vlan-routing', 'static-routing', 'stp', 'acl', 'nat', 'troubleshooting',
 ];
@@ -53,7 +57,7 @@ for (const topicId of EXPECTED_EXISTING) {
   const exists = ciscoTopics.some((t) => t.topicId === topicId);
   assert(exists, `Existing topic "${topicId}" is still present`);
 }
-assert.equal(ciscoTopics.length, EXPECTED_EXISTING.length + 1, 'Exactly one new topic added, nothing removed');
+assert.equal(ciscoTopics.length, EXPECTED_EXISTING.length + 1, 'Exactly the expected topics are present, nothing removed');
 console.log(`   All ${EXPECTED_EXISTING.length} previous topics preserved, plus 1 new ("grundlagen").`);
 
 // ============================================================
