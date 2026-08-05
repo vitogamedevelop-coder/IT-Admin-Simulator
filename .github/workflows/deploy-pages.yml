@@ -47,7 +47,10 @@ jobs:
         run: |
           # public/404.html is already copied by Vite and contains the GitHub Pages redirect.
           test -f 404.html
-          echo '{"version": "1.4.0"}' > version.json
+          # public/version.json is already copied by Vite with the current
+          # package.json version - no need to (and must not) overwrite it
+          # with a hardcoded value here.
+          test -f version.json
 
       - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
