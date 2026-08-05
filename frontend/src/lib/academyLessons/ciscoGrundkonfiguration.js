@@ -35,59 +35,52 @@ function buildExplanations() {
   ]));
 
   // ---------------------------------------------------------------------
-  // 2. VLAN - kurze Wiederholung + Konfiguration
+  // 2. VLAN + Access-Port - kurze Wiederholung + eine zusammenhängende
+  // Konfiguration (VLAN anlegen und direkt einem Access-Port zuweisen).
+  // Beide Konzepte gehören in der Praxis unmittelbar zusammen, deshalb hier
+  // bewusst EIN Abschnitt statt zwei getrennter mit sich wiederholenden
+  // Befehlen.
   // ---------------------------------------------------------------------
-  exps.push(explanation('vlan-classic', 'VLAN: kurze Wiederholung', 'classic', [
-    { type: 'list', title: 'Zur Erinnerung', items: [
+  exps.push(explanation('vlan-access-classic', 'VLAN und Access-Port: kurze Wiederholung', 'classic', [
+    { type: 'list', title: 'VLAN - zur Erinnerung', items: [
       'Was ist ein VLAN? Eine logische Aufteilung eines physischen Netzwerks in mehrere getrennte Netze, unabhängig von der physischen Verkabelung.',
       'Warum verwendet man VLANs? Für Sicherheit (logische Trennung), weniger Broadcast-Verkehr und mehr Flexibilität/Struktur.',
       'Welche Probleme lösen VLANs? Eine zu große, gemeinsame Broadcast-Domäne und die fehlende logische Trennung unterschiedlicher Bereiche (z. B. Abteilungen) am selben Switch.',
     ] },
-    { type: 'text', content: 'Genau dieses Konzept setzt du jetzt auf einem echten Switch um.' },
+    { type: 'list', title: 'Access-Port - zur Erinnerung', items: [
+      'Was ist ein Access-Port? Ein Switch-Port, der ein einzelnes Endgerät (PC, Drucker, IP-Telefon) mit genau einem VLAN verbindet.',
+      'Wann verwendet man ihn? Immer dann, wenn ein Endgerät angeschlossen wird, das selbst nichts von VLANs "wissen" muss - also praktisch an jedem normalen Benutzer-Port.',
+    ] },
+    { type: 'text', content: 'Ein VLAN allein bewirkt noch nichts - es muss auch einem Port zugewiesen werden. Genau diese beiden Schritte (VLAN anlegen, Port zuweisen) setzt du jetzt zusammenhängend auf einem echten Switch um.' },
   ]));
 
-  exps.push(explanation('vlan-config-classic', 'VLAN anlegen und Ports zuweisen', 'classic', [
+  exps.push(explanation('vlan-access-config-classic', 'VLAN anlegen und einem Access-Port zuweisen', 'classic', [
     { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
       ['vlan <VLAN-ID>', 'Legt ein neues VLAN mit der angegebenen ID an (bzw. wechselt in dessen Konfiguration).'],
-      ['name <Name>', 'Vergibt einen sprechenden Namen für das aktuelle VLAN.'],
-      ['switchport access vlan <VLAN-ID>', 'Weist eine Schnittstelle dem angegebenen VLAN zu (auf einem Access-Port).'],
+      ['name <Name>', 'Benennt das aktuelle VLAN.'],
+      ['interface <Interface>', 'Wechselt in den Konfigurationsmodus der angegebenen Schnittstelle, z. B. "interface fa0/1" oder "interface g0/1".'],
+      ['switchport mode access', 'Legt diesen Port als Access-Port fest (überträgt nur ein VLAN, ungetaggt).'],
+      ['switchport access vlan <VLAN-ID>', 'Weist dem Access-Port das vorher angelegte VLAN zu.'],
       ['show vlan brief', 'Zeigt alle angelegten VLANs und welche Ports ihnen zugewiesen sind.'],
     ] },
-    { type: 'text', content: 'Beispiel: Ein VLAN 10 mit dem Namen "Verwaltung" wird angelegt und Schnittstelle FastEthernet0/1 zugewiesen:' },
+    { type: 'text', content: 'Beispiel: Ein VLAN 10 mit dem Namen "Verwaltung" wird angelegt und Schnittstelle FastEthernet0/1 als Access-Port diesem VLAN zugewiesen:' },
     { type: 'list', title: 'Beispielkonfiguration', items: [
       'Switch(config)# vlan 10',
       'Switch(config-vlan)# name Verwaltung',
       'Switch(config-vlan)# exit',
       'Switch(config)# interface fa0/1',
+      'Switch(config-if)# switchport mode access',
       'Switch(config-if)# switchport access vlan 10',
     ] },
   ]));
 
   // ---------------------------------------------------------------------
-  // 3. Access-Port - kurze Wiederholung + Konfiguration
-  // ---------------------------------------------------------------------
-  exps.push(explanation('access-classic', 'Access-Port: kurze Wiederholung', 'classic', [
-    { type: 'list', title: 'Zur Erinnerung', items: [
-      'Was ist ein Access-Port? Ein Switch-Port, der ein einzelnes Endgerät (PC, Drucker, IP-Telefon) mit genau einem VLAN verbindet.',
-      'Wann verwendet man ihn? Immer dann, wenn ein Endgerät angeschlossen wird, das selbst nichts von VLANs "wissen" muss - also praktisch an jedem normalen Benutzer-Port.',
-    ] },
-  ]));
-
-  exps.push(explanation('access-config-classic', 'Einen Port als Access-Port konfigurieren', 'classic', [
-    { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
-      ['interface <Interface>', 'Wechselt in den Konfigurationsmodus der angegebenen Schnittstelle, z. B. "interface fa0/1" oder "interface g0/1".'],
-      ['switchport mode access', 'Legt den Port fest als Access-Port fest (überträgt nur ein VLAN, ungetaggt).'],
-      ['switchport access vlan <VLAN-ID>', 'Weist dem Access-Port das gewünschte, vorher angelegte VLAN zu.'],
-    ] },
-  ]));
-
-  // ---------------------------------------------------------------------
-  // 4. Trunk-Port - kurze Wiederholung + Konfiguration
+  // 3. Trunk-Port - kurze Wiederholung + Konfiguration
   // ---------------------------------------------------------------------
   exps.push(explanation('trunk-classic', 'Trunk-Port: kurze Wiederholung', 'classic', [
     { type: 'list', title: 'Zur Erinnerung', items: [
       'Was ist ein Trunk? Eine Verbindung (meist zwischen zwei Switches, oder Switch und Router), die Datenverkehr für mehrere VLANs gleichzeitig über eine einzige physische Leitung transportiert.',
-      'Warum benötigt man Trunks? Ohne Trunk bräuchte man zwischen zwei Switches für jedes VLAN ein eigenes Kabel.',
+      'Warum benötigt man Trunks? Ohne Trunk bräuchtest du zwischen zwei Switches für jedes VLAN eine eigene Kabelverbindung (ein eigenes Kabel samt eigenem Port auf beiden Seiten). Ein Trunk macht eine einzelne, bereits vorhandene Verbindung dazu fähig, mehrere VLANs gleichzeitig zu transportieren - du benötigst also kein zusätzliches Kabel pro VLAN, sondern konfigurierst den vorhandenen Port entsprechend.',
       'Tagged Frames: Auf einem Trunk wird jeder Frame mit einem VLAN-Tag versehen (IEEE 802.1Q), damit der empfangende Switch weiß, zu welchem VLAN er gehört.',
       'Mehrere VLANs über eine Leitung: Genau das macht ein Trunk möglich - dank Tagging bleiben die VLANs auf derselben Leitung sauber voneinander getrennt.',
     ] },
@@ -102,7 +95,7 @@ function buildExplanations() {
   ]));
 
   // ---------------------------------------------------------------------
-  // 5. Ungenutzte Ports
+  // 4. Ungenutzte Ports
   // ---------------------------------------------------------------------
   exps.push(explanation('ungenutzt-classic', 'Ungenutzte Ports absichern', 'classic', [
     { type: 'text', content: 'Warum stellen ungenutzte Ports ein Sicherheitsrisiko dar? Ein aktiver, aber nicht benötigter Port kann von Unbefugten einfach eingesteckt werden, um sich unbemerkt Zugang zum Netzwerk zu verschaffen. Deshalb werden ungenutzte Ports in der Praxis konsequent deaktiviert und - falls sie doch aktiviert werden - vorsichtshalber einem eigenen, isolierten "Default"-VLAN zugewiesen statt dem produktiven VLAN.' },
@@ -112,12 +105,12 @@ function buildExplanations() {
       ['switchport access vlan <VLAN-ID>', 'Weist die ungenutzten Ports einem vorher angelegten, isolierten "Default"-VLAN zu - nicht dem produktiven VLAN.'],
       ['shutdown', 'Deaktiviert die ausgewählten Ports administrativ - sie nehmen so lange keinen Datenverkehr an, bis sie bei Bedarf bewusst wieder aktiviert werden.'],
     ] },
-    { type: 'text', content: 'Wichtig: Das isolierte VLAN muss vorher angelegt werden (wie im VLAN-Abschnitt gezeigt), bevor es ungenutzten Ports zugewiesen werden kann.' },
+    { type: 'text', content: 'Wichtig: Das isolierte VLAN muss vorher mit "vlan <VLAN-ID>" angelegt werden (siehe oben), bevor es ungenutzten Ports zugewiesen werden kann.' },
     { type: 'question', question: 'Warum sollten ungenutzte Switch-Ports deaktiviert (shutdown) werden?', options: ['Um Strom zu sparen', 'Um zu verhindern, dass Unbefugte sich über einen freien Port Zugang zum Netz verschaffen', 'Weil sonst kein VLAN funktioniert', 'Weil sie sonst automatisch zu Trunks werden'], correct: 1, explanation: 'Ein aktiver, ungenutzter Port ist ein Sicherheitsrisiko, da er unbemerkten Netzzugang ermöglichen könnte.' },
   ]));
 
   // ---------------------------------------------------------------------
-  // 6. IOS-Grundkonfiguration
+  // 5. IOS-Grundkonfiguration
   // ---------------------------------------------------------------------
   exps.push(explanation('ios-grundlagen-classic', 'IOS-Grundkonfiguration: Navigation und Hilfe', 'classic', [
     { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
@@ -165,7 +158,7 @@ function buildExplanations() {
   ]));
 
   // ---------------------------------------------------------------------
-  // 7. Troubleshooting
+  // 6. Troubleshooting
   // ---------------------------------------------------------------------
   exps.push(explanation('troubleshooting-classic', 'Troubleshooting: die wichtigsten show-Befehle', 'classic', [
     { type: 'table', headers: ['Befehl', 'Wann verwenden'], rows: [
@@ -179,8 +172,7 @@ function buildExplanations() {
 
   exps.push(explanation('summary-classic', 'Zusammenfassung', 'classic', [
     { type: 'list', title: 'Die wichtigsten Punkte', items: [
-      'VLAN anlegen: "vlan <ID>" → "name <Name>". Port zuweisen: "switchport access vlan <ID>". Prüfen: "show vlan brief".',
-      'Access-Port: "interface <Interface>" → "switchport mode access" → "switchport access vlan <ID>".',
+      'VLAN anlegen und einem Access-Port zuweisen: "vlan <ID>" → "name <Name>" → "interface <Interface>" → "switchport mode access" → "switchport access vlan <ID>". Prüfen: "show vlan brief".',
       'Trunk-Port: "switchport mode trunk" → "switchport trunk allowed vlan <Liste>". Prüfen: "show interfaces trunk".',
       'Ungenutzte Ports: mit "interface range" auswählen, einem isolierten VLAN zuweisen und mit "shutdown" deaktivieren.',
       'IOS-Grundkonfiguration: "enable" → "configure terminal" → "hostname" / "ip domain-name" → "enable secret" → "username ... secret ..." → "line console 0" mit "login local" und "exec-timeout" → "service password-encryption" → speichern mit "write" bzw. "copy running-config startup-config".',
@@ -304,8 +296,7 @@ export function buildCiscoGrundkonfigurationLesson() {
     exercises: buildExercises(),
     quiz: buildQuiz(),
     summary: [
-      'VLAN anlegen: "vlan <ID>" → "name <Name>", Port zuweisen: "switchport access vlan <ID>", prüfen: "show vlan brief".',
-      'Access-Port: "switchport mode access" → "switchport access vlan <ID>" - ein Endgerät, ein VLAN.',
+      'VLAN anlegen und einem Access-Port zuweisen: "vlan <ID>" → "name <Name>" → "interface <Interface>" → "switchport mode access" → "switchport access vlan <ID>", prüfen: "show vlan brief".',
       'Trunk-Port: "switchport mode trunk" → "switchport trunk allowed vlan <Liste>" - mehrere VLANs, getaggt, prüfen mit "show interfaces trunk".',
       'Ungenutzte Ports: mit "interface range" auswählen, isoliertem VLAN zuweisen, mit "shutdown" deaktivieren - schließt ein Sicherheitsrisiko.',
       'IOS-Grundkonfiguration: enable → configure terminal → hostname/ip domain-name → enable secret → username ... secret ... → line console 0 (login local, exec-timeout) → service password-encryption → write/copy running-config startup-config.',
