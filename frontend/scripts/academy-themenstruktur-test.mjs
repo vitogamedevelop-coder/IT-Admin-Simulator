@@ -64,10 +64,14 @@ const ciscoTopics = ACADEMY_TOPICS.filter((t) => t.categoryId === 'cisco-packet-
 assert.equal(ciscoTopics[0].topicId, 'grundlagen', 'grundlagen is still the first Cisco topic');
 assert.equal(ciscoTopics[1].topicId, 'grundkonfiguration', 'grundkonfiguration is the second Cisco topic');
 assert.deepEqual(ciscoTopics[1].prerequisites, ['grundlagen'], 'grundkonfiguration depends only on grundlagen');
+// Milestone C6 re-chained "router-basics" (now content-bearing) after
+// "trunk" instead of "connect-end-devices", swapped "static-routing" and
+// "inter-vlan-routing" to match the actual learning order, and inserted the
+// new "multilayer-switching" topic - see academyTopics.js for the reasoning.
 const EXPECTED_EXISTING_CISCO = [
-  'grundlagen', 'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'router-basics',
+  'grundlagen', 'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics',
   'basic-device-configuration', 'ip-configuration', 'vlan', 'access-port',
-  'trunk', 'inter-vlan-routing', 'static-routing', 'stp', 'acl', 'nat', 'troubleshooting',
+  'trunk', 'router-basics', 'static-routing', 'inter-vlan-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting',
 ];
 assert.deepEqual(ciscoTopics.map((t) => t.topicId), EXPECTED_EXISTING_CISCO, 'Cisco catalog order matches: grundkonfiguration inserted, nothing else moved/removed');
 const uiTopic = ciscoTopics.find((t) => t.topicId === 'packet-tracer-ui');

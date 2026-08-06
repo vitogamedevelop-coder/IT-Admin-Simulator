@@ -43,7 +43,8 @@ function isInputAnswerAccepted(exercise, typedValue) {
 }
 
 // Exercise types LessonRunner.jsx's renderExercise() actually handles.
-const RENDERABLE_TYPES = ['ordering', 'matching', 'input', 'select-best', 'guided-subnetting', 'adaptive-subnetting', 'difficulty-drill'];
+// "cli-input" added by Milestone C6 (Cisco CLI-input exercises).
+const RENDERABLE_TYPES = ['ordering', 'matching', 'input', 'cli-input', 'select-best', 'guided-subnetting', 'adaptive-subnetting', 'difficulty-drill'];
 
 // ============================================================
 // 1 + 3 + 4. Validate every lesson, every exercise

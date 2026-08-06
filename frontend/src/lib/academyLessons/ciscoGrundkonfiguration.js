@@ -126,6 +126,7 @@ function buildExplanations() {
     { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
       ['hostname <Name>', 'Vergibt einen Gerätenamen, z. B. "hostname SW1".'],
       ['ip domain-name <Name>', 'Legt den Domainnamen des Geräts fest (u. a. Voraussetzung für die Schlüsselerzeugung bei SSH).'],
+      ['ip name-server <IP-Adresse>', 'Trägt einen DNS-Server ein, den das Gerät selbst für Namensauflösungen verwendet (z. B. beim Ping auf einen Hostnamen statt einer IP-Adresse).'],
     ] },
   ]));
 

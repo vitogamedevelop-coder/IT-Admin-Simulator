@@ -11,7 +11,8 @@ import {
   recordQuizResult,
 } from '../lib/academyEngine';
 import { shuffleOptions } from '../lib/shuffleOptions';
-import { collectQuestionsFromLesson } from '../lib/academyThemencheck';
+import { collectQuestionsFromLesson, collectCliTasksFromLesson } from '../lib/academyThemencheck';
+import { checkCiscoInput } from '../lib/ciscoCli';
 import {
   calculateNetworkId, calculateBroadcast, calculateFirstHost, calculateLastHost,
   calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems,
@@ -189,6 +190,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     if (ex.type === 'ordering') return <OrderingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'matching') return <MatchingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'input') return <InputExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
+    if (ex.type === 'cli-input') return <CliInputExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'select-best') return <SelectBestExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'guided-subnetting') return <GuidedSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'adaptive-subnetting') return <AdaptiveSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
@@ -798,6 +800,75 @@ function InputExercise({ exercise, index, onComplete }) {
           <p className={classNames('text-xs', correct ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
             {correct ? 'Richtig! ' : 'Leider nicht. '} {exercise.explanation}
           </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- CLI input exercise ----------
+// Multi-line Cisco console input, graded line by line with abbreviation- and
+// case-tolerant matching (see lib/ciscoCli.js) instead of one exact string -
+// this is the primary Praxis exercise type for Cisco lessons, since the
+// learner has to actively type the commands instead of just recognizing them.
+function CliInputExercise({ exercise, index, onComplete }) {
+  const [value, setValue] = useState('');
+  const [done, setDone] = useState(false);
+  const [result, setResult] = useState(null);
+
+  function check() {
+    const outcome = checkCiscoInput(value, exercise.expectedLines);
+    setResult(outcome);
+    setDone(true);
+    if (outcome.allCorrect) onComplete();
+  }
+
+  function retry() {
+    setDone(false);
+    setResult(null);
+  }
+
+  return (
+    <div className="cyber-card p-4">
+      <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – CLI-Eingabe</div>
+      <p className="text-sm text-white font-bold mt-1">{exercise.question}</p>
+      {exercise.hint && <p className="text-xs text-[#8b949e] mt-1">{exercise.hint}</p>}
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        disabled={done && result?.allCorrect}
+        rows={Math.max(3, exercise.expectedLines.length)}
+        placeholder={'Switch(config)# ...\nEinen Befehl pro Zeile eingeben'}
+        spellCheck={false}
+        className="w-full mt-3 p-2 rounded-lg bg-[#0a1628] border border-[#00f0ff]/30 text-sm text-[#c9d1d9] placeholder-[#8b949e] font-mono focus:outline-none focus:border-[#00f0ff]"
+      />
+      {!done ? (
+        <button onClick={check} disabled={!value.trim()} className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40">Prüfen</button>
+      ) : (
+        <div className="mt-3">
+          <div className="flex flex-col gap-1">
+            {result.results.map((r, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                {r.ok ? <CheckCircle2 size={14} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={14} className="text-[#ffcc00] shrink-0 mt-0.5" />}
+                <span className={r.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}>
+                  {r.userLine || <span className="italic text-[#8b949e]">(fehlt)</span>}
+                  {!r.ok && <span className="text-[#8b949e]"> – erwartet: {r.expected}</span>}
+                </span>
+              </div>
+            ))}
+            {result.extraLines.map((line, i) => (
+              <div key={`extra-${i}`} className="flex items-start gap-2 text-xs">
+                <XCircle size={14} className="text-[#ffcc00] shrink-0 mt-0.5" />
+                <span className="text-[#ffcc00]">{line} <span className="text-[#8b949e]">– nicht erwartet</span></span>
+              </div>
+            ))}
+          </div>
+          <p className={classNames('text-xs mt-2', result.allCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
+            {result.allCorrect ? 'Richtig! ' : 'Noch nicht ganz. '} {exercise.explanation}
+          </p>
+          {!result.allCorrect && (
+            <button onClick={retry} className="cyber-btn-outline w-full mt-3 py-2 text-sm">Erneut versuchen</button>
+          )}
         </div>
       )}
     </div>
@@ -1432,7 +1503,16 @@ function pickRandomQuestions(pool, count) {
 // subset is picked every time this mounts, so repeated practice runs feel
 // varied instead of always asking the same five questions.
 function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
-  const pool = useMemo(() => collectQuestionsFromLesson(lesson, topicId), [lesson, topicId]);
+  // The pool mixes classic multiple-choice questions with Cisco CLI-input
+  // tasks (lesson.cliTasks) so Praxis for Cisco lessons is dominated by
+  // actively typing commands rather than just recognizing them - see
+  // collectCliTasksFromLesson in academyThemencheck.js. This pool is used
+  // ONLY here and in FachgespraechRunner, never in Themencheck/Abschlusscheck,
+  // which stay pure multiple-choice.
+  const pool = useMemo(() => [
+    ...collectQuestionsFromLesson(lesson, topicId),
+    ...collectCliTasksFromLesson(lesson, topicId),
+  ], [lesson, topicId]);
   const questions = useMemo(() => pickRandomQuestions(pool, PRACTICE_QUESTION_COUNT), [pool]);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -1440,7 +1520,8 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
   const [finished, setFinished] = useState(false);
   const resultRecordedRef = useRef(false);
   const question = questions[index];
-  const shuffled = useMemo(() => (question ? shuffleOptions(question.options, question.correct) : null), [question]);
+  const isCliQuestion = question?.type === 'cli';
+  const shuffled = useMemo(() => (question && !isCliQuestion ? shuffleOptions(question.options, question.correct) : null), [question, isCliQuestion]);
 
   useEffect(() => {
     if (!finished || resultRecordedRef.current || questions.length === 0) return;
@@ -1455,6 +1536,13 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
     const isCorrect = i === shuffled.correct;
     setResults((prev) => ({ ...prev, [index]: isCorrect }));
     recordQuestionAnswer(categoryId, topicId, `practice-${index}`, 'retention', isCorrect);
+  }
+
+  function answerCli(outcome) {
+    if (answers[index] !== undefined) return;
+    setAnswers((prev) => ({ ...prev, [index]: outcome }));
+    setResults((prev) => ({ ...prev, [index]: outcome.allCorrect }));
+    recordQuestionAnswer(categoryId, topicId, `practice-${index}`, 'retention', outcome.allCorrect);
   }
 
   function next() {
@@ -1484,6 +1572,16 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
   }
 
   const answered = answers[index];
+  if (isCliQuestion) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="cyber-card p-3">
+          <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">⌨️ Praxis · Aufgabe {index + 1} von {questions.length}</div>
+        </div>
+        <CliTaskCard task={question} answered={answered} onAnswer={answerCli} onNext={next} />
+      </div>
+    );
+  }
   const isCorrect = answered === shuffled.correct;
   return (
     <div className="flex flex-col gap-4">
@@ -1514,6 +1612,57 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
   );
 }
 
+// Shared CLI task card used by both Praxis (PracticeQuiz) and Fachgespräch
+// (FachgespraechRunner) for lesson.cliTasks entries - a multi-line console
+// input graded with the same abbreviation-/case-tolerant logic as the
+// theory-mode "cli-input" exercise (see lib/ciscoCli.js).
+function CliTaskCard({ task, answered, onAnswer, onNext, showQuestion = true }) {
+  const [value, setValue] = useState('');
+
+  function submit() {
+    if (answered !== undefined) return;
+    onAnswer(checkCiscoInput(value, task.expectedLines));
+  }
+
+  return (
+    <div className="cyber-card p-4">
+      {showQuestion && <p className="text-sm text-white font-bold">{task.question}</p>}
+      {task.hint && <p className="text-xs text-[#8b949e] mt-1">{task.hint}</p>}
+      {answered === undefined ? (
+        <>
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            rows={Math.max(3, task.expectedLines.length)}
+            placeholder={'Switch(config)# ...\nEinen Befehl pro Zeile eingeben'}
+            spellCheck={false}
+            className="w-full mt-3 p-2 rounded-lg bg-[#0a1628] border border-[#00f0ff]/30 text-sm text-[#c9d1d9] placeholder-[#8b949e] font-mono focus:outline-none focus:border-[#00f0ff]"
+          />
+          <button onClick={submit} disabled={!value.trim()} className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40">Eingeben</button>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-1 mt-3">
+            {answered.results.map((r, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                {r.ok ? <CheckCircle2 size={14} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={14} className="text-[#ffcc00] shrink-0 mt-0.5" />}
+                <span className={r.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}>
+                  {r.userLine || <span className="italic text-[#8b949e]">(fehlt)</span>}
+                  {!r.ok && <span className="text-[#8b949e]"> – erwartet: {r.expected}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className={classNames('text-xs mt-3', answered.allCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
+            {answered.allCorrect ? 'Richtig! ' : 'Nicht ganz. '} {task.explanation}
+          </p>
+          <button onClick={onNext} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ---------- Fachgespräch (simulated oral exam) ----------
 // Same question pool as Praxis, but presented as a spoken Sam dialogue
 // instead of a plain quiz card - Sam "asks" the question and reacts
@@ -1536,7 +1685,13 @@ const FACHGESPRAECH_INCORRECT_REACTIONS = [
 
 function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
   const portrait = characterAsset('sam');
-  const pool = useMemo(() => collectQuestionsFromLesson(lesson, topicId), [lesson, topicId]);
+  // Same combined pool as PracticeQuiz (multiple-choice + Cisco CLI tasks) -
+  // Sam should regularly ask for a full configuration during the oral exam,
+  // not only knowledge questions (see collectCliTasksFromLesson).
+  const pool = useMemo(() => [
+    ...collectQuestionsFromLesson(lesson, topicId),
+    ...collectCliTasksFromLesson(lesson, topicId),
+  ], [lesson, topicId]);
   const questions = useMemo(() => pickRandomQuestions(pool, INTERVIEW_QUESTION_COUNT), [pool]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState(null);
@@ -1544,7 +1699,8 @@ function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
   const [finished, setFinished] = useState(false);
   const resultRecordedRef = useRef(false);
   const question = questions[index];
-  const shuffled = useMemo(() => (question ? shuffleOptions(question.options, question.correct) : null), [question]);
+  const isCliQuestion = question?.type === 'cli';
+  const shuffled = useMemo(() => (question && !isCliQuestion ? shuffleOptions(question.options, question.correct) : null), [question, isCliQuestion]);
   const reaction = useMemo(() => {
     const pickFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
     return { intro: pickFrom(FACHGESPRAECH_INTROS), correct: pickFrom(FACHGESPRAECH_CORRECT_REACTIONS), incorrect: pickFrom(FACHGESPRAECH_INCORRECT_REACTIONS) };
@@ -1564,6 +1720,13 @@ function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
     const isCorrect = i === shuffled.correct;
     setResults((prev) => ({ ...prev, [index]: isCorrect }));
     recordQuestionAnswer(categoryId, topicId, `interview-${index}`, 'retention', isCorrect);
+  }
+
+  function respondCli(outcome) {
+    if (answer !== null) return;
+    setAnswer(outcome);
+    setResults((prev) => ({ ...prev, [index]: outcome.allCorrect }));
+    recordQuestionAnswer(categoryId, topicId, `interview-${index}`, 'retention', outcome.allCorrect);
   }
 
   function next() {
@@ -1593,6 +1756,24 @@ function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
           </div>
         </div>
         <button onClick={onDone} className="cyber-btn w-full mt-4 py-2 text-sm">Fertig</button>
+      </div>
+    );
+  }
+
+  if (isCliQuestion) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="cyber-card p-4">
+          <div className="flex items-center gap-3">
+            {portrait ? <img src={portrait} alt="Sam" className="h-12 w-12 rounded-full border border-[#00f0ff] object-cover" /> : null}
+            <div>
+              <div className="text-xs text-[#00f0ff]">Sam Richter · 🎤 Fachgespräch</div>
+              <p className="text-[10px] text-[#8b949e]">Aufgabe {index + 1} von {questions.length}</p>
+            </div>
+          </div>
+          <p className="text-sm text-[#c9d1d9] mt-3">„{index === 0 ? `${reaction.intro} ` : ''}{question.question}“</p>
+        </div>
+        <CliTaskCard task={question} answered={answer === null ? undefined : answer} onAnswer={respondCli} onNext={next} showQuestion={false} />
       </div>
     );
   }

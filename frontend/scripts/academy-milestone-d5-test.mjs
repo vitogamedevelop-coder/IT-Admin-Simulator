@@ -83,6 +83,15 @@ const EXPECTED_LESSONS = [
   'fundamentals/switching',
   'fundamentals/vlan-basics',
   'cisco-packet-tracer/grundkonfiguration',
+  // Added by Milestone C6 (deep-dive Cisco lessons).
+  'cisco-packet-tracer/vlan',
+  'cisco-packet-tracer/access-port',
+  'cisco-packet-tracer/trunk',
+  'cisco-packet-tracer/router-basics',
+  'cisco-packet-tracer/static-routing',
+  'cisco-packet-tracer/inter-vlan-routing',
+  'cisco-packet-tracer/multilayer-switching',
+  'cisco-packet-tracer/troubleshooting',
 ];
 
 // Grundbegriffe uses its own component (GrundbegriffeLesson), not LESSONS

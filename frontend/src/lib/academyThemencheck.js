@@ -97,6 +97,29 @@ export function collectQuestionsFromLesson(lesson, topicId) {
   return questions;
 }
 
+/**
+ * Collects Cisco CLI configuration tasks from a lesson's `cliTasks` array
+ * (used by Praxis-quiz / Fachgespräch, see LessonRunner.jsx: PracticeQuiz /
+ * FachgespraechRunner). Deliberately NOT included in collectQuestionsFromLesson
+ * above, so Themencheck/Abschlusscheck - which render every question as a
+ * multiple-choice button list - stay unaffected. Each task is normalized to
+ * the same `{ question, ... }` shape as multiple-choice questions, tagged
+ * `type: 'cli'` so the UI can branch to a CLI input instead of option buttons.
+ */
+export function collectCliTasksFromLesson(lesson, topicId) {
+  if (!lesson.cliTasks || !Array.isArray(lesson.cliTasks)) return [];
+  return lesson.cliTasks
+    .filter((t) => t.prompt && Array.isArray(t.expectedLines) && t.expectedLines.length > 0)
+    .map((t) => ({
+      type: 'cli',
+      question: t.prompt,
+      hint: t.hint,
+      expectedLines: t.expectedLines,
+      explanation: t.explanation || '',
+      sourceTopicId: topicId,
+    }));
+}
+
 // ---------- Category Summary ----------
 
 /**

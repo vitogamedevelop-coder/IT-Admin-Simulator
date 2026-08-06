@@ -64,7 +64,7 @@ export function validateLessonDefinition(lesson, key) {
   if (!Array.isArray(lesson.exercises)) {
     errors.push(`${prefix}exercises is not an array`);
   } else {
-    const VALID_TYPES = ['ordering', 'matching', 'input', 'select-best', 'guided-subnetting', 'adaptive-subnetting', 'difficulty-drill', 'fill-blank', 'multi-choice', 'subnet-calc', 'binary-conversion', 'cidr-calc', 'supernet-calc', 'drag-drop', 'scenario'];
+    const VALID_TYPES = ['ordering', 'matching', 'input', 'cli-input', 'select-best', 'guided-subnetting', 'adaptive-subnetting', 'difficulty-drill', 'fill-blank', 'multi-choice', 'subnet-calc', 'binary-conversion', 'cidr-calc', 'supernet-calc', 'drag-drop', 'scenario'];
     const exIds = new Set();
     for (let i = 0; i < lesson.exercises.length; i++) {
       const ex = lesson.exercises[i];
@@ -91,6 +91,12 @@ export function validateLessonDefinition(lesson, key) {
       // exercise. Catch this at validation time instead of at runtime.
       if (ex.type === 'input' && (!Array.isArray(ex.answers) || ex.answers.length === 0)) {
         errors.push(`${prefix}exercise '${ex.id || i}' is type "input" but has no non-empty "answers" array`);
+      }
+      // Same guard for the Cisco CLI-input exercise type (Milestone C6): the
+      // CliInputExercise component indexes into exercise.expectedLines, so a
+      // missing/empty array would throw at runtime just like "input" above.
+      if (ex.type === 'cli-input' && (!Array.isArray(ex.expectedLines) || ex.expectedLines.length === 0)) {
+        errors.push(`${prefix}exercise '${ex.id || i}' is type "cli-input" but has no non-empty "expectedLines" array`);
       }
     }
   }

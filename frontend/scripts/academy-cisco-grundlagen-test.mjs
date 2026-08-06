@@ -47,11 +47,12 @@ console.log('3. Testing all previous Cisco topics are unchanged...');
 // Note: "grundkonfiguration" was inserted after "grundlagen" by the later
 // "Themenstruktur-Anpassung" milestone (see academy-themenstruktur-test.mjs)
 // - included here too so this test keeps passing without re-litigating that
-// change.
+// change. "multilayer-switching" was added by Milestone C6 (deep-dive Cisco
+// lessons) as a genuinely new topic, alongside the same existing topics.
 const EXPECTED_EXISTING = [
   'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'router-basics',
   'basic-device-configuration', 'ip-configuration', 'vlan', 'access-port',
-  'trunk', 'inter-vlan-routing', 'static-routing', 'stp', 'acl', 'nat', 'troubleshooting',
+  'trunk', 'inter-vlan-routing', 'static-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting',
 ];
 for (const topicId of EXPECTED_EXISTING) {
   const exists = ciscoTopics.some((t) => t.topicId === topicId);

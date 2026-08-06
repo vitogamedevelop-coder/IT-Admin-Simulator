@@ -133,19 +133,33 @@ export const ACADEMY_TOPICS = [
   topic('cisco-packet-tracer', 'grundkonfiguration', 'Grundkonfiguration', 'VLANs, Access- und Trunk-Ports, ungenutzte Ports absichern, IOS-Grundkonfiguration und Troubleshooting-Befehle.', ['grundlagen']),
   topic('cisco-packet-tracer', 'packet-tracer-ui', 'Packet Tracer Oberfläche', 'Werkzeuge und Ansicht von Packet Tracer kennenlernen.', ['grundlagen']),
   topic('cisco-packet-tracer', 'connect-end-devices', 'Endgeräte verbinden', 'Kabel und Endgeräte im Topologie-Editor verbinden.', ['packet-tracer-ui']),
+  // "switch-basics", "basic-device-configuration" and "ip-configuration"
+  // stay untouched, content-less placeholders for a later milestone (still
+  // gated behind the packet-tracer-ui -> connect-end-devices chain, which
+  // also has no content yet). "router-basics" now HAS content (Milestone
+  // C6) and is deliberately re-chained after "trunk" instead, so its
+  // prerequisite is actually satisfiable with what currently exists.
   topic('cisco-packet-tracer', 'switch-basics', 'Switch-Grundlagen', 'Grundfunktionen eines Cisco-Switches.', ['connect-end-devices']),
-  topic('cisco-packet-tracer', 'router-basics', 'Router-Grundlagen', 'Grundfunktionen eines Cisco-Routers.', ['connect-end-devices']),
   topic('cisco-packet-tracer', 'basic-device-configuration', 'Grundkonfiguration', 'Hostname, Passwörter und Basis-CLI-Befehle.', ['switch-basics', 'router-basics']),
   topic('cisco-packet-tracer', 'ip-configuration', 'IP-Konfiguration', 'IP-Adressen an Schnittstellen vergeben.', ['basic-device-configuration']),
   topic('cisco-packet-tracer', 'vlan', 'VLAN', 'VLANs auf einem Switch anlegen und zuweisen.', ['fundamentals/switching', 'fundamentals/ipv4', 'fundamentals/vlan-basics']),
   topic('cisco-packet-tracer', 'access-port', 'Access-Port', 'Einen Switchport einem einzelnen VLAN zuweisen.', ['vlan']),
   topic('cisco-packet-tracer', 'trunk', 'Trunk', 'Mehrere VLANs über eine Verbindung transportieren.', ['vlan']),
-  topic('cisco-packet-tracer', 'inter-vlan-routing', 'Inter-VLAN-Routing', 'Kommunikation zwischen verschiedenen VLANs ermöglichen.', ['trunk', 'router-basics']),
+  topic('cisco-packet-tracer', 'router-basics', 'Router-Grundlagen', 'Router-Interfaces konfigurieren und die Routingentscheidung (Longest Prefix Match, Administrative Distance, Metrik) verstehen.', ['trunk']),
   topic('cisco-packet-tracer', 'static-routing', 'Statisches Routing', 'Routen manuell auf einem Router konfigurieren.', ['router-basics']),
+  topic('cisco-packet-tracer', 'inter-vlan-routing', 'Router on a Stick', 'Kommunikation zwischen VLANs über Subinterfaces auf einem einzelnen Router ermöglichen.', ['trunk', 'router-basics']),
+  // Added (Milestone C6): alternative to Router on a Stick for inter-VLAN
+  // routing - a Layer-3 switch routes directly via SVIs, without a separate
+  // router. Depends on "trunk" (needs the VLAN/trunk concepts) but NOT on
+  // "router-basics", since a multilayer switch replaces the router entirely.
+  topic('cisco-packet-tracer', 'multilayer-switching', 'Multilayer Switch (MLS)', 'Inter-VLAN-Routing direkt auf einem Layer-3-Switch über SVIs, ohne separaten Router.', ['trunk']),
   topic('cisco-packet-tracer', 'stp', 'Spanning Tree Protocol', 'Schleifen im Switching-Netz verhindern.', ['switch-basics']),
   topic('cisco-packet-tracer', 'acl', 'Access Control Lists', 'Datenverkehr anhand von Regeln filtern.', ['router-basics']),
   topic('cisco-packet-tracer', 'nat', 'NAT', 'Private Adressen auf öffentliche Adressen übersetzen.', ['router-basics']),
-  topic('cisco-packet-tracer', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche im Netzwerk.', ['ip-configuration']),
+  // Re-chained (Milestone C6) after the now-content-bearing static-routing/
+  // inter-vlan-routing/multilayer-switching instead of the still-empty
+  // "ip-configuration" placeholder, so it is actually reachable.
+  topic('cisco-packet-tracer', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche im Netzwerk anhand der passenden show-Befehle.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
 
   // ---------------------------------------------------------------------
   // 3. Informationssicherheit

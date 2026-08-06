@@ -16,6 +16,14 @@ import { buildRoutingLesson, ROUTING_TOPIC_KEY } from './academyLessons/routing.
 import { buildSwitchingLesson, SWITCHING_TOPIC_KEY } from './academyLessons/switching.js';
 import { buildVlanBasicsLesson, VLAN_BASICS_TOPIC_KEY } from './academyLessons/vlanBasics.js';
 import { buildCiscoGrundkonfigurationLesson, CISCO_GRUNDKONFIGURATION_TOPIC_KEY } from './academyLessons/ciscoGrundkonfiguration.js';
+import { buildCiscoVlanLesson, CISCO_VLAN_TOPIC_KEY } from './academyLessons/ciscoVlan.js';
+import { buildCiscoAccessPortLesson, CISCO_ACCESS_PORT_TOPIC_KEY } from './academyLessons/ciscoAccessPort.js';
+import { buildCiscoTrunkLesson, CISCO_TRUNK_TOPIC_KEY } from './academyLessons/ciscoTrunk.js';
+import { buildCiscoRouterBasicsLesson, CISCO_ROUTER_BASICS_TOPIC_KEY } from './academyLessons/ciscoRouterBasics.js';
+import { buildCiscoStaticRoutingLesson, CISCO_STATIC_ROUTING_TOPIC_KEY } from './academyLessons/ciscoStaticRouting.js';
+import { buildCiscoInterVlanRoutingLesson, CISCO_INTER_VLAN_ROUTING_TOPIC_KEY } from './academyLessons/ciscoInterVlanRouting.js';
+import { buildCiscoMultilayerSwitchingLesson, CISCO_MULTILAYER_SWITCHING_TOPIC_KEY } from './academyLessons/ciscoMultilayerSwitching.js';
+import { buildCiscoTroubleshootingLesson, CISCO_TROUBLESHOOTING_TOPIC_KEY } from './academyLessons/ciscoTroubleshooting.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -275,6 +283,14 @@ export const LESSONS = {
   [SWITCHING_TOPIC_KEY]: buildSwitchingLesson(),
   [VLAN_BASICS_TOPIC_KEY]: buildVlanBasicsLesson(),
   [CISCO_GRUNDKONFIGURATION_TOPIC_KEY]: buildCiscoGrundkonfigurationLesson(),
+  [CISCO_VLAN_TOPIC_KEY]: buildCiscoVlanLesson(),
+  [CISCO_ACCESS_PORT_TOPIC_KEY]: buildCiscoAccessPortLesson(),
+  [CISCO_TRUNK_TOPIC_KEY]: buildCiscoTrunkLesson(),
+  [CISCO_ROUTER_BASICS_TOPIC_KEY]: buildCiscoRouterBasicsLesson(),
+  [CISCO_STATIC_ROUTING_TOPIC_KEY]: buildCiscoStaticRoutingLesson(),
+  [CISCO_INTER_VLAN_ROUTING_TOPIC_KEY]: buildCiscoInterVlanRoutingLesson(),
+  [CISCO_MULTILAYER_SWITCHING_TOPIC_KEY]: buildCiscoMultilayerSwitchingLesson(),
+  [CISCO_TROUBLESHOOTING_TOPIC_KEY]: buildCiscoTroubleshootingLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)
