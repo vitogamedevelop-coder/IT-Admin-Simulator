@@ -24,6 +24,8 @@ import { buildCiscoStaticRoutingLesson, CISCO_STATIC_ROUTING_TOPIC_KEY } from '.
 import { buildCiscoInterVlanRoutingLesson, CISCO_INTER_VLAN_ROUTING_TOPIC_KEY } from './academyLessons/ciscoInterVlanRouting.js';
 import { buildCiscoMultilayerSwitchingLesson, CISCO_MULTILAYER_SWITCHING_TOPIC_KEY } from './academyLessons/ciscoMultilayerSwitching.js';
 import { buildCiscoTroubleshootingLesson, CISCO_TROUBLESHOOTING_TOPIC_KEY } from './academyLessons/ciscoTroubleshooting.js';
+import { buildCiscoStpLesson, CISCO_STP_TOPIC_KEY } from './academyLessons/ciscoStp.js';
+import { buildCiscoSshLesson, CISCO_SSH_TOPIC_KEY } from './academyLessons/ciscoSsh.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -291,6 +293,8 @@ export const LESSONS = {
   [CISCO_INTER_VLAN_ROUTING_TOPIC_KEY]: buildCiscoInterVlanRoutingLesson(),
   [CISCO_MULTILAYER_SWITCHING_TOPIC_KEY]: buildCiscoMultilayerSwitchingLesson(),
   [CISCO_TROUBLESHOOTING_TOPIC_KEY]: buildCiscoTroubleshootingLesson(),
+  [CISCO_STP_TOPIC_KEY]: buildCiscoStpLesson(),
+  [CISCO_SSH_TOPIC_KEY]: buildCiscoSshLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

@@ -92,6 +92,9 @@ const EXPECTED_LESSONS = [
   'cisco-packet-tracer/inter-vlan-routing',
   'cisco-packet-tracer/multilayer-switching',
   'cisco-packet-tracer/troubleshooting',
+  // Added by Milestone C7 (STP/PVST+ and SSH deep-dive lessons).
+  'cisco-packet-tracer/stp',
+  'cisco-packet-tracer/ssh',
 ];
 
 // Grundbegriffe uses its own component (GrundbegriffeLesson), not LESSONS

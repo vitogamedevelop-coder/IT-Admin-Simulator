@@ -153,13 +153,21 @@ export const ACADEMY_TOPICS = [
   // router. Depends on "trunk" (needs the VLAN/trunk concepts) but NOT on
   // "router-basics", since a multilayer switch replaces the router entirely.
   topic('cisco-packet-tracer', 'multilayer-switching', 'Multilayer Switch (MLS)', 'Inter-VLAN-Routing direkt auf einem Layer-3-Switch über SVIs, ohne separaten Router.', ['trunk']),
-  topic('cisco-packet-tracer', 'stp', 'Spanning Tree Protocol', 'Schleifen im Switching-Netz verhindern.', ['switch-basics']),
+  // Re-chained (Milestone C7) from the still-empty "switch-basics" placeholder
+  // to "trunk", which already carries content and is reachable through the
+  // working vlan -> access-port -> trunk chain. STP is about redundant
+  // switch-to-switch links, which builds directly on trunk knowledge.
+  topic('cisco-packet-tracer', 'stp', 'Spanning Tree Protocol (PVST+)', 'Schleifen und Broadcast-Storms in redundanten Switch-Netzen verhindern, Root Bridge, Portrollen und Path Cost bestimmen.', ['trunk']),
   topic('cisco-packet-tracer', 'acl', 'Access Control Lists', 'Datenverkehr anhand von Regeln filtern.', ['router-basics']),
   topic('cisco-packet-tracer', 'nat', 'NAT', 'Private Adressen auf öffentliche Adressen übersetzen.', ['router-basics']),
   // Re-chained (Milestone C6) after the now-content-bearing static-routing/
   // inter-vlan-routing/multilayer-switching instead of the still-empty
   // "ip-configuration" placeholder, so it is actually reachable.
   topic('cisco-packet-tracer', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche im Netzwerk anhand der passenden show-Befehle.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
+  // Added (Milestone C7): remote management via SSH on router, L2 switch (via
+  // management SVI) and multilayer switch - depends on the same chain as
+  // troubleshooting so all three device scenarios are already unlocked.
+  topic('cisco-packet-tracer', 'ssh', 'Fernwartung mit SSH', 'Cisco-Geräte (Router, L2-Switch, Multilayer-Switch) sicher per SSH statt Telnet aus der Ferne administrieren.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
 
   // ---------------------------------------------------------------------
   // 3. Informationssicherheit

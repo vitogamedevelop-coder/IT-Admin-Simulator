@@ -52,7 +52,7 @@ console.log('3. Testing all previous Cisco topics are unchanged...');
 const EXPECTED_EXISTING = [
   'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'router-basics',
   'basic-device-configuration', 'ip-configuration', 'vlan', 'access-port',
-  'trunk', 'inter-vlan-routing', 'static-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting',
+  'trunk', 'inter-vlan-routing', 'static-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting', 'ssh',
 ];
 for (const topicId of EXPECTED_EXISTING) {
   const exists = ciscoTopics.some((t) => t.topicId === topicId);
