@@ -47,7 +47,11 @@ console.log('Catalog: no duplicate DHCP topics, new slot registered exactly once
     assert.ok(hasLessonContent('cisco-packet-tracer', 'dhcp'));
   });
 
-  const CONTENTLESS_PLACEHOLDERS = new Set(['packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'basic-device-configuration', 'ip-configuration']);
+  // "packet-tracer-ui"/"connect-end-devices"/"switch-basics"/
+  // "ip-configuration" were removed from the catalog entirely (Milestone:
+  // Cisco-Struktur bereinigen); "basic-device-configuration" now has real
+  // lesson content.
+  const CONTENTLESS_PLACEHOLDERS = new Set(['acl', 'nat']);
   test('dhcp\'s prerequisite chain never requires a content-less placeholder', () => {
     const visited = new Set();
     const stack = [{ categoryId: 'cisco-packet-tracer', topicId: 'dhcp' }];

@@ -24,7 +24,10 @@ function test(name, fn) {
 const TOPIC_IDS = ['stp', 'ssh'];
 
 console.log('Catalog: topics exist, have content and a reachable prerequisite chain');
-const CONTENTLESS_PLACEHOLDERS = new Set(['packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'basic-device-configuration', 'ip-configuration']);
+// "packet-tracer-ui"/"connect-end-devices"/"switch-basics"/"ip-configuration"
+// were removed from the catalog entirely (Milestone: Cisco-Struktur
+// bereinigen); "basic-device-configuration" now has real lesson content.
+const CONTENTLESS_PLACEHOLDERS = new Set(['acl', 'nat']);
 for (const topicId of TOPIC_IDS) {
   test(`cisco-packet-tracer/${topicId} is registered in the catalog`, () => {
     const found = ACADEMY_TOPICS.find((t) => t.categoryId === 'cisco-packet-tracer' && t.topicId === topicId);

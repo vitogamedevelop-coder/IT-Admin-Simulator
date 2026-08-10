@@ -27,6 +27,7 @@ import { buildCiscoTroubleshootingLesson, CISCO_TROUBLESHOOTING_TOPIC_KEY } from
 import { buildCiscoStpLesson, CISCO_STP_TOPIC_KEY } from './academyLessons/ciscoStp.js';
 import { buildCiscoSshLesson, CISCO_SSH_TOPIC_KEY } from './academyLessons/ciscoSsh.js';
 import { buildCiscoDhcpLesson, CISCO_DHCP_TOPIC_KEY } from './academyLessons/ciscoDhcp.js';
+import { buildCiscoBasicDeviceConfigurationLesson, CISCO_BASIC_DEVICE_CONFIGURATION_TOPIC_KEY } from './academyLessons/ciscoBasicDeviceConfiguration.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -297,6 +298,7 @@ export const LESSONS = {
   [CISCO_STP_TOPIC_KEY]: buildCiscoStpLesson(),
   [CISCO_SSH_TOPIC_KEY]: buildCiscoSshLesson(),
   [CISCO_DHCP_TOPIC_KEY]: buildCiscoDhcpLesson(),
+  [CISCO_BASIC_DEVICE_CONFIGURATION_TOPIC_KEY]: buildCiscoBasicDeviceConfigurationLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

@@ -4,8 +4,8 @@
  * Tests:
  * 1. "Grundlagen" is registered as a full LessonRunner lesson, no new
  *    mechanics/exercise types used.
- * 2. It is the first topic in the "cisco-packet-tracer" catalog, before
- *    "packet-tracer-ui" (which now depends on it).
+ * 2. It is the first topic in the "cisco-packet-tracer" catalog, as the
+ *    entry point with no prerequisites.
  * 3. All previously existing Cisco topics are unchanged and still present,
  *    just shifted one prerequisite step later.
  * 4. Theory covers every topic from the brief; quiz covers all objectives.
@@ -29,37 +29,38 @@ assert(hasLessonContent('cisco-packet-tracer', 'grundlagen'), 'hasLessonContent 
 console.log(`   ${lesson.explanations.length} sections, ${lesson.exercises.length} exercises, ${lesson.quiz.length} quiz questions.`);
 
 // ============================================================
-// 2. First topic in the category, before packet-tracer-ui
+// 2. First topic in the category, entry point
 // ============================================================
 console.log('2. Testing catalog order and prerequisites...');
 const ciscoTopics = ACADEMY_TOPICS.filter((t) => t.categoryId === 'cisco-packet-tracer');
 assert.equal(ciscoTopics[0].topicId, 'grundlagen', 'grundlagen is the first Cisco topic');
 assert.deepEqual(ciscoTopics[0].prerequisites, [], 'grundlagen has no prerequisites (entry point)');
-const uiTopic = ciscoTopics.find((t) => t.topicId === 'packet-tracer-ui');
-assert(uiTopic, 'packet-tracer-ui still exists');
-assert.deepEqual(uiTopic.prerequisites, ['grundlagen'], 'packet-tracer-ui now depends on grundlagen');
-console.log('   grundlagen is first; packet-tracer-ui shifted to depend on it.');
+console.log('   grundlagen is first, with no prerequisites.');
 
 // ============================================================
-// 3. All previously existing Cisco topics still present
+// 3. All still-relevant Cisco topics present (structure cleanup applied)
 // ============================================================
-console.log('3. Testing all previous Cisco topics are unchanged...');
-// Note: "grundkonfiguration" was inserted after "grundlagen" by the later
-// "Themenstruktur-Anpassung" milestone (see academy-themenstruktur-test.mjs)
-// - included here too so this test keeps passing without re-litigating that
-// change. "multilayer-switching" was added by Milestone C6 (deep-dive Cisco
-// lessons) as a genuinely new topic, alongside the same existing topics.
+console.log('3. Testing the current Cisco topic set...');
+// "packet-tracer-ui", "connect-end-devices" and "switch-basics" were removed
+// entirely (Milestone: Cisco-Struktur bereinigen) - content-less
+// placeholders not needed as standalone lessons. The former separate
+// "ip-configuration" placeholder was merged into "basic-device-
+// configuration" (now titled "Grundkonfiguration & IP-Konfiguration").
 const EXPECTED_EXISTING = [
-  'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'router-basics',
-  'basic-device-configuration', 'ip-configuration', 'vlan', 'access-port',
+  'grundkonfiguration', 'basic-device-configuration', 'vlan', 'access-port', 'router-basics',
   'trunk', 'inter-vlan-routing', 'static-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting', 'ssh', 'dhcp',
 ];
+const REMOVED_TOPICS = ['packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'ip-configuration'];
 for (const topicId of EXPECTED_EXISTING) {
   const exists = ciscoTopics.some((t) => t.topicId === topicId);
   assert(exists, `Existing topic "${topicId}" is still present`);
 }
-assert.equal(ciscoTopics.length, EXPECTED_EXISTING.length + 1, 'Exactly the expected topics are present, nothing removed');
-console.log(`   All ${EXPECTED_EXISTING.length} previous topics preserved, plus 1 new ("grundlagen").`);
+for (const topicId of REMOVED_TOPICS) {
+  const exists = ciscoTopics.some((t) => t.topicId === topicId);
+  assert(!exists, `Removed topic "${topicId}" is actually gone from the catalog`);
+}
+assert.equal(ciscoTopics.length, EXPECTED_EXISTING.length + 1, 'Exactly the expected topics are present, nothing extra');
+console.log(`   All ${EXPECTED_EXISTING.length} current topics present, plus "grundlagen"; ${REMOVED_TOPICS.length} removed topics confirmed gone.`);
 
 // ============================================================
 // 4. Theory + quiz coverage

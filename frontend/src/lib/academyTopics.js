@@ -116,32 +116,26 @@ export const ACADEMY_TOPICS = [
   // ---------------------------------------------------------------------
   // 2. Cisco – Packet Tracer
   // ---------------------------------------------------------------------
-  // "Grundlagen" is the new entry-point lesson (hierarchical network design,
+  // "Grundlagen" is the entry-point lesson (hierarchical network design,
   // device types, IOS, memory, boot process, CLI/config modes, ROMMON,
-  // factory reset, CLI conveniences) - inserted before the previous first
-  // topic "packet-tracer-ui", which now depends on it instead of being the
-  // entry point itself. Every other topic keeps its existing position and
-  // prerequisites unchanged.
+  // factory reset, CLI conveniences).
   topic('cisco-packet-tracer', 'grundlagen', 'Grundlagen', 'Hierarchisches Netzwerk-Design, Cisco-Geräte, IOS, Speicher, Bootvorgang und Konfigurationsmodi.'),
-  // Inserted directly after "Grundlagen" (Milestone: Themenstruktur-Anpassung).
   // Self-contained hands-on primer: VLANs, Access-/Trunk-Ports, unused-port
   // hardening, IOS basic configuration and troubleshooting show-commands -
-  // each CLI section preceded by a short conceptual refresher. Deliberately
-  // independent of the existing packet-tracer-ui -> ... -> basic-device-
-  // configuration chain below, which is unchanged and still covers the same
-  // ground again in more depth with actual Packet Tracer practice.
+  // each CLI section preceded by a short conceptual refresher.
   topic('cisco-packet-tracer', 'grundkonfiguration', 'Grundkonfiguration', 'VLANs, Access- und Trunk-Ports, ungenutzte Ports absichern, IOS-Grundkonfiguration und Troubleshooting-Befehle.', ['grundlagen']),
-  topic('cisco-packet-tracer', 'packet-tracer-ui', 'Packet Tracer Oberfläche', 'Werkzeuge und Ansicht von Packet Tracer kennenlernen.', ['grundlagen']),
-  topic('cisco-packet-tracer', 'connect-end-devices', 'Endgeräte verbinden', 'Kabel und Endgeräte im Topologie-Editor verbinden.', ['packet-tracer-ui']),
-  // "switch-basics", "basic-device-configuration" and "ip-configuration"
-  // stay untouched, content-less placeholders for a later milestone (still
-  // gated behind the packet-tracer-ui -> connect-end-devices chain, which
-  // also has no content yet). "router-basics" now HAS content (Milestone
-  // C6) and is deliberately re-chained after "trunk" instead, so its
-  // prerequisite is actually satisfiable with what currently exists.
-  topic('cisco-packet-tracer', 'switch-basics', 'Switch-Grundlagen', 'Grundfunktionen eines Cisco-Switches.', ['connect-end-devices']),
-  topic('cisco-packet-tracer', 'basic-device-configuration', 'Grundkonfiguration', 'Hostname, Passwörter und Basis-CLI-Befehle.', ['switch-basics', 'router-basics']),
-  topic('cisco-packet-tracer', 'ip-configuration', 'IP-Konfiguration', 'IP-Adressen an Schnittstellen vergeben.', ['basic-device-configuration']),
+  // Removed (Milestone: Cisco-Struktur bereinigen): "Packet Tracer
+  // Oberfläche", "Endgeräte verbinden" and "Switch-Grundlagen" were
+  // content-less placeholders not needed as standalone lessons and have
+  // been dropped from the catalog entirely (not just hidden) - see
+  // academyProgress.js for how any pre-existing progress under these
+  // topicIds is handled (silently dropped, same as any other topic that no
+  // longer exists in the catalog). "basic-device-configuration" (below) is
+  // re-chained directly to "grundlagen" instead of the now-removed
+  // "switch-basics"/"router-basics" chain, and merged with the equally
+  // content-less former "ip-configuration" placeholder (also removed) into
+  // one combined lesson - see academyLessons/ciscoBasicDeviceConfiguration.js.
+  topic('cisco-packet-tracer', 'basic-device-configuration', 'Grundkonfiguration & IP-Konfiguration', 'Ein neues Gerät grundlegend einrichten: CLI-Modi, Passwörter, lokale Benutzer, sowie eine IP-Adresse auf einer Schnittstelle vergeben und aktivieren.', ['grundlagen']),
   topic('cisco-packet-tracer', 'vlan', 'VLAN', 'VLANs auf einem Switch anlegen und zuweisen.', ['fundamentals/switching', 'fundamentals/ipv4', 'fundamentals/vlan-basics']),
   topic('cisco-packet-tracer', 'access-port', 'Access-Port', 'Einen Switchport einem einzelnen VLAN zuweisen.', ['vlan']),
   topic('cisco-packet-tracer', 'trunk', 'Trunk', 'Mehrere VLANs über eine Verbindung transportieren.', ['vlan']),
@@ -153,16 +147,11 @@ export const ACADEMY_TOPICS = [
   // router. Depends on "trunk" (needs the VLAN/trunk concepts) but NOT on
   // "router-basics", since a multilayer switch replaces the router entirely.
   topic('cisco-packet-tracer', 'multilayer-switching', 'Multilayer Switch (MLS)', 'Inter-VLAN-Routing direkt auf einem Layer-3-Switch über SVIs, ohne separaten Router.', ['trunk']),
-  // Re-chained (Milestone C7) from the still-empty "switch-basics" placeholder
-  // to "trunk", which already carries content and is reachable through the
-  // working vlan -> access-port -> trunk chain. STP is about redundant
-  // switch-to-switch links, which builds directly on trunk knowledge.
+  // STP is about redundant switch-to-switch links, which builds directly on
+  // trunk knowledge.
   topic('cisco-packet-tracer', 'stp', 'Spanning Tree Protocol (PVST+)', 'Schleifen und Broadcast-Storms in redundanten Switch-Netzen verhindern, Root Bridge, Portrollen und Path Cost bestimmen.', ['trunk']),
   topic('cisco-packet-tracer', 'acl', 'Access Control Lists', 'Datenverkehr anhand von Regeln filtern.', ['router-basics']),
   topic('cisco-packet-tracer', 'nat', 'NAT', 'Private Adressen auf öffentliche Adressen übersetzen.', ['router-basics']),
-  // Re-chained (Milestone C6) after the now-content-bearing static-routing/
-  // inter-vlan-routing/multilayer-switching instead of the still-empty
-  // "ip-configuration" placeholder, so it is actually reachable.
   topic('cisco-packet-tracer', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche im Netzwerk anhand der passenden show-Befehle.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
   // Added (Milestone C7): remote management via SSH on router, L2 switch (via
   // management SVI) and multilayer switch - depends on the same chain as

@@ -58,9 +58,12 @@ const FINISHED_LESSONS = [
   'cisco-packet-tracer/grundkonfiguration',
 ];
 
+// "packet-tracer-ui"/"connect-end-devices"/"switch-basics" were removed from
+// the catalog entirely (Milestone: Cisco-Struktur bereinigen) - "acl"/"nat"
+// remain genuine content-less placeholders for a later milestone.
 const PLACEHOLDER_TOPICS = [
-  { categoryId: 'cisco-packet-tracer', topicId: 'packet-tracer-ui' },
-  { categoryId: 'cisco-packet-tracer', topicId: 'connect-end-devices' },
+  { categoryId: 'cisco-packet-tracer', topicId: 'acl' },
+  { categoryId: 'cisco-packet-tracer', topicId: 'nat' },
 ];
 
 // ============================================================

@@ -65,18 +65,21 @@ assert.equal(ciscoTopics[0].topicId, 'grundlagen', 'grundlagen is still the firs
 assert.equal(ciscoTopics[1].topicId, 'grundkonfiguration', 'grundkonfiguration is the second Cisco topic');
 assert.deepEqual(ciscoTopics[1].prerequisites, ['grundlagen'], 'grundkonfiguration depends only on grundlagen');
 // Milestone C6 re-chained "router-basics" (now content-bearing) after
-// "trunk" instead of "connect-end-devices", swapped "static-routing" and
-// "inter-vlan-routing" to match the actual learning order, and inserted the
-// new "multilayer-switching" topic - see academyTopics.js for the reasoning.
+// "trunk", swapped "static-routing" and "inter-vlan-routing" to match the
+// actual learning order, and inserted the new "multilayer-switching" topic.
+// Milestone "Cisco-Struktur bereinigen" then removed the content-less
+// "packet-tracer-ui"/"connect-end-devices"/"switch-basics" placeholders
+// entirely and merged "ip-configuration" into "basic-device-configuration"
+// (now titled "Grundkonfiguration & IP-Konfiguration", re-chained directly
+// to "grundlagen") - see academyTopics.js for the reasoning.
 const EXPECTED_EXISTING_CISCO = [
-  'grundlagen', 'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics',
-  'basic-device-configuration', 'ip-configuration', 'vlan', 'access-port',
+  'grundlagen', 'grundkonfiguration', 'basic-device-configuration', 'vlan', 'access-port',
   'trunk', 'router-basics', 'static-routing', 'inter-vlan-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting', 'ssh', 'dhcp',
 ];
-assert.deepEqual(ciscoTopics.map((t) => t.topicId), EXPECTED_EXISTING_CISCO, 'Cisco catalog order matches: grundkonfiguration inserted, nothing else moved/removed');
-const uiTopic = ciscoTopics.find((t) => t.topicId === 'packet-tracer-ui');
-assert.deepEqual(uiTopic.prerequisites, ['grundlagen'], 'packet-tracer-ui prerequisites unchanged');
-console.log('   Order verified: grundlagen -> grundkonfiguration -> packet-tracer-ui -> ... (unchanged tail).');
+assert.deepEqual(ciscoTopics.map((t) => t.topicId), EXPECTED_EXISTING_CISCO, 'Cisco catalog order matches expectations after the structure cleanup');
+const basicDeviceConfigTopic = ciscoTopics.find((t) => t.topicId === 'basic-device-configuration');
+assert.deepEqual(basicDeviceConfigTopic.prerequisites, ['grundlagen'], 'basic-device-configuration now depends directly on grundlagen');
+console.log('   Order verified: grundlagen -> grundkonfiguration -> basic-device-configuration -> ... (removed topics confirmed gone).');
 
 // ============================================================
 // 3. Fundamentals topics unchanged in catalog, only lesson content added

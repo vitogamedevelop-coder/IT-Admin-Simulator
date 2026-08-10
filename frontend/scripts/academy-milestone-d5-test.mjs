@@ -97,6 +97,9 @@ const EXPECTED_LESSONS = [
   'cisco-packet-tracer/ssh',
   // Added by Milestone C7 part 2 (DHCP Relay).
   'cisco-packet-tracer/dhcp',
+  // Added by Milestone "Cisco-Struktur bereinigen" (merged Grundkonfiguration
+  // & IP-Konfiguration, replacing the former empty placeholder).
+  'cisco-packet-tracer/basic-device-configuration',
 ];
 
 // Grundbegriffe uses its own component (GrundbegriffeLesson), not LESSONS

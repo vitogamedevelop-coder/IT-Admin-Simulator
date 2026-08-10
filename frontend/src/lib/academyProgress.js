@@ -30,7 +30,14 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // merged into "kommunikation-uebertragung". migrateLegacyTopicMerges() below
 // folds any pre-existing progress under the old topicIds into the new,
 // merged topic before the normal per-topic migration runs.
-const STATE_VERSION = 7;
+// v8 (Milestone: Cisco-Struktur bereinigen): "cisco-packet-tracer/ip-
+// configuration" merged into "cisco-packet-tracer/basic-device-
+// configuration" (now titled "Grundkonfiguration & IP-Konfiguration").
+// "packet-tracer-ui", "connect-end-devices" and "switch-basics" were
+// removed outright (content-less placeholders, never had any lesson) -
+// any pre-existing progress under those topicIds is simply dropped by the
+// generic "topic no longer in catalog" handling below, same as usual.
+const STATE_VERSION = 8;
 
 // Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
 // advanced status across a group of legacy topics being merged into one.
@@ -43,6 +50,7 @@ const STATUS_RANK = ['locked', 'available', 'started', 'learned', 'applied', 'co
 const LEGACY_TOPIC_MERGES = [
   { newKey: 'fundamentals/tcp-udp', oldKeys: ['fundamentals/tcp', 'fundamentals/udp', 'fundamentals/tcp-vs-udp'] },
   { newKey: 'fundamentals/kommunikation-uebertragung', oldKeys: ['fundamentals/kommunikationsarten', 'fundamentals/betriebsarten', 'fundamentals/ausbreitungsarten', 'fundamentals/uebertragungsmedien'] },
+  { newKey: 'cisco-packet-tracer/basic-device-configuration', oldKeys: ['cisco-packet-tracer/ip-configuration'] },
 ];
 
 // Returns a copy of `savedTopics` where, for every LEGACY_TOPIC_MERGES entry

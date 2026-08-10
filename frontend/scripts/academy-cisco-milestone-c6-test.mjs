@@ -39,7 +39,11 @@ for (const topicId of NEW_TOPIC_IDS) {
 }
 
 console.log('\nPrerequisite chain is reachable (no dependency on content-less placeholders)');
-const CONTENTLESS_PLACEHOLDERS = new Set(['packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'basic-device-configuration', 'ip-configuration']);
+// "packet-tracer-ui"/"connect-end-devices"/"switch-basics"/
+// "ip-configuration" were removed from the catalog entirely (Milestone:
+// Cisco-Struktur bereinigen); "basic-device-configuration" now has real
+// lesson content.
+const CONTENTLESS_PLACEHOLDERS = new Set(['acl', 'nat']);
 for (const topicId of NEW_TOPIC_IDS) {
   test(`${topicId}'s prerequisite chain never requires a content-less placeholder`, () => {
     const visited = new Set();

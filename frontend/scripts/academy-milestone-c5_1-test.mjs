@@ -187,8 +187,10 @@ assert(hasLessonContent('fundamentals', 'kommunikation-uebertragung'), 'kommunik
 assert(hasLessonContent('fundamentals', 'dns'), 'dns has lesson');
 assert(hasLessonContent('fundamentals', 'dhcp'), 'dhcp has lesson');
 assert(hasLessonContent('fundamentals', 'routing'), 'routing has lesson');
-assert(!hasLessonContent('cisco-packet-tracer', 'packet-tracer-ui'), 'packet-tracer-ui is placeholder');
-// "Grundlagen" is now a real lesson - inserted before packet-tracer-ui.
+// "packet-tracer-ui" was removed from the catalog entirely (Milestone:
+// Cisco-Struktur bereinigen); "acl" remains a genuine content-less
+// placeholder.
+assert(!hasLessonContent('cisco-packet-tracer', 'acl'), 'acl is placeholder');
 assert(hasLessonContent('cisco-packet-tracer', 'grundlagen'), 'cisco grundlagen has lesson');
 
 // AcademyCategory source should use hasLessonContent
