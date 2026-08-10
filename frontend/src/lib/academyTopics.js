@@ -168,6 +168,13 @@ export const ACADEMY_TOPICS = [
   // management SVI) and multilayer switch - depends on the same chain as
   // troubleshooting so all three device scenarios are already unlocked.
   topic('cisco-packet-tracer', 'ssh', 'Fernwartung mit SSH', 'Cisco-Geräte (Router, L2-Switch, Multilayer-Switch) sicher per SSH statt Telnet aus der Ferne administrieren.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
+  // Added (Milestone C7 part 2): DHCP Relay on Cisco devices - the practical
+  // skill of determining the correct Layer-3 interface for "ip helper-
+  // address" across all three routing scenarios already covered (physical
+  // router interface, Router on a Stick subinterface, MLS SVI). Depends on
+  // the same device chain as ssh/troubleshooting plus the conceptual
+  // fundamentals/dhcp topic (DORA process, why DHCP exists).
+  topic('cisco-packet-tracer', 'dhcp', 'DHCP Relay', 'DHCP-Anfragen über Router-/Switch-Grenzen weiterleiten und das richtige Layer-3-Interface für ip helper-address bestimmen.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching', 'fundamentals/dhcp']),
 
   // ---------------------------------------------------------------------
   // 3. Informationssicherheit

@@ -105,7 +105,7 @@ function buildExplanations() {
   exps.push(explanation('portfast-bpduguard-classic', 'PortFast und BPDU Guard', 'classic', [
     { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
       ['spanning-tree portfast', 'Überspringt auf einem Access-Port Listening/Learning und wechselt sofort in den Forwarding-Zustand - für Ports zu Endgeräten (PCs, Drucker), die selbst keine Loops erzeugen können.'],
-      ['spanning-tree portfast trunk', 'Aktiviert PortFast auf einem Trunk-Port - nur in Sonderfällen sinnvoll (z. B. Verbindung zu einem einzelnen Endgerät über einen Trunk), NICHT für normale Switch-zu-Switch-Verbindungen.'],
+      ['spanning-tree portfast trunk', 'Aktiviert PortFast auf einem Trunk-Port - nur als begründeter Sonderfall, z. B. bei Router on a Stick (ein Router-Subinterface hinter einem Trunk-Port ist kein Switch und erzeugt keine Schleife), NICHT für eine normale Switch-zu-Switch-Trunk-Verbindung.'],
       ['spanning-tree bpduguard enable', 'Deaktiviert (err-disabled) einen PortFast-Port sofort, falls auf ihm doch eine BPDU (STP-Nachricht) empfangen wird - das deutet auf einen versehentlich angeschlossenen Switch statt eines Endgeräts hin.'],
     ] },
     { type: 'text', content: 'PortFast darf NIEMALS auf einer echten Switch-zu-Switch-Verbindung aktiviert werden: Würde dort versehentlich eine Schleife entstehen, leitet der Port sofort weiter, ohne die schützenden STP-Zwischenzustände zu durchlaufen - das kann einen Broadcast-Storm auslösen. Genau dieses Risiko soll BPDU Guard absichern, indem er einen solchen Port automatisch deaktiviert.' },

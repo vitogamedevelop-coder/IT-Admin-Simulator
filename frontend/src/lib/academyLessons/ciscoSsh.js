@@ -65,7 +65,7 @@ function buildExplanations() {
       ['ip domain-name <Domain>', 'Legt den Domainnamen fest - ebenfalls Teil des Schlüssel-Namens.'],
       ['enable secret <Passwort>', 'Sichert den Privileged EXEC Mode mit einem verschlüsselt gespeicherten Passwort.'],
       ['username <Benutzer> secret <Passwort>', 'Legt einen lokalen Benutzer für die SSH-Anmeldung an (sicherer als "password").'],
-      ['crypto key generate rsa', 'Erzeugt das RSA-Schlüsselpaar, das SSH für die Verschlüsselung benötigt - erst danach ist SSH überhaupt aktivierbar.'],
+      ['crypto key generate rsa', 'Erzeugt das RSA-Schlüsselpaar, das SSH für die Verschlüsselung benötigt - erst danach ist SSH überhaupt aktivierbar. IOS fragt dabei nach der Schlüssellänge (Modulus) - für die Übungen genügt der in Packet Tracer übliche Minimalwert von 1024 Bit.'],
       ['ip ssh version 2', 'Erzwingt SSH Version 2.'],
       ['line vty 0 15', 'Wechselt in die Konfiguration aller virtuellen Terminal-Leitungen (Remote-Zugänge).'],
       ['login local', 'Aktiviert die Anmeldung über die lokale Benutzerdatenbank (statt eines einzelnen Line-Passworts).'],
@@ -73,6 +73,13 @@ function buildExplanations() {
     ] },
     { type: 'text', content: 'Die sichere Variante "username <Benutzer> secret <Passwort>" wird bevorzugt vermittelt - manche älteren Unterrichtsbeispiele verwenden noch "username <Benutzer> password <Passwort>" (unverschlüsselt gespeichert), das funktioniert technisch genauso, ist aber schwächer.' },
     { type: 'question', question: 'Warum schlägt "crypto key generate rsa" fehl, wenn vorher kein Hostname und kein Domain Name konfiguriert wurden?', options: ['Weil RSA-Schlüssel zufällige Namen brauchen', 'Weil der Name des Schlüssels aus Hostname und Domainname zusammengesetzt wird (Hostname.Domainname) - ohne beide fehlt dem Befehl die nötige Grundlage', 'Weil RSA nur mit IP-Adressen funktioniert', 'Das stimmt nicht, der Befehl funktioniert immer'], correct: 1, explanation: 'Der RSA-Schlüsselname setzt sich aus Hostname und Domainname zusammen - ohne beide bricht "crypto key generate rsa" mit einer Fehlermeldung ab.' },
+  ]));
+
+  exps.push(explanation('ssh-test-classic', 'SSH-Zugriff vom Client testen', 'classic', [
+    { type: 'text', content: 'Nach abgeschlossener Konfiguration testest du die Verbindung von einem Cisco-Client (z. B. einem anderen Router/Switch) aus mit dem SSH-Client-Befehl.' },
+    { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
+      ['ssh -l <Benutzer> <IP-Adresse>', 'Baut vom aktuellen Gerät aus eine SSH-Verbindung zum angegebenen Ziel auf, angemeldet als <Benutzer> - z. B. "ssh -l admin 192.168.100.254".'],
+    ] },
   ]));
 
   exps.push(explanation('router-szenario-classic', 'Praxisbeispiel: Router per SSH', 'classic', [
@@ -98,6 +105,7 @@ function buildExplanations() {
       ['Default Gateway (falls Management außerhalb des lokalen Netzes erreicht werden soll)', 'ip default-gateway <Gateway-IP>'],
       ['Danach', 'Die übliche SSH-Konfiguration (Hostname, Domain, Benutzer, RSA-Key, SSH v2, VTY) wie beim Router.'],
     ] },
+    { type: 'text', content: 'Wichtig: Alle Ports/Trunks, über die VLAN 99 den Switch verlässt oder erreicht (z. B. Richtung eines anderen Switches oder Richtung Gateway), müssen VLAN 99 auch tatsächlich transportieren - ein Trunk, der VLAN 99 nicht erlaubt ("switchport trunk allowed vlan"), macht die Management-SVI unerreichbar, obwohl sie korrekt konfiguriert ist.' },
     { type: 'question', question: 'Warum konfigurieren wir die Management-IP eines Layer-2-Switches auf "interface vlan 99" und nicht einfach auf einem normalen Access-Port?', options: ['Weil Access-Ports keine IP-Adressen unterstützen und ein separates Management-VLAN die Verwaltung vom produktiven Datenverkehr trennt und unabhängig von einzelnen Ports erreichbar bleibt', 'Weil VLAN 99 immer automatisch die Management-VLAN-ID ist', 'Weil ein L2-Switch sonst nicht bootet', 'Es gibt keinen Unterschied, beide Varianten sind identisch'], correct: 0, explanation: 'Ein L2-Switch hat keine IP je Access-Port - eine SVI in einem eigenen Management-VLAN trennt die Verwaltung sauber vom Nutzdatenverkehr und ist unabhängig von einem einzelnen physischen Port erreichbar.' },
   ]));
 
@@ -199,6 +207,13 @@ function buildExercises() {
       question: 'Lege für die Fernwartung eines Layer-2-Switches das Management-VLAN 99 an und konfiguriere die SVI mit der IP-Adresse 192.168.99.100/25.',
       expectedLines: ['vlan 99', 'interface vlan 99', 'ip address 192.168.99.100 255.255.255.128', 'no shutdown'],
       explanation: 'VLAN anlegen, dann die zugehörige SVI konfigurieren und aktivieren - erst danach ist der Switch über diese IP erreichbar.',
+    },
+    {
+      id: 'ssh-client-test-cli',
+      type: 'cli-input',
+      question: 'Baue von deinem aktuellen Gerät aus eine SSH-Verbindung zu 192.168.100.254 auf, angemeldet als Benutzer "admin".',
+      expectedLines: ['ssh -l admin 192.168.100.254'],
+      explanation: 'Der SSH-Client-Befehl lautet "ssh -l <Benutzer> <IP-Adresse>".',
     },
   ];
 }

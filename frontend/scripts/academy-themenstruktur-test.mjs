@@ -71,7 +71,7 @@ assert.deepEqual(ciscoTopics[1].prerequisites, ['grundlagen'], 'grundkonfigurati
 const EXPECTED_EXISTING_CISCO = [
   'grundlagen', 'grundkonfiguration', 'packet-tracer-ui', 'connect-end-devices', 'switch-basics',
   'basic-device-configuration', 'ip-configuration', 'vlan', 'access-port',
-  'trunk', 'router-basics', 'static-routing', 'inter-vlan-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting', 'ssh',
+  'trunk', 'router-basics', 'static-routing', 'inter-vlan-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting', 'ssh', 'dhcp',
 ];
 assert.deepEqual(ciscoTopics.map((t) => t.topicId), EXPECTED_EXISTING_CISCO, 'Cisco catalog order matches: grundkonfiguration inserted, nothing else moved/removed');
 const uiTopic = ciscoTopics.find((t) => t.topicId === 'packet-tracer-ui');

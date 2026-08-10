@@ -95,6 +95,8 @@ const EXPECTED_LESSONS = [
   // Added by Milestone C7 (STP/PVST+ and SSH deep-dive lessons).
   'cisco-packet-tracer/stp',
   'cisco-packet-tracer/ssh',
+  // Added by Milestone C7 part 2 (DHCP Relay).
+  'cisco-packet-tracer/dhcp',
 ];
 
 // Grundbegriffe uses its own component (GrundbegriffeLesson), not LESSONS
