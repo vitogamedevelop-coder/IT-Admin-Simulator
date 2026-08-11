@@ -66,7 +66,7 @@ export function buildSamOfficeDialog() {
         { label: '☕ Nur kurz reden.', nextId: 'smalltalk' },
         { label: '👋 Bis später.', nextId: 'bye' },
       ] },
-      { id: 'learn', text: `${progressLine} Komm mit, ich zeig dir die Academy.`, onComplete: { action: 'academy' } },
+      { id: 'learn', text: `${progressLine} Komm mit, ich zeig dir die Academy.`, tts: true, ttsMode: 'voice-test', onComplete: { action: 'academy' } },
       { id: 'progress', text: howFarLine },
       { id: 'smalltalk', text: randomSamSmalltalk(), onComplete: { action: 'close' } },
       { id: 'bye', text: 'Bis später dann. Mein Büro findest du immer hier im Flur.', onComplete: { action: 'close' } },

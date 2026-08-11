@@ -16,6 +16,8 @@ import { characterAsset } from '../lib/rpgAssets';
 import ErrorBoundary from '../components/ErrorBoundary';
 import BackBar from '../components/BackBar';
 import { useAppBack, pushBackHandler } from '../lib/useAppBack';
+import SpeakButton from '../components/SpeakButton';
+import { stop as stopSpeech } from '../lib/speechSynthesis';
 
 // -----------------------------------------------------------------------
 // "Grundbegriffe" has a small custom mini-lesson (guided Sam dialogue). All
@@ -80,6 +82,7 @@ function GrundbegriffeLesson({ onDone }) {
   }, [finished]);
 
   function advance() {
+    stopSpeech().catch(() => {});
     // One mentorLesson (theory) bump per finished section - not per line, so
     // scoring stays coarse and predictable instead of spamming tiny deltas.
     if (beat.endOfSection) applyMentorLesson('fundamentals', 'grundbegriffe');
@@ -97,6 +100,7 @@ function GrundbegriffeLesson({ onDone }) {
   }
 
   function nextAfterQuestion() {
+    stopSpeech().catch(() => {});
     setSelected(null);
     if (index + 1 >= BASICS_BEATS.length) setFinished(true);
     else setIndex((i) => i + 1);
@@ -108,7 +112,7 @@ function GrundbegriffeLesson({ onDone }) {
         <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Sam</div>
         <p className="text-sm text-[#c9d1d9] mt-2">„Das reicht für heute. Du musst Netzwerke nicht auswendig lernen - du musst verstehen, warum sie funktionieren.“</p>
         <p className="text-sm text-[#c9d1d9] mt-2">Sam nimmt seine Kaffeetasse: „Das Netzwerk läuft vielleicht nicht immer... aber der Kaffee muss laufen.“</p>
-        <button onClick={onDone} className="cyber-btn w-full mt-3 py-2 text-sm">Fertig</button>
+        <button onClick={() => { stopSpeech().catch(() => {}); onDone(); }} className="cyber-btn w-full mt-3 py-2 text-sm">Fertig</button>
       </div>
     );
   }
@@ -140,7 +144,10 @@ function GrundbegriffeLesson({ onDone }) {
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Sam erklärt · {index + 1}/{BASICS_BEATS.length}</div>
       <p className="text-sm text-[#c9d1d9] mt-2">{beat.text}</p>
-      <button onClick={advance} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
+      <div className="flex items-center justify-between mt-3">
+        <SpeakButton text={beat.text} />
+        <button onClick={advance} className="cyber-btn py-2 px-4 text-sm">Weiter</button>
+      </div>
     </div>
   );
 }
@@ -294,6 +301,7 @@ export default function AcademyTopic() {
     setRefreshTick((t) => t + 1);
   }
   function closeLesson() {
+    stopSpeech().catch(() => {});
     setActiveSection(null);
     setRefreshTick((t) => t + 1);
   }

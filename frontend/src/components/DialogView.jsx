@@ -2,13 +2,18 @@ import { useEffect, useState, useCallback } from 'react';
 import { Phone, MessageCircle, ChevronRight } from 'lucide-react';
 import { characterAsset } from '../lib/rpgAssets';
 import { defaultTypewriterSpeed } from '../lib/dialogSystem';
+import { stop, isSupported, isNativeTtsSupported, loadVoices } from '../lib/speechSynthesis';
+import SpeakButton from './SpeakButton';
+import TtsVoiceTester from './TtsVoiceTester';
 
 export default function DialogView({ dialog, person, onComplete, onOption }) {
   const [nodeId, setNodeId] = useState(dialog.entryNode);
   const [displayedText, setDisplayedText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
   const [history, setHistory] = useState([]);
+
   const node = dialog.nodes.find((n) => n.id === nodeId) || dialog.nodes[0];
+  const showTts = node.tts === true && isSupported();
   const personName = person?.name || node?.personId || 'Unbekannt';
   const personRole = person?.role || '';
   const portrait = characterAsset(person?.id || node?.personId);
@@ -36,8 +41,13 @@ export default function DialogView({ dialog, person, onComplete, onOption }) {
   }, [isComplete, node, personName, showFullText, onComplete]);
 
   useEffect(() => {
+    if (showTts) loadVoices();
+  }, [showTts]);
+
+  useEffect(() => {
     setDisplayedText('');
     setIsComplete(false);
+    stop().catch(() => {});
     let index = 0;
     const timer = setInterval(() => {
       index += 1;
@@ -47,7 +57,10 @@ export default function DialogView({ dialog, person, onComplete, onOption }) {
         setIsComplete(true);
       }
     }, defaultTypewriterSpeed);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      stop().catch(() => {});
+    };
   }, [node]);
 
   function chooseOption(option) {
@@ -84,6 +97,11 @@ export default function DialogView({ dialog, person, onComplete, onOption }) {
             </div>
           ))}
           <div className="text-sm text-[#c9d1d9] leading-relaxed whitespace-pre-wrap">{displayedText}{!isComplete && <span className="inline-block w-2 h-4 ml-1 bg-[#00f0ff] animate-pulse" />}</div>
+          {showTts && isComplete && (
+            isNativeTtsSupported() && node.ttsMode === 'voice-test'
+              ? <TtsVoiceTester text={node.text} />
+              : <SpeakButton text={node.text} className="mt-3" />
+          )}
         </div>
       </div>
       {node.options?.length > 0 && isComplete && (

@@ -24,6 +24,7 @@ import LearningInteraction from '../components/LearningInteraction';
 import ObjectivePanel from '../components/ObjectivePanel';
 import { startAmbient, stopAmbient, playMonitorOn, playMailNotification, playPhoneRing } from '../lib/sound';
 import { useAppBack, pushBackHandler } from '../lib/useAppBack';
+import { stop as stopSpeech } from '../lib/speechSynthesis';
 
 const appComponents = { email: EmailApp, phone: PhoneApp, notebook: Notebook, terminal: TerminalApp, directory: Directory };
 
@@ -300,8 +301,15 @@ export default function Workspace() {
   }, [monitorOpen, openApp]);
 
   useEffect(() => {
-    if (!corridorDialog) return;
-    return pushBackHandler(() => setCorridorDialog(null));
+    if (!corridorDialog) stopSpeech();
+    return pushBackHandler(() => { stopSpeech(); setCorridorDialog(null); });
+  }, [corridorDialog]);
+
+  // Pre-check native TTS availability while the dialog is open.
+  useEffect(() => {
+    if (corridorDialog) {
+      import('../lib/speechSynthesis.js').then((m) => m.isSupported()).catch(() => {});
+    }
   }, [corridorDialog]);
 
   useEffect(() => {
@@ -665,20 +673,21 @@ export default function Workspace() {
     setCorridorDialog({ dialog: buildDefaultDialog(), person });
   }
 
-  function handleDialogComplete(node) {
+  async function handleDialogComplete(node) {
     const action = node?.onComplete?.action;
     const missionId = node?.onComplete?.missionId;
     const interactionId = node?.onComplete?.interactionId;
-    if (action === 'close') { setCorridorDialog(null); return; }
-    if (action === 'academy') { setCorridorDialog(null); navigate('/academy'); return; }
-    if (action === 'interaction' && interactionId) { setCorridorDialog(null); setActiveInteraction(interactionById(interactionId)); return; }
+    if (action === 'close') { await stopSpeech(); setCorridorDialog(null); return; }
+    if (action === 'academy') { await stopSpeech(); setCorridorDialog(null); navigate('/academy'); return; }
+    if (action === 'interaction' && interactionId) { await stopSpeech(); setCorridorDialog(null); setActiveInteraction(interactionById(interactionId)); return; }
     if (missionId) {
       const mission = corridorDialog?.mission;
       registerMission({ instanceId: missionId, questId: missionId, source: 'hallway', title: mission?.title || '' });
-      if (action === 'accept') { updateMissionStatus(missionId, MissionStatus.ACCEPTED); setCorridorDialog(null); navigate(`/side-mission/${encodeURIComponent(missionId)}`); return; }
+      if (action === 'accept') { await stopSpeech(); updateMissionStatus(missionId, MissionStatus.ACCEPTED); setCorridorDialog(null); navigate(`/side-mission/${encodeURIComponent(missionId)}`); return; }
       if (action === 'defer') updateMissionStatus(missionId, MissionStatus.ACCEPTED);
       if (action === 'decline') updateMissionStatus(missionId, MissionStatus.DECLINED);
     }
+    await stopSpeech();
     setCorridorDialog(null);
   }
 
