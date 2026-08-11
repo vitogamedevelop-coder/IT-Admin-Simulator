@@ -318,9 +318,22 @@ function normalizeCiscoText(text) {
   t = t.replace(/(\d{1,3} Punkt \d{1,3} Punkt \d{1,3} Punkt \d{1,3})\/(\d{1,2})/g, '$1 Schrägstrich $2');
 
   // Common abbreviations.
+  // ACL expansions.
+  t = t.replace(/ip access-list resequence/gi, 'I P Access List resequence');
+  t = t.replace(/ip access-list/gi, 'I P Access List');
+  t = t.replace(/access-class/gi, 'Access Class');
+  t = t.replace(/access-group/gi, 'Access Group');
+  t = t.replace(/access-list/gi, 'Access List');
+
+  // Common abbreviations and ACL keywords.
   t = t.replace(/\bip\b/gi, 'I P');
   t = t.replace(/\bospf\b/gi, 'O S P F');
   t = t.replace(/\bmd5\b/gi, 'M D 5');
+  t = t.replace(/\bacl\b/gi, 'A C L');
+  t = t.replace(/\bace\b/gi, 'A C E');
+  t = t.replace(/\beq\b/gi, 'gleich');
+  t = t.replace(/\bpermit\b/gi, 'permit');
+  t = t.replace(/\bdeny\b/gi, 'deny');
 
   return t;
 }

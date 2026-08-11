@@ -56,25 +56,8 @@ export default function Settings() {
   const [diagnostics, setDiagnostics] = useState('');
   const [diagLoading, setDiagLoading] = useState(false);
   const hasNativeTts = isNativeTtsSupported();
-  useAppBack();
 
-  useEffect(() => {
-    if (hasNativeTts) refreshDiagnostics();
-    return () => {
-      stop().catch(() => {});
-    };
-  }, [hasNativeTts, refreshDiagnostics]);
-
-  useEffect(() => {
-    if (hasNativeTts) refreshDiagnostics();
-  }, [hasNativeTts, refreshDiagnostics, settings.useSystemVoice, settings.enabled]);
-
-  function updateSettings(partial) {
-    const next = { ...settings, ...partial };
-    setSettings(next);
-    setTtsSettings(next);
-  }
-
+  // Declared before any useEffect that references it to avoid TDZ in production.
   const refreshDiagnostics = useCallback(async () => {
     if (!hasNativeTts) return;
     setDiagLoading(true);
@@ -87,6 +70,12 @@ export default function Settings() {
       setDiagLoading(false);
     }
   }, [hasNativeTts]);
+
+  function updateSettings(partial) {
+    const next = { ...settings, ...partial };
+    setSettings(next);
+    setTtsSettings(next);
+  }
 
   async function playTest() {
     await stop();
@@ -129,6 +118,19 @@ export default function Settings() {
     }
     window.location.href = '/';
   }
+
+  useAppBack();
+
+  useEffect(() => {
+    if (hasNativeTts) refreshDiagnostics();
+    return () => {
+      stop().catch(() => {});
+    };
+  }, [hasNativeTts, refreshDiagnostics]);
+
+  useEffect(() => {
+    if (hasNativeTts) refreshDiagnostics();
+  }, [hasNativeTts, refreshDiagnostics, settings.useSystemVoice, settings.enabled]);
 
   return (
     <div className="flex flex-col gap-4 py-2">
