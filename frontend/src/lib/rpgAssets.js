@@ -72,15 +72,7 @@ export function companyAsset(stage) {
 }
 
 export function storyAsset(questId) {
-  const mapping = {
-    'first-day': 'firstDay',
-    'dns-outage': 'dnsOutage',
-    permissions: 'permissions',
-    'security-incident': 'securityIncident',
-    'backup-failure': 'backupFailure',
-    'branch-network-outage': 'branchOutage',
-    'ransomware-suspicion': 'ransomware',
-    'power-failure-ups': 'powerFailure',
-  };
-  return rpgAssets.stories[mapping[questId]] || null;
+  // Phase 0 reset: no legacy story mappings. New missions register their
+  // own asset key here.
+  return rpgAssets.stories[questId] || null;
 }

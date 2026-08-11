@@ -22,7 +22,6 @@ const defaultEntries = [
     example: 'ipconfig /all',
     useCase: 'Erster Befehl bei Netzwerkproblemen, um die lokale Konfiguration zu prüfen.',
     unlocked: false,
-    unlockedBy: 'first-day',
   },
   {
     id: 'note-ping',
@@ -33,7 +32,6 @@ const defaultEntries = [
     example: 'ping 192.168.10.1',
     useCase: 'Trennt Schicht-1- und Schicht-3-Probleme von Anwendungsproblemen.',
     unlocked: false,
-    unlockedBy: 'first-day',
   },
   {
     id: 'note-nslookup',
@@ -44,7 +42,6 @@ const defaultEntries = [
     example: 'nslookup fs01.nexus.local',
     useCase: 'Namensauflösung isolieren, wenn ein Ziel per IP erreichbar ist, aber nicht per Name.',
     unlocked: false,
-    unlockedBy: 'dns-outage',
   },
 ];
 

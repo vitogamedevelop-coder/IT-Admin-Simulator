@@ -5,7 +5,7 @@ import { applyMainMission } from './academyEngine.js';
 const KEY = 'it-learn:rpg-state-v1';
 
 const initialState = {
-  stateVersion: 4,
+  stateVersion: 5,
   contentPackVersion: 1,
   company: 'NEXUS Systems',
   // Purely local display name (no account, no PII beyond a self-chosen
@@ -64,6 +64,20 @@ function migrateState(saved) {
   if (!saved.stateVersion || saved.stateVersion < 4) {
     migrated.stateVersion = 4;
     migrated.playerName = saved.playerName || null;
+  }
+  if (!saved.stateVersion || saved.stateVersion < 5) {
+    // Phase 0 reset: legacy mission progress is cleared so the new adaptive
+    // mission system starts from a clean slate. Academy progress is stored
+    // separately and is not affected.
+    migrated.stateVersion = 5;
+    migrated.completedQuests = [];
+    migrated.activeQuest = null;
+    migrated.completedSideMissions = [];
+    migrated.inbox = [];
+    migrated.incidentsResolved = 0;
+    migrated.sideMissionsResolved = 0;
+    migrated.generatedTicketHistory = [];
+    migrated.reputation = { ...initialState.reputation };
   }
   return migrated;
 }

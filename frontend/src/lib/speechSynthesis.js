@@ -2,13 +2,14 @@
 // Set this to false to disable the test feature with a single change.
 export const ENABLE_SAM_TTS_TEST = true;
 
-const TTS_SETTINGS_KEY = 'it-learn:tts-settings-v2';
+const TTS_SETTINGS_KEY = 'it-learn:tts-settings-v3';
+const LEGACY_TTS_SETTINGS_KEY = 'it-learn:tts-settings-v2';
 
 let nativeTtsAvailable = null;
 let nativeVoices = null;
 let nativeInitPromise = null;
 let webVoiceCache = null;
-let webVoiceCacheInitialized = false;
+let webVoiceCachePromise = null;
 
 // Lazy, safe Capacitor import.
 let CapacitorTTS = null;
@@ -69,14 +70,53 @@ export function isNativeTtsSupported() {
   return isSupported() && isNativePlatform();
 }
 
-export function getTtsSettings() {
+export function isWebTtsSupported() {
+  return !isNativePlatform() && isWebSpeechSupported();
+}
+
+// A voice key is a small, persistable identifier that works for both native
+// and Web Speech voices.  Native voices may report stable `voiceURI` values
+// across app restarts; the same is true for Web Speech voices in most browsers.
+// We store `uri`, `name` and `lang` and match by URI first, then by name+lang.
+function migrateLegacySettings(raw) {
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(TTS_SETTINGS_KEY);
-    if (raw) return JSON.parse(raw);
+    const legacy = JSON.parse(raw);
+    if (legacy.voiceId && legacy.voiceId.voiceURI) {
+      return {
+        enabled: legacy.enabled !== false,
+        useSystemVoice: legacy.useSystemVoice !== false,
+        voiceKey: {
+          uri: legacy.voiceId.voiceURI,
+          name: legacy.voiceId.name || '',
+          lang: legacy.voiceId.lang || '',
+        },
+      };
+    }
   } catch {
     // ignore
   }
-  return { enabled: true, useSystemVoice: true, voiceId: null };
+  return null;
+}
+
+export function getTtsSettings() {
+  const defaults = { enabled: true, useSystemVoice: true, voiceKey: null };
+  try {
+    const raw = localStorage.getItem(TTS_SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...defaults, ...parsed };
+    }
+    const legacy = localStorage.getItem(LEGACY_TTS_SETTINGS_KEY);
+    const migrated = migrateLegacySettings(legacy);
+    if (migrated) {
+      setTtsSettings(migrated);
+      return { ...defaults, ...migrated };
+    }
+  } catch {
+    // ignore
+  }
+  return defaults;
 }
 
 export function setTtsSettings(settings) {
@@ -103,7 +143,7 @@ export async function getTtsDiagnostics() {
   }
 }
 
-// ---------- Native voice discovery ----------
+// ---------- Voice discovery ----------
 
 async function initializeNativeTTS() {
   if (nativeInitPromise) return nativeInitPromise;
@@ -116,15 +156,6 @@ async function initializeNativeTTS() {
     try {
       const { voices } = await CapacitorTTS.getSupportedVoices();
       nativeVoices = (voices || []).map((v, i) => ({ ...v, index: i }));
-      // eslint-disable-next-line no-console
-      console.log('[TTS] supported voices:', nativeVoices.map((v) => ({
-        index: v.index,
-        name: v.name,
-        lang: v.lang,
-        voiceURI: v.voiceURI,
-        localService: v.localService,
-        default: v.default,
-      })));
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn('[TTS] failed to load native voices:', err);
@@ -140,51 +171,135 @@ export async function getNativeVoices() {
   return nativeVoices || [];
 }
 
-export function getVoices() {
-  return nativeVoices || [];
+function loadWebVoicesInternal() {
+  if (!isWebSpeechSupported()) return Promise.resolve([]);
+  if (webVoiceCache) return Promise.resolve(webVoiceCache);
+  if (webVoiceCachePromise) return webVoiceCachePromise;
+
+  webVoiceCachePromise = new Promise((resolve) => {
+    const store = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        webVoiceCache = voices;
+        resolve(webVoiceCache);
+      }
+    };
+
+    store();
+
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      const handler = () => {
+        store();
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+      window.speechSynthesis.onvoiceschanged = handler;
+    }
+
+    setTimeout(() => {
+      if (!webVoiceCache) {
+        store();
+      }
+      if (!webVoiceCache) {
+        webVoiceCache = [];
+        resolve(webVoiceCache);
+      }
+    }, 1500);
+  });
+
+  return webVoiceCachePromise;
 }
 
-export function getGermanVoices() {
-  return (nativeVoices || []).filter((v) => v.lang?.toLowerCase().startsWith('de'));
+export async function getWebVoices() {
+  return loadWebVoicesInternal();
 }
 
-function getVoiceById(voiceId) {
-  if (!voiceId || !nativeVoices) return null;
-  return nativeVoices.find((v) => v.index === voiceId.index && v.voiceURI === voiceId.voiceURI) || null;
+export function loadVoices() {
+  loadWebVoicesInternal().catch(() => {});
 }
 
-function selectVoiceIndex() {
-  if (!nativeVoices || nativeVoices.length === 0) return undefined;
+export async function getVoices() {
+  if (isNativePlatform()) return getNativeVoices();
+  return getWebVoices();
+}
 
+export async function getGermanVoices() {
+  const voices = await getVoices();
+  return voices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
+}
+
+function voiceMatchesKey(voice, key) {
+  if (!voice || !key) return false;
+  if (key.uri && (voice.voiceURI === key.uri || voice.voiceURI === `urn:moz-tts:${key.uri}?0`)) return true;
+  if (voice.name && key.name && voice.name === key.name) return true;
+  return false;
+}
+
+function findNativeVoiceByKey(key) {
+  if (!nativeVoices || !key) return null;
+  return nativeVoices.find((v) => voiceMatchesKey(v, key)) || null;
+}
+
+async function findWebVoiceByKey(key) {
+  const voices = await loadWebVoicesInternal();
+  if (!voices.length || !key) return null;
+  return voices.find((v) => voiceMatchesKey(v, key)) || null;
+}
+
+function pickFallbackVoice(voices) {
+  if (!voices || voices.length === 0) return null;
+  const deVoices = voices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
+  if (deVoices.length) {
+    return deVoices.find((v) => v.localService) || deVoices[0];
+  }
+  return voices[0];
+}
+
+async function selectVoice() {
   const settings = getTtsSettings();
-  if (!settings.useSystemVoice) {
-    const saved = getVoiceById(settings.voiceId);
-    if (saved) {
-      // eslint-disable-next-line no-console
-      console.log('[TTS] using saved voice:', { index: saved.index, voiceURI: saved.voiceURI, name: saved.name });
-      return saved.index;
-    }
-    const deVoices = nativeVoices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
-    if (deVoices.length) {
-      const localDe = deVoices.find((v) => v.localService) || deVoices[0];
-      // eslint-disable-next-line no-console
-      console.log('[TTS] fallback to German voice:', { index: localDe.index, voiceURI: localDe.voiceURI, name: localDe.name });
-      return localDe.index;
-    }
-    // eslint-disable-next-line no-console
-    console.log('[TTS] falling back to first available voice:', { index: 0, voiceURI: nativeVoices[0].voiceURI, name: nativeVoices[0].name });
-    return 0;
+
+  if (settings.useSystemVoice) {
+    return { index: -1, useSystemVoice: true };
   }
 
-  // eslint-disable-next-line no-console
-  console.log('[TTS] using system voice (no index)');
-  return -1;
+  if (isNativePlatform()) {
+    await initializeNativeTTS();
+    if (!nativeVoices || nativeVoices.length === 0) {
+      return { index: -1, useSystemVoice: true };
+    }
+    const saved = findNativeVoiceByKey(settings.voiceKey);
+    if (saved) {
+      return { index: saved.index, useSystemVoice: false, voice: saved };
+    }
+    const fallback = pickFallbackVoice(nativeVoices);
+    return { index: fallback ? fallback.index : -1, useSystemVoice: false, voice: fallback };
+  }
+
+  // Web Speech path.
+  const voices = await loadWebVoicesInternal();
+  if (voices.length === 0) {
+    return { index: null, useSystemVoice: false, voice: null };
+  }
+  const saved = await findWebVoiceByKey(settings.voiceKey);
+  if (saved) {
+    return { index: null, useSystemVoice: false, voice: saved };
+  }
+  const fallback = pickFallbackVoice(voices);
+  return { index: null, useSystemVoice: false, voice: fallback };
 }
 
 export function getDisplayVoiceLabel(voice) {
   if (!voice) return 'Unbekannt';
   if (voice.voiceURI) return `${voice.name || voice.lang} – ${voice.voiceURI}`;
   return voice.name || voice.lang || `Stimme ${voice.index}`;
+}
+
+export function voiceKeyFromVoice(voice) {
+  if (!voice) return null;
+  return {
+    uri: voice.voiceURI || '',
+    name: voice.name || '',
+    lang: voice.lang || '',
+  };
 }
 
 export async function openTtsSettings() {
@@ -195,87 +310,6 @@ export async function openTtsSettings() {
       // eslint-disable-next-line no-console
       console.warn('[TTS] openInstall failed:', err);
     }
-  }
-}
-
-// ---------- Web Speech API helpers ----------
-
-export function loadVoices() {
-  if (!isWebSpeechSupported() || webVoiceCacheInitialized) return;
-  webVoiceCacheInitialized = true;
-
-  const storeVoices = () => {
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) webVoiceCache = voices;
-  };
-
-  storeVoices();
-
-  if (!webVoiceCache && window.speechSynthesis.onvoiceschanged !== undefined) {
-    const handler = () => {
-      storeVoices();
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-    window.speechSynthesis.onvoiceschanged = handler;
-    setTimeout(() => {
-      storeVoices();
-      window.speechSynthesis.onvoiceschanged = null;
-    }, 1500);
-  }
-}
-
-function findWebGermanVoice() {
-  if (!webVoiceCache) return null;
-  return webVoiceCache.find((v) => v.lang?.toLowerCase().startsWith('de')) || webVoiceCache[0] || null;
-}
-
-function speakWeb(text, callbacks = {}) {
-  if (!isWebSpeechSupported()) return;
-  stopWeb();
-  loadVoices();
-
-  if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-
-  const utterance = new window.SpeechSynthesisUtterance(text);
-  utterance.lang = 'de-DE';
-  utterance.rate = 1;
-  utterance.pitch = 1;
-
-  const voice = findWebGermanVoice();
-  if (voice) utterance.voice = voice;
-
-  utterance.onstart = () => { if (callbacks.onStart) callbacks.onStart(); };
-  utterance.onend = () => { if (callbacks.onEnd) callbacks.onEnd(); };
-  utterance.onerror = (event) => {
-    // eslint-disable-next-line no-console
-    console.warn('[TTS] speechSynthesis error:', event.error);
-    if (callbacks.onError) callbacks.onError(event);
-  };
-
-  window.speechSynthesis.speak(utterance);
-}
-
-async function speakNative(text, voiceIndex, useSystemVoice, callbacks = {}) {
-  if (!CapacitorTTS) return;
-  try {
-    await initializeNativeTTS();
-    if (callbacks.onStart) callbacks.onStart();
-    // eslint-disable-next-line no-console
-    console.log('[TTS] speaking:', { index: voiceIndex, useSystemVoice });
-    await CapacitorTTS.speak({
-      text,
-      lang: 'de-DE',
-      rate: 1.0,
-      pitch: 1.0,
-      volume: 1.0,
-      voice: voiceIndex,
-      useSystemVoice,
-    });
-    if (callbacks.onEnd) callbacks.onEnd();
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[TTS] native TTS error:', err);
-    if (callbacks.onError) callbacks.onError(err);
   }
 }
 
@@ -318,12 +352,30 @@ function normalizeCiscoText(text) {
   t = t.replace(/(\d{1,3} Punkt \d{1,3} Punkt \d{1,3} Punkt \d{1,3})\/(\d{1,2})/g, '$1 Schrägstrich $2');
 
   // Common abbreviations.
-  // ACL expansions.
+  // NAT expansions (must be before generic \bip\b replacement).
+  t = t.replace(/show ip nat statistics/gi, 'Show I P N A T Statistik');
+  t = t.replace(/show ip nat translations/gi, 'Show I P N A T Übersetzungen');
+  t = t.replace(/show ip nat/gi, 'Show I P N A T');
+  t = t.replace(/clear ip nat translation/gi, 'Clear I P N A T Übersetzung');
+  t = t.replace(/ip nat inside source static tcp/gi, 'I P N A T inside source static T C P');
+  t = t.replace(/ip nat inside source static/gi, 'I P N A T inside source static');
+  t = t.replace(/ip nat inside source list/gi, 'I P N A T inside source list');
+  t = t.replace(/ip nat pool/gi, 'I P N A T Pool');
+  t = t.replace(/ip nat outside/gi, 'I P N A T outside');
+  t = t.replace(/ip nat inside/gi, 'I P N A T inside');
+  t = t.replace(/\bnat\b/gi, 'N A T');
+  t = t.replace(/\bpat\b/gi, 'P A T');
+
+  // ACL / packet filter expansions.
+  t = t.replace(/ip inspect/gi, 'I P Inspect');
   t = t.replace(/ip access-list resequence/gi, 'I P Access List resequence');
   t = t.replace(/ip access-list/gi, 'I P Access List');
   t = t.replace(/access-class/gi, 'Access Class');
   t = t.replace(/access-group/gi, 'Access Group');
   t = t.replace(/access-list/gi, 'Access List');
+  t = t.replace(/\bstateful\b/gi, 'stateful');
+  t = t.replace(/\bstateless\b/gi, 'stateless');
+  t = t.replace(/\bcbac\b/gi, 'C B A C');
 
   // Common abbreviations and ACL keywords.
   t = t.replace(/\bip\b/gi, 'I P');
@@ -367,13 +419,14 @@ export function ttsTextFromBlocks(blocks) {
 export async function speak(text, callbacks = {}) {
   if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
   await stop();
-  if (await checkNativeTts()) {
-    const settings = getTtsSettings();
-    const useSystemVoice = settings.useSystemVoice !== false;
-    const index = useSystemVoice ? -1 : selectVoiceIndex();
-    await speakNative(text, index, useSystemVoice, callbacks);
+
+  const normalized = normalizeCiscoText(text);
+  const { index, useSystemVoice, voice } = await selectVoice();
+
+  if (isNativePlatform() && (await checkNativeTts())) {
+    await speakNative(normalized, index, useSystemVoice, callbacks);
   } else if (isWebSpeechSupported()) {
-    speakWeb(text, callbacks);
+    speakWeb(normalized, voice, callbacks);
   }
 }
 
@@ -381,8 +434,13 @@ export async function speakWithVoice(text, voice, callbacks = {}) {
   if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
   if (!voice) return speak(text, callbacks);
   await stop();
-  if (await checkNativeTts()) {
-    await speakNative(text, voice.index, false, callbacks);
+
+  const normalized = normalizeCiscoText(text);
+
+  if (isNativePlatform() && (await checkNativeTts())) {
+    await speakNative(normalized, voice.index, false, callbacks);
+  } else if (isWebSpeechSupported()) {
+    speakWeb(normalized, voice, callbacks);
   }
 }
 
@@ -398,9 +456,57 @@ export async function stop() {
   }
 }
 
+// ---------- Web Speech implementation ----------
+
 function stopWeb() {
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel();
+  }
+}
+
+function speakWeb(text, voice, callbacks = {}) {
+  if (!isWebSpeechSupported()) return;
+  stopWeb();
+
+  if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+
+  const utterance = new window.SpeechSynthesisUtterance(text);
+  utterance.lang = 'de-DE';
+  utterance.rate = 1;
+  utterance.pitch = 1;
+
+  if (voice) utterance.voice = voice;
+
+  utterance.onstart = () => { if (callbacks.onStart) callbacks.onStart(); };
+  utterance.onend = () => { if (callbacks.onEnd) callbacks.onEnd(); };
+  utterance.onerror = (event) => {
+    // eslint-disable-next-line no-console
+    console.warn('[TTS] speechSynthesis error:', event.error);
+    if (callbacks.onError) callbacks.onError(event);
+  };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+async function speakNative(text, voiceIndex, useSystemVoice, callbacks = {}) {
+  if (!CapacitorTTS) return;
+  try {
+    await initializeNativeTTS();
+    if (callbacks.onStart) callbacks.onStart();
+    await CapacitorTTS.speak({
+      text,
+      lang: 'de-DE',
+      rate: 1.0,
+      pitch: 1.0,
+      volume: 1.0,
+      voice: voiceIndex,
+      useSystemVoice,
+    });
+    if (callbacks.onEnd) callbacks.onEnd();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[TTS] native TTS error:', err);
+    if (callbacks.onError) callbacks.onError(err);
   }
 }
 

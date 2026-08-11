@@ -152,6 +152,7 @@ export const ACADEMY_TOPICS = [
   // trunk knowledge.
   topic('cisco-packet-tracer', 'stp', 'Spanning Tree Protocol (PVST+)', 'Schleifen und Broadcast-Storms in redundanten Switch-Netzen verhindern, Root Bridge, Portrollen und Path Cost bestimmen.', ['trunk']),
   topic('cisco-packet-tracer', 'acl', 'Access Control Lists', 'Datenverkehr anhand von Regeln filtern.', ['router-basics']),
+  topic('cisco-packet-tracer', 'packet-filter', 'Paketfilter', 'Statische und dynamische Paketfilter, Stateless vs. Stateful, Cisco CBAC / ip inspect.', ['acl']),
   topic('cisco-packet-tracer', 'nat', 'NAT', 'Private Adressen auf öffentliche Adressen übersetzen.', ['router-basics']),
   topic('cisco-packet-tracer', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche im Netzwerk anhand der passenden show-Befehle.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
   // Added (Milestone C7): remote management via SSH on router, L2 switch (via

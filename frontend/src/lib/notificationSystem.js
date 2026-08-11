@@ -47,7 +47,7 @@ export function hasBlockingNotification() {
 
 export function nextMainMission(state = readGameState()) {
   const completed = new Set(state.completedQuests);
-  return quests.find((quest) => !completed.has(quest.id) && (!quest.requires || quest.requires.every((id) => completed.has(id))));
+  return quests.find((quest) => !completed.has(quest.id) && (!quest.requires || quest.requires.every((id) => completed.has(id)))) || null;
 }
 
 export function nextSideMissionOpportunities(state = readGameState()) {

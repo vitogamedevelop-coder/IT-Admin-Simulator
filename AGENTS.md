@@ -705,3 +705,237 @@ Kleiner UX-/Layout-Hotfix ohne Änderungen an Academy, Progression, Missionen, W
 - `npm run build` ✅.
 - `npx cap sync` ✅.
 - APK build via `scripts/build-apk.ps1` ✅, Archivrotation mit 4 Versionen ✅.
+
+## Mission System V2 Phase 0: Clean Reset & Fundament
+
+### Ziel
+Vorbereitung des neuen adaptiven, realitätsnahen Missionssystems. Alte Demo-/Prototyp-Missionen und ausschließlich dafür benötigte Inhalte entfernt, die technische Infrastruktur erhalten, ein domänenübergreifender Skill-Tree und eine erweiterte Kompetenzarchitektur geschaffen.
+
+### Entfernte / geleerte Inhalte (alte Missionen)
+- `frontend/src/lib/questData.js` – `quests` leer; `questById`, `availableQuests`, `recommendedQuest` beibehalten.
+- `frontend/src/lib/diagnosticQuestData.js` – `diagnosticQuests` leer; `diagnosticQuestById` beibehalten.
+- `frontend/src/lib/learningObjectives.js` – `learningObjectives` und `foundationalObjectives` leer.
+- `frontend/src/lib/emails.js` – `exampleEmails` leer.
+- `frontend/src/lib/terminal/scenarios.js` – Demo-Szenarien entfernt, leeres `defaultScenario` als Fallback.
+- `frontend/src/lib/notebook.js` – `unlockedBy`-Felder entfernt, Notizen bleiben als Infrastruktur.
+- `frontend/src/lib/proceduralTickets.js` – Ticket-Vorlagen leer.
+- `frontend/src/lib/dialogSystem.js` – Beispiel-Dialog `examplePhoneDialog` entfernt, Factory-Funktionen beibehalten.
+- `frontend/src/lib/rpgAssets.js` – Legacy-`storyAsset`-Mapping entfernt.
+
+### Erhaltene Infrastruktur
+- `frontend/src/pages/Quest.jsx` – Quest-Seite.
+- `frontend/src/pages/DiagnosticQuest.jsx` – Diagnose-Quest-Seite.
+- `frontend/src/pages/SideMission.jsx` – Nebenmissionsseite.
+- `frontend/src/pages/GuidedMission.jsx` – „Tägliche Mission“; zeigt bei leerem Fragen-Pool einen Hinweis.
+- `frontend/src/pages/Workspace.jsx` – Arbeitsplatz.
+- `frontend/src/lib/gameState.js` – Spielerfortschritt; `stateVersion` 5 setzt Missionsdaten bei Migration zurück.
+- `frontend/src/lib/competency.js` – Legacy-Kompetenzmodell bleibt für Quiz/Academy gültig.
+- `frontend/src/lib/missionLog.js` – Missionslebenszyklus-Log.
+- `frontend/src/lib/diagnosticState.js` – State-Machine für diagnostische Quests.
+- `frontend/src/lib/sideMissionEngine.js` – Posteingang/Seiteneinsätze.
+- `frontend/src/lib/notificationSystem.js` – Notifications, bleibt funktional.
+- `frontend/src/lib/objectives.js` – Empfehlungslogik.
+- `frontend/src/lib/missionPlanner.js` – Leere Mission als Platzhalter.
+
+### Neue Fundament-Dateien
+- `frontend/src/lib/skillTree.js` – Domänen-agnostischer Skill-Tree mit Cisco-Skill-Hierarchie, Kompetenzzuständen, Event-Tracking und Adaptive-Difficulty-Hilfsfunktionen.
+
+### Skill-Hierarchie (Cisco, aus Academy-Lektionen abgeleitet)
+- `basic_configuration`: CLI Navigation, Hostname, Passwörter, Benutzer, Interface, `no shutdown`, Speichern.
+- `switching`: VLAN, Access-Port, Trunk.
+- `routing`: Router-Basics, statisches Routing, OSPF, Default-Route, Inter-VLAN-Routing.
+- `multilayer_switching`: SVI, Layer-3-Routing auf dem Switch.
+- `stp`: Root Bridge, Portrollen, Path Cost.
+- `remote_administration`: SSH.
+- `dhcp`: DHCP Relay.
+- `acl`: Standard/Extended/Named ACL und Anwendung.
+- `packet_filter`: Stateless vs. Stateful (CBAC / `ip inspect`).
+- `nat`: Static NAT, Dynamic NAT, PAT/Overload, Port Forwarding.
+- `verification`: `show running-config`, `show ip interface brief`, `show ip route`, `show vlan brief`, `show ip nat translations`.
+
+### Kompetenzzustände (Skill Tree)
+- `unseen`, `introduced`, `practicing`, `mostly_secure`, `secure`, `review_due`.
+- `recordSkillEvent` speichert: correct/incorrect, usedHint, revealedSolution, cliError, misconception, timing, difficulty, success streaks.
+- Lösungs-Anzeige zählt **nicht** als selbstständig gelöst (keine Mastery-Erhöhung).
+
+### CLI-Architektur: aktueller Stand und geplante Erweiterungen
+- Aktuelle Logik: `frontend/src/lib/ciscoCli.js` normalisiert Zeilen, expandiert bekannte IOS-Abkürzungen (`en`, `conf t`, `sh run`, `int`, ...) und vergleicht sequentiell.
+- Nächste Phase braucht:
+  1. Kontextabhängigen Parser: aktueller Modus → verfügbare Befehle → Unterbefehle → eindeutige Präfixe.
+  2. Command-Tree statt statischer String-Liste, damit `en?`, `en ?`, `show ?`, `enable ?` semantisch unterschieden werden.
+  3. Interface-Expansions und Wildcards korrekt behandeln.
+  4. Fehler- und Hilfsausgaben wie echtes IOS: `Ambiguous command`, `% Unknown command`, kontextspezifische `?`.
+  5. Separate Validierung von Modi (User-EXEC, Privileged-EXEC, Config, Interface-Config, Line-Config, ...).
+
+### Versionsnummer
+- Auf **1.19.0** (MINOR) erhöht: Phase 0.5 – Skill-Tree Granularisierung und Dimensions-Tracking.
+
+### Skill-Tree (Phase 0.5)
+- `frontend/src/lib/skillTree.js` vollständig granularisiert:
+  - **12 Cisco-Skills**, **>80 Subskills**.
+  - IDs wie `cisco.basic_configuration.interface_enable`, `cisco.switching.trunk.allowed_vlans`, `cisco.nat.pat.interface_overload`.
+  - `SKILL_DIMENSION`: `knowledge`, `configure`, `verify`, `troubleshoot`.
+  - `SKILL_SOURCE`: `academy`, `main_mission`, `ticket`, `lab`, `conversation`, `exam`.
+  - `MISCONCEPTION`-Konstanten vorbereitet.
+  - `recordSkillEvent` speichert: `dimension`, `correct`, `difficulty`, `attempts`, `usedHint`, `hintLevel`, `revealedSolution`, `cliError`, `misconception`, `responseTimeMs`, `source`, `missionId`, `taskId`.
+  - `updateDimensionMastery` erhöht Mastery nur, wenn **nicht** `revealedSolution`; `usedHint` reduziert Mastery-Wachstum.
+  - State-Version 2, automatische Migration alte Skill-Daten.
+- `subskillsForLessonTopic()` mappt jede Cisco-Academy-Lektion auf passende Subskills.
+
+### Neue Fundament-Dateien (Phase 0 Erweiterung)
+- `frontend/src/lib/missionTypes.js` – Mission-Arten: `main`, `ticket`, `lab`, `conversation`.
+- `frontend/src/lib/missionEvents.js` – Trigger-Architektur für zufällige Events (Playtime, Mission-Completion, Location, Weak Skill, Random).
+- `frontend/src/lib/missionChecklist.js` – Gerüst für Prüfungsmatrix / Arbeitsroutine: `identify_device → basic_config → layer2 → layer3 → extra_services → security → verification`.
+- `frontend/src/lib/missionHintSystem.js` – Eskalierendes Hilfesystem (Nudge, Focus, Directive, Solution) inkl. Skill-Tracking und Lösungserklärung.
+
+### TTS Voice-Persistenz
+- `frontend/src/lib/speechSynthesis.js` –
+  - Einstellungen auf `it-learn:tts-settings-v3` migriert.
+  - `voiceKey` (`uri`, `name`, `lang`) wird persistiert und für Web Speech und native TTS verwendet.
+  - Legacy `voiceId` wird automatisch in `voiceKey` migriert.
+  - `selectVoice()` bevorzugt die gespeicherte Stimme; Fallback nur wenn diese nicht verfügbar.
+  - `voiceschanged`-Event und asynchrones Laden berücksichtigt.
+- `frontend/src/pages/Settings.jsx` –
+  - Lädt Web- und Native-Stimmen über `getVoices()`.
+  - Zeigt beide Plattformen an, speichert `voiceKey`.
+  - TDZ-Sicherheit: `refreshDiagnostics` bleibt vor `useEffect` deklariert.
+- `frontend/src/components/PhoneApp.jsx` – Beispielanruf entfernt, Hinweis auf zukünftige Fälle.
+
+### Adaptive Schwierigkeit / kumulative Missionen
+- Skill-Tree in `skillTree.js` speichert pro Subskill:
+  - `state`, `mastery`, `exposureCount`, `correctCount`, `incorrectCount`
+  - `hintCount`, `solutionRevealedCount`, `cliErrorCount`, `repeatedErrorCount`
+  - `lastSuccessfulAt`, `successWithoutHelpStreak`, `misconceptions`
+- `recordSkillEvent` erhöht Mastery nur bei selbstständig gelösten Aufgaben.
+- Lösungs-Anzeige zählt als `revealedSolution` und verhindert eine Mastery-Erhöhung.
+
+### Hilfesystem
+- `missionHintSystem.js` –
+  - 4 Eskalationsstufen: `nudge`, `focus`, `directive`, `solution`.
+  - Beispiel-Ladder für vergessenes `no shutdown`.
+  - `buildSolutionExplanation` liefert: Fehler, Lösung, Erkennungsmerkmal, Verifikationsbefehl.
+  - Lösungs-Anzeige speichert `revealedSolution` im Skill-Profil.
+
+### Prüfungsmatrix
+- `missionChecklist.js` –
+  - Geräte-Routine-Matrix für `router`, `switch`, `multilayer_switch`, `firewall`.
+  - Standardablauf: Gerät identifizieren → Grundkonfiguration → Layer 2 → Layer 3 → Dienste → Security → Verifikation.
+  - `buildExamMission` bereitet spätere Prüfungssimulation vor.
+
+### Event-System
+- `missionEvents.js` –
+  - Trigger-Typen: `playtime`, `mission_complete`, `location_enter`, `weak_skill`, `random`, `story_gate`.
+  - Event-Typen: `conversation`, `ticket`, `alert`, `lab_unlock`, `story_intro`.
+  - `evaluateTrigger` und `canEventFire` als datengetriebene Evaluatoren.
+  - Beispiel-Events für Kaffeeküchen-Gespräch und Ticket.
+
+### Regressionstests
+- `frontend/scripts/mission-v2-tts-voice-test.mjs`
+- `frontend/scripts/mission-v2-foundation-test.mjs`
+- `frontend/scripts/settings-tdz-regression-test.mjs`
+
+### Acceptance checks
+- `npm run lint` ✅ (13 bekannte Warnungen, 0 Fehler).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅.
+
+### Offen für spätere Phasen
+- Konkrete Cisco-Missionen (erstes Szenario: Basic Configuration → VLAN → Router → MLS → STP → SSH → DHCP → ACL → Stateful Filter → NAT/PAT).
+- Kontextabhängiger Cisco-CLI-Parser.
+- Integration Skill-Tree ↔ Mission-Generator ↔ Quest/DiagnosticQuest-Seiten.
+
+## Mission System V2 Phase 1A: Cisco IOS CLI Engine Core
+
+### Ziel
+Eine wiederverwendbare, zustandsbasierte Cisco-IOS-CLI-Engine für zukünftige Missionen. Sie simuliert einen realistischen IOS-Ausschnitt für Grundkonfiguration und ist architektonisch für VLAN, Routing, OSPF, STP, SSH, DHCP, ACL, NAT/PAT usw. erweiterbar.
+
+### Neue Dateien
+- `frontend/src/lib/ciscoCliEngine.js` – Zustandsbasierte CLI-Engine.
+- `frontend/scripts/cisco-cli-engine-test.mjs` – Umfassende CLI-Engine-Tests.
+
+### Geänderte Dateien
+- `frontend/package.json` – Version auf **1.20.0** erhöht.
+- `frontend/src/lib/version.js` – Version auf **1.20.0** erhöht.
+- `frontend/public/version.json` – Version auf **1.20.0** erhöht.
+
+### Architektur der CLI-Engine
+- **CLI-Modi**: `USER_EXEC`, `PRIVILEGED_EXEC`, `GLOBAL_CONFIG`, `INTERFACE_CONFIG`, `LINE_CONSOLE_CONFIG`, `LINE_VTY_CONFIG`.
+- **Device State**: `hostname`, `runningConfig`, `startupConfig`, `interfaces`, `users`, `lines`, `ipDefaultGateway`, `noIpDomainLookup`.
+- **Command Tree**: Hierarchisch, modusabhängig, erweiterbar. Jeder Knoten hat `keyword`, `children`, `execute`, `help`, `complete`, `skill`.
+- **Generische Präfix-Abkürzung**: `en` → `enable`, `conf t` → `configure terminal`, eindeutige Kurzformen funktionieren ohne hartcodierte Alias-Tabelle. Mehrdeutige Eingaben erzeugen `% Ambiguous command`.
+- **Context-sensitive `?`-Hilfe**:
+  - `?` zeigt root-Befehle des aktuellen Modus.
+  - `co?` zeigt Befehle, die mit `co` beginnen.
+  - `configure ?` zeigt gültige Fortsetzungen.
+  - `en?` und `en ?` liefern unterschiedliche Ergebnisse.
+  - Vollständige Befehle zeigen `<cr>`.
+- **Tab-Completion**: `completeInput(device, input)` API.
+- **Fehlertypen**: `UNKNOWN_COMMAND`, `AMBIGUOUS_COMMAND`, `INCOMPLETE_COMMAND`, `INVALID_ARGUMENT`, `WRONG_MODE`.
+
+### Implementierte Befehle (Phase 1A)
+- User EXEC: `enable`
+- Privileged EXEC: `disable`, `configure terminal`, `show running-config`, `show startup-config`, `show ip interface brief`, `copy running-config startup-config`, `write memory`, `wr`
+- Global Config: `hostname`, `no ip domain-lookup`, `enable secret`, `username ... secret`, `interface <interface>`, `line console 0`, `line vty <start> <end>`, `exit`, `end`
+- Interface Config: `ip address <ip> <mask>`, `no shutdown`, `shutdown`, `description`, `exit`, `end`
+- Line Config (console/vty): `password`, `login`, `login local`, `exit`, `end`
+
+### Interface-Handling
+- Canonische IDs wie `GigabitEthernet0/0`, `FastEthernet0/1`.
+- Akzeptiert `Gi0/0`, `gigabitethernet0/0`, eindeutige Präfixe.
+- Interfaces besitzen `ipv4`, `mask`, `administrativelyDown`, `description`.
+
+### Running/Startup Config
+- `runningConfig` und `startupConfig` sind getrennt.
+- `copy running-config startup-config`, `write memory`, `wr` kopieren `runningConfig` nach `startupConfig`.
+- `show running-config` und `show startup-config` generieren Ausgabe aus dem jeweiligen Zustand.
+
+### IP-Validierung
+- Dotted-decimal IPv4-Prüfung.
+- Subnetzmasken-Prüfung (kontinuierliche 1er gefolgt von 0er).
+- Ungültige Eingaben werden mit `INVALID_ARGUMENT` abgelehnt.
+
+### Skill-Metadaten
+- Befehle können `skill` (domainId, skillId, subskillId, dimension) enthalten.
+- Bei State-Änderung ruft die Engine `recordSkillEvent` aus `skillTree.js` auf.
+- Keine automatische Mastery-Erhöhung ohne Mission-/Task-Kontext – die CLI liefert nur strukturierte Ergebnisse.
+
+### Tests
+- `frontend/scripts/cisco-cli-engine-test.mjs` prüft:
+  - Modi und Prompt-Wechsel (`enable`, `configure terminal`, `interface`, `exit`, `end`, `disable`).
+  - Falscher Modus wird abgelehnt.
+  - Eindeutige Abkürzungen (`en`, `conf t`, `conf term`).
+  - Mehrdeutige Abkürzungen (`co`).
+  - `?` und ` ?` liefern unterschiedliche Hilfe.
+  - Tab-Completion.
+  - Hostname ändert Prompt und State.
+  - Interface-IP wird gespeichert, `no shutdown` aktiviert Interface.
+  - Ungültige IP/Mask wird abgelehnt.
+  - Running/Startup getrennt, `copy run start` funktioniert.
+  - `show running-config`, `show startup-config`, `show ip interface brief` aus State generiert.
+  - Fehler: Unknown, Ambiguous, Incomplete, Invalid Argument.
+  - Mehrere Device-Instanzen beeinflussen sich nicht.
+
+### Regressionstests
+- `node scripts/mission-v2-skilltree-test.mjs` ✅
+- `node scripts/mission-v2-foundation-test.mjs` ✅
+- `node scripts/cisco-cli-engine-test.mjs` ✅
+
+### Acceptance checks
+- `npm run lint` ✅ (13 bekannte Warnungen, 0 Fehler).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅.
+
+### Bekannte Abweichungen zu echtem IOS
+- Keine kryptografische Passwort-Darstellung (`enable secret` wird als Plaintext in `show running-config` ausgegeben).
+- Keine vollständige IOS-Feature-Menge (nur Grundkonfiguration).
+- Keine Logging-/AAA-/VTY-SSH-Spezifika in Phase 1A.
+- Keine dynamische Interface-Liste (Gerät muss beim Erstellen wissen, welche Interfaces es hat).
+
+### Offen für Phase 1B
+- VLAN, Trunk, VTP.
+- Routing (statisch, OSPF).
+- STP, Port-Security.
+- SSH, DHCP, ACL, NAT/PAT.
+- Mission-Integration: Quest/DiagnosticQuest verwendet CLI-Engine und prüft Gerätezustand.

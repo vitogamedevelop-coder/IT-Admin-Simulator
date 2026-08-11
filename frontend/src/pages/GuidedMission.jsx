@@ -23,6 +23,19 @@ export default function GuidedMission() {
   const question = mission.questions[active];
   const questionOptions = question?.options ? getOrderedOptions(question.options.map((label) => ({ label, correct: label === question.answer })), `${mission.title}-${active}`) : [];
 
+  if (mission.questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-10 text-center px-4">
+        <Target size={58} className="text-[#8b949e]" />
+        <h2 className="text-xl font-bold text-white">Missionen werden neu aufgebaut</h2>
+        <p className="text-sm text-[#c9d1d9] max-w-[24rem]">
+          Das neue adaptive Missionssystem steht noch am Anfang. Sobald die ersten Szenarien bereit sind, erscheinen hier passende Übungen.
+        </p>
+        <button onClick={() => navigate('/')} className="cyber-btn w-full max-w-[20rem]">Zurück zum Arbeitsplatz</button>
+      </div>
+    );
+  }
+
   function begin() {
     setStarted(true);
     startedAt.current = Date.now();

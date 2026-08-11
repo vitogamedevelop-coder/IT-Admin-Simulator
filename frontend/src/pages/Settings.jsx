@@ -5,11 +5,13 @@ import { getVersionLabel } from '../lib/version';
 import BackBar from '../components/BackBar';
 import { useAppBack } from '../lib/useAppBack';
 import {
+  isSupported,
   isNativeTtsSupported,
   getTtsSettings,
   setTtsSettings,
-  getNativeVoices,
+  getVoices,
   getDisplayVoiceLabel,
+  voiceKeyFromVoice,
   openTtsSettings,
   getTtsDiagnostics,
   speakWithVoice,
@@ -25,11 +27,11 @@ function useTtsVoices() {
 
   useEffect(() => {
     let mounted = true;
-    if (!isNativeTtsSupported()) {
+    if (!isSupported()) {
       setLoading(false);
       return undefined;
     }
-    getNativeVoices().then((all) => {
+    getVoices().then((all) => {
       if (!mounted) return;
       // Sort German voices first, then everything else.
       const sorted = [...all].sort((a, b) => {
@@ -52,9 +54,9 @@ export default function Settings() {
   const [settings, setSettings] = useState(getTtsSettings);
   const { voices, loading } = useTtsVoices();
   const [speaking, setSpeaking] = useState(false);
-  const [testVoice, setTestVoice] = useState(null);
   const [diagnostics, setDiagnostics] = useState('');
   const [diagLoading, setDiagLoading] = useState(false);
+  const hasTts = isSupported();
   const hasNativeTts = isNativeTtsSupported();
 
   // Declared before any useEffect that references it to avoid TDZ in production.
@@ -77,6 +79,14 @@ export default function Settings() {
     setTtsSettings(next);
   }
 
+  function isVoiceSelected(voice) {
+    const key = settings.voiceKey;
+    if (!key) return false;
+    if (key.uri && voice.voiceURI === key.uri) return true;
+    if (key.name && voice.name === key.name) return true;
+    return false;
+  }
+
   async function playTest() {
     await stop();
     setSpeaking(true);
@@ -87,7 +97,9 @@ export default function Settings() {
         onError: () => setSpeaking(false),
       });
     } else {
-      const chosen = testVoice || voices.find((v) => settings.voiceId && v.index === settings.voiceId.index && v.voiceURI === settings.voiceId.voiceURI) || voices[0];
+      const chosen = settings.voiceKey
+        ? voices.find((v) => isVoiceSelected(v))
+        : voices[0];
       if (!chosen) {
         setSpeaking(false);
         return;
@@ -106,8 +118,7 @@ export default function Settings() {
   }
 
   function selectVoice(voice) {
-    updateSettings({ voiceId: { index: voice.index, voiceURI: voice.voiceURI }, useSystemVoice: false });
-    setTestVoice(voice);
+    updateSettings({ voiceKey: voiceKeyFromVoice(voice), useSystemVoice: false });
   }
 
   function resetAllProgress() {
@@ -145,7 +156,7 @@ export default function Settings() {
         <p className="mt-1 text-[10px] text-[#5a6573]">Semantic Versioning: MAJOR.MINOR.PATCH</p>
       </div>
 
-      {hasNativeTts && (
+      {hasTts && (
         <div className="cyber-card p-4">
           <h3 className="font-bold text-[#00f0ff] text-sm flex items-center gap-2"><Volume2 size={16} />Vorlesefunktion</h3>
           <p className="mt-1 text-xs text-[#8b949e]">Stimme und Sprachausgabe für Sams Test-Vorlesefunktion.</p>
@@ -163,16 +174,18 @@ export default function Settings() {
 
           {settings.enabled && (
             <>
-              <div className="mt-3 flex items-center gap-2">
-                <input
-                  id="tts-system-voice"
-                  type="checkbox"
-                  checked={settings.useSystemVoice}
-                  onChange={(e) => updateSettings({ useSystemVoice: e.target.checked })}
-                  className="h-4 w-4 accent-[#00f0ff]"
-                />
-                <label htmlFor="tts-system-voice" className="text-sm text-[#c9d1d9]">Systemstimme verwenden (empfohlen)</label>
-              </div>
+              {hasNativeTts && (
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    id="tts-system-voice"
+                    type="checkbox"
+                    checked={settings.useSystemVoice}
+                    onChange={(e) => updateSettings({ useSystemVoice: e.target.checked })}
+                    className="h-4 w-4 accent-[#00f0ff]"
+                  />
+                  <label htmlFor="tts-system-voice" className="text-sm text-[#c9d1d9]">Systemstimme verwenden (empfohlen)</label>
+                </div>
+              )}
 
               {!settings.useSystemVoice && (
                 <div className="mt-3">
@@ -183,15 +196,15 @@ export default function Settings() {
                     <div className="text-xs text-[#ffcc00]">Keine Stimmen gefunden. Bitte verwende die Systemstimme.</div>
                   ) : (
                     <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                      {voices.map((voice) => (
+                      {voices.map((voice, idx) => (
                         <button
-                          key={voice.index}
+                          key={`${voice.voiceURI || ''}-${voice.name || ''}-${idx}`}
                           type="button"
                           onClick={() => selectVoice(voice)}
-                          className={`text-left p-2 rounded border text-xs ${settings.voiceId?.index === voice.index && settings.voiceId?.voiceURI === voice.voiceURI ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-white' : 'border-[#30363d] text-[#c9d1d9] hover:border-[#00f0ff]/60'}`}
+                          className={`text-left p-2 rounded border text-xs ${isVoiceSelected(voice) ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-white' : 'border-[#30363d] text-[#c9d1d9] hover:border-[#00f0ff]/60'}`}
                         >
                           <div className="font-bold">{getDisplayVoiceLabel(voice)}</div>
-                          <div className="text-[10px] text-[#8b949e]">{voice.lang} · {voice.localService ? 'lokal' : 'Netzwerk'} · ID {voice.index}</div>
+                          <div className="text-[10px] text-[#8b949e]">{voice.lang} · {voice.localService ? 'lokal' : 'Netzwerk'}{voice.index !== undefined ? ` · ID ${voice.index}` : ''}</div>
                         </button>
                       ))}
                     </div>
@@ -207,7 +220,7 @@ export default function Settings() {
                 >
                   {speaking ? 'Test stoppen' : 'Stimme testen'}
                 </button>
-                {typeof openTtsSettings === 'function' && (
+                {hasNativeTts && typeof openTtsSettings === 'function' && (
                   <button
                     type="button"
                     onClick={openTtsSettings}
@@ -219,7 +232,7 @@ export default function Settings() {
                 )}
               </div>
 
-              {settings.useSystemVoice && (
+              {hasNativeTts && settings.useSystemVoice && (
                 <>
                   <p className="mt-2 text-[10px] text-[#8b949e]">
                     Android verwendet die in den System-Einstellungen gewählte Stimme.
@@ -237,13 +250,16 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={refreshDiagnostics}
-                      disabled={diagLoading}
-                      className="text-[10px] text-[#00f0ff] hover:underline disabled:opacity-50"
+                      className="text-[10px] text-[#00f0ff] hover:underline"
                     >
-                      {diagLoading ? 'Lade...' : 'Aktualisieren'}
+                      Aktualisieren
                     </button>
                   </div>
-                  <pre className="text-[9px] text-[#8b949e] whitespace-pre-wrap break-words font-mono leading-tight">{diagnostics || 'Noch keine Diagnose-Daten.'}</pre>
+                  {diagLoading ? (
+                    <div className="text-[10px] text-[#8b949e]">Lade Diagnose...</div>
+                  ) : (
+                    <div className="text-[10px] font-mono text-[#c9d1d9] whitespace-pre-wrap break-words">{diagnostics || 'Keine Diagnose verfügbar.'}</div>
+                  )}
                 </div>
               )}
             </>
@@ -251,22 +267,29 @@ export default function Settings() {
         </div>
       )}
 
+      {!hasTts && (
+        <div className="cyber-card p-4">
+          <h3 className="font-bold text-[#00f0ff] text-sm flex items-center gap-2"><Volume2 size={16} />Vorlesefunktion</h3>
+          <p className="mt-1 text-xs text-[#8b949e]">Auf diesem Gerät ist keine Sprachausgabe verfügbar.</p>
+        </div>
+      )}
+
       <div className="cyber-card p-4">
-        <h3 className="font-bold text-[#00f0ff] text-sm">Einweisung</h3>
-        <p className="mt-1 text-xs text-[#8b949e]">Die erste Arbeitsplatz-Einweisung erneut ansehen.</p>
-        <button onClick={resetOnboarding} className="cyber-btn-outline mt-3 w-full"><RotateCcw size={15} className="mr-2" />Einweisung neu starten</button>
+        <h3 className="font-bold text-[#00f0ff] text-sm flex items-center gap-2"><RotateCcw size={16} />Onboarding wiederholen</h3>
+        <p className="mt-1 text-xs text-[#8b949e]">Sam wird dich beim nächsten Start erneut begrüßen und die Einführung zeigen.</p>
+        <button onClick={resetOnboarding} className="cyber-btn-outline text-xs mt-3 px-3 py-2">Onboarding zurücksetzen</button>
       </div>
-      <div className="cyber-card p-4 border border-[#ff3355]">
+
+      <div className="cyber-card p-4 border-[#ff3355]/30">
         <h3 className="font-bold text-[#ff3355] text-sm flex items-center gap-2"><AlertTriangle size={16} />Fortschritt löschen</h3>
-        <p className="mt-1 text-xs text-[#8b949e]">Löscht alle Spielstände, Quests, Notizen und Einstellungen. Kann nicht rückgängig gemacht werden.</p>
-        {!confirmReset ? (
-          <button onClick={() => setConfirmReset(true)} className="cyber-btn-outline mt-3 w-full border-[#ff3355] text-[#ff3355]"><Trash2 size={15} className="mr-2" />Alles zurücksetzen</button>
-        ) : (
-          <div className="mt-3 flex flex-col gap-2">
-            <div className="text-xs text-[#ff3355]">Bist du sicher? Dies löscht alles.</div>
-            <button onClick={resetAllProgress} className="cyber-btn w-full bg-[#ff3355]"><Trash2 size={15} className="mr-2" />Ja, alles löschen</button>
-            <button onClick={() => setConfirmReset(false)} className="cyber-btn-outline w-full">Abbrechen</button>
+        <p className="mt-1 text-xs text-[#8b949e]">Löscht alle lokal gespeicherten Daten: Spielstand, Notizen, E-Mails, Lernerfolge und Einstellungen. Kann nicht rückgängig gemacht werden.</p>
+        {confirmReset ? (
+          <div className="flex gap-2 mt-3">
+            <button onClick={() => setConfirmReset(false)} className="cyber-btn-outline text-xs px-3 py-2">Abbrechen</button>
+            <button onClick={resetAllProgress} className="cyber-btn text-xs px-3 py-2 bg-[#ff3355]/20 border-[#ff3355] hover:bg-[#ff3355]/30 flex items-center gap-1"><Trash2 size={14} />Alles löschen</button>
           </div>
+        ) : (
+          <button onClick={() => setConfirmReset(true)} className="cyber-btn-outline text-xs mt-3 px-3 py-2 text-[#ff3355] border-[#ff3355] hover:bg-[#ff3355]/10">Fortschritt zurücksetzen</button>
         )}
       </div>
     </div>
