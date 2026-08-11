@@ -12,6 +12,7 @@ import {
   getDisplayVoiceLabel,
   openTtsSettings,
   speakWithVoice,
+  speak,
   stop,
 } from '../lib/speechSynthesis';
 
@@ -67,15 +68,26 @@ export default function Settings() {
   }
 
   async function playTest() {
-    const chosen = testVoice || voices.find((v) => settings.voiceId && v.index === settings.voiceId.index && v.voiceURI === settings.voiceId.voiceURI) || voices[0];
-    if (!chosen) return;
     await stop();
     setSpeaking(true);
-    await speakWithVoice(TEST_SENTENCE, chosen, {
-      onStart: () => setSpeaking(true),
-      onEnd: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
-    });
+    if (settings.useSystemVoice) {
+      await speak(TEST_SENTENCE, {
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+        onError: () => setSpeaking(false),
+      });
+    } else {
+      const chosen = testVoice || voices.find((v) => settings.voiceId && v.index === settings.voiceId.index && v.voiceURI === settings.voiceId.voiceURI) || voices[0];
+      if (!chosen) {
+        setSpeaking(false);
+        return;
+      }
+      await speakWithVoice(TEST_SENTENCE, chosen, {
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+        onError: () => setSpeaking(false),
+      });
+    }
   }
 
   async function stopTest() {
@@ -84,7 +96,7 @@ export default function Settings() {
   }
 
   function selectVoice(voice) {
-    updateSettings({ voiceId: { index: voice.index, voiceURI: voice.voiceURI } });
+    updateSettings({ voiceId: { index: voice.index, voiceURI: voice.voiceURI }, useSystemVoice: false });
     setTestVoice(voice);
   }
 
@@ -128,35 +140,47 @@ export default function Settings() {
 
           {settings.enabled && (
             <>
-              <div className="mt-3">
-                <label className="text-xs text-[#8b949e] block mb-1">Stimme auswählen</label>
-                {loading ? (
-                  <div className="text-xs text-[#8b949e]">Stimmen werden geladen...</div>
-                ) : voices.length === 0 ? (
-                  <div className="text-xs text-[#ffcc00]">Keine Stimmen gefunden.</div>
-                ) : (
-                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                    {voices.map((voice) => (
-                      <button
-                        key={voice.index}
-                        type="button"
-                        onClick={() => selectVoice(voice)}
-                        className={`text-left p-2 rounded border text-xs ${settings.voiceId?.index === voice.index && settings.voiceId?.voiceURI === voice.voiceURI ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-white' : 'border-[#30363d] text-[#c9d1d9] hover:border-[#00f0ff]/60'}`}
-                      >
-                        <div className="font-bold">{getDisplayVoiceLabel(voice)}</div>
-                        <div className="text-[10px] text-[#8b949e]">{voice.lang} · {voice.localService ? 'lokal' : 'Netzwerk'} · ID {voice.index}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  id="tts-system-voice"
+                  type="checkbox"
+                  checked={settings.useSystemVoice}
+                  onChange={(e) => updateSettings({ useSystemVoice: e.target.checked })}
+                  className="h-4 w-4 accent-[#00f0ff]"
+                />
+                <label htmlFor="tts-system-voice" className="text-sm text-[#c9d1d9]">Systemstimme verwenden (empfohlen)</label>
               </div>
 
-              <div className="mt-3 flex items-center gap-2">
+              {!settings.useSystemVoice && (
+                <div className="mt-3">
+                  <label className="text-xs text-[#8b949e] block mb-1">Stimme auswählen</label>
+                  {loading ? (
+                    <div className="text-xs text-[#8b949e]">Stimmen werden geladen...</div>
+                  ) : voices.length === 0 ? (
+                    <div className="text-xs text-[#ffcc00]">Keine Stimmen gefunden. Bitte verwende die Systemstimme.</div>
+                  ) : (
+                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+                      {voices.map((voice) => (
+                        <button
+                          key={voice.index}
+                          type="button"
+                          onClick={() => selectVoice(voice)}
+                          className={`text-left p-2 rounded border text-xs ${settings.voiceId?.index === voice.index && settings.voiceId?.voiceURI === voice.voiceURI ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-white' : 'border-[#30363d] text-[#c9d1d9] hover:border-[#00f0ff]/60'}`}
+                        >
+                          <div className="font-bold">{getDisplayVoiceLabel(voice)}</div>
+                          <div className="text-[10px] text-[#8b949e]">{voice.lang} · {voice.localService ? 'lokal' : 'Netzwerk'} · ID {voice.index}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={speaking ? stopTest : playTest}
-                  disabled={voices.length === 0}
-                  className="cyber-btn-outline text-xs px-3 py-2 disabled:opacity-50"
+                  className="cyber-btn-outline text-xs px-3 py-2"
                 >
                   {speaking ? 'Test stoppen' : 'Stimme testen'}
                 </button>
@@ -167,10 +191,16 @@ export default function Settings() {
                     className="cyber-btn-outline text-xs px-3 py-2 flex items-center gap-1"
                   >
                     <ExternalLink size={12} />
-                    System-Sprachoptionen
+                    {voices.length === 0 ? 'Stimme in Android auswählen' : 'System-Sprachoptionen'}
                   </button>
                 )}
               </div>
+
+              {settings.useSystemVoice && (
+                <p className="mt-2 text-[10px] text-[#8b949e]">
+                  Android verwendet die in den System-Einstellungen gewählte Stimme.
+                </p>
+              )}
             </>
           )}
         </div>

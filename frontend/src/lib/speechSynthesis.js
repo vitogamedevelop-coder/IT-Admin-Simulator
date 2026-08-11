@@ -2,7 +2,7 @@
 // Set this to false to disable the test feature with a single change.
 export const ENABLE_SAM_TTS_TEST = true;
 
-const TTS_SETTINGS_KEY = 'it-learn:tts-settings-v1';
+const TTS_SETTINGS_KEY = 'it-learn:tts-settings-v2';
 
 let nativeTtsAvailable = null;
 let nativeVoices = null;
@@ -76,7 +76,7 @@ export function getTtsSettings() {
   } catch {
     // ignore
   }
-  return { enabled: true, voiceId: null };
+  return { enabled: true, useSystemVoice: true, voiceId: null };
 }
 
 export function setTtsSettings(settings) {
@@ -104,9 +104,6 @@ async function initializeNativeTTS() {
     try {
       const { voices } = await CapacitorTTS.getSupportedVoices();
       nativeVoices = (voices || []).map((v, i) => ({ ...v, index: i }));
-      const { languages } = await CapacitorTTS.getSupportedLanguages();
-      // eslint-disable-next-line no-console
-      console.log('[TTS] supported languages:', languages);
       // eslint-disable-next-line no-console
       console.log('[TTS] supported voices:', nativeVoices.map((v) => ({
         index: v.index,
@@ -148,36 +145,38 @@ function selectVoiceIndex() {
   if (!nativeVoices || nativeVoices.length === 0) return undefined;
 
   const settings = getTtsSettings();
-  const saved = getVoiceById(settings.voiceId);
-  if (saved) {
+  if (!settings.useSystemVoice) {
+    const saved = getVoiceById(settings.voiceId);
+    if (saved) {
+      // eslint-disable-next-line no-console
+      console.log('[TTS] using saved voice:', { index: saved.index, voiceURI: saved.voiceURI, name: saved.name });
+      return saved.index;
+    }
+    const deVoices = nativeVoices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
+    if (deVoices.length) {
+      const localDe = deVoices.find((v) => v.localService) || deVoices[0];
+      // eslint-disable-next-line no-console
+      console.log('[TTS] fallback to German voice:', { index: localDe.index, voiceURI: localDe.voiceURI, name: localDe.name });
+      return localDe.index;
+    }
     // eslint-disable-next-line no-console
-    console.log('[TTS] using saved voice:', { index: saved.index, voiceURI: saved.voiceURI, name: saved.name });
-    return saved.index;
-  }
-
-  const deVoices = nativeVoices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
-  if (deVoices.length) {
-    const localDe = deVoices.find((v) => v.localService) || deVoices[0];
-    // eslint-disable-next-line no-console
-    console.log('[TTS] fallback to German voice:', { index: localDe.index, voiceURI: localDe.voiceURI, name: localDe.name });
-    return localDe.index;
+    console.log('[TTS] falling back to first available voice:', { index: 0, voiceURI: nativeVoices[0].voiceURI, name: nativeVoices[0].name });
+    return 0;
   }
 
   // eslint-disable-next-line no-console
-  console.log('[TTS] falling back to first available voice:', { index: 0, voiceURI: nativeVoices[0].voiceURI, name: nativeVoices[0].name });
-  return 0;
+  console.log('[TTS] using system voice (no index)');
+  return -1;
 }
 
 export function getDisplayVoiceLabel(voice) {
   if (!voice) return 'Unbekannt';
-  // Prefer a meaningful label. The plugin sets `name` to "Deutsch Deutschland"
-  // for all Samsung voices, so `voiceURI` is the real differentiator.
   if (voice.voiceURI) return `${voice.name || voice.lang} – ${voice.voiceURI}`;
   return voice.name || voice.lang || `Stimme ${voice.index}`;
 }
 
 export async function openTtsSettings() {
-  if (CapacitorTTS && isNativePlatform() && CapacitorTTS.openInstall) {
+  if (CapacitorTTS && CapacitorTTS.openInstall && isNativePlatform()) {
     try {
       await CapacitorTTS.openInstall();
     } catch (err) {
@@ -244,22 +243,21 @@ function speakWeb(text, callbacks = {}) {
   window.speechSynthesis.speak(utterance);
 }
 
-async function speakNative(text, voiceIndex, callbacks = {}) {
+async function speakNative(text, voiceIndex, useSystemVoice, callbacks = {}) {
   if (!CapacitorTTS) return;
   try {
     await initializeNativeTTS();
-    const index = voiceIndex ?? selectVoiceIndex();
-    const chosen = (nativeVoices || []).find((v) => v.index === index) || nativeVoices?.[0];
-    // eslint-disable-next-line no-console
-    console.log('[TTS] speaking with voice:', { index, voiceURI: chosen?.voiceURI, name: chosen?.name, lang: chosen?.lang, localService: chosen?.localService });
     if (callbacks.onStart) callbacks.onStart();
+    // eslint-disable-next-line no-console
+    console.log('[TTS] speaking:', { index: voiceIndex, useSystemVoice });
     await CapacitorTTS.speak({
       text,
       lang: 'de-DE',
       rate: 1.0,
       pitch: 1.0,
       volume: 1.0,
-      voice: index,
+      voice: voiceIndex,
+      useSystemVoice,
     });
     if (callbacks.onEnd) callbacks.onEnd();
   } catch (err) {
@@ -273,7 +271,10 @@ export async function speak(text, callbacks = {}) {
   if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
   await stop();
   if (await checkNativeTts()) {
-    await speakNative(text, undefined, callbacks);
+    const settings = getTtsSettings();
+    const useSystemVoice = settings.useSystemVoice !== false;
+    const index = useSystemVoice ? -1 : selectVoiceIndex();
+    await speakNative(text, index, useSystemVoice, callbacks);
   } else if (isWebSpeechSupported()) {
     speakWeb(text, callbacks);
   }
@@ -284,7 +285,7 @@ export async function speakWithVoice(text, voice, callbacks = {}) {
   if (!voice) return speak(text, callbacks);
   await stop();
   if (await checkNativeTts()) {
-    await speakNative(text, voice.index, callbacks);
+    await speakNative(text, voice.index, false, callbacks);
   }
 }
 

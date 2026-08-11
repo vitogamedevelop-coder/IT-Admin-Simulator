@@ -1,13 +1,14 @@
 {
   "name": "it-admin-simulator",
   "private": true,
-  "version": "1.12.0",
+  "version": "1.13.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",
@@ -27,6 +28,7 @@
     "autoprefixer": "^10.5.4",
     "image-size": "^2.0.2",
     "oxlint": "^1.71.0",
+    "patch-package": "^8.0.0",
     "playwright": "^1.61.1",
     "postcss": "^8.5.21",
     "sharp": "^0.34.4",
