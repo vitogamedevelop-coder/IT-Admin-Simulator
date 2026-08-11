@@ -16,7 +16,6 @@ export default function Quest() {
   const { questId } = useParams();
   const navigate = useNavigate();
   useAppBack();
-  const quest = questById(questId);
   const [started, setStarted] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [choice, setChoice] = useState(null);
@@ -29,9 +28,18 @@ export default function Quest() {
   const questStarted = useRef(Date.now());
   const saved = useRef(false);
 
+  if (questId?.startsWith('cisco-')) {
+    navigate(`/mission/${questId}`, { replace: true });
+    return null;
+  }
+
+  const quest = questById(questId);
+
   if (!quest) return <div className="py-10 text-center text-[#ff3355]">Einsatz nicht gefunden.</div>;
   const step = quest.steps[stepIndex];
   const stepOptions = getOrderedOptions(step.options, `${quest.id}-${stepIndex}`);
+
+  if (quest.steps.length === 0) return <div className="py-10 text-center text-[#ff3355]">Einsatz hat keine Schritte.</div>;
 
   function begin() {
     setActiveQuest(quest.id);
