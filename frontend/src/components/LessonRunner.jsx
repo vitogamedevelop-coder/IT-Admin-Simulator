@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2, XCircle, ArrowLeft, ArrowRight, HelpCircle, Lightbulb, BookOpen,
-  MessageCircle, ArrowUp, ArrowDown,
+  MessageCircle, ArrowUp, ArrowDown, Volume2, VolumeX,
 } from 'lucide-react';
 import { characterAsset } from '../lib/rpgAssets';
 import { readAcademyProgress, updateTopicProgress } from '../lib/academyProgress';
@@ -13,6 +13,7 @@ import {
 import { shuffleOptions } from '../lib/shuffleOptions';
 import { collectQuestionsFromLesson, collectCliTasksFromLesson } from '../lib/academyThemencheck';
 import { checkCiscoInput } from '../lib/ciscoCli';
+import { speak, stop, ttsTextFromBlocks, normalizeCiscoText } from '../lib/speechSynthesis';
 import {
   calculateNetworkId, calculateBroadcast, calculateFirstHost, calculateLastHost,
   calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems,
@@ -23,6 +24,36 @@ import {
 } from '../lib/academyLessons/ipv4Generator';
 
 const STYLE_SEQUENCE = ['classic', 'intuitive', 'example', 'visual', 'mnemonic'];
+
+// Small reusable TTS button for lesson blocks.
+function SpeakButton({ text, label }) {
+  const [speaking, setSpeaking] = useState(false);
+  if (!text) return null;
+
+  async function handleToggle() {
+    if (speaking) {
+      await stop();
+      setSpeaking(false);
+      return;
+    }
+    setSpeaking(true);
+    await speak(text, {
+      onEnd: () => setSpeaking(false),
+      onError: () => setSpeaking(false),
+    });
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      title={speaking ? 'Vorlesen stoppen' : (label || 'Text vorlesen')}
+      className="inline-flex items-center justify-center p-1.5 rounded text-[#00f0ff] hover:bg-[#00f0ff]/10 border border-[#00f0ff]/30 ml-2"
+    >
+      {speaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
+    </button>
+  );
+}
 
 // Every lesson now exposes three independent ways to engage with it, chosen
 // by the player on AcademyTopic's entry card before LessonRunner mounts:
@@ -400,7 +431,10 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
           </div>
         </div>
         <div className="cyber-card p-4">
-          <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Quiz</div>
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Quiz</div>
+            <SpeakButton text={normalizeCiscoText(currentQuizQuestion.question + '. ' + (currentQuizQuestion.options || []).join('. '))} label="Frage vorlesen" />
+          </div>
           <p className="text-sm text-white font-bold mt-2">{currentQuizQuestion.question}</p>
           {answered === undefined ? (
             <div className="flex flex-col gap-2 mt-3">
@@ -511,8 +545,20 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
 
 // ---------- Static content block ----------
 function StaticBlock({ block }) {
+  const speakableText = ttsTextFromBlocks([block]);
+  const header = (
+    <div className="flex items-start justify-end -mt-1 mb-1">
+      <SpeakButton text={speakableText} label="Block vorlesen" />
+    </div>
+  );
+
   if (block.type === 'text') {
-    return <p className="text-sm text-[#c9d1d9] leading-relaxed">{block.content}</p>;
+    return (
+      <div>
+        {header}
+        <p className="text-sm text-[#c9d1d9] leading-relaxed">{block.content}</p>
+      </div>
+    );
   }
   if (block.type === 'diagram') {
     return (
@@ -526,6 +572,7 @@ function StaticBlock({ block }) {
   if (block.type === 'list') {
     return (
       <div className="my-2">
+        {header}
         {block.title && <div className="text-xs font-bold text-[#00f0ff] mb-1">{block.title}</div>}
         <ul className="flex flex-col gap-1.5">
           {block.items.map((item, i) => (
@@ -541,6 +588,7 @@ function StaticBlock({ block }) {
   if (block.type === 'table') {
     return (
       <div className="my-2 overflow-x-auto">
+        {header}
         <table className="min-w-full text-xs text-[#c9d1d9] border border-[#30363d]">
           <thead>
             <tr className="bg-[#0a1628]">

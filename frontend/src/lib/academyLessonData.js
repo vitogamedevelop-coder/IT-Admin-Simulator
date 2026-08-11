@@ -21,6 +21,7 @@ import { buildCiscoAccessPortLesson, CISCO_ACCESS_PORT_TOPIC_KEY } from './acade
 import { buildCiscoTrunkLesson, CISCO_TRUNK_TOPIC_KEY } from './academyLessons/ciscoTrunk.js';
 import { buildCiscoRouterBasicsLesson, CISCO_ROUTER_BASICS_TOPIC_KEY } from './academyLessons/ciscoRouterBasics.js';
 import { buildCiscoStaticRoutingLesson, CISCO_STATIC_ROUTING_TOPIC_KEY } from './academyLessons/ciscoStaticRouting.js';
+import { buildCiscoOspfLesson, CISCO_OSPF_TOPIC_KEY } from './academyLessons/ciscoOspf.js';
 import { buildCiscoInterVlanRoutingLesson, CISCO_INTER_VLAN_ROUTING_TOPIC_KEY } from './academyLessons/ciscoInterVlanRouting.js';
 import { buildCiscoMultilayerSwitchingLesson, CISCO_MULTILAYER_SWITCHING_TOPIC_KEY } from './academyLessons/ciscoMultilayerSwitching.js';
 import { buildCiscoTroubleshootingLesson, CISCO_TROUBLESHOOTING_TOPIC_KEY } from './academyLessons/ciscoTroubleshooting.js';
@@ -292,6 +293,7 @@ export const LESSONS = {
   [CISCO_TRUNK_TOPIC_KEY]: buildCiscoTrunkLesson(),
   [CISCO_ROUTER_BASICS_TOPIC_KEY]: buildCiscoRouterBasicsLesson(),
   [CISCO_STATIC_ROUTING_TOPIC_KEY]: buildCiscoStaticRoutingLesson(),
+  [CISCO_OSPF_TOPIC_KEY]: buildCiscoOspfLesson(),
   [CISCO_INTER_VLAN_ROUTING_TOPIC_KEY]: buildCiscoInterVlanRoutingLesson(),
   [CISCO_MULTILAYER_SWITCHING_TOPIC_KEY]: buildCiscoMultilayerSwitchingLesson(),
   [CISCO_TROUBLESHOOTING_TOPIC_KEY]: buildCiscoTroubleshootingLesson(),

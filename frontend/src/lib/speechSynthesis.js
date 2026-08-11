@@ -279,6 +279,78 @@ async function speakNative(text, voiceIndex, useSystemVoice, callbacks = {}) {
   }
 }
 
+// ---------- TTS text normalization for technical/Cisco content ----------
+
+function normalizeCiscoText(text) {
+  if (typeof text !== 'string') return '';
+
+  let t = text;
+
+  // Common Cisco command expansions (order matters - longer phrases first).
+  t = t.replace(/show ip ospf neighbor/gi, 'Show I P O S P F Nachbar');
+  t = t.replace(/show ip ospf interface/gi, 'Show I P O S P F Interface');
+  t = t.replace(/show ip protocols/gi, 'Show I P Protokolle');
+  t = t.replace(/show ip route/gi, 'Show I P Route');
+  t = t.replace(/show ip ospf/gi, 'Show I P O S P F');
+  t = t.replace(/default-information originate/gi, 'Default Information Originate');
+  t = t.replace(/passive-interface/gi, 'passive Interface');
+  t = t.replace(/message-digest-key/gi, 'Message Digest Schlüssel');
+  t = t.replace(/message-digest/gi, 'Message Digest');
+  t = t.replace(/authentication-key/gi, 'Authentifizierungsschlüssel');
+  t = t.replace(/ip ospf authentication/gi, 'I P O S P F Authentifizierung');
+  t = t.replace(/ip ospf/gi, 'I P O S P F');
+  t = t.replace(/router ospf/gi, 'Router O S P F');
+  t = t.replace(/area 0 authentication/gi, 'Area Null Authentifizierung');
+  t = t.replace(/area 0/gi, 'Area Null');
+
+  // Interface references like g0/0, g0/0-2, s0/0/0, fa0/1 etc.
+  t = t.replace(/\b([gfs]\d+)(?:\/([\d-]+))(?:\/([\d-]+))?\b/gi, (match, pre, part1, part2) => {
+    const base = pre.toUpperCase();
+    const first = part1.replace(/-/g, ' bis ');
+    if (part2) return `${base} ${first} Schrägstrich ${part2.replace(/-/g, ' bis ')}`;
+    return `${base} ${first}`;
+  });
+
+  // Dotted-decimal IPv4 addresses.
+  t = t.replace(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g, (match) => match.replace(/\./g, ' Punkt '));
+
+  // CIDR prefix length after an IP.
+  t = t.replace(/(\d{1,3} Punkt \d{1,3} Punkt \d{1,3} Punkt \d{1,3})\/(\d{1,2})/g, '$1 Schrägstrich $2');
+
+  // Common abbreviations.
+  t = t.replace(/\bip\b/gi, 'I P');
+  t = t.replace(/\bospf\b/gi, 'O S P F');
+  t = t.replace(/\bmd5\b/gi, 'M D 5');
+
+  return t;
+}
+
+function collectTextFromBlocks(blocks) {
+  if (!Array.isArray(blocks)) return '';
+  const parts = [];
+  for (const block of blocks) {
+    if (block.type === 'text') parts.push(block.content);
+    else if (block.type === 'list') {
+      parts.push(block.title || '');
+      parts.push(...(block.items || []));
+    } else if (block.type === 'table') {
+      parts.push((block.headers || []).join('. '));
+      for (const row of (block.rows || [])) parts.push(row.join('. '));
+    } else if (block.type === 'question') {
+      parts.push(block.question);
+      parts.push(...(block.options || []));
+      parts.push(block.explanation || '');
+    }
+  }
+  return parts.filter(Boolean).join('. ');
+}
+
+export { normalizeCiscoText };
+
+export function ttsTextFromBlocks(blocks) {
+  return normalizeCiscoText(collectTextFromBlocks(blocks));
+}
+
 export async function speak(text, callbacks = {}) {
   if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
   await stop();

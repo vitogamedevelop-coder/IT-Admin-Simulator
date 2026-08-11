@@ -141,6 +141,7 @@ export const ACADEMY_TOPICS = [
   topic('cisco-packet-tracer', 'trunk', 'Trunk', 'Mehrere VLANs über eine Verbindung transportieren.', ['vlan']),
   topic('cisco-packet-tracer', 'router-basics', 'Router-Grundlagen', 'Router-Interfaces konfigurieren und die Routingentscheidung (Longest Prefix Match, Administrative Distance, Metrik) verstehen.', ['trunk']),
   topic('cisco-packet-tracer', 'static-routing', 'Statisches Routing', 'Routen manuell auf einem Router konfigurieren.', ['router-basics']),
+  topic('cisco-packet-tracer', 'ospf', 'OSPF', 'Dynamisches Routing mit OSPF: Network- und Interface-Methode, Authentifizierung, passive-interface, Default Route und Verifizierung.', ['router-basics', 'static-routing']),
   topic('cisco-packet-tracer', 'inter-vlan-routing', 'Router on a Stick', 'Kommunikation zwischen VLANs über Subinterfaces auf einem einzelnen Router ermöglichen.', ['trunk', 'router-basics']),
   // Added (Milestone C6): alternative to Router on a Stick for inter-VLAN
   // routing - a Layer-3 switch routes directly via SVIs, without a separate
