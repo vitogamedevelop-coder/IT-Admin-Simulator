@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { RotateCcw, Trash2, AlertTriangle, Info, Volume2, ExternalLink } from 'lucide-react';
 import { resetOnboarding } from '../components/Onboarding';
 import { getVersionLabel } from '../lib/version';
@@ -11,6 +11,7 @@ import {
   getNativeVoices,
   getDisplayVoiceLabel,
   openTtsSettings,
+  getTtsDiagnostics,
   speakWithVoice,
   speak,
   stop,
@@ -52,20 +53,40 @@ export default function Settings() {
   const { voices, loading } = useTtsVoices();
   const [speaking, setSpeaking] = useState(false);
   const [testVoice, setTestVoice] = useState(null);
+  const [diagnostics, setDiagnostics] = useState('');
+  const [diagLoading, setDiagLoading] = useState(false);
   const hasNativeTts = isNativeTtsSupported();
   useAppBack();
 
   useEffect(() => {
+    if (hasNativeTts) refreshDiagnostics();
     return () => {
       stop().catch(() => {});
     };
-  }, []);
+  }, [hasNativeTts, refreshDiagnostics]);
+
+  useEffect(() => {
+    if (hasNativeTts) refreshDiagnostics();
+  }, [hasNativeTts, refreshDiagnostics, settings.useSystemVoice, settings.enabled]);
 
   function updateSettings(partial) {
     const next = { ...settings, ...partial };
     setSettings(next);
     setTtsSettings(next);
   }
+
+  const refreshDiagnostics = useCallback(async () => {
+    if (!hasNativeTts) return;
+    setDiagLoading(true);
+    try {
+      const diag = await getTtsDiagnostics();
+      setDiagnostics(diag);
+    } catch (err) {
+      setDiagnostics(`ERR: ${err?.message || err}`);
+    } finally {
+      setDiagLoading(false);
+    }
+  }, [hasNativeTts]);
 
   async function playTest() {
     await stop();
@@ -205,6 +226,23 @@ export default function Settings() {
                     Stimme über die Einstellungen deiner bevorzugten Sprach-Engine auswählen.
                   </p>
                 </>
+              )}
+
+              {hasNativeTts && (
+                <div className="mt-4 p-3 rounded border border-[#ffcc00]/30 bg-[#ffcc00]/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-[10px] font-bold text-[#ffcc00] uppercase tracking-wider">TTS Diagnose (temporär)</h4>
+                    <button
+                      type="button"
+                      onClick={refreshDiagnostics}
+                      disabled={diagLoading}
+                      className="text-[10px] text-[#00f0ff] hover:underline disabled:opacity-50"
+                    >
+                      {diagLoading ? 'Lade...' : 'Aktualisieren'}
+                    </button>
+                  </div>
+                  <pre className="text-[9px] text-[#8b949e] whitespace-pre-wrap break-words font-mono leading-tight">{diagnostics || 'Noch keine Diagnose-Daten.'}</pre>
+                </div>
               )}
             </>
           )}

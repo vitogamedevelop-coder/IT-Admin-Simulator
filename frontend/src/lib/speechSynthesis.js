@@ -91,6 +91,18 @@ export function isTtsEnabled() {
   return getTtsSettings().enabled !== false;
 }
 
+export async function getTtsDiagnostics() {
+  if (!CapacitorTTS || !isNativePlatform()) return 'N/A';
+  try {
+    const result = await CapacitorTTS.getTtsDiagnostics();
+    return result?.diagnostics || 'N/A';
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[TTS] diagnostics error:', err);
+    return `ERR: ${err?.message || err}`;
+  }
+}
+
 // ---------- Native voice discovery ----------
 
 async function initializeNativeTTS() {
