@@ -7,7 +7,7 @@ index 0000000..0d259dd
 +o/classes
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/.transforms/74624c839debe0aa9f7a78b4d722a658/transformed/classes/classes_dex/classes.dex b/node_modules/@capacitor-community/text-to-speech/android/build/.transforms/74624c839debe0aa9f7a78b4d722a658/transformed/classes/classes_dex/classes.dex
 new file mode 100644
-index 0000000..5d1afe4
+index 0000000..add006a
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/.transforms/74624c839debe0aa9f7a78b4d722a658/transformed/classes/classes_dex/classes.dex differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/.transforms/9c3c9ca7ec12ed9597b229dc471c7234/results.bin b/node_modules/@capacitor-community/text-to-speech/android/build/.transforms/9c3c9ca7ec12ed9597b229dc471c7234/results.bin
 new file mode 100644
@@ -67,7 +67,7 @@ index 0000000..cee60c4
 \ No newline at end of file
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/aar_main_jar/debug/syncDebugLibJars/classes.jar b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/aar_main_jar/debug/syncDebugLibJars/classes.jar
 new file mode 100644
-index 0000000..e480d59
+index 0000000..9c6f163
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/aar_main_jar/debug/syncDebugLibJars/classes.jar differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/aar_metadata/debug/writeDebugAarMetadata/aar-metadata.properties b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/aar_metadata/debug/writeDebugAarMetadata/aar-metadata.properties
 new file mode 100644
@@ -94,7 +94,7 @@ new file mode 100644
 index 0000000..e69de29
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar
 new file mode 100644
-index 0000000..7da413e
+index 0000000..bb94ab7
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/compile_r_class_jar/debug/generateDebugRFile/R.jar b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/compile_r_class_jar/debug/generateDebugRFile/R.jar
 new file mode 100644
@@ -156,19 +156,19 @@ index 0000000..a075b1b
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/SpeakResultCallback.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeech$1.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeech$1.class
 new file mode 100644
-index 0000000..741e3ed
+index 0000000..a4e42b8
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeech$1.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeech.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeech.class
 new file mode 100644
-index 0000000..4595bc0
+index 0000000..28dd317
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeech.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeechPlugin$1.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeechPlugin$1.class
 new file mode 100644
-index 0000000..11182c7
+index 0000000..bbae83a
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeechPlugin$1.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeechPlugin.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeechPlugin.class
 new file mode 100644
-index 0000000..7ad3ef6
+index 0000000..92e5f37
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/getcapacitor/community/tts/TextToSpeechPlugin.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/local_only_symbol_list/debug/parseDebugLocalResources/R-def.txt b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/local_only_symbol_list/debug/parseDebugLocalResources/R-def.txt
 new file mode 100644
@@ -247,23 +247,23 @@ index 0000000..a075b1b
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/SpeakResultCallback.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeech$1.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeech$1.class
 new file mode 100644
-index 0000000..741e3ed
+index 0000000..a4e42b8
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeech$1.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeech.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeech.class
 new file mode 100644
-index 0000000..4595bc0
+index 0000000..28dd317
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeech.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeechPlugin$1.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeechPlugin$1.class
 new file mode 100644
-index 0000000..11182c7
+index 0000000..bbae83a
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeechPlugin$1.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeechPlugin.class b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeechPlugin.class
 new file mode 100644
-index 0000000..7ad3ef6
+index 0000000..92e5f37
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_dir/debug/bundleLibRuntimeToDirDebug/com/getcapacitor/community/tts/TextToSpeechPlugin.class differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar
 new file mode 100644
-index 0000000..bf7dcf0
+index 0000000..1393d70
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/symbol_list_with_package_name/debug/generateDebugRFile/package-aware-r.txt b/node_modules/@capacitor-community/text-to-speech/android/build/intermediates/symbol_list_with_package_name/debug/generateDebugRFile/package-aware-r.txt
 new file mode 100644
@@ -274,7 +274,7 @@ index 0000000..225295a
 +com.getcapacitor.community.tts
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/outputs/aar/capacitor-community-text-to-speech-debug.aar b/node_modules/@capacitor-community/text-to-speech/android/build/outputs/aar/capacitor-community-text-to-speech-debug.aar
 new file mode 100644
-index 0000000..3c6c2a7
+index 0000000..fc673d5
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/outputs/aar/capacitor-community-text-to-speech-debug.aar differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/outputs/logs/manifest-merger-debug-report.txt b/node_modules/@capacitor-community/text-to-speech/android/build/outputs/logs/manifest-merger-debug-report.txt
 new file mode 100644
@@ -306,15 +306,35 @@ index 0000000..d559bf5
 +		INJECTED from C:\Users\vitog\CyberLearn\frontend\node_modules\@capacitor-community\text-to-speech\android\src\main\AndroidManifest.xml
 +	android:minSdkVersion
 +		INJECTED from C:\Users\vitog\CyberLearn\frontend\node_modules\@capacitor-community\text-to-speech\android\src\main\AndroidManifest.xml
+diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeech$1.class.uniqueId0 b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeech$1.class.uniqueId0
+new file mode 100644
+index 0000000..741e3ed
+Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeech$1.class.uniqueId0 differ
+diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeech.class.uniqueId3 b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeech.class.uniqueId3
+new file mode 100644
+index 0000000..4595bc0
+Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeech.class.uniqueId3 differ
+diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeechPlugin$1.class.uniqueId1 b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeechPlugin$1.class.uniqueId1
+new file mode 100644
+index 0000000..11182c7
+Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeechPlugin$1.class.uniqueId1 differ
+diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeechPlugin.class.uniqueId2 b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeechPlugin.class.uniqueId2
+new file mode 100644
+index 0000000..7ad3ef6
+Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/TextToSpeechPlugin.class.uniqueId2 differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin
 new file mode 100644
-index 0000000..8f2940e
+index 0000000..b2c0137
 Binary files /dev/null and b/node_modules/@capacitor-community/text-to-speech/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin differ
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeech.java b/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeech.java
-index 3ad7683..892e93f 100644
+index 3ad7683..d7b8056 100644
 --- a/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeech.java
 +++ b/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeech.java
-@@ -4,8 +4,10 @@ import android.content.Context;
+@@ -1,11 +1,14 @@
+ package com.getcapacitor.community.tts;
+ 
++import android.content.ActivityNotFoundException;
+ import android.content.Context;
  import android.content.Intent;
  import android.content.pm.PackageManager;
  import android.content.pm.ResolveInfo;
@@ -325,7 +345,52 @@ index 3ad7683..892e93f 100644
  import android.speech.tts.UtteranceProgressListener;
  import android.speech.tts.Voice;
  import android.util.Log;
-@@ -84,7 +86,7 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
+@@ -14,6 +17,7 @@ import com.getcapacitor.JSObject;
+ import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.HashMap;
++import java.util.List;
+ import java.util.Locale;
+ import java.util.Map;
+ import java.util.Set;
+@@ -30,6 +34,19 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
+ 
+     TextToSpeech(Context context) {
+         this.context = context;
++        initTts();
++    }
++
++    private void initTts() {
++        try {
++            if (tts != null) {
++                tts.stop();
++                tts.shutdown();
++            }
++        } catch (Exception ex) {
++            Log.d(LOG_TAG, "initTts cleanup error: " + ex.getLocalizedMessage());
++        }
++
+         try {
+             tts = new android.speech.tts.TextToSpeech(context, this);
+             tts.setOnUtteranceProgressListener(
+@@ -65,10 +82,15 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
+                 }
+             );
+         } catch (Exception ex) {
+-            Log.d(LOG_TAG, ex.getLocalizedMessage());
++            Log.d(LOG_TAG, "initTts error: " + ex.getLocalizedMessage());
+         }
+     }
+ 
++    public void reinitialize() {
++        Log.d(LOG_TAG, "Re-initializing TTS engine to pick up system voice changes");
++        initTts();
++    }
++
+     @Override
+     public void onInit(int status) {
+         this.initializationStatus = status;
+@@ -84,7 +106,7 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
          String callbackId,
          SpeakResultCallback resultCallback
      ) {
@@ -334,7 +399,7 @@ index 3ad7683..892e93f 100644
      }
  
      public void speak(
-@@ -96,28 +98,35 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
+@@ -96,28 +118,35 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
          int voice,
          String callbackId,
          SpeakResultCallback resultCallback,
@@ -379,7 +444,7 @@ index 3ad7683..892e93f 100644
              }
          }
          tts.speak(text, queueStrategy, ttsParams, callbackId);
-@@ -130,10 +139,14 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
+@@ -130,10 +159,14 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
  
      public JSArray getSupportedLanguages() {
          ArrayList<String> languages = new ArrayList<>();
@@ -398,7 +463,7 @@ index 3ad7683..892e93f 100644
          }
          JSArray result = JSArray.from(languages.toArray());
          return result;
-@@ -143,42 +156,78 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
+@@ -143,39 +176,73 @@ public class TextToSpeech implements android.speech.tts.TextToSpeech.OnInitListe
       * @return Ordered list of voices. The order is guaranteed to remain the same as long as the voices in tts.getVoices() do not change.
       */
      public ArrayList<Voice> getSupportedVoicesOrdered() {
@@ -447,59 +512,70 @@ index 3ad7683..892e93f 100644
 -        PackageManager packageManager = context.getPackageManager();
 -        Intent installIntent = new Intent();
 -        installIntent.setAction(android.speech.tts.TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
-+        // Prefer the official Android TTS settings screen.
-+        try {
-+            Intent intent = new Intent();
-+            intent.setAction("android.settings.TTS_SETTINGS");
-+            if (canHandle(intent)) {
++        // A list of intents that lead to TTS settings on different OEM ROMs.
++        // We try each one, preferring the most specific TTS settings first.
++        List<String> settingsActions = new ArrayList<>();
++        settingsActions.add("com.android.settings.TTS_SETTINGS");
++        settingsActions.add("android.settings.TTS_SETTINGS");
+ 
+-        ResolveInfo resolveInfo = packageManager.resolveActivity(installIntent, PackageManager.MATCH_DEFAULT_ONLY);
++        for (String action : settingsActions) {
++            try {
++                Intent intent = new Intent(action);
 +                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 +                context.startActivity(intent);
 +                return;
++            } catch (ActivityNotFoundException ex) {
++                Log.d(LOG_TAG, "openInstall TTS settings action not found: " + action);
++            } catch (Exception ex) {
++                Log.d(LOG_TAG, "openInstall TTS settings failed for " + action + ": " + ex.getLocalizedMessage());
 +            }
-+        } catch (Exception ex) {
-+            Log.d(LOG_TAG, "openInstall TTS settings failed: " + ex.getLocalizedMessage());
-+        }
- 
--        ResolveInfo resolveInfo = packageManager.resolveActivity(installIntent, PackageManager.MATCH_DEFAULT_ONLY);
-+        // Fallback 1: locale/language settings where TTS is usually reachable.
-+        try {
-+            Intent fallback = new Intent(Settings.ACTION_LOCALE_SETTINGS);
-+            if (canHandle(fallback)) {
-+                fallback.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-+                context.startActivity(fallback);
-+                return;
-+            }
-+        } catch (Exception ex) {
-+            Log.d(LOG_TAG, "openInstall locale settings failed: " + ex.getLocalizedMessage());
 +        }
  
 -        if (resolveInfo != null) {
 -            installIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 -            context.startActivity(installIntent);
-+        // Fallback 2: generic application settings.
++        // Fallback 1: accessibility settings, where TTS is often located.
 +        try {
-+            Intent fallback = new Intent(Settings.ACTION_APPLICATION_SETTINGS);
++            Intent fallback = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
++            fallback.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
++            context.startActivity(fallback);
++            return;
++        } catch (Exception ex) {
++            Log.d(LOG_TAG, "openInstall accessibility settings failed: " + ex.getLocalizedMessage());
++        }
++
++        // Fallback 2: generic settings.
++        try {
++            Intent fallback = new Intent(Settings.ACTION_SETTINGS);
 +            fallback.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 +            context.startActivity(fallback);
 +        } catch (Exception ex) {
-+            Log.d(LOG_TAG, "openInstall application settings failed: " + ex.getLocalizedMessage());
++            Log.d(LOG_TAG, "openInstall generic settings failed: " + ex.getLocalizedMessage());
          }
      }
  
-+    private boolean canHandle(Intent intent) {
-+        PackageManager packageManager = context.getPackageManager();
-+        ResolveInfo resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
-+        return resolveInfo != null;
-+    }
-+
-     public boolean isAvailable() {
-         if (tts != null && initializationStatus == android.speech.tts.TextToSpeech.SUCCESS) {
-             return true;
 diff --git a/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeechPlugin.java b/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeechPlugin.java
-index 62eaf01..1532faf 100644
+index 62eaf01..6609f77 100644
 --- a/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeechPlugin.java
 +++ b/node_modules/@capacitor-community/text-to-speech/android/src/main/java/com/getcapacitor/community/tts/TextToSpeechPlugin.java
-@@ -39,11 +39,14 @@ public class TextToSpeechPlugin extends Plugin {
+@@ -24,6 +24,15 @@ public class TextToSpeechPlugin extends Plugin {
+         implementation = new TextToSpeech(getContext());
+     }
+ 
++    @Override
++    protected void handleOnResume() {
++        // The user may have changed the system TTS voice while the app was in the
++        // background. Re-initialize the engine so the new default voice is picked up.
++        if (implementation != null) {
++            implementation.reinitialize();
++        }
++    }
++
+     @PluginMethod
+     public void speak(PluginCall call) {
+         boolean isAvailable = implementation.isAvailable();
+@@ -39,11 +48,14 @@ public class TextToSpeechPlugin extends Plugin {
          float volume = call.getFloat("volume", 1.0f);
          int voice = call.getInt("voice", -1);
          int queueStrategy = call.getInt("queueStrategy", 0);
@@ -518,7 +594,7 @@ index 62eaf01..1532faf 100644
          }
  
          SpeakResultCallback resultCallback = new SpeakResultCallback() {
-@@ -69,7 +72,7 @@ public class TextToSpeechPlugin extends Plugin {
+@@ -69,7 +81,7 @@ public class TextToSpeechPlugin extends Plugin {
          };
  
          try {

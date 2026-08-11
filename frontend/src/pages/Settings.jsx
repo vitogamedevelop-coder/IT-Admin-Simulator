@@ -191,15 +191,20 @@ export default function Settings() {
                     className="cyber-btn-outline text-xs px-3 py-2 flex items-center gap-1"
                   >
                     <ExternalLink size={12} />
-                    {voices.length === 0 ? 'Stimme in Android auswählen' : 'System-Sprachoptionen'}
+                    Text-zu-Sprache-Einstellungen
                   </button>
                 )}
               </div>
 
               {settings.useSystemVoice && (
-                <p className="mt-2 text-[10px] text-[#8b949e]">
-                  Android verwendet die in den System-Einstellungen gewählte Stimme.
-                </p>
+                <>
+                  <p className="mt-2 text-[10px] text-[#8b949e]">
+                    Android verwendet die in den System-Einstellungen gewählte Stimme.
+                  </p>
+                  <p className="mt-1 text-[10px] text-[#5a6573]">
+                    Stimme über die Einstellungen deiner bevorzugten Sprach-Engine auswählen.
+                  </p>
+                </>
               )}
             </>
           )}
