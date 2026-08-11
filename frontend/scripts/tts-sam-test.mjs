@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 import {
   ENABLE_SAM_TTS_TEST,
   isSupported,
+  isTtsEnabled,
+  getTtsSettings,
+  setTtsSettings,
   speak,
   stop,
 } from '../src/lib/speechSynthesis.js';
@@ -42,6 +45,20 @@ console.log('Feature flag and environment support');
 
   test('isSupported() returns false in Node.js (no window.speechSynthesis)', () => {
     assert.equal(isSupported(), false);
+  });
+
+  test('isTtsEnabled() returns true by default', () => {
+    assert.equal(isTtsEnabled(), true);
+  });
+
+  test('getTtsSettings() returns default settings', () => {
+    const settings = getTtsSettings();
+    assert.equal(settings.enabled, true);
+    assert.equal(settings.voiceId, null);
+  });
+
+  test('setTtsSettings() works without localStorage', () => {
+    assert.doesNotThrow(() => setTtsSettings({ enabled: false, voiceId: { index: 1, voiceURI: 'test' } }));
   });
 
   testAsync('speak() does not throw in Node.js', async () => {
@@ -89,17 +106,6 @@ console.log('\nDefault fallback dialog: no TTS flag');
   test('default fallback has no node with tts: true', () => {
     const ttsNodes = fallback.nodes.filter((n) => n.tts === true);
     assert.equal(ttsNodes.length, 0);
-  });
-}
-
-console.log('\nGrundbegriffe: only say-beats get the TTS flag conceptually');
-{
-  // The Grundbegriffe beats are static data inside AcademyTopic.jsx, so we
-  // verify indirectly that the only tts-enabled content is the Sam learn node.
-  // AcademyTopic.jsx is inspected visually for the SpeakButton integration.
-  test('no other dialog besides Sam office has tts enabled', () => {
-    const fallback = buildDefaultDialog();
-    assert.equal(fallback.nodes.filter((n) => n.tts === true).length, 0);
   });
 }
 

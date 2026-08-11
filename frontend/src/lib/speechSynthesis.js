@@ -2,7 +2,7 @@
 // Set this to false to disable the test feature with a single change.
 export const ENABLE_SAM_TTS_TEST = true;
 
-const PREFERRED_VOICE_KEY = 'it-learn:tts-preferred-voice';
+const TTS_SETTINGS_KEY = 'it-learn:tts-settings-v1';
 
 let nativeTtsAvailable = null;
 let nativeVoices = null;
@@ -69,57 +69,29 @@ export function isNativeTtsSupported() {
   return isSupported() && isNativePlatform();
 }
 
-// ---------- Voice metadata helpers ----------
-
-function getPreferredVoiceKey() {
+export function getTtsSettings() {
   try {
-    const raw = localStorage.getItem(PREFERRED_VOICE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const raw = localStorage.getItem(TTS_SETTINGS_KEY);
+    if (raw) return JSON.parse(raw);
   } catch {
-    return null;
+    // ignore
   }
+  return { enabled: true, voiceId: null };
 }
 
-function setPreferredVoiceKey(key) {
+export function setTtsSettings(settings) {
   try {
-    if (key == null) {
-      localStorage.removeItem(PREFERRED_VOICE_KEY);
-    } else {
-      localStorage.setItem(PREFERRED_VOICE_KEY, JSON.stringify(key));
-    }
+    localStorage.setItem(TTS_SETTINGS_KEY, JSON.stringify(settings));
   } catch {
-    // ignore storage errors
+    // ignore
   }
 }
 
-function voiceGenderHint(voice) {
-  const name = (voice.name || '').toLowerCase();
-  const uri = (voice.voiceURI || '').toLowerCase();
-  const combined = `${name} ${uri}`;
-
-  if (/(?:^|[^a-z0-9])deu-?deu?-?1(?:[^a-z0-9]|$)/.test(uri)) return 'female';
-  if (/(?:^|[^a-z0-9])deu-?deu?-?2(?:[^a-z0-9]|$)/.test(uri)) return 'male';
-  if (/(?:^|[^a-z0-9])de-?de-?1(?:[^a-z0-9]|$)/.test(uri)) return 'female';
-  if (/(?:^|[^a-z0-9])de-?de-?2(?:[^a-z0-9]|$)/.test(uri)) return 'male';
-  if (/samsung.*deutsch.*1/.test(combined)) return 'female';
-  if (/samsung.*deutsch.*2/.test(combined)) return 'male';
-  if (/de-de-(standard|wavenet|neural)-[bcd]\b/.test(combined)) return 'male';
-  if (/de-de-(standard|wavenet|neural)-[ae]\b/.test(combined)) return 'female';
-
-  const maleMarkers = ['male', 'man', 'männlich', 'mann'];
-  const femaleMarkers = ['female', 'woman', 'weiblich', 'frau'];
-  if (maleMarkers.some((m) => combined.includes(m))) return 'male';
-  if (femaleMarkers.some((f) => combined.includes(f))) return 'female';
-
-  const uriLastNumber = uri.match(/(\d+)(?:\D*)$/);
-  if (uriLastNumber) {
-    const n = parseInt(uriLastNumber[1], 10);
-    if (Number.isFinite(n)) return n % 2 === 0 ? 'male' : 'female';
-  }
-  return null;
+export function isTtsEnabled() {
+  return getTtsSettings().enabled !== false;
 }
 
-// ---------- Native voice discovery & selection ----------
+// ---------- Native voice discovery ----------
 
 async function initializeNativeTTS() {
   if (nativeInitPromise) return nativeInitPromise;
@@ -131,30 +103,18 @@ async function initializeNativeTTS() {
   nativeInitPromise = (async () => {
     try {
       const { voices } = await CapacitorTTS.getSupportedVoices();
-      nativeVoices = (voices || []).map((v, i) => ({ ...v, index: i, genderHint: voiceGenderHint(v) }));
+      nativeVoices = (voices || []).map((v, i) => ({ ...v, index: i }));
       const { languages } = await CapacitorTTS.getSupportedLanguages();
-      const deVoices = nativeVoices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
-      // eslint-disable-next-line no-console
-      console.log('[TTS] all supported voices:', nativeVoices.map((v) => ({
-        index: v.index,
-        name: v.name,
-        lang: v.lang,
-        voiceURI: v.voiceURI,
-        localService: v.localService,
-        default: v.default,
-        genderHint: v.genderHint,
-      })));
       // eslint-disable-next-line no-console
       console.log('[TTS] supported languages:', languages);
       // eslint-disable-next-line no-console
-      console.log('[TTS] German voices:', deVoices.map((v) => ({
+      console.log('[TTS] supported voices:', nativeVoices.map((v) => ({
         index: v.index,
         name: v.name,
         lang: v.lang,
         voiceURI: v.voiceURI,
         localService: v.localService,
         default: v.default,
-        genderHint: v.genderHint,
       })));
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -171,58 +131,60 @@ export async function getNativeVoices() {
   return nativeVoices || [];
 }
 
+export function getVoices() {
+  return nativeVoices || [];
+}
+
 export function getGermanVoices() {
   return (nativeVoices || []).filter((v) => v.lang?.toLowerCase().startsWith('de'));
 }
 
-function resolveVoiceIndex() {
+function getVoiceById(voiceId) {
+  if (!voiceId || !nativeVoices) return null;
+  return nativeVoices.find((v) => v.index === voiceId.index && v.voiceURI === voiceId.voiceURI) || null;
+}
+
+function selectVoiceIndex() {
   if (!nativeVoices || nativeVoices.length === 0) return undefined;
 
-  const preferred = getPreferredVoiceKey();
-  if (preferred != null) {
-    const byIndex = nativeVoices.find((v) => v.index === preferred.index);
-    if (byIndex && byIndex.voiceURI === preferred.voiceURI) {
-      // eslint-disable-next-line no-console
-      console.log('[TTS] using preferred voice:', { index: byIndex.index, voiceURI: byIndex.voiceURI, name: byIndex.name });
-      return byIndex.index;
-    }
+  const settings = getTtsSettings();
+  const saved = getVoiceById(settings.voiceId);
+  if (saved) {
+    // eslint-disable-next-line no-console
+    console.log('[TTS] using saved voice:', { index: saved.index, voiceURI: saved.voiceURI, name: saved.name });
+    return saved.index;
   }
 
   const deVoices = nativeVoices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
-  const deMale = deVoices.filter((v) => v.genderHint === 'male');
-  if (deMale.length) {
-    const localMale = deMale.find((v) => v.localService) || deMale[0];
-    // eslint-disable-next-line no-console
-    console.log('[TTS] auto-selected German male voice:', { index: localMale.index, voiceURI: localMale.voiceURI, name: localMale.name });
-    return localMale.index;
-  }
   if (deVoices.length) {
     const localDe = deVoices.find((v) => v.localService) || deVoices[0];
     // eslint-disable-next-line no-console
-    console.log('[TTS] auto-selected German voice:', { index: localDe.index, voiceURI: localDe.voiceURI, name: localDe.name });
+    console.log('[TTS] fallback to German voice:', { index: localDe.index, voiceURI: localDe.voiceURI, name: localDe.name });
     return localDe.index;
   }
-  const anyMale = nativeVoices.filter((v) => v.genderHint === 'male');
-  if (anyMale.length) {
-    // eslint-disable-next-line no-console
-    console.log('[TTS] auto-selected non-German male voice:', { index: anyMale[0].index, voiceURI: anyMale[0].voiceURI, name: anyMale[0].name });
-    return anyMale[0].index;
-  }
+
   // eslint-disable-next-line no-console
   console.log('[TTS] falling back to first available voice:', { index: 0, voiceURI: nativeVoices[0].voiceURI, name: nativeVoices[0].name });
   return 0;
 }
 
-export function savePreferredVoice(voice) {
-  if (!voice) return;
-  setPreferredVoiceKey({ index: voice.index, voiceURI: voice.voiceURI });
+export function getDisplayVoiceLabel(voice) {
+  if (!voice) return 'Unbekannt';
+  // Prefer a meaningful label. The plugin sets `name` to "Deutsch Deutschland"
+  // for all Samsung voices, so `voiceURI` is the real differentiator.
+  if (voice.voiceURI) return `${voice.name || voice.lang} – ${voice.voiceURI}`;
+  return voice.name || voice.lang || `Stimme ${voice.index}`;
 }
 
-export function getPreferredVoice() {
-  const key = getPreferredVoiceKey();
-  if (!key) return null;
-  const found = (nativeVoices || []).find((v) => v.index === key.index && v.voiceURI === key.voiceURI);
-  return found || null;
+export async function openTtsSettings() {
+  if (CapacitorTTS && isNativePlatform() && CapacitorTTS.openInstall) {
+    try {
+      await CapacitorTTS.openInstall();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[TTS] openInstall failed:', err);
+    }
+  }
 }
 
 // ---------- Web Speech API helpers ----------
@@ -253,9 +215,7 @@ export function loadVoices() {
 
 function findWebGermanVoice() {
   if (!webVoiceCache) return null;
-  const deVoices = webVoiceCache.filter((v) => v.lang?.toLowerCase().startsWith('de'));
-  const male = deVoices.find((v) => voiceGenderHint(v) === 'male');
-  return male || deVoices[0] || null;
+  return webVoiceCache.find((v) => v.lang?.toLowerCase().startsWith('de')) || webVoiceCache[0] || null;
 }
 
 function speakWeb(text, callbacks = {}) {
@@ -288,7 +248,7 @@ async function speakNative(text, voiceIndex, callbacks = {}) {
   if (!CapacitorTTS) return;
   try {
     await initializeNativeTTS();
-    const index = voiceIndex ?? resolveVoiceIndex();
+    const index = voiceIndex ?? selectVoiceIndex();
     const chosen = (nativeVoices || []).find((v) => v.index === index) || nativeVoices?.[0];
     // eslint-disable-next-line no-console
     console.log('[TTS] speaking with voice:', { index, voiceURI: chosen?.voiceURI, name: chosen?.name, lang: chosen?.lang, localService: chosen?.localService });
@@ -310,7 +270,7 @@ async function speakNative(text, voiceIndex, callbacks = {}) {
 }
 
 export async function speak(text, callbacks = {}) {
-  if (!ENABLE_SAM_TTS_TEST) return;
+  if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
   await stop();
   if (await checkNativeTts()) {
     await speakNative(text, undefined, callbacks);
@@ -320,7 +280,7 @@ export async function speak(text, callbacks = {}) {
 }
 
 export async function speakWithVoice(text, voice, callbacks = {}) {
-  if (!ENABLE_SAM_TTS_TEST) return;
+  if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
   if (!voice) return speak(text, callbacks);
   await stop();
   if (await checkNativeTts()) {
@@ -346,8 +306,7 @@ function stopWeb() {
   }
 }
 
-// Kick off native voice discovery early on Android so the console log is
-// available as soon as the app starts.
+// Kick off native voice discovery early on Android so logs are ready.
 if (isNativePlatform()) {
   initializeNativeTTS().catch(() => {});
 }

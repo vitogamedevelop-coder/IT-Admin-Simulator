@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Volume2, Square } from 'lucide-react';
-import { speak, stop, isSupported } from '../lib/speechSynthesis';
+import { speak, stop, isSupported, isTtsEnabled } from '../lib/speechSynthesis';
 
 export default function SpeakButton({ text, className = '' }) {
   const [speaking, setSpeaking] = useState(false);
-  const supported = isSupported();
+  const supported = isSupported() && isTtsEnabled();
 
   useEffect(() => {
     // Stop current speech when the displayed text changes (new section).

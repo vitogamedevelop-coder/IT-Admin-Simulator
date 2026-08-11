@@ -2,9 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { Phone, MessageCircle, ChevronRight } from 'lucide-react';
 import { characterAsset } from '../lib/rpgAssets';
 import { defaultTypewriterSpeed } from '../lib/dialogSystem';
-import { stop, isSupported, isNativeTtsSupported, loadVoices } from '../lib/speechSynthesis';
+import { stop, isSupported, loadVoices } from '../lib/speechSynthesis';
 import SpeakButton from './SpeakButton';
-import TtsVoiceTester from './TtsVoiceTester';
 
 export default function DialogView({ dialog, person, onComplete, onOption }) {
   const [nodeId, setNodeId] = useState(dialog.entryNode);
@@ -97,11 +96,7 @@ export default function DialogView({ dialog, person, onComplete, onOption }) {
             </div>
           ))}
           <div className="text-sm text-[#c9d1d9] leading-relaxed whitespace-pre-wrap">{displayedText}{!isComplete && <span className="inline-block w-2 h-4 ml-1 bg-[#00f0ff] animate-pulse" />}</div>
-          {showTts && isComplete && (
-            isNativeTtsSupported() && node.ttsMode === 'voice-test'
-              ? <TtsVoiceTester text={node.text} />
-              : <SpeakButton text={node.text} className="mt-3" />
-          )}
+          {showTts && isComplete && <SpeakButton text={node.text} className="mt-3" />}
         </div>
       </div>
       {node.options?.length > 0 && isComplete && (
