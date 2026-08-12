@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **1.12.0**
+Aktuelle Version: **1.23.0**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
@@ -1261,3 +1261,68 @@ Terminal-/CLI-Verhalten der bestehenden Referenzmission weiter an Cisco IOS angl
 - Keine VLAN/Router/ACL/NAT/SSH-Features.
 - Kein Push, kein Deployment.
 - Keine Missions-eigenen Abkürzungslisten.
+
+## Mission System V2 Phase 1D: Cisco-Grundkonfig-Nebenmissionen, Story-Gate, Prefix-Test
+
+### Ziel
+Mission 001 abschließen und drei kleine Cisco-Grundkonfig-Nebenmissionen ergänzen, die nach dem ersten Auftrag freigeschaltet werden. Mindestens zwei davon sollen absolviert werden, um das nächste Story-Gate zu öffnen. CLI-Tab-Vervollständigung und `do`-Befehl werden verbessert; ein generischer Präfix-Kollisions-Test deckt Mehrdeutigkeiten über alle Modi ab.
+
+### Neue Dateien
+- `frontend/src/lib/ciscoSideMissions.js` – Side-Mission-Runtime, -Szenarien, -Evaluierung, -Hilfesystem.
+- `frontend/scripts/cisco-side-missions-smoke-test.mjs` – End-to-End-Test für alle drei Side Missions.
+- `frontend/scripts/cisco-prefix-collision-test.mjs` – Rekursiver Test aller Command-Tree-Siblings, Präfixauflösung, `?`-Hilfe und Tab-Vervollständigung pro CLI-Modus.
+
+### Geänderte Dateien
+- `frontend/src/lib/ciscoSideMissions.js`
+  - IDs: `cisco-side-basic-001`, `cisco-side-basic-002`, `cisco-side-basic-003`.
+  - Side 001: Console mit `password`, `login`, `exec-timeout` absichern.
+  - Side 002: `service password-encryption` aktivieren.
+  - Side 003: `login local` statt gemeinsamen Line-Passworts mit passendem `username`.
+  - Skills: `console_security`, `login`, `exec_timeout`, `service_password_encryption`, `login_local`, `do_command`, `verify_running_config`.
+- `frontend/src/pages/MissionV2.jsx` – Generisch für Haupt- und Cisco-Nebenmissionen: Start/Load/Execute/Progress/Evaluate/Feedback/Hints/Lösung/Speichern pro Mission.
+- `frontend/src/pages/SideMission.jsx` – Cisco-Side-Missions leiten auf `/mission/:id` um.
+- `frontend/src/lib/gameState.js` – `completedCiscoSideMissions`, `completeCiscoSideMission`, `ciscoSideMissionsCompleted`, `stateVersion` 6.
+- `frontend/src/lib/objectives.js` – `getRecommendedSideMissions` listet Cisco-Side-Missions nach Mission 001; `getNextMainMission` prüft 2/3-Story-Gate.
+- `frontend/src/lib/questData.js` – Story-Gate-Eintrag `cisco-main-002-gate` mit `gate: true`.
+- `frontend/src/lib/skillTree.js` – Neue Subskills: `login`, `exec_timeout`, `service_password_encryption`, `do_command`.
+- `frontend/src/lib/ciscoCliEngine.js`
+  - `exec-timeout` Skill auf `basic_configuration` verschoben.
+  - `completeInput` bevorzugt exakte Kommandos (wichtig für `wr` / `write` und `exec` / `exec-timeout`).
+  - `do` ohne Argument Tab-vervollständigt zu `do `.
+- `frontend/scripts/mission-v2-exec-timeout-test.mjs` – Angepasst: `exec` ist eindeutig; `ex` ist mehrdeutig.
+- `frontend/scripts/mission-v2-runtime-routing-test.mjs` – Erlaubt mindestens zwei Einträge in `questData`.
+- `frontend/package.json`, `frontend/src/lib/version.js`, `frontend/public/version.json` – **1.23.0**.
+
+### 2/3-Story-Gate
+- Nach Mission 001 werden in `getRecommendedSideMissions` die drei Cisco-Nebenmissionen angeboten.
+- `getNextMainMission` zählt alte + Cisco-Nebenmissionen; `cisco-main-002-gate` bleibt gesperrt, bis 2/3 erfüllt sind.
+- `questData.availableQuests` schließt Gate-Einträge aus, damit `Inbox` nicht darauf verlinkt.
+
+### Tests
+| Test | Ergebnis |
+|---|---|
+| `node scripts/cisco-cli-engine-test.mjs` | ✅ |
+| `node scripts/mission-v2-basic-config-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-ux-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-editor-test.mjs` | ✅ |
+| `node scripts/mission-v2-exec-timeout-test.mjs` | ✅ |
+| `node scripts/mission-v2-runtime-routing-test.mjs` | ✅ |
+| `node scripts/mission-v2-goal-panel-test.mjs` | ✅ |
+| `node scripts/mission-v2-foundation-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-runtime-test.mjs` | ✅ |
+| `node scripts/cisco-prefix-collision-test.mjs` | ✅ |
+| `node scripts/cisco-side-missions-smoke-test.mjs` | ✅ |
+
+### Acceptance checks
+- `npm run lint` ✅ (0 Fehler, nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅, archiviert.
+- GitHub Actions deploy-pages ✅.
+- GitHub Pages live-Version 1.23.0 ✅.
+
+### Stop-Bedingung
+- Keine Hauptmission 002.
+- Keine VLAN/Router/SSH/ACL/NAT-Features.
+- Auf echtem Android-Gerät testen.
