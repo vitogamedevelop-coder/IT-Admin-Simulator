@@ -1205,3 +1205,59 @@ Terminal-/CLI-Verhalten der bestehenden Referenzmission weiter an Cisco IOS angl
 - Keine Mission 002.
 - Keine VLAN/Router/ACL/NAT/SSH-Features.
 - Kein Push, kein Deployment.
+
+## Mission System V2 Phase 1C.3: Verbindliche IOS-Abkürzungen / exec-timeout Command-Tree
+
+### Ziel
+`exec-timeout` als Beispiel für vollständige Command-Tree-Integration ohne hartcodierte Missions-Abkürzungen. Abkürzungen, Help, Tab und Ambiguous-Command-Logik sollen ausschließlich vom CLI-Parser bestimmt werden.
+
+### Geänderte Dateien
+- `frontend/src/lib/ciscoCliEngine.js`
+  - `createCiscoDevice`: `execTimeout` als Objekt `{ minutes, seconds }` für Console und VTY.
+  - `walkCommandTree`: am Ende wird ein Node mit `execute` als gültig akzeptiert, auch wenn er Kinder hat (optional weitere Argumente).
+  - `LINE_CONSOLE_CONFIG` und `LINE_VTY_CONFIG`: neue Commands `exec` und `exec-timeout`.
+    - `exec` und `exec-timeout` sind beide im Tree → `exec` allein ist `AMBIGUOUS_COMMAND`.
+    - `exec-` ist eindeutig für `exec-timeout`.
+    - `exec-timeout` hat Wildcard-Kinder `<minutes>` und `<seconds>`; `<seconds>` ist optional.
+  - `renderRunningConfig`: zeigt `exec-timeout <minutes> <seconds>` für `line con 0` und `line vty`.
+- `frontend/src/lib/version.js`, `frontend/package.json`, `frontend/public/version.json` – **1.22.3**.
+- `frontend/scripts/mission-v2-exec-timeout-test.mjs` – Neue Regressionstests.
+
+### Beispiele
+| Eingabe | Ergebnis |
+|---|---|
+| `exec-timeout 5 0` | Setzt Console-Timeout auf 5 Min, 0 Sek. |
+| `exec-timeout 3` | Setzt Console-Timeout auf 3 Min, 0 Sek. |
+| `exec-t 5 0` | Vollständige, eindeutige Abkürzung für `exec-timeout`. |
+| `exec 5 0` | `Ambiguous command` (nicht als `exec-timeout` interpretiert). |
+| `exec?` | Zeigt `exec` und `exec-timeout`. |
+| `exec-?` | Zeigt `exec-timeout`. |
+| `exec-timeout ?` | Zeigt `<minutes>`. |
+| `exec-timeout 5 ?` | Zeigt `<seconds>`. |
+
+### Tests
+| Test | Ergebnis |
+|---|---|
+| `node scripts/cisco-cli-engine-test.mjs` | ✅ |
+| `node scripts/mission-v2-basic-config-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-ux-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-editor-test.mjs` | ✅ |
+| `node scripts/mission-v2-exec-timeout-test.mjs` | ✅ |
+| `node scripts/mission-v2-runtime-routing-test.mjs` | ✅ |
+| `node scripts/mission-v2-goal-panel-test.mjs` | ✅ |
+| `node scripts/mission-v2-foundation-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-runtime-test.mjs` | ✅ |
+
+### Acceptance checks
+- `npm run lint` ✅ (0 Fehler, nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- `gradlew assembleDebug` ✅.
+- APK archiviert ✅.
+
+### Stop-Bedingung
+- Keine Mission 002.
+- Keine VLAN/Router/ACL/NAT/SSH-Features.
+- Kein Push, kein Deployment.
+- Keine Missions-eigenen Abkürzungslisten.
