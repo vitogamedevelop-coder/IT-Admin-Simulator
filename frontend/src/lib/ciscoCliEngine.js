@@ -65,8 +65,8 @@ export function createCiscoDevice(options = {}) {
       users: {},
       interfaces: Object.fromEntries(interfaces.map((id) => [id, createInterface(id)])),
       lines: {
-        console: { password: null, login: false, loginLocal: false, execTimeout: [5, 0] },
-        vty: { password: null, login: false, loginLocal: false, execTimeout: [10, 0], range: [0, 15] },
+        console: { password: null, login: false, loginLocal: false, execTimeout: { minutes: 5, seconds: 0 } },
+        vty: { password: null, login: false, loginLocal: false, execTimeout: { minutes: 10, seconds: 0 }, range: [0, 15] },
       },
       ipDefaultGateway: defaultGateway,
       banner: '',
@@ -383,6 +383,42 @@ export const BASE_COMMAND_TREE = {
     }, 'End configuration mode and return to privileged EXEC'),
   ],
   [CLI_MODE.LINE_CONSOLE_CONFIG]: [
+    cmd('exec', (device, tokens) => {
+      if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      return { output: '' };
+    }, 'Execute a command on a line', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_line', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
+    node('exec-timeout', {
+      help: 'Set interval for closing connection on an EXEC session',
+      skill: { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_timeout', dimension: SKILL_DIMENSION.CONFIGURE },
+      children: [
+        node('<minutes>', {
+          help: 'Minutes (0-35791)',
+          complete: () => ['<0-35791>'],
+          execute: (device, tokens) => {
+            const minutes = parseInt(tokens[1], 10);
+            if (Number.isNaN(minutes)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+            const seconds = tokens[2] ? parseInt(tokens[2], 10) : 0;
+            if (Number.isNaN(seconds)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+            device.runningConfig.lines.console.execTimeout = { minutes, seconds };
+            return { output: '', stateChanged: true };
+          },
+          children: [
+            node('<seconds>', {
+              help: 'Seconds (0-2147483)',
+              complete: () => ['<0-2147483>'],
+              execute: (device, tokens) => {
+                const minutes = parseInt(tokens[1], 10);
+                if (Number.isNaN(minutes)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+                const seconds = parseInt(tokens[2], 10);
+                if (Number.isNaN(seconds)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+                device.runningConfig.lines.console.execTimeout = { minutes, seconds };
+                return { output: '', stateChanged: true };
+              },
+            }),
+          ],
+        }),
+      ],
+    }),
     cmd('password', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       device.runningConfig.lines.console.password = tokens[1];
@@ -417,6 +453,42 @@ export const BASE_COMMAND_TREE = {
     }, 'End configuration mode and return to privileged EXEC'),
   ],
   [CLI_MODE.LINE_VTY_CONFIG]: [
+    cmd('exec', (device, tokens) => {
+      if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      return { output: '' };
+    }, 'Execute a command on a line', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_line', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
+    node('exec-timeout', {
+      help: 'Set interval for closing connection on an EXEC session',
+      skill: { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_timeout', dimension: SKILL_DIMENSION.CONFIGURE },
+      children: [
+        node('<minutes>', {
+          help: 'Minutes (0-35791)',
+          complete: () => ['<0-35791>'],
+          execute: (device, tokens) => {
+            const minutes = parseInt(tokens[1], 10);
+            if (Number.isNaN(minutes)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+            const seconds = tokens[2] ? parseInt(tokens[2], 10) : 0;
+            if (Number.isNaN(seconds)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+            device.runningConfig.lines.vty.execTimeout = { minutes, seconds };
+            return { output: '', stateChanged: true };
+          },
+          children: [
+            node('<seconds>', {
+              help: 'Seconds (0-2147483)',
+              complete: () => ['<0-2147483>'],
+              execute: (device, tokens) => {
+                const minutes = parseInt(tokens[1], 10);
+                if (Number.isNaN(minutes)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+                const seconds = parseInt(tokens[2], 10);
+                if (Number.isNaN(seconds)) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+                device.runningConfig.lines.vty.execTimeout = { minutes, seconds };
+                return { output: '', stateChanged: true };
+              },
+            }),
+          ],
+        }),
+      ],
+    }),
     cmd('password', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       device.runningConfig.lines.vty.password = tokens[1];
@@ -491,6 +563,9 @@ function walkCommandTree(device, tokens, rootNodes) {
       return { node, tokens: tokens.slice(i + 1), error: null };
     }
     nodes = node.children;
+  }
+  if (node && node.execute) {
+    return { node, tokens: [], error: null, errorTokenIndex: tokens.length };
   }
   return { node, tokens: [], error: CLI_ERROR.INCOMPLETE_COMMAND, errorTokenIndex: tokens.length };
 }
@@ -887,6 +962,7 @@ export function renderRunningConfig(device) {
     } else {
       lines.push(`line vty ${line.range?.[0] || 0} ${line.range?.[1] || 15}`);
     }
+    if (line.execTimeout) lines.push(` exec-timeout ${line.execTimeout.minutes} ${line.execTimeout.seconds}`);
     if (line.password) lines.push(` password ${line.password}`);
     if (line.loginLocal) lines.push(' login local');
     else if (line.login) lines.push(' login');
