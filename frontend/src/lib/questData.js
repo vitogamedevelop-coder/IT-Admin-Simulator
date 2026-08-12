@@ -21,6 +21,21 @@ export const quests = [
     resolution: 'Switch erfolgreich vorbereitet.',
     recommendedAcademyTopics: ['cisco-packet-tracer/grundkonfiguration'],
   },
+  {
+    id: 'cisco-main-002-gate',
+    chapter: 2,
+    department: 'Netzwerk',
+    title: 'Nächster Hauptauftrag wird vorbereitet',
+    subtitle: 'Weitere Cisco-Grundkonfiguration und Switching folgen',
+    briefing: 'Die nächste Hauptmission ist noch in Vorbereitung. Schließe zunächst mindestens zwei der drei Cisco-Grundkonfig-Nebenmissionen ab.',
+    minutes: 0,
+    difficulty: 1,
+    boss: false,
+    requires: ['cisco-main-001'],
+    resolution: 'Story-Gate erreicht.',
+    recommendedAcademyTopics: [],
+    gate: true,
+  },
 ];
 
 export function questById(id) {
@@ -28,7 +43,7 @@ export function questById(id) {
 }
 
 export function availableQuests(state) {
-  return quests.filter((quest) => !state.completedQuests.includes(quest.id) && (quest.requires || []).every((id) => state.completedQuests.includes(id)));
+  return quests.filter((quest) => !quest.gate && !state.completedQuests.includes(quest.id) && (quest.requires || []).every((id) => state.completedQuests.includes(id)));
 }
 
 export function recommendedQuest(state) {

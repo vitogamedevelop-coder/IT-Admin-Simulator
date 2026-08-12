@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   startMission001,
   loadActiveMission,
+  clearActiveMission,
   executeMissionCommand,
   getMissionHint,
   consumeMissionHint,
@@ -13,14 +14,92 @@ import {
   MISSION_001_ID,
   MISSION_001_REQUIREMENTS,
 } from '../lib/missionV2';
-import { questById } from '../lib/questData';
+import {
+  isCiscoSideMission,
+  startCiscoSideMission,
+  loadActiveCiscoSideMission,
+  clearActiveCiscoSideMission,
+  executeCiscoSideMissionCommand,
+  getCiscoSideMissionHint,
+  consumeCiscoSideMissionHint,
+  revealCiscoSideMissionSolution,
+  getCiscoSideMissionProgress,
+  evaluateCiscoSideMission,
+  ciscoSideMissionFeedback,
+  SIDE_001_REQUIREMENTS,
+  SIDE_002_REQUIREMENTS,
+  SIDE_003_REQUIREMENTS,
+} from '../lib/ciscoSideMissions';
+import { completeQuest, setActiveQuest, completeCiscoSideMission } from '../lib/gameState';
 import { buildPrompt, getCommandHelp, completeInput } from '../lib/ciscoCliEngine';
-import { completeQuest, setActiveQuest } from '../lib/gameState';
 import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield } from 'lucide-react';
+
+const SIDE_REQUIREMENTS = {
+  'cisco-side-basic-001': SIDE_001_REQUIREMENTS,
+  'cisco-side-basic-002': SIDE_002_REQUIREMENTS,
+  'cisco-side-basic-003': SIDE_003_REQUIREMENTS,
+};
+
+const RUNTIME = {
+  [MISSION_001_ID]: {
+    start: () => startMission001(),
+    load: () => loadActiveMission(),
+    clear: () => clearActiveMission(),
+    execute: (state, input) => executeMissionCommand(state, input),
+    getProgress: (state) => getMission001Progress(state.device, state.scenario),
+    evaluate: (state) => evaluateMission001(state),
+    feedback: (state, evaluation) => mission001Feedback(evaluation.state, evaluation),
+    getHint: (state, req) => getMissionHint(state, req),
+    consumeHint: (state, req) => consumeMissionHint(state, req),
+    revealSolution: (state, req) => revealMissionSolution(state, req),
+    requirements: MISSION_001_REQUIREMENTS,
+    complete: () => {
+      const quest = { id: MISSION_001_ID };
+      completeQuest(quest, { xp: 60, reputation: { network: 5, management: 3 } });
+      clearActiveMission();
+    },
+  },
+};
+
+function buildSideRuntime(missionId) {
+  return {
+    start: () => startCiscoSideMission(missionId),
+    load: () => {
+      const active = loadActiveCiscoSideMission();
+      if (active && active.missionId === missionId) return active;
+      return null;
+    },
+    clear: () => clearActiveCiscoSideMission(),
+    execute: (state, input) => executeCiscoSideMissionCommand(state, input),
+    getProgress: (state) => getCiscoSideMissionProgress(state),
+    evaluate: (state) => evaluateCiscoSideMission(state),
+    feedback: (state, evaluation) => ciscoSideMissionFeedback(evaluation.state, evaluation),
+    getHint: (state, req) => getCiscoSideMissionHint(state, req),
+    consumeHint: (state, req) => consumeCiscoSideMissionHint(state, req),
+    revealSolution: (state, req) => revealCiscoSideMissionSolution(state, req),
+    requirements: SIDE_REQUIREMENTS[missionId] || [],
+    complete: (state) => {
+      completeCiscoSideMission(state.missionId, { xp: 30, reputation: { network: 3, security: 3 } });
+      clearActiveCiscoSideMission();
+    },
+  };
+}
+
+function getRuntime(missionId) {
+  if (RUNTIME[missionId]) return RUNTIME[missionId];
+  if (isCiscoSideMission(missionId)) {
+    const rt = buildSideRuntime(missionId);
+    RUNTIME[missionId] = rt;
+    return rt;
+  }
+  return null;
+}
 
 export default function MissionV2() {
   const { missionId } = useParams();
   const navigate = useNavigate();
+  const runtime = getRuntime(missionId);
+
   const [state, setState] = useState(null);
   const [input, setInput] = useState('');
   const [history, setHistory] = useState([]);
@@ -28,24 +107,31 @@ export default function MissionV2() {
   const [hint, setHint] = useState(null);
   const [helpOutput, setHelpOutput] = useState(null);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [selectedRequirement, setSelectedRequirement] = useState('hostname');
+  const [selectedRequirement, setSelectedRequirement] = useState(null);
   const [loading, setLoading] = useState(true);
   const terminalRef = useRef(null);
   const inputRef = useRef(null);
   const savedInput = useRef('');
 
   useEffect(() => {
-    const active = loadActiveMission();
+    const active = runtime.load();
     if (active && active.missionId === missionId) {
       setState(active);
-    } else if (missionId === MISSION_001_ID) {
-      setState(startMission001());
+    } else if (missionId === MISSION_001_ID || isCiscoSideMission(missionId)) {
+      setState(runtime.start());
     } else {
       setState(null);
     }
     if (missionId) setActiveQuest(missionId);
     setLoading(false);
-  }, [missionId]);
+  }, [missionId, runtime]);
+
+  useEffect(() => {
+    if (state) {
+      const first = runtime.requirements[0];
+      if (first && selectedRequirement === null) setSelectedRequirement(first.id);
+    }
+  }, [state, runtime, selectedRequirement]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -54,13 +140,13 @@ export default function MissionV2() {
   }, [history, helpOutput]);
 
   if (loading) return <div className="app-shell flex items-center justify-center text-[#00ff66]">Mission wird geladen...</div>;
-  if (!state) return <div className="app-shell p-4 text-[#ff3355]">Mission konnte nicht geladen werden.</div>;
+  if (!runtime || !state) return <div className="app-shell p-4 text-[#ff3355]">Mission konnte nicht geladen werden.</div>;
 
-  const progress = getMission001Progress(state.device, state.scenario);
+  const progress = runtime.getProgress(state);
 
   function isHelpRequest(raw) {
     const trimmed = raw.trimEnd();
-    return trimmed.endsWith('?') || trimmed.endsWith(' ');
+    return trimmed.endsWith('?');
   }
 
   function showHelp(raw) {
@@ -79,7 +165,7 @@ export default function MissionV2() {
       return;
     }
     const promptBefore = buildPrompt(state.device);
-    const result = executeMissionCommand(state, trimmed);
+    const result = runtime.execute(state, trimmed);
     setState({ ...result.state });
     setInput('');
     setHelpOutput(null);
@@ -158,9 +244,9 @@ export default function MissionV2() {
   }
 
   function requestHint() {
-    const next = getMissionHint(state, selectedRequirement);
+    const next = runtime.getHint(state, selectedRequirement);
     if (next) {
-      consumeMissionHint(state, selectedRequirement);
+      runtime.consumeHint(state, selectedRequirement);
       setState({ ...state });
       setHint(next);
     } else {
@@ -169,11 +255,11 @@ export default function MissionV2() {
   }
 
   function revealSolution() {
-    const next = getMissionHint(state, selectedRequirement);
+    const next = runtime.getHint(state, selectedRequirement);
     if (next) {
-      consumeMissionHint(state, selectedRequirement);
+      runtime.consumeHint(state, selectedRequirement);
     }
-    const result = revealMissionSolution(state, selectedRequirement);
+    const result = runtime.revealSolution(state, selectedRequirement);
     setState({ ...result.state });
     setHint({
       text: `Lösung aufgedeckt: ${result.answer || selectedRequirement}`,
@@ -183,35 +269,38 @@ export default function MissionV2() {
   }
 
   function checkMission() {
-    const evaluation = evaluateMission001(state);
+    const evaluation = runtime.evaluate(state);
     setState(evaluation.state);
-    const fb = mission001Feedback(evaluation.state, evaluation);
+    const fb = runtime.feedback(evaluation.state, evaluation);
     setFeedback(fb);
   }
 
   function finishMission() {
-    const evaluation = evaluateMission001(state);
+    const evaluation = runtime.evaluate(state);
     setState(evaluation.state);
+    const fb = runtime.feedback(evaluation.state, evaluation);
+    setFeedback(fb);
     if (evaluation.allCorrect) {
-      const quest = questById(MISSION_001_ID);
-      if (quest) completeQuest(quest, { xp: 60, reputation: { network: 5, management: 3 } });
-      const fb = mission001Feedback(evaluation.state, evaluation);
-      setFeedback(fb);
-    } else {
-      const fb = mission001Feedback(evaluation.state, evaluation);
-      setFeedback(fb);
+      runtime.complete(state);
     }
   }
 
+  function returnToWorkspace() {
+    setActiveQuest(null);
+    navigate('/');
+  }
+
   function newVariant() {
-    setState(startMission001());
-    setActiveQuest(MISSION_001_ID);
+    setState(runtime.start());
+    setActiveQuest(missionId);
     setHistory([]);
     setHelpOutput(null);
     setInput('');
     setHistoryIndex(-1);
     setFeedback(null);
     setHint(null);
+    const first = runtime.requirements[0];
+    if (first) setSelectedRequirement(first.id);
   }
 
   const { scenario, device } = state;
@@ -221,7 +310,7 @@ export default function MissionV2() {
       <div className="flex items-center gap-2 mb-3">
         <button onClick={() => navigate('/')} className="p-2 rounded border border-[#30363d] text-[#8b949e]"><ChevronLeft size={18} /></button>
         <div className="flex-1">
-          <div className="text-xs text-[#8b949e]">Hauptmission</div>
+          <div className="text-xs text-[#8b949e]">{missionId === MISSION_001_ID ? 'Hauptmission' : 'Nebenmission'}</div>
           <h1 className="text-base font-bold text-white">{scenario.title}</h1>
         </div>
       </div>
@@ -256,20 +345,23 @@ export default function MissionV2() {
               </li>
             ))}
           </ul>
+          {feedback.endingText && (
+            <div className="mt-3 text-sm text-[#c9d1d9]">
+              {feedback.endingText}
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#8b949e]">
             <span>Hinweise: {feedback.hintsUsed}</span>
             <span>Lösungen aufgedeckt: {feedback.solutionRevealed}</span>
             <span>Verifikationen: {feedback.showCommandsUsed}</span>
           </div>
-          {feedback.title.includes('abgeschlossen') && (
-            <div className="mt-3 text-sm text-[#c9d1d9]">
-              <p>Sieht gut aus. Der Switch kann so vorbereitet in den Einbau gehen.</p>
-              <p className="text-xs text-[#8b949e] mt-1">Weitere Aufgaben folgen, sobald das Gerät eingebaut ist.</p>
-            </div>
-          )}
           <div className="mt-3 flex gap-2">
-            <button onClick={() => setFeedback(null)} className="cyber-btn-outline flex-1 text-xs py-2">Weiterarbeiten</button>
-            {state.completed && <button onClick={newVariant} className="cyber-btn flex-1 text-xs py-2 flex items-center justify-center gap-1"><RotateCcw size={12} /> Neue Variante</button>}
+            {state.completed ? (
+              <button onClick={returnToWorkspace} className="cyber-btn flex-1 text-xs py-2 flex items-center justify-center gap-1"><ChevronLeft size={12} /> Zurück zum Arbeitsplatz</button>
+            ) : (
+              <button onClick={() => setFeedback(null)} className="cyber-btn-outline flex-1 text-xs py-2">Weiterarbeiten</button>
+            )}
+            {state.completed && <button onClick={newVariant} className="cyber-btn-outline flex-1 text-xs py-2 flex items-center justify-center gap-1"><RotateCcw size={12} /> Neue Variante</button>}
           </div>
         </div>
       )}
@@ -314,11 +406,12 @@ export default function MissionV2() {
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <select
-          value={selectedRequirement}
+          value={selectedRequirement || ''}
           onChange={(e) => setSelectedRequirement(e.target.value)}
           className="cyber-input text-xs py-2"
+          style={{ gridColumn: '1 / 2' }}
         >
-          {MISSION_001_REQUIREMENTS.map((r) => (
+          {runtime.requirements.map((r) => (
             <option key={r.id} value={r.id}>{r.label}</option>
           ))}
         </select>
@@ -341,7 +434,7 @@ export default function MissionV2() {
 
       {progress.completed < progress.total && (
         <div className="mt-1 text-[10px] text-center text-[#8b949e]">
-          Erst nach 5/5 Erfüllung kannst du den Auftrag abschließen.
+          Erst nach {progress.total}/{progress.total} Erfüllung kannst du den Auftrag abschließen.
         </div>
       )}
     </div>

@@ -69,6 +69,7 @@ export function createCiscoDevice(options = {}) {
         vty: { password: null, login: false, loginLocal: false, execTimeout: { minutes: 10, seconds: 0 }, range: [0, 15] },
       },
       ipDefaultGateway: defaultGateway,
+      servicePasswordEncryption: false,
       banner: '',
     },
     startupConfig: null,
@@ -217,6 +218,7 @@ export const BASE_COMMAND_TREE = {
     }, 'Shortcut: write memory', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'save_config', dimension: SKILL_DIMENSION.CONFIGURE }),
   ],
   [CLI_MODE.GLOBAL_CONFIG]: [
+    cmd('do', executeDoCommand, 'Execute an EXEC command from configuration mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'do_command', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
     cmd('hostname', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       device.runningConfig.hostname = tokens[1];
@@ -238,6 +240,15 @@ export const BASE_COMMAND_TREE = {
         }, 'Specify default gateway', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'default_gateway', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<ip>']),
       ],
     }),
+    node('service', {
+      help: 'Modify service settings',
+      children: [
+        cmd('password-encryption', (device) => {
+          device.runningConfig.servicePasswordEncryption = true;
+          return { output: '', stateChanged: true };
+        }, 'Encrypt local line and username passwords in configuration files', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'service_password_encryption', dimension: SKILL_DIMENSION.CONFIGURE }),
+      ],
+    }),
     node('no', {
       help: 'Negate a command or set its defaults',
       children: [
@@ -248,6 +259,15 @@ export const BASE_COMMAND_TREE = {
               device.runningConfig.noIpDomainLookup = true;
               return { output: '', stateChanged: true };
             }, 'Disable DNS lookups', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'disable_dns_lookup', dimension: SKILL_DIMENSION.CONFIGURE }),
+          ],
+        }),
+        node('service', {
+          help: 'Negate a service setting',
+          children: [
+            cmd('password-encryption', (device) => {
+              device.runningConfig.servicePasswordEncryption = false;
+              return { output: '', stateChanged: true };
+            }, 'Do not encrypt passwords in configuration files'),
           ],
         }),
       ],
@@ -324,6 +344,7 @@ export const BASE_COMMAND_TREE = {
     }, 'End configuration mode and return to privileged EXEC'),
   ],
   [CLI_MODE.INTERFACE_CONFIG]: [
+    cmd('do', executeDoCommand, 'Execute an EXEC command from configuration mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'do_command', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
     node('ip', {
       help: 'Interface Internet Protocol config commands',
       children: [
@@ -383,13 +404,14 @@ export const BASE_COMMAND_TREE = {
     }, 'End configuration mode and return to privileged EXEC'),
   ],
   [CLI_MODE.LINE_CONSOLE_CONFIG]: [
+    cmd('do', executeDoCommand, 'Execute an EXEC command from configuration mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'do_command', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
     cmd('exec', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       return { output: '' };
     }, 'Execute a command on a line', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_line', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
     node('exec-timeout', {
       help: 'Set interval for closing connection on an EXEC session',
-      skill: { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_timeout', dimension: SKILL_DIMENSION.CONFIGURE },
+      skill: { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'exec_timeout', dimension: SKILL_DIMENSION.CONFIGURE },
       children: [
         node('<minutes>', {
           help: 'Minutes (0-35791)',
@@ -440,6 +462,24 @@ export const BASE_COMMAND_TREE = {
         }, 'Enable local username/password checking', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'login_local', dimension: SKILL_DIMENSION.CONFIGURE }),
       ],
     }),
+    node('no', {
+      help: 'Negate a line configuration command',
+      children: [
+        cmd('exec-timeout', (device) => {
+          device.runningConfig.lines.console.execTimeout = { minutes: 5, seconds: 0 };
+          return { output: '', stateChanged: true };
+        }, 'Reset EXEC timeout to default'),
+        cmd('login', (device) => {
+          device.runningConfig.lines.console.login = false;
+          device.runningConfig.lines.console.loginLocal = false;
+          return { output: '', stateChanged: true };
+        }, 'Disable login checking on this line'),
+        cmd('password', (device) => {
+          device.runningConfig.lines.console.password = null;
+          return { output: '', stateChanged: true };
+        }, 'Remove the line password'),
+      ],
+    }),
     cmd('exit', (device) => {
       device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
       device.cli.currentLine = null;
@@ -453,13 +493,14 @@ export const BASE_COMMAND_TREE = {
     }, 'End configuration mode and return to privileged EXEC'),
   ],
   [CLI_MODE.LINE_VTY_CONFIG]: [
+    cmd('do', executeDoCommand, 'Execute an EXEC command from configuration mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'do_command', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
     cmd('exec', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       return { output: '' };
     }, 'Execute a command on a line', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_line', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
     node('exec-timeout', {
       help: 'Set interval for closing connection on an EXEC session',
-      skill: { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'exec_timeout', dimension: SKILL_DIMENSION.CONFIGURE },
+      skill: { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'exec_timeout', dimension: SKILL_DIMENSION.CONFIGURE },
       children: [
         node('<minutes>', {
           help: 'Minutes (0-35791)',
@@ -510,6 +551,24 @@ export const BASE_COMMAND_TREE = {
         }, 'Enable local username/password checking', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'vty_login_local', dimension: SKILL_DIMENSION.CONFIGURE }),
       ],
     }),
+    node('no', {
+      help: 'Negate a line configuration command',
+      children: [
+        cmd('exec-timeout', (device) => {
+          device.runningConfig.lines.vty.execTimeout = { minutes: 10, seconds: 0 };
+          return { output: '', stateChanged: true };
+        }, 'Reset EXEC timeout to default'),
+        cmd('login', (device) => {
+          device.runningConfig.lines.vty.login = false;
+          device.runningConfig.lines.vty.loginLocal = false;
+          return { output: '', stateChanged: true };
+        }, 'Disable login checking on this line'),
+        cmd('password', (device) => {
+          device.runningConfig.lines.vty.password = null;
+          return { output: '', stateChanged: true };
+        }, 'Remove the line password'),
+      ],
+    }),
     cmd('exit', (device) => {
       device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
       device.cli.currentLine = null;
@@ -538,10 +597,15 @@ function isArgumentWildcard(keyword) {
 
 function resolveNode(nodes, keyword) {
   const lower = keyword.toLowerCase();
-  // Prefer concrete keyword matches over argument wildcards.
+  // Prefer exact concrete keyword matches first.
+  const exactMatches = nodes.filter((n) => !isArgumentWildcard(n.keyword) && n.keyword === lower);
+  if (exactMatches.length === 1) return { result: exactMatches[0], error: null };
+  if (exactMatches.length > 1) return { result: null, error: CLI_ERROR.AMBIGUOUS_COMMAND };
+  // Then concrete keyword prefix matches.
   const concreteMatches = nodes.filter((n) => !isArgumentWildcard(n.keyword) && n.keyword.startsWith(lower));
   if (concreteMatches.length === 1) return { result: concreteMatches[0], error: null };
   if (concreteMatches.length > 1) return { result: null, error: CLI_ERROR.AMBIGUOUS_COMMAND };
+  // Finally argument wildcards.
   const wildcardMatches = nodes.filter((n) => isArgumentWildcard(n.keyword) && lower.length > 0);
   if (wildcardMatches.length === 1) return { result: wildcardMatches[0], error: null };
   if (wildcardMatches.length > 1) return { result: null, error: CLI_ERROR.AMBIGUOUS_COMMAND };
@@ -596,6 +660,26 @@ function applySkillMetadata(device, skill) {
     correct: true,
     source: 'lab',
   });
+}
+
+function executeDoCommand(device, tokens) {
+  if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+  const subCommand = tokens.slice(1).join(' ');
+  const savedMode = device.cli.mode;
+  const savedInterface = device.cli.currentInterface;
+  const savedLine = device.cli.currentLine;
+  device.cli.mode = CLI_MODE.PRIVILEGED_EXEC;
+  device.cli.currentInterface = null;
+  device.cli.currentLine = null;
+  const result = executeCommand(device, subCommand, { helpCompact: true });
+  device.cli.mode = savedMode;
+  device.cli.currentInterface = savedInterface;
+  device.cli.currentLine = savedLine;
+  return {
+    output: result.output,
+    error: result.error,
+    stateChanged: result.stateChanged,
+  };
 }
 
 export function executeCommand(device, input, options = {}) {
@@ -703,6 +787,23 @@ export function executeCommand(device, input, options = {}) {
 export function getCommandHelp(device, input, options = {}) {
   const trimmed = input.trimEnd();
   const mode = device.cli.mode;
+
+  // 'do <command>' runs an EXEC command from configuration mode.
+  const doTokens = tokenize(trimmed);
+  if (doTokens[0] === 'do') {
+    const rest = doTokens.slice(1).join(' ');
+    const privDevice = {
+      ...device,
+      cli: { ...device.cli, mode: CLI_MODE.PRIVILEGED_EXEC, currentInterface: null, currentLine: null },
+    };
+    const help = getCommandHelp(privDevice, rest, options);
+    const restAfter = help.inputAfterHelp !== undefined ? help.inputAfterHelp : rest;
+    return {
+      ...help,
+      inputAfterHelp: `do ${restAfter}`,
+      mode,
+    };
+  }
 
   const isSyntax = trimmed.endsWith(' ?');
   const isPartial = trimmed.endsWith('?') && !isSyntax;
@@ -829,6 +930,21 @@ function formatHelpList(nodes, compact) {
 
 export function completeInput(device, input) {
   const tokens = tokenize(input);
+
+  if (tokens[0] === 'do') {
+    const rest = tokens.slice(1).join(' ');
+    if (!rest) return { completion: 'do ', suggestions: [] };
+    const privDevice = {
+      ...device,
+      cli: { ...device.cli, mode: CLI_MODE.PRIVILEGED_EXEC, currentInterface: null, currentLine: null },
+    };
+    const result = completeInput(privDevice, rest);
+    if (result.completion) {
+      return { completion: `do ${result.completion}`, suggestions: [] };
+    }
+    return { completion: null, suggestions: result.suggestions };
+  }
+
   const tree = BASE_COMMAND_TREE[device.cli.mode] || [];
 
   if (tokens.length === 0) {
@@ -847,7 +963,8 @@ export function completeInput(device, input) {
   }
 
   const lastToken = tokens[tokens.length - 1].toLowerCase();
-  const matches = nodes.filter((n) => n.keyword.startsWith(lastToken));
+  const exact = nodes.find((n) => n.keyword === lastToken);
+  const matches = exact ? [exact] : nodes.filter((n) => n.keyword.startsWith(lastToken));
 
   if (matches.length === 1) {
     const head = consumed.join(' ');
@@ -909,6 +1026,22 @@ export function formatError(errorType, command, mode = CLI_MODE.USER_EXEC, marke
 // Show commands
 // ============================================================================
 
+function maskType7(value) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let out = '';
+  let i = 0;
+  const len = value.length;
+  while (i < len) {
+    const a = value.charCodeAt(i++);
+    const b = i < len ? value.charCodeAt(i++) : 0;
+    const c = i < len ? value.charCodeAt(i++) : 0;
+    const bits = (a << 16) | (b << 8) | c;
+    out += chars[(bits >> 18) & 63] + chars[(bits >> 12) & 63] + chars[(bits >> 6) & 63] + chars[bits & 63];
+  }
+  const pad = len % 3 === 0 ? 0 : len % 3 === 1 ? 2 : 1;
+  return `7 ${out.slice(0, out.length - pad)}`;
+}
+
 export function renderRunningConfig(device) {
   const cfg = device.runningConfig;
   const lines = [
@@ -919,7 +1052,7 @@ export function renderRunningConfig(device) {
     'version 15.2',
     'service timestamps debug datetime msec',
     'service timestamps log datetime msec',
-    'no service password-encryption',
+    `${cfg.servicePasswordEncryption ? '' : 'no '}service password-encryption`,
     '!',
     `hostname ${cfg.hostname}`,
     '!',
@@ -942,7 +1075,8 @@ export function renderRunningConfig(device) {
 
   Object.entries(cfg.users).forEach(([name, user]) => {
     const method = user.secret ? 'secret' : 'password';
-    const value = user.secret || user.password;
+    let value = user.secret || user.password;
+    if (method === 'password' && cfg.servicePasswordEncryption) value = maskType7(value);
     lines.push(`username ${name} ${method} ${value}`);
     lines.push('!');
   });
@@ -963,7 +1097,10 @@ export function renderRunningConfig(device) {
       lines.push(`line vty ${line.range?.[0] || 0} ${line.range?.[1] || 15}`);
     }
     if (line.execTimeout) lines.push(` exec-timeout ${line.execTimeout.minutes} ${line.execTimeout.seconds}`);
-    if (line.password) lines.push(` password ${line.password}`);
+    if (line.password) {
+      const display = cfg.servicePasswordEncryption ? ` password ${maskType7(line.password)}` : ` password ${line.password}`;
+      lines.push(display);
+    }
     if (line.loginLocal) lines.push(' login local');
     else if (line.login) lines.push(' login');
     lines.push('!');

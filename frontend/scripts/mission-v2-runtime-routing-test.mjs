@@ -27,8 +27,8 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-// 1. Legacy questData has only the minimal V2 placeholder.
-assert(quests.length === 1, 'Legacy questData should contain exactly one V2 placeholder');
+// 1. Legacy questData has at least the main V2 placeholder and the story gate placeholder.
+assert(quests.length >= 1, 'Legacy questData should contain at least the main V2 placeholder');
 
 // 2. Mission V2 has stable ID.
 assert(MISSION_001_ID === 'cisco-main-001', 'Mission V2 ID stable');

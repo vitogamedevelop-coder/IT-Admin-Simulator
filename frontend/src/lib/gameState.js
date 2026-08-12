@@ -15,6 +15,7 @@ const initialState = {
   playerName: null,
   careerXp: 0,
   completedQuests: [],
+  completedCiscoSideMissions: [],
   activeQuest: null,
   reputation: { helpdesk: 50, management: 50, security: 50, development: 50 },
   infrastructure: {
@@ -64,6 +65,10 @@ function migrateState(saved) {
   if (!saved.stateVersion || saved.stateVersion < 4) {
     migrated.stateVersion = 4;
     migrated.playerName = saved.playerName || null;
+  }
+  if (!saved.stateVersion || saved.stateVersion < 6) {
+    migrated.stateVersion = 6;
+    migrated.completedCiscoSideMissions = saved.completedCiscoSideMissions || [];
   }
   if (!saved.stateVersion || saved.stateVersion < 5) {
     // Phase 0 reset: legacy mission progress is cleared so the new adaptive
@@ -156,14 +161,15 @@ export function completeQuest(quest, result) {
   }
   (quest.unlockNotebook || []).forEach(() => unlockNotebookEntries(quest.id));
   if (!state.runbooks.some((item) => item.id === quest.id)) {
+    const steps = quest.steps || [];
     state.runbooks.push({
       id: quest.id,
       title: quest.title,
       category: quest.department,
       symptom: quest.subtitle,
       cause: quest.resolution,
-      steps: quest.steps.map((step) => step.options.find((option) => option.correct)?.label).filter(Boolean),
-      mistakes: quest.steps.flatMap((step) => step.options.filter((option) => !option.correct).map((option) => option.label)).slice(0, 4),
+      steps: steps.map((step) => step.options?.find((option) => option.correct)?.label).filter(Boolean),
+      mistakes: steps.flatMap((step) => step.options?.filter((option) => !option.correct).map((option) => option.label) || []).slice(0, 4),
       tools: quest.unlockTools || [],
       createdAt: Date.now(),
     });
@@ -174,6 +180,22 @@ export function completeQuest(quest, result) {
     if (categoryId && topicId) applyMainMission(categoryId, topicId);
   });
   return writeGameState(state);
+}
+
+export function completeCiscoSideMission(missionId, result) {
+  const state = readGameState();
+  if (!state.completedCiscoSideMissions) state.completedCiscoSideMissions = [];
+  if (!state.completedCiscoSideMissions.includes(missionId)) state.completedCiscoSideMissions.push(missionId);
+  state.careerXp += result.xp || 20;
+  Object.entries(result.reputation || {}).forEach(([key, amount]) => {
+    state.reputation[key] = Math.max(0, Math.min(100, (state.reputation[key] || 50) + amount));
+  });
+  return writeGameState(state);
+}
+
+export function ciscoSideMissionsCompleted() {
+  const state = readGameState();
+  return state.completedCiscoSideMissions || [];
 }
 
 export function setActiveQuest(id) {

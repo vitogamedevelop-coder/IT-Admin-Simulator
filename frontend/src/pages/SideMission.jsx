@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { CheckCircle, Mail, Monitor, Phone, XCircle } from 'lucide-react';
 import { inboxMission, resolveSideMission } from '../lib/sideMissionEngine';
 import { recordAnswer } from '../lib/competency';
@@ -10,6 +10,7 @@ import ContextHint from '../components/ContextHint';
 import { characterAsset } from '../lib/rpgAssets';
 import { getOrderedOptions } from '../lib/shuffleOptions';
 import { updateMissionStatus, MissionStatus } from '../lib/missionLog';
+import { isCiscoSideMission } from '../lib/ciscoSideMissions';
 import BackBar from '../components/BackBar';
 import { useAppBack } from '../lib/useAppBack';
 
@@ -19,10 +20,15 @@ export default function SideMission() {
   const { missionId } = useParams();
   const navigate = useNavigate();
   useAppBack();
-  const mission = inboxMission(missionId);
   const [answer, setAnswer] = useState(null);
   const [result, setResult] = useState(null);
   const startedAt = useRef(Date.now());
+
+  if (isCiscoSideMission(missionId)) {
+    return <Navigate to={`/mission/${encodeURIComponent(missionId)}`} replace />;
+  }
+
+  const mission = inboxMission(missionId);
   if (!mission) return <div className="py-10 text-center text-[#ff3355]">Diese Meldung ist nicht mehr verfügbar.</div>;
   const objective = objectiveById(mission.objectiveId);
   const variant = mission.variant;

@@ -66,15 +66,15 @@ const r3 = executeCommand(d, 'exec-timeout');
 assert(!r3.success, 'exec-timeout without args should fail');
 assert(r3.errorType === CLI_ERROR.INCOMPLETE_COMMAND, 'should be INCOMPLETE_COMMAND');
 
-// 6. exec is ambiguous with exec-timeout: exec alone should be ambiguous
+// 6. exec alone is incomplete (it is a standalone command, not a prefix)
 const r4 = executeCommand(d, 'exec');
-assert(!r4.success, 'exec should be ambiguous with exec-timeout');
-assert(r4.errorType === CLI_ERROR.AMBIGUOUS_COMMAND, 'should be AMBIGUOUS_COMMAND');
+assert(!r4.success, 'exec alone should be incomplete');
+assert(r4.errorType === CLI_ERROR.INCOMPLETE_COMMAND, 'should be INCOMPLETE_COMMAND');
 
-// 7. exec 5 0 is ambiguous (not interpreted as exec-timeout)
+// 7. exec 5 0 is NOT interpreted as exec-timeout
 const r5 = executeCommand(d, 'exec 5 0');
-assert(!r5.success, 'exec 5 0 should be ambiguous');
-assert(r5.errorType === CLI_ERROR.AMBIGUOUS_COMMAND, 'should be AMBIGUOUS_COMMAND');
+assert(r5.success, 'exec 5 0 should be a valid exec command, not exec-timeout');
+assert(d.runningConfig.lines.console.execTimeout.minutes === 5, 'exec 5 0 should not change exec-timeout');
 
 // 8. exec-t 5 0 is a unique abbreviation for exec-timeout
 const r6 = executeCommand(d, 'exec-t 5 0');
@@ -106,11 +106,15 @@ assert(!h4.help.includes('exec '), 'exec-? should not list bare exec');
 const c1 = completeInput(d, 'exec-');
 assert(c1.completion === 'exec-timeout', `Tab should complete exec- to exec-timeout, got ${c1.completion}`);
 
-// 14. Tab on exec gives suggestions, not completion
+// 14. Tab on exec (exact command) completes to exec
 const c2 = completeInput(d, 'exec');
-assert(c2.completion === null, 'Tab on exec should not have unique completion');
-assert(c2.suggestions.includes('exec'), 'suggestions should include exec');
-assert(c2.suggestions.includes('exec-timeout'), 'suggestions should include exec-timeout');
+assert(c2.completion === 'exec', 'Tab on exact "exec" should complete to exec');
+
+// 14b. Tab on "ex" is ambiguous and lists both
+const c2b = completeInput(d, 'ex');
+assert(c2b.completion === null, 'Tab on "ex" should not have unique completion');
+assert(c2b.suggestions.includes('exec'), 'suggestions should include exec');
+assert(c2b.suggestions.includes('exec-timeout'), 'suggestions should include exec-timeout');
 
 // 15. exec-timeout in VTY line config works
 executeCommand(d, 'end');
