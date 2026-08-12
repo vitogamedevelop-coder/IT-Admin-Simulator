@@ -1079,7 +1079,67 @@ Einen vollständigen Referenz-Loop bauen: Tutorial → NEXUS kennenlernen → er
 - `npx cap sync` ✅.
 - APK build via `scripts/build-apk.ps1` (manuell fortsetzen, siehe Abschlussbericht).
 
+## Mission System V2 Phase 1C.1: CLI & UX Polish
+
+### Ziel
+Die reale Android-Testsession von Mission 001 hat gezeigt, dass der Loop funktioniert, aber CLI- und UX-Details noch poliert werden müssen. Keine neuen Features, nur Mission 001 verbessern.
+
+### Geänderte Dateien
+- `frontend/src/lib/ciscoCliEngine.js`
+  - Historische Prompts bleiben unverändert (Snapshot vor Befehlsausführung).
+  - Prompt-Ausgabe wird nicht dupliziert.
+  - `?`-Hilfe erscheint nie doppelt.
+  - Rekursive, context-sensitive `?`-Hilfe:
+    - `en?` → Word Help, alle Befehle mit "en".
+    - `en ?` → nächste Keywords von `enable`.
+    - `ena sec?` → `secret`.
+    - `no ?`, `no ip ?`, `no ip dom?` funktionieren rekursiv.
+    - `username ?` zeigt `<name>`.
+    - `show ?`, `copy ?`, `copy run?` funktionieren.
+  - `no ip domain-lookup` ist die verbindliche Syntax (kein `no domain-lookup`).
+  - Modusabhängige Fehlermeldungen:
+    - EXEC-Modi: `% Unknown command or computer name, unable to process.`
+    - Config-Modi: `% Invalid input detected at '^' marker.`
+  - `username <name> password <pw>` und `username <name> secret <pw>` werden akzeptiert.
+  - Argument-Wildcards `<...>` im Command Tree für Benutzernamen.
+- `frontend/src/lib/missionV2.js`
+  - Anforderung "lokaler Benutzer" akzeptiert `password` und `secret`.
+- `frontend/src/pages/MissionV2.jsx`
+  - Terminal-History speichert `promptAtExecution` (Snapshot).
+  - Keine separaten `output`-Wiederholungen, keine doppelten Prompt-Zeilen.
+  - Terminal hat eigenen `overflow-y-auto`-Bereich und scrollt intern zur neuesten Ausgabe.
+  - Kein `scrollIntoView` auf Parent-Seite bei Befehlseingabe.
+  - Auftragsfortschritt zeigt nur `n/5` ohne Einzelcheckliste.
+  - Feedback-Box behält Details für "Prüfen".
+- `frontend/src/lib/version.js`, `frontend/package.json`, `frontend/public/version.json` – **1.22.1**.
+- `frontend/scripts/cisco-cli-engine-test.mjs` – Erweitert um Prompt-Snapshot, `?`-Hilfe, `username password`, Config-Modus-Fehler.
+- `frontend/scripts/mission-v2-basic-config-test.mjs` – Test für `username ... password`.
+- `frontend/scripts/mission-v2-cli-ux-test.mjs` – Neue Regressionstests für Prompt-Snapshots, rekursive Hilfe, Fortschrittsanzeige.
+
+### Befehle, die Mission 001 mit `?` lösbar machen
+- `enable`, `configure terminal`, `hostname`, `enable secret`, `username`, `no ip domain-lookup`, `end`, `copy running-config startup-config`, `write memory`, `show running-config`, `show startup-config`.
+
+### Tests
+| Test | Ergebnis |
+|---|---|
+| `node scripts/cisco-cli-engine-test.mjs` | ✅ |
+| `node scripts/mission-v2-basic-config-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-ux-test.mjs` | ✅ |
+| `node scripts/mission-v2-runtime-routing-test.mjs` | ✅ |
+| `node scripts/mission-v2-goal-panel-test.mjs` | ✅ |
+| `node scripts/mission-v2-foundation-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-runtime-test.mjs` | ✅ |
+
+### Acceptance checks
+- `npm run lint` ✅ (0 Fehler, nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- `gradlew assembleDebug` ✅.
+- APK archiviert ✅.
+
 ### Stop-Bedingung
 - Keine Mission 002.
 - Keine VLAN/Router/ACL/NAT/SSH-Features.
 - APK muss auf echtem Android-Gerät getestet werden.
+- Kein Push, kein Deployment.
