@@ -484,7 +484,7 @@ function walkCommandTree(device, tokens, rootNodes) {
     const token = tokens[i];
     const resolved = resolveNode(nodes, token);
     if (resolved.error) {
-      return { node, tokens: tokens.slice(i), error: resolved.error, partial: token };
+      return { node, tokens: tokens.slice(i), error: resolved.error, partial: token, errorTokenIndex: i };
     }
     node = resolved.result;
     if (!node.children || node.children.length === 0) {
@@ -492,7 +492,7 @@ function walkCommandTree(device, tokens, rootNodes) {
     }
     nodes = node.children;
   }
-  return { node, tokens: [], error: CLI_ERROR.INCOMPLETE_COMMAND };
+  return { node, tokens: [], error: CLI_ERROR.INCOMPLETE_COMMAND, errorTokenIndex: tokens.length };
 }
 
 export function buildPrompt(device) {
@@ -548,10 +548,20 @@ export function executeCommand(device, input, options = {}) {
   const walk = walkCommandTree(device, tokens, tree);
 
   if (walk.error) {
+    let markerStart = -1;
+    if (walk.errorTokenIndex >= 0 && walk.errorTokenIndex < tokens.length) {
+      let from = 0;
+      for (let j = 0; j < walk.errorTokenIndex; j += 1) {
+        const pos = findTokenStart(trimmed, tokens[j], from);
+        if (pos === -1) break;
+        from = pos + tokens[j].length;
+      }
+      markerStart = findTokenStart(trimmed, walk.partial || tokens[walk.errorTokenIndex], from);
+    }
     return {
       success: false,
       command: trimmed,
-      output: formatError(walk.error, walk.partial || tokens.join(' '), modeBefore),
+      output: formatError(walk.error, trimmed, modeBefore, markerStart),
       prompt: buildPrompt(device),
       modeBefore,
       modeAfter: device.cli.mode,
@@ -584,15 +594,29 @@ export function executeCommand(device, input, options = {}) {
 
   device.history.push({ input: trimmed, output: result.output, at: Date.now() });
 
+  if (result.error) {
+    return {
+      success: false,
+      command: tokens.join(' '),
+      output: formatError(result.error, trimmed, modeBefore, -1),
+      prompt: buildPrompt(device),
+      modeBefore,
+      modeAfter,
+      stateChanged: false,
+      errorType: result.error,
+      node,
+    };
+  }
+
   return {
-    success: !result.error,
+    success: true,
     command: tokens.join(' '),
     output: result.output,
     prompt: buildPrompt(device),
     modeBefore,
     modeAfter,
     stateChanged,
-    errorType: result.error || null,
+    errorType: null,
     node,
   };
 }
@@ -601,43 +625,57 @@ export function executeCommand(device, input, options = {}) {
 // '?' help handling
 // ============================================================================
 
-function handleQuestionMark(device, input, options) {
+export function getCommandHelp(device, input, options = {}) {
   const trimmed = input.trimEnd();
   const mode = device.cli.mode;
 
-  // Space before '?': show next keywords / arguments for the entered prefix.
-  if (trimmed.endsWith(' ?')) {
+  const isSyntax = trimmed.endsWith(' ?');
+  const isPartial = trimmed.endsWith('?') && !isSyntax;
+
+  if (isSyntax) {
     const prefix = trimmed.slice(0, -2).trimEnd();
+    const help = renderCommandHelp(device, prefix, options);
     return {
-      success: true,
-      command: trimmed,
-      output: renderCommandHelp(device, prefix, options),
-      prompt: buildPrompt(device),
-      modeBefore: mode,
-      modeAfter: mode,
-      stateChanged: false,
-      errorType: null,
+      help,
+      inputAfterHelp: `${prefix}${prefix ? ' ' : ''}`,
       isHelp: true,
+      mode,
     };
   }
 
-  // '?' directly after a word: partial-word help in the resolved command tree.
-  if (trimmed.endsWith('?')) {
+  if (isPartial) {
     const prefix = trimmed.slice(0, -1).trimEnd();
+    const help = renderPartialWordHelp(device, prefix, options);
     return {
-      success: true,
-      command: trimmed,
-      output: renderPartialWordHelp(device, prefix, options),
-      prompt: buildPrompt(device),
-      modeBefore: mode,
-      modeAfter: mode,
-      stateChanged: false,
-      errorType: null,
+      help,
+      inputAfterHelp: prefix,
       isHelp: true,
+      mode,
     };
   }
 
-  return null;
+  return { help: '', inputAfterHelp: trimmed, isHelp: false, mode };
+}
+
+function handleQuestionMark(device, input, options) {
+  const help = getCommandHelp(device, input, options);
+  if (!help.isHelp) return null;
+  return {
+    success: true,
+    command: input,
+    output: help.help,
+    prompt: buildPrompt(device),
+    modeBefore: help.mode,
+    modeAfter: help.mode,
+    stateChanged: false,
+    errorType: null,
+    isHelp: true,
+  };
+}
+
+function findTokenStart(input, token, fromIndex = 0) {
+  if (!token) return -1;
+  return input.toLowerCase().indexOf(token.toLowerCase(), fromIndex);
 }
 
 function findParentAndPartial(device, prefix) {
@@ -761,17 +799,22 @@ function isConfigMode(mode) {
     || mode === CLI_MODE.LINE_VTY_CONFIG;
 }
 
-function buildMarker(command) {
-  const lastSpace = command.lastIndexOf(' ');
-  const markerPos = lastSpace === -1 ? 0 : lastSpace + 1;
-  return `${' '.repeat(markerPos)}^`;
+function buildMarker(markerStart) {
+  if (markerStart < 0) return '';
+  return `${' '.repeat(markerStart)}^`;
 }
 
-export function formatError(errorType, command, mode = CLI_MODE.USER_EXEC) {
+function buildErrorOutput(message, command, markerStart) {
+  const marker = buildMarker(markerStart);
+  if (marker) return `${message}\n${command}\n${marker}`;
+  return `${message}\n${command}`;
+}
+
+export function formatError(errorType, command, mode = CLI_MODE.USER_EXEC, markerStart = -1) {
   switch (errorType) {
     case CLI_ERROR.UNKNOWN_COMMAND:
       if (isConfigMode(mode)) {
-        return `% Invalid input detected at '^' marker.\n${command}\n${buildMarker(command)}`;
+        return buildErrorOutput("% Invalid input detected at '^' marker.", command, markerStart);
       }
       return `% Unknown command or computer name, unable to process.\n"${command}"`;
     case CLI_ERROR.AMBIGUOUS_COMMAND:
@@ -779,9 +822,9 @@ export function formatError(errorType, command, mode = CLI_MODE.USER_EXEC) {
     case CLI_ERROR.INCOMPLETE_COMMAND:
       return `% Incomplete command.`;
     case CLI_ERROR.INVALID_ARGUMENT:
-      return `% Invalid input detected at '^' marker.\n${command}\n${buildMarker(command)}`;
+      return buildErrorOutput("% Invalid input detected at '^' marker.", command, markerStart);
     case CLI_ERROR.WRONG_MODE:
-      return `% Invalid input detected at '^' marker.\n${command}\n${buildMarker(command)}`;
+      return buildErrorOutput("% Invalid input detected at '^' marker.", command, markerStart);
     default:
       return `% Unknown error for "${command}"`;
   }

@@ -271,6 +271,11 @@ export function clearActiveMission() {
 
 export function executeMissionCommand(state, input) {
   const result = executeCommand(state.device, input, { helpCompact: true });
+
+  if (result.isHelp) {
+    return { ...result, state };
+  }
+
   state.lastCommandAt = Date.now();
 
   if (result.success) {

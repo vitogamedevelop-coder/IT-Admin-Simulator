@@ -14,7 +14,7 @@ import {
   MISSION_001_REQUIREMENTS,
 } from '../lib/missionV2';
 import { questById } from '../lib/questData';
-import { buildPrompt } from '../lib/ciscoCliEngine';
+import { buildPrompt, getCommandHelp, completeInput } from '../lib/ciscoCliEngine';
 import { completeQuest, setActiveQuest } from '../lib/gameState';
 import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield } from 'lucide-react';
 
@@ -26,10 +26,13 @@ export default function MissionV2() {
   const [history, setHistory] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [hint, setHint] = useState(null);
+  const [helpOutput, setHelpOutput] = useState(null);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const [selectedRequirement, setSelectedRequirement] = useState('hostname');
   const [loading, setLoading] = useState(true);
   const terminalRef = useRef(null);
   const inputRef = useRef(null);
+  const savedInput = useRef('');
 
   useEffect(() => {
     const active = loadActiveMission();
@@ -48,27 +51,110 @@ export default function MissionV2() {
     if (terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [history]);
+  }, [history, helpOutput]);
 
   if (loading) return <div className="app-shell flex items-center justify-center text-[#00ff66]">Mission wird geladen...</div>;
   if (!state) return <div className="app-shell p-4 text-[#ff3355]">Mission konnte nicht geladen werden.</div>;
 
   const progress = getMission001Progress(state.device, state.scenario);
 
+  function isHelpRequest(raw) {
+    const trimmed = raw.trimEnd();
+    return trimmed.endsWith('?') || trimmed.endsWith(' ');
+  }
+
+  function showHelp(raw) {
+    if (!state || !raw) return;
+    const help = getCommandHelp(state.device, raw, { helpCompact: true });
+    setHelpOutput(help.help || null);
+    setInput(help.inputAfterHelp);
+    inputRef.current?.focus();
+  }
+
   function sendCommand() {
     if (!state || !input.trim()) return;
     const trimmed = input.trim();
+    if (isHelpRequest(trimmed)) {
+      showHelp(trimmed);
+      return;
+    }
     const promptBefore = buildPrompt(state.device);
     const result = executeMissionCommand(state, trimmed);
     setState({ ...result.state });
     setInput('');
+    setHelpOutput(null);
+    setHistoryIndex(-1);
     setHistory((h) => [...h, { command: trimmed, prompt: promptBefore, output: result.output || '' }]);
     setHint(null);
     inputRef.current?.focus();
   }
 
+  function handleInputChange(value) {
+    setInput(value);
+    setHistoryIndex(-1);
+  }
+
+  function handleTab(e) {
+    if (!state) return;
+    e.preventDefault();
+    const trimmed = input.trimEnd();
+    const base = trimmed.endsWith('?') ? trimmed.slice(0, -1).trimEnd() : trimmed;
+    if (!base) return;
+    const result = completeInput(state.device, base);
+    if (result.completion) {
+      setInput(`${result.completion} `);
+      setHelpOutput(null);
+    } else if (result.suggestions.length > 0) {
+      setHelpOutput(result.suggestions.join('  '));
+    } else {
+      setHelpOutput(null);
+    }
+    inputRef.current?.focus();
+  }
+
+  function handleHistoryNav(e) {
+    if (!history.length) return;
+    if (historyIndex === -1) {
+      savedInput.current = input;
+    }
+    let nextIndex = historyIndex;
+    if (e.key === 'ArrowUp') {
+      if (nextIndex === -1) nextIndex = history.length - 1;
+      else nextIndex = Math.max(0, nextIndex - 1);
+    } else if (e.key === 'ArrowDown') {
+      nextIndex += 1;
+      if (nextIndex >= history.length) {
+        setHistoryIndex(-1);
+        setInput(savedInput.current);
+        return;
+      }
+    }
+    setHistoryIndex(nextIndex);
+    setInput(history[nextIndex].command);
+  }
+
   function handleKey(e) {
-    if (e.key === 'Enter') sendCommand();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendCommand();
+      return;
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      handleTab(e);
+      return;
+    }
+    if (e.key === '?' || (e.shiftKey && e.key === '?')) {
+      e.preventDefault();
+      const next = input + '?';
+      setInput(next);
+      showHelp(next);
+      return;
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      handleHistoryNav(e);
+    }
   }
 
   function requestHint() {
@@ -121,6 +207,9 @@ export default function MissionV2() {
     setState(startMission001());
     setActiveQuest(MISSION_001_ID);
     setHistory([]);
+    setHelpOutput(null);
+    setInput('');
+    setHistoryIndex(-1);
     setFeedback(null);
     setHint(null);
   }
@@ -199,18 +288,25 @@ export default function MissionV2() {
               {entry.output && <div className="text-[#c9d1d9]">{entry.output}</div>}
             </div>
           ))}
+          {helpOutput && (
+            <div className="mb-2 text-[#c9d1d9]">
+              {helpOutput}
+            </div>
+          )}
           <div className="text-[#00f0ff]">{buildPrompt(device)}</div>
         </div>
         <div className="mt-2 flex items-center gap-2">
           <input
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKey}
             className="cyber-input flex-1 font-mono text-sm"
             placeholder="Cisco-Befehl eingeben..."
             autoCapitalize="off"
             autoCorrect="off"
+            spellCheck="false"
+            autoComplete="off"
           />
           <button onClick={sendCommand} className="cyber-btn p-2"><Send size={18} /></button>
         </div>
