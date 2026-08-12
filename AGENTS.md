@@ -1143,3 +1143,65 @@ Die reale Android-Testsession von Mission 001 hat gezeigt, dass der Loop funktio
 - Keine VLAN/Router/ACL/NAT/SSH-Features.
 - APK muss auf echtem Android-Gerät getestet werden.
 - Kein Push, kein Deployment.
+
+## Mission System V2 Phase 1C.2: Cisco CLI Editor / IOS Help & Error Fidelity
+
+### Ziel
+Terminal-/CLI-Verhalten der bestehenden Referenzmission weiter an Cisco IOS angleichen. Keine neuen Cisco-Themen, keine Mission 002.
+
+### Geänderte Dateien
+- `frontend/src/lib/ciscoCliEngine.js`
+  - `getCommandHelp()` exportiert: context-sensitive Help, partial vs. syntax Help, `inputAfterHelp` wird zurückgegeben.
+  - `?` wird nicht mehr wie `Enter` behandelt: `executeCommand` liefert `isHelp: true`, ändert keinen State, führt kein Skill-Recording aus.
+  - Trailing Space bei Syntax-Help erhalten (`no ip ?` → Input bleibt `no ip `).
+  - Partial-Word-Help erhalten (`no ip dom?` → Input bleibt `no ip dom`).
+  - Exakter `^` Marker basierend auf `errorTokenIndex` im `walkCommandTree`.
+  - Config-Modus: `% Invalid input detected at '^' marker.` mit korrektem Caret.
+  - EXEC-Modus: `% Unknown command or computer name, unable to process.`
+  - `write memory` / `copy running-config startup-config` bleiben im `GLOBAL_CONFIG` ungültig; nur im `PRIVILEGED_EXEC` verfügbar.
+- `frontend/src/lib/missionV2.js`
+  - `executeMissionCommand` erkennt `isHelp` und speichert keinen `lastCommandAt`, kein Skill-Event, kein Mission-Progress.
+- `frontend/src/pages/MissionV2.jsx`
+  - Neuer Input-Editor:
+    - `?` zeigt Help an, leert Eingabe nicht, landet nicht in History.
+    - `Enter` führt aus (oder zeigt erneut Help falls `?` am Ende).
+    - `Tab` vervollständigt oder zeigt Vorschläge.
+    - `ArrowUp` / `ArrowDown` navigieren die Command-History.
+  - Help-Output wird als transiente Zeile oberhalb des Prompts dargestellt, nicht in der Command-History.
+- `frontend/src/lib/version.js`, `frontend/package.json`, `frontend/public/version.json` – **1.22.2**.
+- `frontend/scripts/mission-v2-cli-editor-test.mjs` – Neue Regressionstests für Help-Erhalten, Caret-Position, Modusregeln, History-Pflege.
+
+### IOS-verbindliches Verhalten
+- `?` ist rein informativ, ändert nichts am Device State.
+- `no ip ?` zeigt `domain-lookup` und lässt `no ip ` im Input stehen.
+- `no ip dom?` zeigt `domain-lookup` und lässt `no ip dom` stehen.
+- `not ip domain-lookup` markiert `not` mit `^`.
+- `no domain-lookup` markiert `domain-lookup` mit `^`.
+- `ena foo` markiert `foo` mit `^`.
+- `hostname` (ohne Argument) gibt `% Incomplete command.`.
+- `wr?` / `copy?` im `GLOBAL_CONFIG` liefern keinen Treffer; in `PRIVILEGED_EXEC` zeigen sie `write` / `copy`.
+
+### Tests
+| Test | Ergebnis |
+|---|---|
+| `node scripts/cisco-cli-engine-test.mjs` | ✅ |
+| `node scripts/mission-v2-basic-config-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-ux-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-editor-test.mjs` | ✅ |
+| `node scripts/mission-v2-runtime-routing-test.mjs` | ✅ |
+| `node scripts/mission-v2-goal-panel-test.mjs` | ✅ |
+| `node scripts/mission-v2-foundation-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-runtime-test.mjs` | ✅ |
+
+### Acceptance checks
+- `npm run lint` ✅ (0 Fehler, nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- `gradlew assembleDebug` ✅.
+- APK archiviert ✅.
+
+### Stop-Bedingung
+- Keine Mission 002.
+- Keine VLAN/Router/ACL/NAT/SSH-Features.
+- Kein Push, kein Deployment.
