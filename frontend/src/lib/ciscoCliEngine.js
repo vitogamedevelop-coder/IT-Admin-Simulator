@@ -262,11 +262,29 @@ export const BASE_COMMAND_TREE = {
         }, 'Specify an enable secret password', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'enable_secret', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<password>']),
       ],
     }),
-    cmd('username', (device, tokens) => {
-      if (tokens.length < 4 || tokens[2].toLowerCase() !== 'secret') return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
-      device.runningConfig.users[tokens[1]] = { secret: tokens[3] };
-      return { output: '', stateChanged: true };
-    }, 'Establish User Name Authentication', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'local_user', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<name>', 'secret', '<password>']),
+    node('username', {
+      help: 'Establish User Name Authentication',
+      skill: { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'local_user', dimension: SKILL_DIMENSION.CONFIGURE },
+      complete: () => ['<name>'],
+      children: [
+        node('<name>', {
+          help: 'Username name',
+          complete: () => ['secret', 'password'],
+          children: [
+            cmd('secret', (device, tokens) => {
+              if (tokens.length < 4) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+              device.runningConfig.users[tokens[1]] = { secret: tokens[3] };
+              return { output: '', stateChanged: true };
+            }, 'Specify a secret for the user', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'local_user', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<password>']),
+            cmd('password', (device, tokens) => {
+              if (tokens.length < 4) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+              device.runningConfig.users[tokens[1]] = { password: tokens[3] };
+              return { output: '', stateChanged: true };
+            }, 'Specify a password for the user', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'local_user', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<password>']),
+          ],
+        }),
+      ],
+    }),
     cmd('interface', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       const target = resolveInterfaceName(device, tokens[1]);
@@ -442,12 +460,20 @@ function tokenize(input) {
   return input.trim().split(/\s+/).filter(Boolean);
 }
 
+function isArgumentWildcard(keyword) {
+  return keyword.startsWith('<') && keyword.endsWith('>');
+}
+
 function resolveNode(nodes, keyword) {
   const lower = keyword.toLowerCase();
-  const matches = nodes.filter((n) => n.keyword.startsWith(lower));
-  if (matches.length === 0) return { result: null, error: CLI_ERROR.UNKNOWN_COMMAND };
-  if (matches.length > 1) return { result: null, error: CLI_ERROR.AMBIGUOUS_COMMAND };
-  return { result: matches[0], error: null };
+  // Prefer concrete keyword matches over argument wildcards.
+  const concreteMatches = nodes.filter((n) => !isArgumentWildcard(n.keyword) && n.keyword.startsWith(lower));
+  if (concreteMatches.length === 1) return { result: concreteMatches[0], error: null };
+  if (concreteMatches.length > 1) return { result: null, error: CLI_ERROR.AMBIGUOUS_COMMAND };
+  const wildcardMatches = nodes.filter((n) => isArgumentWildcard(n.keyword) && lower.length > 0);
+  if (wildcardMatches.length === 1) return { result: wildcardMatches[0], error: null };
+  if (wildcardMatches.length > 1) return { result: null, error: CLI_ERROR.AMBIGUOUS_COMMAND };
+  return { result: null, error: CLI_ERROR.UNKNOWN_COMMAND };
 }
 
 function walkCommandTree(device, tokens, rootNodes) {
@@ -525,7 +551,7 @@ export function executeCommand(device, input, options = {}) {
     return {
       success: false,
       command: trimmed,
-      output: formatError(walk.error, walk.partial || tokens.join(' ')),
+      output: formatError(walk.error, walk.partial || tokens.join(' '), modeBefore),
       prompt: buildPrompt(device),
       modeBefore,
       modeAfter: device.cli.mode,
@@ -579,23 +605,9 @@ function handleQuestionMark(device, input, options) {
   const trimmed = input.trimEnd();
   const mode = device.cli.mode;
 
-  if (trimmed.endsWith('?') && !trimmed.endsWith(' ?')) {
-    const prefix = trimmed.slice(0, -1).trimEnd();
-    return {
-      success: true,
-      command: trimmed,
-      output: renderModeHelp(device, prefix, options),
-      prompt: buildPrompt(device),
-      modeBefore: mode,
-      modeAfter: mode,
-      stateChanged: false,
-      errorType: null,
-      isHelp: true,
-    };
-  }
-
+  // Space before '?': show next keywords / arguments for the entered prefix.
   if (trimmed.endsWith(' ?')) {
-    const prefix = trimmed.slice(0, -1).trimEnd();
+    const prefix = trimmed.slice(0, -2).trimEnd();
     return {
       success: true,
       command: trimmed,
@@ -609,13 +621,50 @@ function handleQuestionMark(device, input, options) {
     };
   }
 
+  // '?' directly after a word: partial-word help in the resolved command tree.
+  if (trimmed.endsWith('?')) {
+    const prefix = trimmed.slice(0, -1).trimEnd();
+    return {
+      success: true,
+      command: trimmed,
+      output: renderPartialWordHelp(device, prefix, options),
+      prompt: buildPrompt(device),
+      modeBefore: mode,
+      modeAfter: mode,
+      stateChanged: false,
+      errorType: null,
+      isHelp: true,
+    };
+  }
+
   return null;
 }
 
-function renderModeHelp(device, prefix, options) {
+function findParentAndPartial(device, prefix) {
   const tree = BASE_COMMAND_TREE[device.cli.mode] || [];
-  const lowerPrefix = prefix.toLowerCase();
-  const matches = collectMatches(tree, lowerPrefix);
+  if (!prefix) return { parent: tree, partial: '', resolved: null };
+  const tokens = tokenize(prefix);
+  if (tokens.length === 0) return { parent: tree, partial: '', resolved: null };
+
+  const partial = tokens[tokens.length - 1].toLowerCase();
+  const pathTokens = tokens.slice(0, -1);
+
+  let nodes = tree;
+  let resolved = null;
+  for (const token of pathTokens) {
+    const match = resolveNode(nodes, token);
+    if (match.error || !match.result.children || match.result.children.length === 0) {
+      return { parent: tree, partial, resolved: null };
+    }
+    resolved = match.result;
+    nodes = match.result.children;
+  }
+  return { parent: nodes, partial, resolved };
+}
+
+function renderPartialWordHelp(device, prefix, options) {
+  const { parent, partial } = findParentAndPartial(device, prefix);
+  const matches = collectMatches(parent, partial);
   if (matches.length === 0) return '';
   return formatHelpList(matches, options.helpCompact);
 }
@@ -623,19 +672,28 @@ function renderModeHelp(device, prefix, options) {
 function renderCommandHelp(device, prefix, options) {
   const tokens = tokenize(prefix);
   const tree = BASE_COMMAND_TREE[device.cli.mode] || [];
-  const walk = walkCommandTree(device, tokens, tree);
+  if (tokens.length === 0) {
+    return formatHelpList(tree, options.helpCompact);
+  }
 
-  if ((walk.error && walk.error !== CLI_ERROR.INCOMPLETE_COMMAND) || !walk.node) {
+  const walk = walkCommandTree(device, tokens, tree);
+  let node = walk.node;
+
+  // If we walked into an argument wildcard, the wildcard itself is the
+  // resolved parent; show its children (the next valid keywords/arguments).
+  if ((walk.error && walk.error !== CLI_ERROR.INCOMPLETE_COMMAND) || !node) {
     return '';
   }
 
-  const node = walk.node;
+  if (isArgumentWildcard(node.keyword) && node.children && node.children.length > 0) {
+    node = { children: node.children };
+  }
+
   if (!node.children || node.children.length === 0) {
     return '<cr>';
   }
 
-  const matches = collectMatches(node.children, '');
-  return formatHelpList(matches, options.helpCompact);
+  return formatHelpList(node.children, options.helpCompact);
 }
 
 function collectMatches(nodes, lowerPrefix) {
@@ -696,18 +754,34 @@ export function completeInput(device, input) {
 // Error formatting
 // ============================================================================
 
-export function formatError(errorType, command) {
+function isConfigMode(mode) {
+  return mode === CLI_MODE.GLOBAL_CONFIG
+    || mode === CLI_MODE.INTERFACE_CONFIG
+    || mode === CLI_MODE.LINE_CONSOLE_CONFIG
+    || mode === CLI_MODE.LINE_VTY_CONFIG;
+}
+
+function buildMarker(command) {
+  const lastSpace = command.lastIndexOf(' ');
+  const markerPos = lastSpace === -1 ? 0 : lastSpace + 1;
+  return `${' '.repeat(markerPos)}^`;
+}
+
+export function formatError(errorType, command, mode = CLI_MODE.USER_EXEC) {
   switch (errorType) {
     case CLI_ERROR.UNKNOWN_COMMAND:
+      if (isConfigMode(mode)) {
+        return `% Invalid input detected at '^' marker.\n${command}\n${buildMarker(command)}`;
+      }
       return `% Unknown command or computer name, unable to process.\n"${command}"`;
     case CLI_ERROR.AMBIGUOUS_COMMAND:
       return `% Ambiguous command: "${command}"`;
     case CLI_ERROR.INCOMPLETE_COMMAND:
       return `% Incomplete command.`;
     case CLI_ERROR.INVALID_ARGUMENT:
-      return `% Invalid input detected at '^' marker.`;
+      return `% Invalid input detected at '^' marker.\n${command}\n${buildMarker(command)}`;
     case CLI_ERROR.WRONG_MODE:
-      return `% Invalid input detected at '^' marker.`;
+      return `% Invalid input detected at '^' marker.\n${command}\n${buildMarker(command)}`;
     default:
       return `% Unknown error for "${command}"`;
   }
@@ -749,7 +823,9 @@ export function renderRunningConfig(device) {
   }
 
   Object.entries(cfg.users).forEach(([name, user]) => {
-    lines.push(`username ${name} secret ${user.secret}`);
+    const method = user.secret ? 'secret' : 'password';
+    const value = user.secret || user.password;
+    lines.push(`username ${name} ${method} ${value}`);
     lines.push('!');
   });
 

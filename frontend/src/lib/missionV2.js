@@ -31,6 +31,10 @@ function pick(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+function hasUserCredential(user) {
+  return !!user && (!!user.secret || !!user.password);
+}
+
 function generateSecret(rng) {
   return `${pick(SECRET_WORDS)}${pick(SECRET_SUFFIXES)}${rng(1, 9)}`;
 }
@@ -87,12 +91,12 @@ export function getMission001Progress(device, scenario) {
   const checks = {
     hostname: device.hostname === p.targetHostname,
     enable_secret: !!device.runningConfig?.enableSecret,
-    local_user: !!device.runningConfig?.users[p.username]?.secret,
+    local_user: hasUserCredential(device.runningConfig?.users[p.username]),
     no_dns_lookup: !!device.runningConfig?.noIpDomainLookup,
     save_config: savedConfig !== null
       && savedConfig.hostname === p.targetHostname
       && !!savedConfig.enableSecret
-      && !!savedConfig.users[p.username]?.secret
+      && hasUserCredential(savedConfig.users[p.username])
       && !!savedConfig.noIpDomainLookup,
   };
 

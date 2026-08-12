@@ -23,13 +23,12 @@ export default function MissionV2() {
   const navigate = useNavigate();
   const [state, setState] = useState(null);
   const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
   const [history, setHistory] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [hint, setHint] = useState(null);
   const [selectedRequirement, setSelectedRequirement] = useState('hostname');
   const [loading, setLoading] = useState(true);
-  const bottom = useRef(null);
+  const terminalRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -46,8 +45,10 @@ export default function MissionV2() {
   }, [missionId]);
 
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history, output]);
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [history]);
 
   if (loading) return <div className="app-shell flex items-center justify-center text-[#00ff66]">Mission wird geladen...</div>;
   if (!state) return <div className="app-shell p-4 text-[#ff3355]">Mission konnte nicht geladen werden.</div>;
@@ -57,12 +58,11 @@ export default function MissionV2() {
   function sendCommand() {
     if (!state || !input.trim()) return;
     const trimmed = input.trim();
-    const oldMode = state.device.cli.mode;
+    const promptBefore = buildPrompt(state.device);
     const result = executeMissionCommand(state, trimmed);
     setState({ ...result.state });
     setInput('');
-    setHistory((h) => [...h, { command: trimmed, result: result.output || result.prompt || '', cliBefore: oldMode }]);
-    setOutput(result.output);
+    setHistory((h) => [...h, { command: trimmed, prompt: promptBefore, output: result.output || '' }]);
     setHint(null);
     inputRef.current?.focus();
   }
@@ -121,7 +121,6 @@ export default function MissionV2() {
     setState(startMission001());
     setActiveQuest(MISSION_001_ID);
     setHistory([]);
-    setOutput('');
     setFeedback(null);
     setHint(null);
   }
@@ -143,17 +142,9 @@ export default function MissionV2() {
       </div>
 
       <div className="cyber-card p-3 mb-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <div className="text-xs uppercase tracking-wider text-[#8b949e]">Auftragsfortschritt</div>
           <div className="text-sm font-bold text-[#00f0ff]">{progress.completed}/{progress.total}</div>
-        </div>
-        <div className="grid grid-cols-1 gap-2">
-          {progress.checks.map((c) => (
-            <div key={c.id} className="flex items-center gap-2 text-xs">
-              {c.ok ? <CheckCircle size={14} className="text-[#00ff66]" /> : <div className="h-3.5 w-3.5 rounded-full border border-[#8b949e]" />}
-              <span className={c.ok ? 'text-[#00ff66]' : 'text-[#c9d1d9]'}>{c.label}</span>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -198,16 +189,17 @@ export default function MissionV2() {
         <div className="flex items-center gap-2 text-[#00ff66] text-xs uppercase tracking-wider mb-2">
           <TermIcon size={14} /> Cisco IOS Terminal
         </div>
-        <div className="flex-1 overflow-y-auto font-mono text-sm bg-[#0a0a0a] rounded p-2 text-[#c9d1d9] whitespace-pre-wrap">
+        <div
+          ref={terminalRef}
+          className="flex-1 overflow-y-auto font-mono text-sm bg-[#0a0a0a] rounded p-2 text-[#c9d1d9] whitespace-pre-wrap"
+        >
           {history.map((entry, index) => (
             <div key={index} className="mb-2">
-              <div className="text-[#00f0ff]">{buildPrompt({ ...device, cli: entry.cliBefore || device.cli })} {entry.command}</div>
-              <div className="text-[#c9d1d9]">{entry.result}</div>
+              <div className="text-[#00f0ff]">{entry.prompt} {entry.command}</div>
+              {entry.output && <div className="text-[#c9d1d9]">{entry.output}</div>}
             </div>
           ))}
-          {output && <div className="text-[#c9d1d9]">{output}</div>}
           <div className="text-[#00f0ff]">{buildPrompt(device)}</div>
-          <div ref={bottom} />
         </div>
         <div className="mt-2 flex items-center gap-2">
           <input

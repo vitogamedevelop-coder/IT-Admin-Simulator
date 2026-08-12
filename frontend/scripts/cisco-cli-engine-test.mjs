@@ -213,4 +213,90 @@ assert(!r.success && r.errorType === CLI_ERROR.INCOMPLETE_COMMAND, 'Incomplete c
 r = send(dErr, 'show');
 assert(!r.success && r.errorType === CLI_ERROR.INCOMPLETE_COMMAND, 'Incomplete show should fail');
 
+// Phase 1C.1: prompt snapshot, help, username password/secret, domain-lookup, config errors.
+const dPolish = createCiscoDevice({ hostname: 'Switch' });
+storage.clear();
+
+// 14. Prompt snapshot: history entry keeps old hostname
+send(dPolish, 'enable');
+send(dPolish, 'configure terminal');
+const oldPrompt = buildPrompt(dPolish);
+const rHostname = send(dPolish, 'hostname Sw1');
+assert(rHostname.success, 'hostname Sw1 should succeed');
+assert(buildPrompt(dPolish) === 'Sw1(config)#', 'Current prompt should use new hostname');
+assert(oldPrompt === 'Switch(config)#', 'Old prompt snapshot should still be Switch(config)#');
+
+// 15. Recursive '?' help
+r = send(dPolish, 'ena sec?', { helpCompact: true });
+assert(r.success && r.isHelp, 'ena sec? should be help');
+assert(r.output.includes('secret'), 'ena sec? should list secret');
+
+r = send(dPolish, 'no ?', { helpCompact: true });
+assert(r.success && r.isHelp, 'no ? should be help');
+assert(r.output.includes('ip'), 'no ? should list ip');
+
+r = send(dPolish, 'no ip ?', { helpCompact: true });
+assert(r.success && r.isHelp, 'no ip ? should be help');
+assert(r.output.includes('domain-lookup'), 'no ip ? should list domain-lookup');
+
+r = send(dPolish, 'no ip dom?', { helpCompact: true });
+assert(r.success && r.isHelp, 'no ip dom? should be help');
+assert(r.output.includes('domain-lookup'), 'no ip dom? should list domain-lookup');
+
+r = send(dPolish, 'username ?', { helpCompact: true });
+assert(r.success && r.isHelp, 'username ? should be help');
+assert(r.output.includes('name'), 'username ? should list name placeholder');
+
+send(dPolish, 'end');
+r = send(dPolish, 'show ?', { helpCompact: true });
+assert(r.success && r.isHelp, 'show ? should be help');
+assert(r.output.includes('running-config'), 'show ? should list running-config');
+
+r = send(dPolish, 'copy ?', { helpCompact: true });
+assert(r.success && r.isHelp, 'copy ? should be help');
+assert(r.output.includes('running-config'), 'copy ? should list running-config');
+
+r = send(dPolish, 'copy run?', { helpCompact: true });
+assert(r.success && r.isHelp, 'copy run? should be help');
+assert(r.output.includes('running-config'), 'copy run? should list running-config');
+
+// 16. username password and username secret both work
+send(dPolish, 'configure terminal');
+const rUserSecret = send(dPolish, 'username admin secret cisco123');
+assert(rUserSecret.success, 'username admin secret should succeed');
+assert(dPolish.runningConfig.users.admin.secret === 'cisco123', 'User secret should be stored');
+
+const dUserPw = createCiscoDevice({ hostname: 'Switch' });
+storage.clear();
+send(dUserPw, 'enable');
+send(dUserPw, 'configure terminal');
+const rUserPw = send(dUserPw, 'username admin password cisco123');
+assert(rUserPw.success, 'username admin password should succeed');
+assert(dUserPw.runningConfig.users.admin.password === 'cisco123', 'User password should be stored');
+
+// 17. no domain-lookup rejected in config mode
+send(dUserPw, 'no domain-lookup');
+assert(!dUserPw.success || true, 'no domain-lookup should produce a failure result');
+const rBadNo = send(dUserPw, 'no domain-lookup');
+assert(!rBadNo.success, 'no domain-lookup should be rejected');
+assert(rBadNo.errorType === CLI_ERROR.UNKNOWN_COMMAND, 'no domain-lookup should be UNKNOWN_COMMAND');
+assert(rBadNo.output.includes("Invalid input"), 'Config-mode unknown command should say Invalid input');
+
+// 18. no ip domain-lookup works and is rendered
+const dDns = createCiscoDevice({ hostname: 'Switch' });
+storage.clear();
+send(dDns, 'enable');
+send(dDns, 'configure terminal');
+const rNoDns = send(dDns, 'no ip domain-lookup');
+assert(rNoDns.success, 'no ip domain-lookup should succeed');
+assert(dDns.runningConfig.noIpDomainLookup === true, 'noIpDomainLookup flag should be set');
+
+// 19. Help output should not be duplicated
+const dHelp = createCiscoDevice();
+storage.clear();
+const rEnq = send(dHelp, 'en?', { helpCompact: true });
+assert(rEnq.success && rEnq.isHelp, 'en? should be help in USER_EXEC');
+const helpLines = rEnq.output.split('\n').filter((line) => line.trim() === 'enable');
+assert(helpLines.length === 1, 'enable should appear exactly once in en? output');
+
 console.log('Cisco CLI Engine tests passed.');

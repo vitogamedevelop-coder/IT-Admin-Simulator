@@ -132,7 +132,25 @@ state4.device = device;
 const eval4 = evaluateMission001(state4);
 assert(eval4.completed === 5, 'Progress should stay 5 after re-evaluation');
 
-// 8. Required state matches scenario
+// 8. username password also fulfills the local user requirement
+const state5 = startMission001();
+state5.scenario = scenario;
+state5.device = createMission001Device(scenario);
+const cmds5 = [
+  'enable',
+  'configure terminal',
+  `hostname ${scenario.parameters.targetHostname}`,
+  `enable secret ${scenario.parameters.enableSecret}`,
+  `username ${scenario.parameters.username} password ${scenario.parameters.userSecret}`,
+  'no ip domain-lookup',
+  'end',
+  'copy running-config startup-config',
+];
+for (const cmd of cmds5) executeMissionCommand(state5, cmd);
+const eval5 = evaluateMission001(state5);
+assert(eval5.allCorrect, 'Mission should be complete with username ... password');
+
+// 9. Required state matches scenario
 const required = mission001RequiredState(scenario);
 assert(required.hostname === scenario.parameters.targetHostname, 'Required hostname should match target Sw1');
 assert(required.users[scenario.parameters.username].secret === scenario.parameters.userSecret, 'Required user secret should match');
