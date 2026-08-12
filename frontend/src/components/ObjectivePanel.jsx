@@ -2,14 +2,42 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, BookOpen, Shield, MessageSquare, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
 import { getCurrentPlayerObjectives } from '../lib/objectives';
+import { loadActiveMission, MISSION_001_ID } from '../lib/missionV2';
+import { readGameState } from '../lib/gameState';
 
 const POSITION_KEY = 'cyberlearn:current-goal-panel-position-v1';
+const CLICK_THRESHOLD = 5; // px
+
+function getEnvPixels(name, fallback = '0px') {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name) || fallback;
+  const px = parseFloat(raw);
+  return Number.isNaN(px) ? 0 : px;
+}
+
+function getSafeArea() {
+  return {
+    top: getEnvPixels('--safe-top', '0px'),
+    bottom: getEnvPixels('--safe-bottom', '0px'),
+    left: getEnvPixels('--safe-left', '0px'),
+    right: getEnvPixels('--safe-right', '0px'),
+    header: getEnvPixels('--header-h', '3rem'),
+  };
+}
+
+function getDefaultPosition() {
+  const { top, header } = getSafeArea();
+  return { x: null, y: top + header + 8, right: 12 };
+}
 
 function readPosition() {
   try {
     const raw = localStorage.getItem(POSITION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const pos = JSON.parse(raw);
+    if (pos && (pos.x === null || pos.x === undefined) && pos.right === undefined) {
+      pos.right = 12;
+    }
+    return pos;
   } catch {
     return null;
   }
@@ -20,14 +48,32 @@ function writePosition(pos) {
 }
 
 function clampPosition(pos, rect) {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const { innerWidth: vw, innerHeight: vh } = window;
+  const { top, bottom, left, right } = getSafeArea();
   const w = rect?.width || 260;
   const h = rect?.height || 120;
-  return {
-    x: Math.max(0, Math.min(pos.x, vw - w)),
-    y: Math.max(0, Math.min(pos.y, vh - h)),
-  };
+  const minY = top + getSafeArea().header + 8;
+  const maxX = vw - right - w - 8;
+  const maxY = vh - bottom - h - 8;
+  const base = getDefaultPosition();
+
+  let nextX = pos.x ?? base.x ?? (vw - right - w - 12);
+  let nextY = pos.y ?? base.y;
+
+  if (nextX === null || nextX === undefined) {
+    nextX = vw - right - w - 12;
+  }
+
+  // Treat very small/almost-off-screen values as legacy bad positions.
+  if (nextX < left + 4) nextX = left + 8;
+  if (nextX > maxX) nextX = maxX;
+  if (nextY < minY) nextY = minY;
+  if (nextY > maxY) nextY = maxY;
+
+  if (nextX + w > vw - right - 8) nextX = Math.max(left + 8, vw - right - w - 8);
+  if (nextY + h > vh - bottom - 8) nextY = Math.max(minY, vh - bottom - h - 8);
+
+  return { x: nextX, y: nextY };
 }
 
 export default function ObjectivePanel({ overrideObjective = null }) {
@@ -36,13 +82,24 @@ export default function ObjectivePanel({ overrideObjective = null }) {
   const [expanded, setExpanded] = useState(false);
 
   const panelRef = useRef(null);
+  const handleRef = useRef(null);
   const [position, setPosition] = useState(() => {
     const saved = readPosition();
     if (saved) return clampPosition(saved, null);
-    return { x: null, y: null };
+    return getDefaultPosition();
   });
 
-  const dragState = useRef({ dragging: false, startX: 0, startY: 0, panelX: 0, panelY: 0 });
+  const dragState = useRef({
+    dragging: false,
+    startX: 0,
+    startY: 0,
+    panelX: 0,
+    panelY: 0,
+    pointerId: null,
+    moved: false,
+    totalDx: 0,
+    totalDy: 0,
+  });
 
   useEffect(() => {
     const handler = () => setTick((v) => v + 1);
@@ -73,69 +130,128 @@ export default function ObjectivePanel({ overrideObjective = null }) {
       });
     }
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
   }, []);
 
   function handlePointerDown(e) {
+    if (!handleRef.current) return;
     e.preventDefault();
-    if (!panelRef.current) return;
+    e.stopPropagation();
+
+    try {
+      handleRef.current.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore if unsupported
+    }
+
     dragState.current.dragging = true;
     dragState.current.startX = e.clientX;
     dragState.current.startY = e.clientY;
-    const rect = panelRef.current.getBoundingClientRect();
-    dragState.current.panelX = rect.left;
-    dragState.current.panelY = rect.top;
+    dragState.current.pointerId = e.pointerId;
+    dragState.current.moved = false;
+    dragState.current.totalDx = 0;
+    dragState.current.totalDy = 0;
+
+    const rect = panelRef.current?.getBoundingClientRect();
+    dragState.current.panelX = rect?.left ?? position.x ?? 0;
+    dragState.current.panelY = rect?.top ?? position.y ?? 0;
   }
 
-  useEffect(() => {
-    function onPointerMove(e) {
-      if (!dragState.current.dragging) return;
-      const dx = e.clientX - dragState.current.startX;
-      const dy = e.clientY - dragState.current.startY;
-      const next = { x: dragState.current.panelX + dx, y: dragState.current.panelY + dy };
-      setPosition(next);
+  function handlePointerMove(e) {
+    if (!dragState.current.dragging) return;
+    if (e.pointerId !== dragState.current.pointerId) return;
+
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    dragState.current.totalDx = dx;
+    dragState.current.totalDy = dy;
+
+    if (Math.max(Math.abs(dx), Math.abs(dy)) > CLICK_THRESHOLD) {
+      dragState.current.moved = true;
     }
-    function onPointerUp() {
-      if (!dragState.current.dragging) return;
-      dragState.current.dragging = false;
-      if (!panelRef.current) return;
-      const rect = panelRef.current.getBoundingClientRect();
-      setPosition((pos) => {
-        const clamped = clampPosition(pos, rect);
-        writePosition(clamped);
-        return clamped;
-      });
-    }
-    if (dragState.current.dragging) {
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp, { once: true });
-    }
-    return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+
+    if (!dragState.current.moved) return;
+
+    const next = {
+      x: dragState.current.panelX + dx,
+      y: dragState.current.panelY + dy,
     };
-  }, [position]);
+    setPosition(next);
+  }
+
+  function handlePointerUp(e) {
+    if (!dragState.current.dragging) return;
+    if (e.pointerId !== dragState.current.pointerId) return;
+    dragState.current.dragging = false;
+
+    try {
+      handleRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (!dragState.current.moved) {
+      // It was a tap, not a drag. Don't toggle or navigate; leave for other handlers.
+      return;
+    }
+
+    if (!panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    setPosition((pos) => {
+      const clamped = clampPosition(pos, rect);
+      writePosition(clamped);
+      return clamped;
+    });
+  }
+
+  function handlePointerCancel(e) {
+    if (!dragState.current.dragging) return;
+    if (e.pointerId !== dragState.current.pointerId) return;
+    dragState.current.dragging = false;
+    if (!panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    setPosition((pos) => {
+      const clamped = clampPosition(pos, rect);
+      writePosition(clamped);
+      return clamped;
+    });
+  }
 
   function resetPosition() {
-    setPosition({ x: null, y: null });
+    const next = getDefaultPosition();
+    setPosition(next);
     localStorage.removeItem(POSITION_KEY);
   }
 
   const objectives = getCurrentPlayerObjectives();
-  const currentObjective = overrideObjective || objectives.learning;
+  const gameState = readGameState();
+  const activeMission = gameState.activeQuest === MISSION_001_ID ? loadActiveMission() : null;
+  const currentObjective = overrideObjective
+    || (activeMission ? { title: activeMission.scenario.title } : null)
+    || objectives.main?.quest
+    || objectives.learning;
   const learningLabel = currentObjective ? currentObjective.title : 'Alle Lernziele abgeschlossen';
 
   const isPositioned = position.x !== null && position.y !== null;
   const style = isPositioned
     ? { position: 'fixed', left: position.x, top: position.y, zIndex: 50, maxWidth: '16rem' }
-    : { position: 'fixed', top: 'calc(var(--safe-top,0px) + var(--header-h) + 0.5rem)', right: '0.75rem', zIndex: 50, maxWidth: '16rem' };
+    : { position: 'fixed', top: position.y, right: position.right, zIndex: 50, maxWidth: '16rem' };
 
   return (
-    <div ref={panelRef} style={style}>
+    <div ref={panelRef} style={style} className="select-none">
       <div className="flex items-stretch rounded-lg border border-[#00f0ff]/30 bg-[#0d1117]/90 shadow-[0_0_1rem_rgba(0,240,255,0.15)] backdrop-blur-sm">
         <button
+          ref={handleRef}
           onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
           className="cursor-grab touch-none px-1 text-[#8b949e] active:cursor-grabbing active:text-[#00f0ff]"
+          style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
           title="Zielpanel verschieben"
           aria-label="Zielpanel verschieben"
         >
@@ -143,7 +259,7 @@ export default function ObjectivePanel({ overrideObjective = null }) {
         </button>
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="flex flex-1 items-center gap-2 px-2 py-2 text-left active:bg-[#00f0ff]/10"
+          className="flex flex-1 items-center gap-2 px-2 py-2 text-left active:bg-[#00f0ff]/10 select-none"
         >
           <Target size={16} className="text-[#00f0ff] shrink-0" />
           <div className="min-w-0 flex-1">
@@ -207,7 +323,7 @@ export default function ObjectivePanel({ overrideObjective = null }) {
                 )}
                 {objectives.main.available && (
                   <button
-                    onClick={() => { setExpanded(false); navigate(`/quest/${objectives.main.quest.id}`); }}
+                    onClick={() => { setExpanded(false); navigate(`/mission/${objectives.main.quest.id}`); }}
                     className="mt-2 w-full rounded-md bg-[#00ff66]/10 px-2 py-1.5 text-xs font-medium text-[#00ff66] hover:bg-[#00ff66]/20"
                   >
                     Mission starten

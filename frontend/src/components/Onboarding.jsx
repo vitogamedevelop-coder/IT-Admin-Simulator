@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X, ArrowRight, Maximize2 } from 'lucide-react';
 import { characterAsset } from '../lib/rpgAssets';
-import { questPath } from '../lib/questRouter';
 import { ONBOARDING_STEPS } from '../lib/onboardingSteps';
 import DraggableWindow from './DraggableWindow';
 
@@ -98,10 +97,10 @@ export default function Onboarding() {
     if (r && r.visible) markerRect = r;
   }
 
-  function finish(startQuest) {
+  function finish(startMission) {
     localStorage.setItem(KEY, 'true');
     setVisible(false);
-    if (startQuest) navigate(questPath('first-day'));
+    if (startMission) navigate('/mission/cisco-main-001');
   }
 
   function next() {

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, CheckSquare, Clock, Shield } from 'lucide-react';
 import { completeQuest, setActiveQuest } from '../lib/gameState';
@@ -28,10 +28,13 @@ export default function Quest() {
   const questStarted = useRef(Date.now());
   const saved = useRef(false);
 
-  if (questId?.startsWith('cisco-')) {
-    navigate(`/mission/${questId}`, { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (questId?.startsWith('cisco-')) {
+      navigate(`/mission/${questId}`, { replace: true });
+    }
+  }, [questId, navigate]);
+
+  if (questId?.startsWith('cisco-')) return null;
 
   const quest = questById(questId);
 

@@ -939,3 +939,147 @@ Eine wiederverwendbare, zustandsbasierte Cisco-IOS-CLI-Engine für zukünftige M
 - STP, Port-Security.
 - SSH, DHCP, ACL, NAT/PAT.
 - Mission-Integration: Quest/DiagnosticQuest verwendet CLI-Engine und prüft Gerätezustand.
+
+## Mission System V2 Phase 1B-1: Mission Runtime + Mission 001 + Bugfix
+
+### Ziel
+Erster spielbarer End-to-End-Loop: Auftrag erhalten → Arbeitsplatz → Cisco-Gerät → CLI-Konfiguration → Verifikation → Mission abschließen → Debriefing → Neue Variante.
+
+### Neue Dateien
+- `frontend/src/lib/missionV2.js` – Mission-001-Runtime, Szenario-Generator, State-Evaluierung, Hilfesystem, Skill-Tracking.
+- `frontend/src/pages/MissionV2.jsx` – UI für Mission 001.
+- `frontend/scripts/mission-v2-basic-config-test.mjs` – Mission-001-Tests.
+- `frontend/scripts/mission-v2-goal-panel-test.mjs` – Zielpanel-Tests.
+- `frontend/scripts/mission-v2-runtime-routing-test.mjs` – End-to-End Routing/Registry-Tests.
+
+### Bugfix 1B-1 nach APK-Test
+- Problem: Mission 001 war über den Workspace nicht erreichbar, „Einsatz nicht gefunden“ wurde angezeigt.
+- Ursache: `Quest.jsx` wollte einen echten Quest-Eintrag im alten `questData.js` finden, anstatt Cisco-Missions-IDs an die neue V2-Route weiterzuleiten. `ObjectivePanel` navigierte außerdem ins Legacy-`/quest/`-Routing.
+- Fix:
+  - `Quest.jsx` leitet `/quest/<cisco-*>` per `useEffect` sofort ersetzend zu `/mission/<id>` weiter.
+  - `ObjectivePanel` navigiert direkt zu `/mission/<id>`.
+  - `MissionV2.jsx` setzt `gameState.activeQuest` beim Start und ruft `completeQuest` beim erfolgreichen Abschluss, damit `getNextMainMission` und das Zielpanel konsistent arbeiten.
+  - `missionV2.js` persistiert aktive Mission unter `cyberlearn:active-mission-v1` und `missionLog`.
+
+### Bugfix Zielpanel
+- Problem: Panel landete oben links, überlappte Header/Statusleiste, war auf Touch nicht verschiebbar, zeigte Academy-Ziel statt aktiver Mission.
+- Ursache: Drag-Logik nutzte kein `setPointerCapture`, `touch-action` war unzureichend, Defaultposition war nicht sauber gegen Safe Area geprüft, Zielpriorität ignorierte `gameState.activeQuest`.
+- Fix:
+  - Drag-Handle mit `pointerdown`/`pointermove`/`pointerup`/`pointercancel` + `setPointerCapture`.
+  - `touch-action: none` und `userSelect: none` auf Griff und Panel.
+  - Position wird gegen Safe Area (Header/Status/Insets) geprüft und geklemmt.
+  - Defaultposition: oben rechts, unterhalb Header + Safe-Area-Top-Inset.
+  - Invalidierte alte Positionen werden beim Laden zurückgesetzt.
+  - Zielpriorität: aktive V2-Mission > Hauptmission > Lernen.
+
+### Geänderte Dateien
+- `frontend/src/components/ObjectivePanel.jsx` – draggable, safe-area-clamping, mission priority.
+- `frontend/src/pages/Quest.jsx` – sofortige Weiterleitung Cisco-Missions-IDs an MissionV2.
+- `frontend/src/pages/MissionV2.jsx` – activeQuest setzen, completeQuest aufrufen.
+- `frontend/src/lib/questData.js` – ein Eintrag `cisco-main-001-basic-configuration` als Routing-Placeholder.
+- `frontend/src/lib/version.js` – **1.21.1**.
+- `frontend/package.json` – **1.21.1**.
+- `frontend/public/version.json` – **1.21.1**.
+
+### Tests
+- `node scripts/mission-v2-basic-config-test.mjs` ✅
+- `node scripts/mission-v2-goal-panel-test.mjs` ✅
+- `node scripts/mission-v2-runtime-routing-test.mjs` ✅
+- `node scripts/cisco-cli-engine-test.mjs` ✅
+
+### Acceptance checks
+- `npm run lint` ✅ (nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅, archiviert als `IT-Admin-Simulator_2026-08-12_11-28.apk`.
+
+### Bekannte Einschränkungen
+- Mission 001 ist derzeit die einzige Mission.
+- Kein VLAN/Routing/SSH usw. in 1B-1.
+- V2-Mission benötigt aktive Quest-ID in `gameState`; Replay generiert neue Variante, aber Fortschritts-XP nur beim ersten Abschluss.
+
+## Mission System V2 Phase 1C: Referenz-Gameplay-Loop
+
+### Ziel
+Einen vollständigen Referenz-Loop bauen: Tutorial → NEXUS kennenlernen → erster echter Arbeitsauftrag → Mission 001 (Cisco Layer-2-Switch) → Fortschrittsfeedback → Selbstkontrolle → bewusster Abschluss. Mission 001 soll als Qualitätsreferenz für zukünftige Missionen dienen.
+
+### Neue Dateien
+- `frontend/scripts/mission-v2-basic-config-test.mjs` – Mission-001-Tests für Layer-2-Switch und 0/5-Fortschritt.
+- `frontend/scripts/mission-v2-runtime-routing-test.mjs` – Routing/Registry/Persistenz-Tests.
+
+### Geänderte Dateien
+- `frontend/src/lib/missionV2.js` – Mission 001 komplett umgebaut:
+  - ID `cisco-main-001`
+  - Layer-2-Switch, initialer Hostname `Switch`, Ziel `Sw1`
+  - Genau fünf Anforderungen: Hostname, Enable Secret, lokaler Benutzer, `no ip domain-lookup`, Konfiguration speichern
+  - Fortschritt wird aus Device State berechnet (0/5)
+  - Mehrstufiges Hilfesystem pro Anforderung (Nudge → Focus → Directive → Solution)
+  - Skill-Tracking für jeden Befehl, Hinweis und `revealedSolution`
+- `frontend/src/pages/MissionV2.jsx` – UI:
+  - Fortschrittsanzeige 0/5
+  - "Prüfen" und "Auftrag abschließen" getrennt
+  - "Auftrag abschließen" erst bei 5/5 aktiv
+  - Dropdown für gezielte Hilfe pro Anforderung
+  - Story-Nachbereitung nach erfolgreichem Abschluss
+- `frontend/src/lib/questData.js` – Routing-Placeholder `cisco-main-001`.
+- `frontend/src/components/Onboarding.jsx` – Tutorial endet jetzt mit Navigation zu `/mission/cisco-main-001`.
+- `frontend/src/lib/onboardingSteps.js` – Sam gibt den ersten Auftrag aus dem Tutorial heraus.
+- `frontend/src/components/ObjectivePanel.jsx` – Drag & Drop überarbeitet:
+  - Pointer Events + `setPointerCapture`
+  - Klick-vs-Drag-Erkennung per Threshold
+  - Defaultposition oben rechts unter Header + Safe Area
+  - Clamping gegen Safe Area/Header bei Resize/Rotation
+  - Position-Reset-Button
+  - Current Goal priorisiert aktive Mission > Hauptmission > Lernen
+- `frontend/src/lib/ciscoCliEngine.js` – `executeCommand` gibt jetzt das aufgelöste Command-Node zurück, damit Skill-Tracking auf Befehlsebene funktioniert.
+- `frontend/src/lib/version.js`, `frontend/package.json`, `frontend/public/version.json` – **1.22.0**.
+
+### Tutorial → Mission 001
+1. Neuer Spielstand startet Onboarding.
+2. Onboarding endet mit Sam, der den ersten Auftrag gibt.
+3. Button "Erste Mission starten" navigiert zu `/mission/cisco-main-001`.
+4. `MissionV2.jsx` initialisiert das Layer-2-Switch-Szenario.
+5. `ObjectivePanel` zeigt "Der erste Switch" und linkt zur Mission.
+
+### Mission 001 Ablauf
+- Gerät: Cisco Layer-2-Switch, aktueller Name `Switch`, Ziel `Sw1`.
+- Anforderungen:
+  1. Hostname `Sw1`
+  2. Enable Secret
+  3. Lokalen Benutzer `admin` anlegen
+  4. `no ip domain-lookup`
+  5. `copy running-config startup-config` (oder `write memory`/`wr`)
+- CLI-Prompt ändert sich nach `hostname Sw1` sofort zu `Sw1(config)#`.
+- Fortschritt anhand Device State, nicht anhand eingegebener Strings.
+- Falsche Befehle ziehen keine Punkte ab.
+- Doppelte Erfüllung erhöht nicht über 5/5.
+- `show running-config` und `show startup-config` funktionieren.
+- Bewusster Abschluss über "Auftrag abschließen".
+
+### Support-Level
+- Datenmodell ist für zukünftige Stufen `GUIDED`, `SUPPORTED`, `INDEPENDENT`, `EXAM` vorbereitet.
+- Mission 001 verwendet `GUIDED`.
+
+### Gerätebenennung
+- Einheitlicher Standard: `PC01`, `Sw1`, `R1`, `L3Sw1`.
+- Frische Geräte starten mit `Switch>`, `Router>`, `Multiswitch>`.
+
+### Tests
+- `node scripts/mission-v2-basic-config-test.mjs` ✅
+- `node scripts/mission-v2-runtime-routing-test.mjs` ✅
+- `node scripts/mission-v2-goal-panel-test.mjs` ✅
+- `node scripts/mission-v2-foundation-test.mjs` ✅
+- `node scripts/mission-v2-skilltree-test.mjs` ✅
+- `node scripts/mission-v2-skilltree-runtime-test.mjs` ✅
+- `node scripts/cisco-cli-engine-test.mjs` ✅
+
+### Acceptance checks
+- `npm run lint` ✅ (nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` (manuell fortsetzen, siehe Abschlussbericht).
+
+### Stop-Bedingung
+- Keine Mission 002.
+- Keine VLAN/Router/ACL/NAT/SSH-Features.
+- APK muss auf echtem Android-Gerät getestet werden.

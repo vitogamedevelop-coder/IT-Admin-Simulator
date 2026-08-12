@@ -567,6 +567,7 @@ export function executeCommand(device, input, options = {}) {
     modeAfter,
     stateChanged,
     errorType: result.error || null,
+    node,
   };
 }
 

@@ -151,10 +151,11 @@ export const ONBOARDING_STEPS = [
   {
     id: 'finish',
     person: 'Sam Richter · Senior-Administrator', character: 'sam', icon: Users,
-    title: 'Perfekt',
+    title: 'Erster Auftrag',
     lines: [
-      'Jetzt kennst du dein neues Arbeitsumfeld.',
-      'Ab jetzt lernst du den Rest ganz automatisch während der Arbeit.',
+      'Da steht noch ein neuer Switch, der heute eingebaut werden soll.',
+      'Bevor wir den ins Netz hängen, machen wir erst die Grundkonfiguration.',
+      'Das ist ein guter erster Auftrag für dich.',
     ],
     finish: true,
   },
