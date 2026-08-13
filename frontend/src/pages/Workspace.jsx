@@ -11,6 +11,9 @@ import { colleagues } from '../lib/officeWorld';
 import {
   CORRIDOR_ROOMS, buildDefaultDialog, buildSamOfficeDialog,
 } from '../lib/corridorDialogs';
+import {
+  processWorldEvents, acknowledgePendingWorldDialog, worldDialogResultAction,
+} from '../lib/worldDispatcher';
 import EmailApp from '../components/EmailApp';
 import PhoneApp from '../components/PhoneApp';
 import Notebook from '../components/Notebook';
@@ -267,6 +270,7 @@ export default function Workspace() {
   const [zoomPhase, setZoomPhase] = useState('none');      // none | zooming-in | desktop | zooming-out
   const [notifications, setNotifications] = useState(readNotifications);
   const [corridorDialog, setCorridorDialog] = useState(null);
+  const [worldDialog, setWorldDialog] = useState(null);
   const [corridorMenu, setCorridorMenu] = useState(false); // room-selection menu shown when entering the hallway
   const [corridorMenuReady, setCorridorMenuReady] = useState(false); // touch-through guard
   const [breakRoom, setBreakRoom] = useState(false); // atmosphere-only break room screen
@@ -305,12 +309,27 @@ export default function Workspace() {
     return pushBackHandler(() => { stopSpeech(); setCorridorDialog(null); });
   }, [corridorDialog]);
 
+  useEffect(() => {
+    if (!worldDialog) stopSpeech();
+    return pushBackHandler(() => { stopSpeech(); setWorldDialog(null); });
+  }, [worldDialog]);
+
   // Pre-check native TTS availability while the dialog is open.
   useEffect(() => {
-    if (corridorDialog) {
+    if (corridorDialog || worldDialog) {
       import('../lib/speechSynthesis.js').then((m) => m.isSupported()).catch(() => {});
     }
-  }, [corridorDialog]);
+  }, [corridorDialog, worldDialog]);
+
+  useEffect(() => {
+    // Evaluate world-flow events when the workspace is first shown.
+    const result = processWorldEvents();
+    setNotifications(readNotifications());
+    if (result.pendingDialog && !worldDialog) {
+      setWorldDialog(result.pendingDialog);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!corridorMenu) return;
@@ -673,6 +692,16 @@ export default function Workspace() {
     setCorridorDialog({ dialog: buildDefaultDialog(), person });
   }
 
+  async function handleWorldDialogComplete(node) {
+    const action = worldDialogResultAction(node, worldDialog?.linkedMissionId);
+    await stopSpeech();
+    acknowledgePendingWorldDialog();
+    setWorldDialog(null);
+    if (action?.action === 'mission' && action.missionId) {
+      navigate(`/side-mission/${encodeURIComponent(action.missionId)}`);
+    }
+  }
+
   async function handleDialogComplete(node) {
     const action = node?.onComplete?.action;
     const missionId = node?.onComplete?.missionId;
@@ -759,6 +788,16 @@ export default function Workspace() {
     <div className="fullscreen-overlay bg-[#030508]">
       <BackBar label="Flur" onBack={() => setCorridorDialog(null)} />
       <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2"><DialogView dialog={corridorDialog.dialog} person={corridorDialog.person} onComplete={handleDialogComplete} /></div>
+    </div>
+  );
+
+  // 3d. World-flow dialog (in-story phone calls / Sam conversations)
+  if (worldDialog) return (
+    <div className="fullscreen-overlay bg-[#030508]">
+      <BackBar label="NEXUS" onBack={() => { acknowledgePendingWorldDialog(); setWorldDialog(null); }} />
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+        <DialogView dialog={worldDialog.dialog} person={worldDialog.person} onComplete={handleWorldDialogComplete} />
+      </div>
     </div>
   );
 

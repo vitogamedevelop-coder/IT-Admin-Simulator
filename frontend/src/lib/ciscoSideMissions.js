@@ -5,6 +5,7 @@ import { createCiscoDevice, executeCommand, renderRunningConfig } from './ciscoC
 import { recordSkillEvent, SKILL_DIMENSION, SKILL_SOURCE } from './skillTree.js';
 import { HINT_LEVEL_LABELS, createHintState, getNextHint, consumeHint, revealSolution, defineHintLadder } from './missionHintSystem.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
+import { getKnownCredentials, formatCredentialTemplate } from './credentials.js';
 
 export const SIDE_MISSION_001_ID = 'cisco-side-basic-001';
 export const SIDE_MISSION_002_ID = 'cisco-side-basic-002';
@@ -244,8 +245,10 @@ function renderRunningConfigContains(device, needle) {
 
 export function generateSideMission003(seed = Date.now()) {
   const rng = seededRng(seed);
-  const username = ['admin', 'root', 'manager', 'netadmin'][Math.floor(rng() * 4)];
-  const userSecret = generateSecret(rng);
+  const known = getKnownCredentials();
+  const fallbackUsername = ['admin', 'root', 'manager', 'netadmin'][Math.floor(rng() * 4)];
+  const username = known.localAdminUsername || fallbackUsername;
+  const userSecret = known.localAdminPassword || generateSecret(rng);
   const consolePassword = generateSecret(rng);
   return {
     missionId: SIDE_MISSION_003_ID,
@@ -257,10 +260,11 @@ export function generateSideMission003(seed = Date.now()) {
       username,
       userSecret,
       consolePassword,
+      usesKnownCredentials: known.localAdminUsername != null,
     },
-    briefing: `Sam:
+    briefing: formatCredentialTemplate(`Sam:
 
-„Auf dem Gerät existiert bereits ein lokaler Admin-Benutzer. Trotzdem wird beim Konsolenzugang nur das gemeinsame Konsolenpasswort verwendet.“
+„Auf dem Gerät existiert bereits ein lokaler Admin-Benutzer ([username]). Trotzdem wird beim Konsolenzugang nur das gemeinsame Konsolenpasswort verwendet.“
 
 „Ich möchte, dass sich Mitarbeiter dort mit ihrem lokalen Benutzerkonto anmelden.“
 
@@ -268,7 +272,7 @@ Aufgabe:
 1. Untersuche die aktuelle Konfiguration.
 2. Erkenne, dass die Console-Line noch "login" und nicht "login local" verwendet.
 3. Ändere die Authentifizierung auf "login local".
-4. Speichere die Konfiguration dauerhaft.`,
+4. Speichere die Konfiguration dauerhaft.`),
   };
 }
 
@@ -347,6 +351,8 @@ const DEVICE_CREATORS = {
   [SIDE_MISSION_002_ID]: createSide002Device,
   [SIDE_MISSION_003_ID]: createSide003Device,
 };
+
+export { createSide001Device, createSide002Device, createSide003Device };
 
 const PROGRESS_GETTERS = {
   [SIDE_MISSION_001_ID]: getSide001Progress,

@@ -13,7 +13,8 @@ import {
   getDisplayVoiceLabel,
   voiceKeyFromVoice,
   openTtsSettings,
-  getTtsDiagnostics,
+  getTtsVoiceDiagnostics,
+  getSelectedVoice,
   speakWithVoice,
   speak,
   stop,
@@ -56,6 +57,7 @@ export default function Settings() {
   const [speaking, setSpeaking] = useState(false);
   const [diagnostics, setDiagnostics] = useState('');
   const [diagLoading, setDiagLoading] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState(null);
   const hasTts = isSupported();
   const hasNativeTts = isNativeTtsSupported();
 
@@ -64,7 +66,7 @@ export default function Settings() {
     if (!hasNativeTts) return;
     setDiagLoading(true);
     try {
-      const diag = await getTtsDiagnostics();
+      const diag = await getTtsVoiceDiagnostics();
       setDiagnostics(diag);
     } catch (err) {
       setDiagnostics(`ERR: ${err?.message || err}`);
@@ -80,7 +82,7 @@ export default function Settings() {
   }
 
   function isVoiceSelected(voice) {
-    const key = settings.voiceKey;
+    const key = selectedVoice ? voiceKeyFromVoice(selectedVoice) : settings.voiceKey;
     if (!key) return false;
     if (key.uri && voice.voiceURI === key.uri) return true;
     if (key.name && voice.name === key.name) return true;
@@ -88,23 +90,16 @@ export default function Settings() {
   }
 
   async function playTest() {
-    await stop();
+    const selected = await getSelectedVoice();
     setSpeaking(true);
-    if (settings.useSystemVoice) {
+    if (selected.useSystemVoice || !selected.voice) {
       await speak(TEST_SENTENCE, {
         onStart: () => setSpeaking(true),
         onEnd: () => setSpeaking(false),
         onError: () => setSpeaking(false),
       });
     } else {
-      const chosen = settings.voiceKey
-        ? voices.find((v) => isVoiceSelected(v))
-        : voices[0];
-      if (!chosen) {
-        setSpeaking(false);
-        return;
-      }
-      await speakWithVoice(TEST_SENTENCE, chosen, {
+      await speakWithVoice(TEST_SENTENCE, selected.voice, {
         onStart: () => setSpeaking(true),
         onEnd: () => setSpeaking(false),
         onError: () => setSpeaking(false),
@@ -129,6 +124,18 @@ export default function Settings() {
     }
     window.location.href = '/';
   }
+
+  useEffect(() => {
+    if (!isSupported() || settings.useSystemVoice) {
+      setSelectedVoice(null);
+      return undefined;
+    }
+    let mounted = true;
+    getSelectedVoice().then((selected) => {
+      if (mounted) setSelectedVoice(selected.voice || null);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, [voices, settings.useSystemVoice, settings.voiceKey]);
 
   useAppBack();
 
@@ -183,7 +190,7 @@ export default function Settings() {
                     onChange={(e) => updateSettings({ useSystemVoice: e.target.checked })}
                     className="h-4 w-4 accent-[#00f0ff]"
                   />
-                  <label htmlFor="tts-system-voice" className="text-sm text-[#c9d1d9]">Systemstimme verwenden (empfohlen)</label>
+                  <label htmlFor="tts-system-voice" className="text-sm text-[#c9d1d9]">Systemstimme verwenden</label>
                 </div>
               )}
 

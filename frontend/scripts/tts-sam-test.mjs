@@ -54,11 +54,12 @@ console.log('Feature flag and environment support');
   test('getTtsSettings() returns default settings', () => {
     const settings = getTtsSettings();
     assert.equal(settings.enabled, true);
-    assert.equal(settings.voiceId, null);
+    assert.equal(settings.useSystemVoice, false);
+    assert.equal(settings.voiceKey, null);
   });
 
   test('setTtsSettings() works without localStorage', () => {
-    assert.doesNotThrow(() => setTtsSettings({ enabled: false, voiceId: { index: 1, voiceURI: 'test' } }));
+    assert.doesNotThrow(() => setTtsSettings({ enabled: false, voiceKey: { uri: 'test', name: 'Test', lang: 'de-DE' } }));
   });
 
   testAsync('speak() does not throw in Node.js', async () => {

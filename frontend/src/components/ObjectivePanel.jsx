@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, BookOpen, Shield, MessageSquare, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
-import { getCurrentPlayerObjectives } from '../lib/objectives';
-import { loadActiveMission, MISSION_001_ID } from '../lib/missionV2';
-import { readGameState } from '../lib/gameState';
+import { getCurrentPlayerObjectives, getTopObjective } from '../lib/objectives';
 
 const POSITION_KEY = 'cyberlearn:current-goal-panel-position-v1';
 const CLICK_THRESHOLD = 5; // px
@@ -228,13 +226,19 @@ export default function ObjectivePanel({ overrideObjective = null }) {
   }
 
   const objectives = getCurrentPlayerObjectives();
-  const gameState = readGameState();
-  const activeMission = gameState.activeQuest === MISSION_001_ID ? loadActiveMission() : null;
-  const currentObjective = overrideObjective
-    || (activeMission ? { title: activeMission.scenario.title } : null)
-    || objectives.main?.quest
-    || objectives.learning;
-  const learningLabel = currentObjective ? currentObjective.title : 'Alle Lernziele abgeschlossen';
+  const top = getTopObjective(objectives);
+  const learningLabel = overrideObjective?.title
+    || (top ? (top.item.title || top.item.quest?.title || 'Verfügbar') : 'Alle Ziele abgeschlossen');
+
+  const sectionOrder = [
+    { key: 'main', data: objectives.main, score: objectives.relevance.main },
+    { key: 'side', data: objectives.side, score: objectives.relevance.side },
+    { key: 'learning', data: objectives.learning, score: objectives.relevance.learning },
+  ].filter((s) => {
+    if (!s.data) return false;
+    if (Array.isArray(s.data) && s.data.length === 0) return false;
+    return true;
+  }).sort((a, b) => b.score - a.score);
 
   const isPositioned = position.x !== null && position.y !== null;
   const style = isPositioned
@@ -283,81 +287,84 @@ export default function ObjectivePanel({ overrideObjective = null }) {
             </button>
           </div>
 
-          {/* Learning */}
-          <div className="mb-3">
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#00f0ff]">
-              <BookOpen size={12} /> Lernen bei Sam
-            </div>
-            {objectives.learning ? (
-              <div className="rounded-lg border border-[#30363d] bg-[#0a1628]/60 p-2">
-                <div className="text-sm font-medium text-white">{objectives.learning.title}</div>
-                <div className="mt-1 text-xs text-[#8b949e]">Fortschritt: {objectives.learning.progress}%</div>
-                <div className="mt-1 text-xs text-[#ffcc00]">{objectives.learning.nextStepText}</div>
-                <button
-                  onClick={() => { setExpanded(false); navigate(`/academy/${objectives.learning.categoryId}/${objectives.learning.topicId}`); }}
-                  className="mt-2 w-full rounded-md border border-[#00f0ff]/30 px-2 py-1.5 text-xs text-[#00f0ff] hover:bg-[#00f0ff]/10"
-                >
-                  Zu Sam
-                </button>
-              </div>
-            ) : (
-              <p className="text-xs text-[#8b949e]">Aktuell keine offenen Lernziele.</p>
-            )}
-          </div>
+          {sectionOrder.length === 0 && (
+            <p className="text-xs text-[#8b949e]">Aktuell keine offenen Ziele.</p>
+          )}
 
-          {/* Main mission */}
-          <div className="mb-3">
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#00ff66]">
-              <Shield size={12} /> Hauptmission
-            </div>
-            {objectives.main ? (
-              <div className="rounded-lg border border-[#30363d] bg-[#0a1628]/60 p-2">
-                <div className="text-sm font-medium text-white">{objectives.main.quest.title}</div>
-                {!objectives.main.available && (
-                  <>
-                    <div className="mt-1 text-xs text-[#ffcc00]">Noch nicht verfügbar</div>
-                    <ul className="mt-1 list-disc pl-4 text-xs text-[#8b949e]">
-                      {objectives.main.reasons.map((r, i) => <li key={i}>{r}</li>)}
-                    </ul>
-                  </>
-                )}
-                {objectives.main.available && (
-                  <button
-                    onClick={() => { setExpanded(false); navigate(`/mission/${objectives.main.quest.id}`); }}
-                    className="mt-2 w-full rounded-md bg-[#00ff66]/10 px-2 py-1.5 text-xs font-medium text-[#00ff66] hover:bg-[#00ff66]/20"
-                  >
-                    Mission starten
-                  </button>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-[#8b949e]">Keine weiteren Hauptmissionen verfügbar.</p>
-            )}
-          </div>
-
-          {/* Side missions */}
-          <div>
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#8b949e]">
-              <MessageSquare size={12} /> Nebenmissionen
-            </div>
-            {objectives.side.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {objectives.side.map((mission) => (
-                  <div key={mission.id} className="rounded-lg border border-[#30363d] bg-[#0a1628]/60 p-2">
-                    <div className="text-xs text-[#c9d1d9]">{mission.title}</div>
+          {sectionOrder.map(({ key, data }, idx) => {
+            const isLast = idx === sectionOrder.length - 1;
+            if (key === 'learning' && data) {
+              return (
+                <div key={key} className={isLast ? '' : 'mb-3'}>
+                  <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#00f0ff]">
+                    <BookOpen size={12} /> Lernen bei Sam
+                  </div>
+                  <div className="rounded-lg border border-[#30363d] bg-[#0a1628]/60 p-2">
+                    <div className="text-sm font-medium text-white">{data.title}</div>
+                    <div className="mt-1 text-xs text-[#8b949e]">Fortschritt: {data.progress}%</div>
+                    <div className="mt-1 text-xs text-[#ffcc00]">{data.nextStepText}</div>
                     <button
-                      onClick={() => { setExpanded(false); navigate(`/side-mission/${mission.id}`); }}
-                      className="mt-1.5 w-full rounded-md border border-[#8b949e]/30 px-2 py-1 text-[10px] text-[#8b949e] hover:bg-white/5"
+                      onClick={() => { setExpanded(false); navigate(`/academy/${data.categoryId}/${data.topicId}`); }}
+                      className="mt-2 w-full rounded-md border border-[#00f0ff]/30 px-2 py-1.5 text-xs text-[#00f0ff] hover:bg-[#00f0ff]/10"
                     >
-                      Annehmen
+                      Zu Sam
                     </button>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-[#8b949e]">Keine offenen Nebenmissionen.</p>
-            )}
-          </div>
+                </div>
+              );
+            }
+            if (key === 'main' && data) {
+              return (
+                <div key={key} className={isLast ? '' : 'mb-3'}>
+                  <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#00ff66]">
+                    <Shield size={12} /> Hauptmission
+                  </div>
+                  <div className="rounded-lg border border-[#30363d] bg-[#0a1628]/60 p-2">
+                    <div className="text-sm font-medium text-white">{data.quest.title}</div>
+                    {!data.available && (
+                      <>
+                        <div className="mt-1 text-xs text-[#ffcc00]">Noch nicht verfügbar</div>
+                        <ul className="mt-1 list-disc pl-4 text-xs text-[#8b949e]">
+                          {data.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                        </ul>
+                      </>
+                    )}
+                    {data.available && (
+                      <button
+                        onClick={() => { setExpanded(false); navigate(`/mission/${data.quest.id}`); }}
+                        className="mt-2 w-full rounded-md bg-[#00ff66]/10 px-2 py-1.5 text-xs font-medium text-[#00ff66] hover:bg-[#00ff66]/20"
+                      >
+                        Mission starten
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            if (key === 'side' && data.length > 0) {
+              return (
+                <div key={key} className={isLast ? '' : 'mb-3'}>
+                  <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#8b949e]">
+                    <MessageSquare size={12} /> Nebenmissionen
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {data.map((mission) => (
+                      <div key={mission.id} className="rounded-lg border border-[#30363d] bg-[#0a1628]/60 p-2">
+                        <div className="text-xs text-[#c9d1d9]">{mission.title}</div>
+                        <button
+                          onClick={() => { setExpanded(false); navigate(`/side-mission/${mission.id}`); }}
+                          className="mt-1.5 w-full rounded-md border border-[#8b949e]/30 px-2 py-1 text-[10px] text-[#8b949e] hover:bg-white/5"
+                        >
+                          Annehmen
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
         </div>
       )}
     </div>

@@ -165,12 +165,55 @@ export function getRecommendedSideMissions(limit = 2) {
   return result;
 }
 
+function relevanceForMain(main) {
+  if (!main) return 0;
+  if (main.available) return 90;
+  const sideSatisfied = main.sideProgress && main.sideProgress.completed >= main.sideProgress.needed;
+  if (main.quest?.gate && sideSatisfied) return 60;
+  if (main.quest?.gate) return 10;
+  return 20;
+}
+
+function relevanceForSide(side, state) {
+  if (!side || side.length === 0) return 0;
+  // Cisco side missions are progress-relevant until the next main gate is satisfied.
+  const completed = (state.completedSideMissions || []).length + (state.completedCiscoSideMissions || []).length;
+  const nextMain = getNextMainMission();
+  const needed = nextMain ? nextMain.sideProgress?.needed || 0 : 0;
+  const progressRelevant = nextMain && nextMain.quest?.gate && completed < needed;
+  return progressRelevant ? 80 : 40;
+}
+
+function relevanceForLearning(learning) {
+  return learning ? 30 : 0;
+}
+
 export function getCurrentPlayerObjectives() {
+  const state = readGameState();
+  const learning = getRecommendedLearningTopic();
+  const main = getNextMainMission();
+  const side = getRecommendedSideMissions(2);
+
   return {
-    learning: getRecommendedLearningTopic(),
-    main: getNextMainMission(),
-    side: getRecommendedSideMissions(2),
+    learning,
+    main,
+    side,
+    relevance: {
+      learning: relevanceForLearning(learning),
+      main: relevanceForMain(main),
+      side: relevanceForSide(side, state),
+    },
   };
+}
+
+export function getTopObjective(objectives = getCurrentPlayerObjectives()) {
+  const entries = [
+    { key: 'learning', item: objectives.learning, score: objectives.relevance.learning },
+    { key: 'main', item: objectives.main, score: objectives.relevance.main },
+    { key: 'side', item: objectives.side, score: objectives.relevance.side },
+  ];
+  const sorted = entries.filter((e) => e.item && e.score > 0).sort((a, b) => b.score - a.score);
+  return sorted[0] || null;
 }
 
 // Map side-mission topics to the Academy topic that should receive retention points.

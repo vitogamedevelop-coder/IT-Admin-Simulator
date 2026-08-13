@@ -4,8 +4,12 @@ import { applyMainMission } from './academyEngine.js';
 
 const KEY = 'it-learn:rpg-state-v1';
 
+function createKnownCredentials() {
+  return { enableSecret: null, localAdminUsername: null, localAdminPassword: null };
+}
+
 const initialState = {
-  stateVersion: 5,
+  stateVersion: 7,
   contentPackVersion: 1,
   company: 'NEXUS Systems',
   // Purely local display name (no account, no PII beyond a self-chosen
@@ -41,6 +45,9 @@ const initialState = {
   investigatedScenarios: {},
   importQueue: [],
   importedContentIds: [],
+  knownCredentials: createKnownCredentials(),
+  dispatchedWorldEvents: [],
+  pendingWorldDialog: null,
 };
 
 function cloneInitial() {
@@ -62,14 +69,6 @@ function migrateState(saved) {
     migrated.importQueue = saved.importQueue || [];
     migrated.importedContentIds = saved.importedContentIds || [];
   }
-  if (!saved.stateVersion || saved.stateVersion < 4) {
-    migrated.stateVersion = 4;
-    migrated.playerName = saved.playerName || null;
-  }
-  if (!saved.stateVersion || saved.stateVersion < 6) {
-    migrated.stateVersion = 6;
-    migrated.completedCiscoSideMissions = saved.completedCiscoSideMissions || [];
-  }
   if (!saved.stateVersion || saved.stateVersion < 5) {
     // Phase 0 reset: legacy mission progress is cleared so the new adaptive
     // mission system starts from a clean slate. Academy progress is stored
@@ -83,6 +82,20 @@ function migrateState(saved) {
     migrated.sideMissionsResolved = 0;
     migrated.generatedTicketHistory = [];
     migrated.reputation = { ...initialState.reputation };
+  }
+  if (!saved.stateVersion || saved.stateVersion < 4) {
+    migrated.stateVersion = 4;
+    migrated.playerName = saved.playerName || null;
+  }
+  if (!saved.stateVersion || saved.stateVersion < 6) {
+    migrated.stateVersion = 6;
+    migrated.completedCiscoSideMissions = saved.completedCiscoSideMissions || [];
+  }
+  if (!saved.stateVersion || saved.stateVersion < 7) {
+    migrated.stateVersion = 7;
+    migrated.knownCredentials = saved.knownCredentials || createKnownCredentials();
+    migrated.dispatchedWorldEvents = saved.dispatchedWorldEvents || [];
+    migrated.pendingWorldDialog = saved.pendingWorldDialog || null;
   }
   return migrated;
 }

@@ -31,6 +31,7 @@ import {
   SIDE_003_REQUIREMENTS,
 } from '../lib/ciscoSideMissions';
 import { completeQuest, setActiveQuest, completeCiscoSideMission } from '../lib/gameState';
+import { recordKnownCredentialsFromMission001 } from '../lib/credentials';
 import { buildPrompt, getCommandHelp, completeInput } from '../lib/ciscoCliEngine';
 import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield } from 'lucide-react';
 
@@ -53,9 +54,12 @@ const RUNTIME = {
     consumeHint: (state, req) => consumeMissionHint(state, req),
     revealSolution: (state, req) => revealMissionSolution(state, req),
     requirements: MISSION_001_REQUIREMENTS,
-    complete: () => {
+    complete: (state) => {
       const quest = { id: MISSION_001_ID };
       completeQuest(quest, { xp: 60, reputation: { network: 5, management: 3 } });
+      if (state?.device && state?.scenario) {
+        recordKnownCredentialsFromMission001(state.device, state.scenario);
+      }
       clearActiveMission();
     },
   },

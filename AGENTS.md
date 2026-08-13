@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **1.23.0**
+Aktuelle Version: **1.24.0**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
@@ -1326,3 +1326,101 @@ Mission 001 abschließen und drei kleine Cisco-Grundkonfig-Nebenmissionen ergän
 - Keine Hauptmission 002.
 - Keine VLAN/Router/SSH/ACL/NAT-Features.
 - Auf echtem Android-Gerät testen.
+
+## Mission System V2 Phase 1E: World Flow, Credential Continuity & TTS-Polish
+
+### Ziel
+Nach Mission 001 kein toter Ausgang mehr. Neue Aufgaben erreichen den Spieler über in-world Kanäle (Sam-Gespräch, E-Mail, Telefon), und das ObjectivePanel priorisiert danach, was gerade relevant ist. Zusätzlich werden gerade in Mission 001 erzeugte Credentials in späteren Einsätzen wiederverwendet, der IOS-Modus wird poliert und die TTS-Stimmenerkennung repariert.
+
+### Neue Dateien
+- `frontend/src/lib/credentials.js` – Zentrale Credential-Verwaltung (`knownCredentials`) und Platzhalterersetzung.
+- `frontend/src/lib/worldDispatcher.js` – Datengesteuerter Dispatcher für Story-Events nach Mission 001.
+- `frontend/scripts/world-flow-test.mjs` – Integrationstest: Sam-Dialog, E-Mail, Telefon, Reihenfolge, ObjectivePanel-Priorität.
+- `frontend/scripts/cisco-credentials-test.mjs` – Testet Mission-001-Credential-Speicherung und Wiederverwendung in Side 003.
+- `frontend/scripts/cisco-ios-mode-test.mjs` – Regressionstest für `do`, `exit`, `end`, keine Parent-Mode-Fallbacks.
+- `frontend/scripts/tts-voice-selection-test.mjs` – Tests für Voice Discovery, deutsche männliche Stimme, Persistenz, Diagnose.
+
+### Geänderte Dateien
+- `frontend/src/lib/gameState.js` – `stateVersion` 7, Felder `knownCredentials`, `dispatchedWorldEvents`, `pendingWorldDialog`.
+- `frontend/src/lib/missionV2.js` – `MISSION_001_ID` exportiert; `evaluateMission001` vereinfacht.
+- `frontend/src/pages/MissionV2.jsx` – Speichert Credentials beim erfolgreichen Abschluss von Mission 001.
+- `frontend/src/lib/ciscoSideMissions.js` – Side 003 verwendet `knownCredentials` statt Zufallswerte.
+- `frontend/src/lib/objectives.js` – Relevanzscoring für Lernen / Hauptmission / Nebenmission; `getTopObjective`.
+- `frontend/src/components/ObjectivePanel.jsx` – Sektionen nach Relevanz sortiert; Top-Ziel oben.
+- `frontend/src/pages/Workspace.jsx` – Startet `processWorldEvents` beim Betreten des Arbeitsplatzes; rendert eingehende World-Dialogs.
+- `frontend/src/components/PhoneApp.jsx` – Zeigt eingehende Telefonanrufe aus `notificationSystem` und leitet Side-Missions weiter.
+- `frontend/src/components/EmailApp.jsx` – Cisco-Side-Missions nutzen jetzt `/side-mission/<id>`.
+- `frontend/src/lib/speechSynthesis.js` – Robuste Native-Voice-Discovery mit Retry, bevorzugte deutsche männliche Stimme, Persistenz, Diagnose.
+- `frontend/src/pages/Settings.jsx` – Stimmentest mit aktuell ausgewählter Stimme, Diagnose-Button.
+- `frontend/package.json`, `frontend/src/lib/version.js`, `frontend/public/version.json` – **1.24.0**.
+
+### World Flow nach Mission 001
+1. `completeQuest(MISSION_001_ID)` wird in `MissionV2.jsx` aufgerufen.
+2. `recordKnownCredentialsFromMission001(device, scenario)` speichert `enableSecret`, `localAdminUsername`, `localAdminPassword`.
+3. Beim nächsten Betreten des Arbeitsplatzes (`Workspace.jsx`) ruft `processWorldEvents()` die Dispatcher-Tabelle ab:
+   - `post-main-001-sam`: Sam spricht den Spieler an (Dialog) und kündigt die drei Folgeaufträge an.
+   - `side-001-mail`: E-Mail von Sam mit Console-Security-Auftrag.
+4. Nach Abschluss von Side 001:
+   - `side-002-phone`: Telefonbenachrichtigung von Mara König über `service password-encryption`.
+5. Nach Abschluss von Side 002:
+   - `side-003-sam`: persönliches Gespräch mit Sam über `login local`.
+6. Side-Missions werden über bestehende `sideMissionEngine` / `notificationSystem` kanalisiert; `Inbox.jsx` und `PhoneApp.jsx` leiten auf `/side-mission/<id>`.
+
+### ObjectivePanel-Priorität
+- `relevance.main = 90` wenn freigeschaltet, sonst 10 wenn Gate noch gesperrt.
+- `relevance.main = 60` sobald die Voraussetzungen für das nächste Gate erfüllt sind.
+- `relevance.side = 80`, solange sie für das nächste Story-Gate zählen, sonst 40.
+- `relevance.learning = 30`.
+- Anzeige im Panel entspricht der absteigenden Relevanz.
+
+### Credential Continuity
+- In `credentials.js` werden bekannte Credentials zentral verwaltet.
+- Briefings können Platzhalter `[username]`, `[password]`, `[enableSecret]` enthalten; `formatCredentialTemplate` löst sie auf.
+- Side 003 initialisiert den lokalen Admin-Benutzer mit dem aus Mission 001 bekannten Wert, damit der Einsatz konsistent bleibt.
+- Ohne bekannte Credentials werden weiterhin zufällige, aber stabile Fallback-Werte generiert.
+
+### IOS Mode Polish
+- `do <cmd>` in allen Config-Modi funktioniert und erhält den aktuellen Modus.
+- `exit` springt korrekt INTERFACE_CONFIG → GLOBAL_CONFIG → PRIVILEGED_EXEC.
+- `end` springt aus allen Config-Modi direkt in PRIVILEGED_EXEC und räumt `currentInterface` / `currentLine` auf.
+- Kein Parent-Mode-Fallback: Befehle, die im aktuellen Modus nicht existieren, liefern `UNKNOWN_COMMAND`/`INVALID_ARGUMENT`.
+
+### TTS Regression Fix
+- Native Voice Discovery mit Retry, Timeout und Cooldown; leere/Time-out-Listen werden nicht ewig gecacht.
+- `useSystemVoice` default `false`.
+- Bevorzugte deutsche männliche Google-TTS-Voices (z. B. `de-de-x-gpp-local`) als Fallback.
+- `getSelectedVoice()` liefert die tatsächlich aufgelöste Stimme.
+- `getTtsVoiceDiagnostics()` zeigt Discovery-Status, Anzahl Stimmen, gespeicherte Stimme und Auswahl.
+
+### Tests
+| Test | Ergebnis |
+|---|---|
+| `node scripts/world-flow-test.mjs` | ✅ |
+| `node scripts/cisco-credentials-test.mjs` | ✅ |
+| `node scripts/cisco-ios-mode-test.mjs` | ✅ |
+| `node scripts/tts-voice-selection-test.mjs` | ✅ |
+| `node scripts/cisco-cli-engine-test.mjs` | ✅ |
+| `node scripts/mission-v2-basic-config-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-ux-test.mjs` | ✅ |
+| `node scripts/mission-v2-cli-editor-test.mjs` | ✅ |
+| `node scripts/mission-v2-exec-timeout-test.mjs` | ✅ |
+| `node scripts/mission-v2-runtime-routing-test.mjs` | ✅ |
+| `node scripts/mission-v2-goal-panel-test.mjs` | ✅ |
+| `node scripts/mission-v2-foundation-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-test.mjs` | ✅ |
+| `node scripts/mission-v2-skilltree-runtime-test.mjs` | ✅ |
+| `node scripts/cisco-prefix-collision-test.mjs` | ✅ |
+| `node scripts/cisco-side-missions-smoke-test.mjs` | ✅ |
+| `node scripts/tts-sam-test.mjs` | ✅ |
+
+### Acceptance checks
+- `npm run lint` ✅ (0 Fehler, nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅, archiviert.
+
+### Stop-Bedingung
+- Keine Hauptmission 002.
+- Keine neuen Cisco-Themen außer den drei Grundkonfig-Side-Missions.
+- Auf echtem Android-Gerät testen (insbesondere TTS-Stimmenauswahl).
+- Kein Push, kein Deployment außerhalb des vereinbarten Ablaufs.

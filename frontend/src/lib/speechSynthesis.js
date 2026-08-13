@@ -5,30 +5,52 @@ export const ENABLE_SAM_TTS_TEST = true;
 const TTS_SETTINGS_KEY = 'it-learn:tts-settings-v3';
 const LEGACY_TTS_SETTINGS_KEY = 'it-learn:tts-settings-v2';
 
+// Test-only configuration hook.  In production this is always undefined.
+const TEST_CONFIG = (typeof globalThis !== 'undefined' && globalThis.__TTS_TEST_CONFIG__) || {};
+
+const VOICE_DISCOVERY_TIMEOUT_MS = TEST_CONFIG.discoveryTimeoutMs ?? 5000;
+const VOICE_DISCOVERY_INITIAL_DELAY_MS = TEST_CONFIG.discoveryInitialDelayMs ?? 100;
+const VOICE_DISCOVERY_MAX_DELAY_MS = TEST_CONFIG.discoveryMaxDelayMs ?? 800;
+const VOICE_DISCOVERY_EMPTY_COOLDOWN_MS = TEST_CONFIG.discoveryEmptyCooldownMs ?? 2000;
+
 let nativeTtsAvailable = null;
 let nativeVoices = null;
 let nativeInitPromise = null;
+let nativeInitPromiseGeneration = 0;
+let nativeDiscoveryStatus = 'idle';
+let lastNativeDiscoveryAt = 0;
+let nativeDiscoveryGeneration = 0;
 let webVoiceCache = null;
 let webVoiceCachePromise = null;
 
-// Lazy, safe Capacitor import.
+// Lazy, safe Capacitor import.  A test harness can inject a mock before this
+// module is imported by setting globalThis.__CAPACITOR_TTS_MOCK__.
 let CapacitorTTS = null;
 let Capacitor = null;
 
-try {
-  // eslint-disable-next-line import/no-unresolved
-  const ttsModule = await import('@capacitor-community/text-to-speech');
-  CapacitorTTS = ttsModule.TextToSpeech || null;
-} catch {
-  CapacitorTTS = null;
+const INJECTED_MOCK = (typeof globalThis !== 'undefined' && globalThis.__CAPACITOR_TTS_MOCK__) || null;
+
+if (INJECTED_MOCK) {
+  CapacitorTTS = INJECTED_MOCK.tts || null;
+  Capacitor = INJECTED_MOCK.capacitor || null;
 }
 
-try {
-  // eslint-disable-next-line import/no-unresolved
-  const capModule = await import('@capacitor/core');
-  Capacitor = capModule.Capacitor || null;
-} catch {
-  Capacitor = null;
+if (!CapacitorTTS || !Capacitor) {
+  try {
+    // eslint-disable-next-line import/no-unresolved
+    const ttsModule = await import('@capacitor-community/text-to-speech');
+    CapacitorTTS = ttsModule.TextToSpeech || null;
+  } catch {
+    CapacitorTTS = null;
+  }
+
+  try {
+    // eslint-disable-next-line import/no-unresolved
+    const capModule = await import('@capacitor/core');
+    Capacitor = capModule.Capacitor || null;
+  } catch {
+    Capacitor = null;
+  }
 }
 
 function isNativePlatform() {
@@ -85,7 +107,7 @@ function migrateLegacySettings(raw) {
     if (legacy.voiceId && legacy.voiceId.voiceURI) {
       return {
         enabled: legacy.enabled !== false,
-        useSystemVoice: legacy.useSystemVoice !== false,
+        useSystemVoice: legacy.useSystemVoice === true,
         voiceKey: {
           uri: legacy.voiceId.voiceURI,
           name: legacy.voiceId.name || '',
@@ -100,7 +122,7 @@ function migrateLegacySettings(raw) {
 }
 
 export function getTtsSettings() {
-  const defaults = { enabled: true, useSystemVoice: true, voiceKey: null };
+  const defaults = { enabled: true, useSystemVoice: false, voiceKey: null };
   try {
     const raw = localStorage.getItem(TTS_SETTINGS_KEY);
     if (raw) {
@@ -146,20 +168,82 @@ export async function getTtsDiagnostics() {
 // ---------- Voice discovery ----------
 
 async function initializeNativeTTS() {
-  if (nativeInitPromise) return nativeInitPromise;
+  const now = Date.now();
+
+  // Already discovered voices – nothing to do.
+  if (nativeVoices && nativeVoices.length > 0) {
+    return Promise.resolve();
+  }
+
+  // A discovery run is currently in progress (and not stale).
+  if (nativeInitPromise && nativeDiscoveryStatus === 'pending' && nativeInitPromiseGeneration === nativeDiscoveryGeneration) {
+    return nativeInitPromise;
+  }
+
+  // A recent empty/timeout result is still cooling down.  This prevents
+  // hammering the native plugin when it is genuinely not ready.
+  if (nativeInitPromise && now - lastNativeDiscoveryAt < VOICE_DISCOVERY_EMPTY_COOLDOWN_MS && nativeInitPromiseGeneration === nativeDiscoveryGeneration) {
+    return nativeInitPromise;
+  }
+
+  // Otherwise start a fresh discovery run.  Do not permanently cache an
+  // empty list: a previous timeout can be retried on the next call.
+  nativeInitPromise = null;
+  const runGeneration = ++nativeDiscoveryGeneration;
+  nativeInitPromiseGeneration = runGeneration;
+
+  const isStale = () => runGeneration !== nativeDiscoveryGeneration;
+
   if (!CapacitorTTS || !isNativePlatform()) {
     nativeInitPromise = Promise.resolve();
+    if (isStale()) return;
+    nativeDiscoveryStatus = 'n/a';
+    lastNativeDiscoveryAt = now;
     return nativeInitPromise;
   }
 
   nativeInitPromise = (async () => {
-    try {
-      const { voices } = await CapacitorTTS.getSupportedVoices();
-      nativeVoices = (voices || []).map((v, i) => ({ ...v, index: i }));
-    } catch (err) {
+    if (isStale()) return;
+    nativeDiscoveryStatus = 'pending';
+    const startTime = Date.now();
+    let delay = VOICE_DISCOVERY_INITIAL_DELAY_MS;
+    let attempts = 0;
+    let lastError = null;
+
+    while (Date.now() - startTime < VOICE_DISCOVERY_TIMEOUT_MS) {
+      attempts += 1;
+      try {
+        const result = await CapacitorTTS.getSupportedVoices();
+        const voices = (result?.voices || []).map((v, i) => ({ ...v, index: i }));
+        if (isStale()) return;
+        if (voices.length > 0) {
+          nativeDiscoveryStatus = 'ready';
+          nativeVoices = voices;
+          lastNativeDiscoveryAt = Date.now();
+          return;
+        }
+        nativeDiscoveryStatus = 'empty';
+      } catch (err) {
+        if (isStale()) return;
+        lastError = err;
+        nativeDiscoveryStatus = 'error';
+        // eslint-disable-next-line no-console
+        console.warn(`[TTS] voice discovery attempt ${attempts} failed:`, err);
+      }
+
+      await new Promise((resolve) => { setTimeout(resolve, delay); });
+      delay = Math.min(delay * 2, VOICE_DISCOVERY_MAX_DELAY_MS);
+    }
+
+    // Timed out.  Keep the promise resolved but leave the door open for
+    // another discovery attempt once the cooldown has passed.
+    if (isStale()) return;
+    nativeDiscoveryStatus = 'timeout';
+    nativeVoices = nativeVoices || [];
+    lastNativeDiscoveryAt = Date.now();
+    if (lastError) {
       // eslint-disable-next-line no-console
-      console.warn('[TTS] failed to load native voices:', err);
-      nativeVoices = [];
+      console.warn('[TTS] voice discovery timed out:', lastError);
     }
   })();
 
@@ -245,11 +329,34 @@ async function findWebVoiceByKey(key) {
   return voices.find((v) => voiceMatchesKey(v, key)) || null;
 }
 
+const PREFERRED_MALE_GERMAN_URIS = [
+  'de-de-x-gpp-local',
+  'de-de-x-rif-local',
+  'de-de-x-lfs-local',
+  'de-de-x-rad-local',
+  'de-de-x-gbf-local',
+  'de-de-x-jis-local',
+];
+
+function normalizeVoiceUri(uri) {
+  if (!uri) return '';
+  return String(uri).split('?')[0].replace(/^urn:moz-tts:/, '');
+}
+
+function isPreferredMaleGermanVoice(voice) {
+  const normalized = normalizeVoiceUri(voice.voiceURI);
+  return PREFERRED_MALE_GERMAN_URIS.includes(normalized);
+}
+
 function pickFallbackVoice(voices) {
   if (!voices || voices.length === 0) return null;
   const deVoices = voices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
   if (deVoices.length) {
-    return deVoices.find((v) => v.localService) || deVoices[0];
+    const male = deVoices.find((v) => isPreferredMaleGermanVoice(v));
+    if (male) return male;
+    const local = deVoices.find((v) => v.localService);
+    if (local) return local;
+    return deVoices[0];
   }
   return voices[0];
 }
@@ -287,6 +394,10 @@ async function selectVoice() {
   return { index: null, useSystemVoice: false, voice: fallback };
 }
 
+export async function getSelectedVoice() {
+  return selectVoice();
+}
+
 export function getDisplayVoiceLabel(voice) {
   if (!voice) return 'Unbekannt';
   if (voice.voiceURI) return `${voice.name || voice.lang} – ${voice.voiceURI}`;
@@ -311,6 +422,34 @@ export async function openTtsSettings() {
       console.warn('[TTS] openInstall failed:', err);
     }
   }
+}
+
+export async function getTtsVoiceDiagnostics() {
+  const raw = await getTtsDiagnostics();
+  const selected = await getSelectedVoice();
+  const voices = await getVoices();
+  const germanVoices = voices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
+  const settings = getTtsSettings();
+
+  const lines = [
+    `Discovery status: ${nativeDiscoveryStatus}`,
+    `Total voices: ${voices.length}`,
+    `German voices: ${germanVoices.length}`,
+    `Saved voice key: ${settings.voiceKey ? (settings.voiceKey.uri || settings.voiceKey.name || '-') : '-'}`,
+    `Selected voice: ${selected.useSystemVoice ? 'Systemstimme' : (selected.voice ? getDisplayVoiceLabel(selected.voice) : 'keine')}`,
+    '',
+    'Raw diagnostics:',
+    raw,
+  ];
+
+  if (germanVoices.length > 0) {
+    lines.push('', 'German voices:');
+    for (const v of germanVoices) {
+      lines.push(`  ${getDisplayVoiceLabel(v)}`);
+    }
+  }
+
+  return lines.join('\n');
 }
 
 // ---------- TTS text normalization for technical/Cisco content ----------
@@ -508,6 +647,16 @@ async function speakNative(text, voiceIndex, useSystemVoice, callbacks = {}) {
     console.warn('[TTS] native TTS error:', err);
     if (callbacks.onError) callbacks.onError(err);
   }
+}
+
+// Test-only helper to force a fresh voice discovery run.
+export function __resetTtsDiscovery() {
+  nativeInitPromise = null;
+  nativeVoices = null;
+  nativeTtsAvailable = null;
+  nativeDiscoveryStatus = 'idle';
+  lastNativeDiscoveryAt = 0;
+  nativeDiscoveryGeneration += 1;
 }
 
 // Kick off native voice discovery early on Android so logs are ready.

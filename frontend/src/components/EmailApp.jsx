@@ -5,6 +5,7 @@ import { readEmails, markEmailRead } from '../lib/emails';
 import { questPath } from '../lib/questRouter';
 import { registerMission, updateMissionStatus, getMissionEntry, MissionStatus } from '../lib/missionLog';
 import { readGameState } from '../lib/gameState';
+import { isCiscoSideMission } from '../lib/ciscoSideMissions';
 
 const priorityBadge = {
   urgent: 'text-[#ff3355] border-[#ff3355]',
@@ -23,11 +24,16 @@ export default function EmailApp({ onClose }) {
     setEmails(markEmailRead(id));
   }
 
+  function missionPath(email) {
+    if (isCiscoSideMission(email.linkedMissionId)) return `/side-mission/${encodeURIComponent(email.linkedMissionId)}`;
+    return questPath(email.linkedMissionId);
+  }
+
   function startMission(email) {
     if (email.linkedMissionId) {
       registerMission({ instanceId: `email-${email.id}`, questId: email.linkedMissionId, source: 'email', title: email.subject });
       updateMissionStatus(`email-${email.id}`, MissionStatus.ACCEPTED);
-      navigate(questPath(email.linkedMissionId));
+      navigate(missionPath(email));
       if (onClose) onClose();
     }
   }
@@ -36,6 +42,7 @@ export default function EmailApp({ onClose }) {
     if (!email.linkedMissionId) return false;
     const state = readGameState();
     if (state.completedQuests.includes(email.linkedMissionId)) return true;
+    if (state.completedCiscoSideMissions?.includes(email.linkedMissionId)) return true;
     const entry = getMissionEntry(`email-${email.id}`);
     return entry?.status === MissionStatus.COMPLETED;
   }
