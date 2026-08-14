@@ -1424,3 +1424,45 @@ Nach Mission 001 kein toter Ausgang mehr. Neue Aufgaben erreichen den Spieler ü
 - Keine neuen Cisco-Themen außer den drei Grundkonfig-Side-Missions.
 - Auf echtem Android-Gerät testen (insbesondere TTS-Stimmenauswahl).
 - Kein Push, kein Deployment außerhalb des vereinbarten Ablaufs.
+
+## Phase 1F: TTS Voice UX, VLAN/Interface Range CLI, Main Mission 002 & L2-Security Side Mission
+
+### Ziel
+Verbessere die TTS-Sprachauswahl, erweitere den Cisco-CLI-Simulator um VLANs,
+Interface-Ranges und Show-Commands, und bringe die naechste Story-Etappe mit
+Main Mission 002 (VLAN fuer Personal auf Sw2) sowie einen L2-Security-
+Nebeneinsatz (Parken ungenutzter Ports).
+
+### Geaenderte/Neue Dateien
+- `frontend/src/lib/speechSynthesis.js` – Sprachgruppen, stimmneutrale Labels,
+  Persistenz und Fallback-Logik ohne erfundene Gender-Metadaten.
+- `frontend/src/pages/Settings.jsx` – zweistufige Auswahl: Sprache, dann Stimme,
+  mit Test-Satz ueber die tatsaechlich gewaehlte Stimme.
+- `frontend/src/lib/ciscoCliEngine.js` – VLAN-Config, Interface-Range-Config,
+  shutdown/no shutdown, switchport access vlan, `show vlan brief`,
+  `show interfaces status`, erweitertes running-config, Device-Profile
+  `catalyst_24fe_2ge` fuer Sw2.
+- `frontend/src/lib/missionV2.js` – Main Mission 002, shared Runtime fuer Main-
+  und Cisco-Side-Missions.
+- `frontend/src/lib/ciscoSideMissions.js` – Side Mission 004 (Offene Tueren).
+- `frontend/src/lib/worldDispatcher.js`, `frontend/src/lib/objectives.js`,
+  `frontend/src/lib/questData.js`, `frontend/src/lib/gameState.js`,
+  `frontend/src/pages/MissionV2.jsx`, `frontend/src/pages/Workspace.jsx`,
+  `frontend/src/components/EmailApp.jsx` – Mission-Flow, Persistenz, UI-Icons.
+
+### Neue Tests
+- `frontend/scripts/cisco-main-002-test.mjs`
+- `frontend/scripts/cisco-side-004-test.mjs`
+- `frontend/scripts/cisco-interface-range-test.mjs`
+- `frontend/scripts/cisco-discovery-test.mjs`
+- Erweiterungen in `frontend/scripts/world-flow-test.mjs` und
+  `frontend/scripts/tts-voice-selection-test.mjs`.
+
+### Acceptance checks
+- Alle `frontend/scripts/*-test.mjs` gruen.
+- `npm run lint` ohne neue Fehler/Warnungen (nur bekannte Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅ und archiviert.
+- Version auf 1.25.0 erhoeht (`frontend/package.json`,
+  `frontend/src/lib/version.js`, `frontend/public/version.json`).
