@@ -12,7 +12,7 @@ import {
   CORRIDOR_ROOMS, buildDefaultDialog, buildSamOfficeDialog,
 } from '../lib/corridorDialogs';
 import {
-  processWorldEvents, acknowledgePendingWorldDialog, worldDialogResultAction,
+  processWorldEvents, acknowledgePendingWorldDialog,
 } from '../lib/worldDispatcher';
 import EmailApp from '../components/EmailApp';
 import PhoneApp from '../components/PhoneApp';
@@ -692,14 +692,12 @@ export default function Workspace() {
     setCorridorDialog({ dialog: buildDefaultDialog(), person });
   }
 
-  async function handleWorldDialogComplete(node) {
-    const action = worldDialogResultAction(node, worldDialog?.linkedMissionId);
+  async function handleWorldDialogComplete(_node) {
     await stopSpeech();
     acknowledgePendingWorldDialog();
     setWorldDialog(null);
-    if (action?.action === 'mission' && action.missionId) {
-      navigate(`/side-mission/${encodeURIComponent(action.missionId)}`);
-    }
+    // World-flow dialogs never auto-start missions. The next mission remains
+    // available through the objective panel, mail app or phone app.
   }
 
   async function handleDialogComplete(node) {

@@ -1,43 +1,54 @@
-// Mission System V2 – Mission 001 "Der erste Switch"
+// Mission System V2 – data-driven main missions using the Cisco CLI engine.
 //
-// Defines the first playable main mission and a small runtime that evaluates
-// the simulated Cisco device state instead of a fixed command sequence.
-//
-// Mission 001 is intentionally tiny: a brand-new Layer-2 switch must be
-// prepared with the five classic basic configuration requirements:
-//   1. hostname Sw1
-//   2. enable secret
-//   3. local admin user
-//   4. no ip domain-lookup
-//   5. saved startup-config
+// Defines playable main missions and a small runtime that evaluates the
+// simulated Cisco device state instead of a fixed command sequence.
 
 import { createCiscoDevice, executeCommand } from './ciscoCliEngine.js';
 import { recordSkillEvent, SKILL_DIMENSION, SKILL_SOURCE } from './skillTree.js';
-import { HINT_LEVEL_LABELS, createHintState, getNextHint, consumeHint, revealSolution, defineHintLadder } from './missionHintSystem.js';
+import {
+  HINT_LEVEL_LABELS, createHintState, getNextHint, consumeHint, revealSolution, defineHintLadder,
+} from './missionHintSystem.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
 
 export const MISSION_001_ID = 'cisco-main-001';
+export const MISSION_002_ID = 'cisco-main-002';
 
-const INITIAL_HOSTNAME = 'Switch';
-const TARGET_HOSTNAME = 'Sw1';
-const DEFAULT_USERNAME = 'admin';
+const ACTIVE_MISSION_KEY = 'cyberlearn:active-main-mission-v1';
 
-// Small wordlist for enable-secret and user-secret values.  These are
-// mission-only test values, never real credentials.
-const SECRET_WORDS = ['cisco', 'nexus', 'switch', 'admin', 'netlab'];
-const SECRET_SUFFIXES = ['101', '202', '303', '404', '505'];
-
-function pick(array) {
-  return array[Math.floor(Math.random() * array.length)];
-}
+// ============================================================================
+// Helpers
+// ============================================================================
 
 function hasUserCredential(user) {
   return !!user && (!!user.secret || !!user.password);
 }
 
+function pick(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+const SECRET_WORDS = ['cisco', 'nexus', 'switch', 'admin', 'netlab'];
+const SECRET_SUFFIXES = ['101', '202', '303', '404', '505'];
+
 function generateSecret(rng) {
   return `${pick(SECRET_WORDS)}${pick(SECRET_SUFFIXES)}${rng(1, 9)}`;
 }
+
+function seededRng(seed) {
+  let s = seed;
+  return function rand(min, max) {
+    s = (s * 1664525 + 1013904223) % 2 ** 32;
+    return Math.floor((s / 2 ** 32) * (max - min + 1)) + min;
+  };
+}
+
+// ============================================================================
+// Mission 001: Der erste Switch
+// ============================================================================
+
+const INITIAL_HOSTNAME_001 = 'Switch';
+const TARGET_HOSTNAME_001 = 'Sw1';
+const DEFAULT_USERNAME_001 = 'admin';
 
 export function generateMission001Scenario(seed = Date.now()) {
   const rng = seededRng(seed);
@@ -49,29 +60,21 @@ export function generateMission001Scenario(seed = Date.now()) {
     title: 'Der erste Switch',
     seed,
     deviceType: 'layer2_switch',
-    initialHostname: INITIAL_HOSTNAME,
+    initialHostname: INITIAL_HOSTNAME_001,
     parameters: {
-      targetHostname: TARGET_HOSTNAME,
-      username: DEFAULT_USERNAME,
+      targetHostname: TARGET_HOSTNAME_001,
+      username: DEFAULT_USERNAME_001,
       enableSecret,
       userSecret,
     },
-    briefing: `Für NEXUS wurde ein neuer Cisco Layer-2-Switch geliefert.\n\nAuftrag:\n- Gerätetyp: Cisco Layer-2-Switch\n- Aktueller Name: ${INITIAL_HOSTNAME}\n- Zielname: ${TARGET_HOSTNAME}\n\nAnforderungen:\n1. Gerätenamen auf ${TARGET_HOSTNAME} setzen\n2. privilegierten Zugriff mit enable secret absichern\n3. lokalen Benutzer ${DEFAULT_USERNAME} mit Passwort anlegen\n4. unnötige DNS-Lookups deaktivieren\n5. Konfiguration dauerhaft speichern`,
-  };
-}
-
-function seededRng(seed) {
-  let s = seed;
-  return function rand(min, max) {
-    s = (s * 1664525 + 1013904223) % 2 ** 32;
-    return Math.floor((s / 2 ** 32) * (max - min + 1)) + min;
+    briefing: `Für NEXUS wurde ein neuer Cisco Layer-2-Switch geliefert.\n\nAuftrag:\n- Gerätetyp: Cisco Layer-2-Switch\n- Aktueller Name: ${INITIAL_HOSTNAME_001}\n- Zielname: ${TARGET_HOSTNAME_001}\n\nAnforderungen:\n1. Gerätenamen auf ${TARGET_HOSTNAME_001} setzen\n2. privilegierten Zugriff mit enable secret absichern\n3. lokalen Benutzer ${DEFAULT_USERNAME_001} mit Passwort anlegen\n4. unnötige DNS-Lookups deaktivieren\n5. Konfiguration dauerhaft speichern`,
   };
 }
 
 export function createMission001Device(scenario) {
   return createCiscoDevice({
     type: 'layer2_switch',
-    hostname: scenario.initialHostname || INITIAL_HOSTNAME,
+    hostname: scenario.initialHostname || INITIAL_HOSTNAME_001,
     interfaces: ['GigabitEthernet0/1'],
   });
 }
@@ -84,7 +87,7 @@ export const MISSION_001_REQUIREMENTS = [
   { id: 'save_config', label: 'Konfiguration gespeichert', skill: 'cisco.basic_configuration.save_config' },
 ];
 
-export function getMission001Progress(device, scenario) {
+function _getMission001Progress(device, scenario) {
   const p = scenario.parameters;
   const savedConfig = device.startupConfig;
 
@@ -111,6 +114,10 @@ export function getMission001Progress(device, scenario) {
   };
 }
 
+export function getMission001Progress(device, scenario) {
+  return _getMission001Progress(device, scenario);
+}
+
 export function mission001RequiredState(scenario) {
   const p = scenario.parameters;
   return {
@@ -122,8 +129,8 @@ export function mission001RequiredState(scenario) {
   };
 }
 
-export function evaluateMission001State(device, scenario) {
-  const progress = getMission001Progress(device, scenario);
+function _evaluateMission001State(device, scenario) {
+  const progress = _getMission001Progress(device, scenario);
   const misconceptions = [];
 
   if (!progress.checks.find((c) => c.id === 'save_config').ok && progress.completed > 0) {
@@ -137,9 +144,11 @@ export function evaluateMission001State(device, scenario) {
   };
 }
 
-// Hint ladders for each individual requirement so the player can escalate
-// help per topic without immediately getting the full solution.
-const HINT_LADDERS = {
+export function evaluateMission001State(device, scenario) {
+  return _evaluateMission001State(device, scenario);
+}
+
+const HINT_LADDERS_001 = {
   hostname: defineHintLadder({
     subskillPath: 'cisco.basic_configuration.hostname',
     nudge: 'Ein Netzwerkgerät sollte im Betrieb eindeutig identifizierbar sein.',
@@ -147,7 +156,7 @@ const HINT_LADDERS = {
     directive: 'Der Gerätename wird im Global Configuration Mode gesetzt.',
     solution: {
       answer: 'hostname Sw1',
-      explanation: 'Mit "hostname Sw1" wechselt der Prompt sofort zu Sw1(config)#. Der Name hilft, das Gerät in der Konfiguration und in der Netzwerkübersicht zu erkennen.',
+      explanation: 'Mit "hostname Sw1" wechselt der Prompt sofort zu Sw1(config)#. Der Name hilf, das Gerät in der Konfiguration und in der Netzwerkübersicht zu erkennen.',
     },
   }),
   enable_secret: defineHintLadder({
@@ -193,62 +202,287 @@ const HINT_LADDERS = {
 };
 
 // ============================================================================
-// Mission runtime
+// Mission 002: Neue Abteilung (VLAN)
 // ============================================================================
 
-const ACTIVE_MISSION_KEY = 'cyberlearn:active-mission-v1';
+const TARGET_HOSTNAME_002 = 'Sw2';
+const PERSONAL_VLAN_ID = 10;
+const PERSONAL_VLAN_NAME = 'PERSONAL';
 
-export function startMission001() {
-  const scenario = generateMission001Scenario();
-  const device = createMission001Device(scenario);
+export function generateMission002Scenario(seed = Date.now()) {
+  return {
+    missionId: MISSION_002_ID,
+    title: 'Neue Abteilung',
+    seed,
+    deviceType: 'layer2_switch',
+    initialHostname: TARGET_HOSTNAME_002,
+    parameters: {
+      targetHostname: TARGET_HOSTNAME_002,
+      personalVlanId: PERSONAL_VLAN_ID,
+      personalVlanName: PERSONAL_VLAN_NAME,
+      personalPorts: [
+        'FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4',
+      ],
+    },
+    briefing: `Für die neuen Arbeitsplätze der Personalabteilung wurde ein eigener Layer-2-Bereich vorgesehen.\n\nAuftrag:\n- Gerät: ${TARGET_HOSTNAME_002}\n- VLAN ${PERSONAL_VLAN_ID} ${PERSONAL_VLAN_NAME} anlegen\n- Vier Arbeitsplatzports (Fa0/1–Fa0/4) diesem VLAN zuordnen\n- Konfiguration mit einem geeigneten Show-Befehl prüfen\n- Konfiguration dauerhaft speichern`,
+  };
+}
+
+export function createMission002Device(scenario) {
+  const device = createCiscoDevice({
+    profile: 'catalyst_24fe_2ge',
+    hostname: scenario.initialHostname || TARGET_HOSTNAME_002,
+  });
+
+  const params = scenario.parameters;
+  params.personalPorts.forEach((id) => {
+    const iface = device.runningConfig.interfaces[id];
+    if (iface) {
+      iface.operationalStatus = 'connected';
+      iface.administrativelyDown = false;
+    }
+  });
+
+  const uplink = device.runningConfig.interfaces['GigabitEthernet0/1'];
+  if (uplink) {
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+  }
+
+  return device;
+}
+
+export const MISSION_002_REQUIREMENTS = [
+  { id: 'vlan_created', label: `VLAN ${PERSONAL_VLAN_ID} ${PERSONAL_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
+  { id: 'ports_configured', label: 'Arbeitsplatzports im richtigen VLAN', skill: 'cisco.layer2.access_ports' },
+  { id: 'verified', label: 'Konfiguration geprüft', skill: 'cisco.layer2.verify_vlan' },
+  { id: 'config_saved', label: 'Konfiguration gespeichert', skill: 'cisco.basic_configuration.save_config' },
+];
+
+const HINT_LADDERS_002 = {
+  vlan_created: defineHintLadder({
+    subskillPath: 'cisco.layer2.vlan_creation',
+    nudge: 'Bevor Ports einem VLAN zugeordnet werden können, muss das VLAN existieren.',
+    focus: 'Wechsle in den VLAN-Konfigurationsmodus und gib dem VLAN einen sprechenden Namen.',
+    directive: 'Verwende "vlan 10" gefolgt von "name PERSONAL" im Global Configuration Mode.',
+    solution: {
+      answer: 'vlan 10\nname PERSONAL\nexit',
+      explanation: 'Mit "vlan <id>" wechselst du in den VLAN-Config-Modus. "name <name>" vergibt die Bezeichnung.',
+    },
+  }),
+  ports_configured: defineHintLadder({
+    subskillPath: 'cisco.layer2.access_ports',
+    nudge: 'Access-Ports gehören zu genau einem VLAN.',
+    focus: 'Wähle die vier Arbeitsplatzports aus und setze sie als Access-Ports in VLAN 10.',
+    directive: 'Nutze "interface range fa0/1 - 4" und dann "switchport mode access" sowie "switchport access vlan 10".',
+    solution: {
+      answer: 'interface range fa0/1 - 4\nswitchport mode access\nswitchport access vlan 10\nexit',
+      explanation: 'Im Interface-Range-Modus werden alle Befehle auf alle ausgewählten Ports angewendet.',
+    },
+  }),
+  verified: defineHintLadder({
+    subskillPath: 'cisco.layer2.verify_vlan',
+    nudge: 'Cisco bietet einen kompakten Befehl, um VLANs und ihre Ports zu sehen.',
+    focus: 'Überprüfe, ob VLAN 10 existiert und die richtigen Ports zugeordnet sind.',
+    directive: 'Führe "show vlan brief" aus.',
+    solution: {
+      answer: 'show vlan brief',
+      explanation: '"show vlan brief" zeigt alle VLANs und die dazugehörigen Ports in einer kurzen Übersicht.',
+    },
+  }),
+  config_saved: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.save_config',
+    nudge: 'Ohne Speichern geht die Konfiguration beim nächsten Neustart verloren.',
+    focus: 'Kopiere die Running-Config in die Startup-Config.',
+    directive: 'Verwende "copy running-config startup-config" oder "write memory".',
+    solution: {
+      answer: 'copy running-config startup-config',
+      explanation: '"copy running-config startup-config" speichert die aktuelle Konfiguration dauerhaft.',
+    },
+  }),
+};
+
+function _getMission002Progress(device, scenario, state = null) {
+  const p = scenario.parameters;
+  const rc = device.runningConfig;
+
+  const vlan = rc.vlans?.[p.personalVlanId];
+  const vlanCreated = !!vlan && vlan.name === p.personalVlanName;
+
+  const personalInterfaces = p.personalPorts
+    .map((id) => rc.interfaces[id])
+    .filter(Boolean);
+  const portsConfigured = personalInterfaces.length > 0
+    && personalInterfaces.every((iface) => iface.switchportMode === 'access'
+      && iface.accessVlan === p.personalVlanId
+      && !iface.administrativelyDown);
+
+  const verified = (state?.showCommandsUsed || []).some((c) => c.includes('show vlan brief'));
+
+  let saved = false;
+  if (device.startupConfig !== null) {
+    const sc = device.startupConfig;
+    saved = sc.vlans?.[p.personalVlanId]?.name === p.personalVlanName
+      && p.personalPorts.every((id) => {
+        const ri = rc.interfaces[id];
+        const si = sc.interfaces[id];
+        return si
+          && si.switchportMode === 'access'
+          && si.accessVlan === p.personalVlanId
+          && !si.administrativelyDown
+          && ri
+          && ri.switchportMode === si.switchportMode
+          && ri.accessVlan === si.accessVlan
+          && ri.administrativelyDown === si.administrativelyDown;
+      });
+  }
+
+  const checks = {
+    vlan_created: vlanCreated,
+    ports_configured: portsConfigured,
+    verified,
+    config_saved: saved,
+  };
+
+  const completed = MISSION_002_REQUIREMENTS.filter((r) => checks[r.id]).length;
+  const total = MISSION_002_REQUIREMENTS.length;
+
+  return {
+    completed,
+    total,
+    checks: MISSION_002_REQUIREMENTS.map((r) => ({ ...r, ok: checks[r.id] })),
+    allCorrect: completed === total,
+  };
+}
+
+function _evaluateMission002State(device, scenario, state = null) {
+  const progress = _getMission002Progress(device, scenario, state);
+  const misconceptions = [];
+
+  if (!progress.checks.find((c) => c.id === 'config_saved').ok && progress.completed > 0) {
+    misconceptions.push('forgot_save_config');
+  }
+
+  return {
+    ...progress,
+    allCorrect: progress.allCorrect,
+    misconceptions,
+  };
+}
+
+// ============================================================================
+// Registry
+// ============================================================================
+
+const SCENARIO_GENERATORS = {
+  [MISSION_001_ID]: generateMission001Scenario,
+  [MISSION_002_ID]: generateMission002Scenario,
+};
+
+const DEVICE_CREATORS = {
+  [MISSION_001_ID]: createMission001Device,
+  [MISSION_002_ID]: createMission002Device,
+};
+
+const PROGRESS_GETTERS = {
+  [MISSION_001_ID]: _getMission001Progress,
+  [MISSION_002_ID]: _getMission002Progress,
+};
+
+const EVALUATORS = {
+  [MISSION_001_ID]: _evaluateMission001State,
+  [MISSION_002_ID]: _evaluateMission002State,
+};
+
+const REQUIREMENTS = {
+  [MISSION_001_ID]: MISSION_001_REQUIREMENTS,
+  [MISSION_002_ID]: MISSION_002_REQUIREMENTS,
+};
+
+const HINT_LADDERS_BY_MISSION = {
+  [MISSION_001_ID]: HINT_LADDERS_001,
+  [MISSION_002_ID]: HINT_LADDERS_002,
+};
+
+// ============================================================================
+// Generic runtime
+// ============================================================================
+
+export function isMainMission(missionId) {
+  return Object.prototype.hasOwnProperty.call(SCENARIO_GENERATORS, missionId);
+}
+
+function getHINT_LADDERS(missionId) {
+  return HINT_LADDERS_BY_MISSION[missionId] || {};
+}
+
+export function getMainMissionRequirements(missionId) {
+  return REQUIREMENTS[missionId] || [];
+}
+
+export function startMainMission(missionId, seed = Date.now()) {
+  const scenario = SCENARIO_GENERATORS[missionId](seed);
+  const device = DEVICE_CREATORS[missionId](scenario);
   const state = {
-    missionId: MISSION_001_ID,
+    missionId,
     scenario,
     device,
     startedAt: Date.now(),
     lastCommandAt: null,
     showCommandsUsed: [],
-    hintState: createHintState(Object.values(HINT_LADDERS)),
+    hintState: createHintState(Object.values(getHINT_LADDERS(missionId))),
     hintsConsumed: [],
     solutionRevealedFor: [],
     completed: false,
     attempts: 0,
   };
   localStorage.setItem(ACTIVE_MISSION_KEY, JSON.stringify({
-    missionId: MISSION_001_ID,
+    missionId,
     scenario,
     device,
     startedAt: state.startedAt,
     completed: false,
   }));
-  registerMission({ instanceId: String(scenario.seed), questId: MISSION_001_ID, source: 'tutorial', title: scenario.title });
+  registerMission({ instanceId: String(scenario.seed), questId: missionId, source: 'main', title: scenario.title });
   updateMissionStatus(String(scenario.seed), MissionStatus.IN_PROGRESS);
   return state;
 }
 
-export function loadActiveMission() {
+export function startMission001(seed = Date.now()) {
+  return startMainMission(MISSION_001_ID, seed);
+}
+
+export function startMission002(seed = Date.now()) {
+  return startMainMission(MISSION_002_ID, seed);
+}
+
+export function loadActiveMainMission(expectedMissionId = null) {
   try {
     const raw = localStorage.getItem(ACTIVE_MISSION_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw);
-    if (saved.missionId !== MISSION_001_ID) return null;
-    const state = {
+    if (expectedMissionId && saved.missionId !== expectedMissionId) return null;
+    if (!isMainMission(saved.missionId)) return null;
+    return {
       missionId: saved.missionId,
       scenario: saved.scenario,
       device: saved.device,
       startedAt: saved.startedAt,
       lastCommandAt: null,
       showCommandsUsed: saved.showCommandsUsed || [],
-      hintState: createHintState(Object.values(HINT_LADDERS)),
+      hintState: createHintState(Object.values(getHINT_LADDERS(saved.missionId))),
       hintsConsumed: saved.hintsConsumed || [],
       solutionRevealedFor: saved.solutionRevealedFor || [],
       completed: saved.completed || false,
       attempts: saved.attempts || 0,
     };
-    return state;
   } catch {
     return null;
   }
+}
+
+export function loadActiveMission(expectedMissionId = null) {
+  return loadActiveMainMission(expectedMissionId);
 }
 
 export function saveActiveMission(state) {
@@ -281,7 +515,8 @@ export function executeMissionCommand(state, input) {
   if (result.success) {
     const cmd = result.command?.toLowerCase() || '';
     const isVerify = ['show running-config', 'show startup-config', 'show version'].includes(cmd)
-      || cmd.startsWith('show ');
+      || cmd.startsWith('show ')
+      || cmd.startsWith('do show ');
     if (isVerify) {
       state.showCommandsUsed.push(cmd);
       recordSkillEvent('cisco', 'basic_configuration', 'verify_running_config', {
@@ -324,8 +559,31 @@ export function executeMissionCommand(state, input) {
   return { ...result, state };
 }
 
+export function getMainMissionProgress(state) {
+  const getter = PROGRESS_GETTERS[state.missionId];
+  return getter ? getter(state.device, state.scenario, state) : { completed: 0, total: 0, checks: [], allCorrect: false };
+}
+
+export function evaluateMainMission(state) {
+  const evaluator = EVALUATORS[state.missionId];
+  const evaluation = evaluator ? evaluator(state.device, state.scenario, state) : { completed: 0, total: 0, checks: [], allCorrect: false, misconceptions: [] };
+  state.attempts += 1;
+
+  if (evaluation.allCorrect) {
+    state.completed = true;
+    updateMissionStatus(String(state.scenario.seed), MissionStatus.COMPLETED);
+  }
+
+  saveActiveMission(state);
+  return { ...evaluation, state };
+}
+
+export function evaluateMission001(state) {
+  return evaluateMainMission(state);
+}
+
 export function getMissionHint(state, requirementId) {
-  const ladder = HINT_LADDERS[requirementId];
+  const ladder = getHINT_LADDERS(state.missionId)[requirementId];
   if (!ladder) return null;
   const next = getNextHint(state.hintState, ladder.subskillPath);
   if (!next) return null;
@@ -339,7 +597,7 @@ export function getMissionHint(state, requirementId) {
 }
 
 export function consumeMissionHint(state, requirementId) {
-  const ladder = HINT_LADDERS[requirementId];
+  const ladder = getHINT_LADDERS(state.missionId)[requirementId];
   if (!ladder) return state;
   const parts = ladder.subskillPath.split('.');
   const domainId = parts[0];
@@ -352,7 +610,7 @@ export function consumeMissionHint(state, requirementId) {
 }
 
 export function revealMissionSolution(state, requirementId, context = {}) {
-  const ladder = HINT_LADDERS[requirementId];
+  const ladder = getHINT_LADDERS(state.missionId)[requirementId];
   if (!ladder) return { state };
   const parts = ladder.subskillPath.split('.');
   const domainId = parts[0];
@@ -368,23 +626,14 @@ export function revealMissionSolution(state, requirementId, context = {}) {
   return { state, answer, explanation };
 }
 
-export function evaluateMission001(state) {
-  const evaluation = evaluateMission001State(state.device, state.scenario);
-  state.attempts += 1;
-
-  if (evaluation.allCorrect) {
-    state.completed = true;
-    updateMissionStatus(String(state.scenario.seed), MissionStatus.COMPLETED);
-  }
-
-  saveActiveMission(state);
-  return { ...evaluation, state };
+function getFeedbackTitle(state) {
+  return state.completed ? 'Auftrag abgeschlossen' : 'Auftrag noch nicht vollständig';
 }
 
-export function mission001Feedback(state, evaluation) {
-  const progress = getMission001Progress(state.device, state.scenario);
-  const feedback = {
-    title: state.completed ? 'Auftrag abgeschlossen' : 'Auftrag noch nicht vollständig',
+export function mainMissionFeedback(state, evaluation) {
+  const progress = getMainMissionProgress(state);
+  return {
+    title: getFeedbackTitle(state),
     completed: progress.completed,
     total: progress.total,
     checks: progress.checks,
@@ -393,5 +642,8 @@ export function mission001Feedback(state, evaluation) {
     showCommandsUsed: state.showCommandsUsed.length,
     mistakes: evaluation.misconceptions,
   };
-  return feedback;
+}
+
+export function mission001Feedback(state, evaluation) {
+  return mainMissionFeedback(state, evaluation);
 }

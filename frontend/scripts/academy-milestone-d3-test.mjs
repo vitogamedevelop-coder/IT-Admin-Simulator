@@ -215,11 +215,11 @@ console.log('Testing main mission priority...');
 reset();
 let main = getNextMainMission();
 assert(main, 'a next main mission exists');
-assertEqual(main.quest.id, 'first-day', 'first main mission is first-day');
+assertEqual(main.quest.id, 'cisco-main-001', 'first main mission is cisco-main-001');
 assert(main.available, 'first main mission is immediately available');
 
 const state = readGameState();
-state.completedQuests = ['first-day'];
+state.completedQuests = ['cisco-main-001'];
 state.completedSideMissions = [];
 writeGameState(state);
 main = getNextMainMission();
@@ -227,10 +227,10 @@ assert(main, 'next main mission exists after completing first');
 assert(!main.available, 'second main mission is locked without enough side missions');
 assert(main.reasons.some((r) => r.includes('Nebenmission')), 'missing side missions are shown as requirement');
 assertEqual(main.sideProgress.completed, 0, 'side mission progress starts at 0');
-assertEqual(main.sideProgress.needed, 2, 'chapter 2 needs 2 side missions');
+assertEqual(main.sideProgress.needed, 3, 'chapter 2 needs 3 side missions');
 
 // Complete enough side missions; next mission unlocks.
-state.completedSideMissions = ['s1', 's2'];
+state.completedCiscoSideMissions = ['cisco-side-basic-001', 'cisco-side-basic-002', 'cisco-side-basic-003'];
 writeGameState(state);
 main = getNextMainMission();
 assert(main.available, 'second main mission unlocks after required side missions');
@@ -248,7 +248,7 @@ ensureInbox();
 const side = getRecommendedSideMissions(2);
 assert(Array.isArray(side), 'side missions array returned');
 assert(side.length <= 2, 'at most two side missions recommended');
-assert(side.length > 0, 'at least one side mission is available after ensureInbox');
+assert(side.length === 0, 'legacy generic side mission inbox is empty; Cisco side missions are managed by worldDispatcher');
 const ids = side.map((s) => s.id);
 assertEqual(new Set(ids).size, ids.length, 'recommended side mission IDs are unique');
 

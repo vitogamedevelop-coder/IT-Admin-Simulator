@@ -311,10 +311,118 @@ export async function getGermanVoices() {
   return voices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
 }
 
+const LANG_LABEL_FALLBACK = {
+  'de-DE': 'Deutsch (Deutschland)',
+  'de-AT': 'Deutsch (Österreich)',
+  'de-CH': 'Deutsch (Schweiz)',
+  de: 'Deutsch',
+  'en-US': 'English (United States)',
+  'en-GB': 'English (United Kingdom)',
+  en: 'English',
+  'fr-FR': 'Français (France)',
+  fr: 'Français',
+  'es-ES': 'Español (España)',
+  es: 'Español',
+  'it-IT': 'Italiano (Italia)',
+  it: 'Italiano',
+};
+
+const LANG_NAME_FALLBACK = {
+  de: 'Deutsch',
+  en: 'English',
+  fr: 'Français',
+  es: 'Español',
+  it: 'Italiano',
+};
+
+function getLanguageLabel(lang) {
+  if (!lang) return 'Unbekannt';
+  try {
+    const display = new Intl.DisplayNames(lang, { type: 'language' }).of(lang);
+    if (display && display !== lang) return display;
+  } catch {
+    // fall through to fallback
+  }
+  return LANG_LABEL_FALLBACK[lang] || LANG_LABEL_FALLBACK[lang.split('-')[0]] || lang;
+}
+
+function getLanguageName(lang) {
+  if (!lang) return 'Unbekannt';
+  const base = lang.split('-')[0];
+  try {
+    return new Intl.DisplayNames(lang, { type: 'language' }).of(base);
+  } catch {
+    return LANG_NAME_FALLBACK[base] || base;
+  }
+}
+
+function getVoiceNumberWord(lang) {
+  const base = (lang || '').toLowerCase().split('-')[0];
+  const numberWords = {
+    de: 'Stimme',
+    en: 'Voice',
+    fr: 'Voix',
+    es: 'Voz',
+    it: 'Voce',
+    pt: 'Voz',
+    nl: 'Stem',
+    pl: 'Głos',
+    ru: 'Голос',
+    ja: '音声',
+    zh: '语音',
+    ko: '목소리',
+  };
+  return numberWords[base] || 'Voice';
+}
+
+export async function getVoiceLanguages() {
+  const voices = await getVoices();
+  const seen = new Map();
+  for (const v of voices) {
+    const lang = v.lang || 'unknown';
+    const key = lang.toLowerCase();
+    if (!seen.has(key)) {
+      seen.set(key, lang);
+    }
+  }
+
+  const languages = Array.from(seen.values()).map((lang) => ({
+    lang,
+    label: getLanguageLabel(lang),
+  }));
+  languages.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+  return languages;
+}
+
+export async function getVoicesForLanguage(lang) {
+  if (!lang) return [];
+  const voices = await getVoices();
+  const filtered = voices.filter((v) => v?.lang?.toLowerCase() === lang.toLowerCase());
+  const languageName = getLanguageName(lang);
+  const numberWord = getVoiceNumberWord(lang);
+
+  const sorted = [...filtered].sort((a, b) => {
+    const aLocal = a.localService ? 1 : 0;
+    const bLocal = b.localService ? 1 : 0;
+    if (aLocal !== bLocal) return bLocal - aLocal;
+    const byName = (a.name || '').localeCompare(b.name || '');
+    if (byName !== 0) return byName;
+    return (a.index ?? 0) - (b.index ?? 0);
+  });
+
+  return sorted.map((v, i) => ({
+    ...v,
+    displayName: `${languageName} – ${numberWord} ${i + 1}`,
+  }));
+}
+
 function voiceMatchesKey(voice, key) {
   if (!voice || !key) return false;
   if (key.uri && (voice.voiceURI === key.uri || voice.voiceURI === `urn:moz-tts:${key.uri}?0`)) return true;
-  if (voice.name && key.name && voice.name === key.name) return true;
+  if (voice.name && key.name && voice.name === key.name) {
+    if (key.lang && voice.lang !== key.lang) return false;
+    return true;
+  }
   return false;
 }
 
@@ -329,36 +437,19 @@ async function findWebVoiceByKey(key) {
   return voices.find((v) => voiceMatchesKey(v, key)) || null;
 }
 
-const PREFERRED_MALE_GERMAN_URIS = [
-  'de-de-x-gpp-local',
-  'de-de-x-rif-local',
-  'de-de-x-lfs-local',
-  'de-de-x-rad-local',
-  'de-de-x-gbf-local',
-  'de-de-x-jis-local',
-];
-
-function normalizeVoiceUri(uri) {
-  if (!uri) return '';
-  return String(uri).split('?')[0].replace(/^urn:moz-tts:/, '');
-}
-
-function isPreferredMaleGermanVoice(voice) {
-  const normalized = normalizeVoiceUri(voice.voiceURI);
-  return PREFERRED_MALE_GERMAN_URIS.includes(normalized);
-}
-
 function pickFallbackVoice(voices) {
   if (!voices || voices.length === 0) return null;
-  const deVoices = voices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
-  if (deVoices.length) {
-    const male = deVoices.find((v) => isPreferredMaleGermanVoice(v));
-    if (male) return male;
-    const local = deVoices.find((v) => v.localService);
-    if (local) return local;
-    return deVoices[0];
-  }
-  return voices[0];
+  return [...voices].sort((a, b) => {
+    const aDe = a.lang?.toLowerCase().startsWith('de') ? 1 : 0;
+    const bDe = b.lang?.toLowerCase().startsWith('de') ? 1 : 0;
+    if (aDe !== bDe) return bDe - aDe;
+    const aLocal = a.localService ? 1 : 0;
+    const bLocal = b.localService ? 1 : 0;
+    if (aLocal !== bLocal) return bLocal - aLocal;
+    const byName = (a.name || '').localeCompare(b.name || '');
+    if (byName !== 0) return byName;
+    return (a.index ?? 0) - (b.index ?? 0);
+  })[0];
 }
 
 async function selectVoice() {
@@ -398,10 +489,18 @@ export async function getSelectedVoice() {
   return selectVoice();
 }
 
+function looksLikeRawVoiceUri(str) {
+  if (!str || typeof str !== 'string') return false;
+  return /^[a-z]{2}-[a-z]{2}-x-/i.test(str) || /^urn:moz-tts:/i.test(str) || /^[a-z]+:\/\//i.test(str);
+}
+
 export function getDisplayVoiceLabel(voice) {
   if (!voice) return 'Unbekannt';
-  if (voice.voiceURI) return `${voice.name || voice.lang} – ${voice.voiceURI}`;
-  return voice.name || voice.lang || `Stimme ${voice.index}`;
+  if (voice.displayName) return voice.displayName;
+  if (voice.name && !looksLikeRawVoiceUri(voice.name)) return voice.name;
+  if (voice.lang && typeof voice.index === 'number') return `${voice.lang} ${voice.index}`;
+  if (voice.lang) return voice.lang;
+  return 'Unbekannt';
 }
 
 export function voiceKeyFromVoice(voice) {
@@ -431,12 +530,18 @@ export async function getTtsVoiceDiagnostics() {
   const germanVoices = voices.filter((v) => v.lang?.toLowerCase().startsWith('de'));
   const settings = getTtsSettings();
 
+  const selectedText = selected.useSystemVoice
+    ? 'Systemstimme'
+    : (selected.voice
+        ? `${getDisplayVoiceLabel(selected.voice)} (URI: ${selected.voice.voiceURI || '-'})`
+        : 'keine');
+
   const lines = [
     `Discovery status: ${nativeDiscoveryStatus}`,
     `Total voices: ${voices.length}`,
     `German voices: ${germanVoices.length}`,
     `Saved voice key: ${settings.voiceKey ? (settings.voiceKey.uri || settings.voiceKey.name || '-') : '-'}`,
-    `Selected voice: ${selected.useSystemVoice ? 'Systemstimme' : (selected.voice ? getDisplayVoiceLabel(selected.voice) : 'keine')}`,
+    `Selected voice: ${selectedText}`,
     '',
     'Raw diagnostics:',
     raw,
@@ -445,7 +550,7 @@ export async function getTtsVoiceDiagnostics() {
   if (germanVoices.length > 0) {
     lines.push('', 'German voices:');
     for (const v of germanVoices) {
-      lines.push(`  ${getDisplayVoiceLabel(v)}`);
+      lines.push(`  ${getDisplayVoiceLabel(v)} (URI: ${v.voiceURI || '-'})`);
     }
   }
 

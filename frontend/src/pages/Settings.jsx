@@ -9,7 +9,8 @@ import {
   isNativeTtsSupported,
   getTtsSettings,
   setTtsSettings,
-  getVoices,
+  getVoiceLanguages,
+  getVoicesForLanguage,
   getDisplayVoiceLabel,
   voiceKeyFromVoice,
   openTtsSettings,
@@ -22,38 +23,65 @@ import {
 
 const TEST_SENTENCE = 'Hallo, ich bin Sam. So würde ich dir die Academy vorlesen.';
 
-function useTtsVoices() {
+function useTtsVoiceSelection(hasTts) {
+  const [languages, setLanguages] = useState([]);
+  const [languagesLoading, setLanguagesLoading] = useState(true);
+  const [selectedLanguage, setSelectedLanguage] = useState('');
   const [voices, setVoices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [voicesLoading, setVoicesLoading] = useState(false);
 
   useEffect(() => {
+    if (!hasTts) return undefined;
     let mounted = true;
-    if (!isSupported()) {
-      setLoading(false);
-      return undefined;
-    }
-    getVoices().then((all) => {
+    setLanguagesLoading(true);
+    getVoiceLanguages().then((langs) => {
       if (!mounted) return;
-      // Sort German voices first, then everything else.
-      const sorted = [...all].sort((a, b) => {
-        const aDe = a.lang?.toLowerCase().startsWith('de') ? 1 : 0;
-        const bDe = b.lang?.toLowerCase().startsWith('de') ? 1 : 0;
-        if (aDe !== bDe) return bDe - aDe;
-        return (a.name || '').localeCompare(b.name || '');
-      });
-      setVoices(sorted);
-      setLoading(false);
+      setLanguages(langs);
+      setLanguagesLoading(false);
+    }).catch(() => {
+      if (mounted) setLanguagesLoading(false);
     });
     return () => { mounted = false; };
-  }, []);
+  }, [hasTts]);
 
-  return { voices, loading };
+  useEffect(() => {
+    if (!hasTts || !selectedLanguage) {
+      setVoices([]);
+      return undefined;
+    }
+    let mounted = true;
+    setVoicesLoading(true);
+    getVoicesForLanguage(selectedLanguage).then((list) => {
+      if (!mounted) return;
+      setVoices(list);
+      setVoicesLoading(false);
+    }).catch(() => {
+      if (mounted) setVoicesLoading(false);
+    });
+    return () => { mounted = false; };
+  }, [hasTts, selectedLanguage]);
+
+  return {
+    languages,
+    languagesLoading,
+    selectedLanguage,
+    setSelectedLanguage,
+    voices,
+    voicesLoading,
+  };
 }
 
 export default function Settings() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [settings, setSettings] = useState(getTtsSettings);
-  const { voices, loading } = useTtsVoices();
+  const {
+    languages,
+    languagesLoading,
+    selectedLanguage,
+    setSelectedLanguage,
+    voices,
+    voicesLoading,
+  } = useTtsVoiceSelection(isSupported());
   const [speaking, setSpeaking] = useState(false);
   const [diagnostics, setDiagnostics] = useState('');
   const [diagLoading, setDiagLoading] = useState(false);
@@ -85,7 +113,10 @@ export default function Settings() {
     const key = selectedVoice ? voiceKeyFromVoice(selectedVoice) : settings.voiceKey;
     if (!key) return false;
     if (key.uri && voice.voiceURI === key.uri) return true;
-    if (key.name && voice.name === key.name) return true;
+    if (key.name && voice.name === key.name) {
+      if (key.lang && voice.lang !== key.lang) return false;
+      return true;
+    }
     return false;
   }
 
@@ -113,7 +144,12 @@ export default function Settings() {
   }
 
   function selectVoice(voice) {
+    setSelectedVoice(voice);
     updateSettings({ voiceKey: voiceKeyFromVoice(voice), useSystemVoice: false });
+  }
+
+  function handleLanguageChange(lang) {
+    setSelectedLanguage(lang);
   }
 
   function resetAllProgress() {
@@ -132,10 +168,14 @@ export default function Settings() {
     }
     let mounted = true;
     getSelectedVoice().then((selected) => {
-      if (mounted) setSelectedVoice(selected.voice || null);
+      if (!mounted) return;
+      setSelectedVoice(selected.voice || null);
+      if (selected.voice?.lang) {
+        setSelectedLanguage(selected.voice.lang);
+      }
     }).catch(() => {});
     return () => { mounted = false; };
-  }, [voices, settings.useSystemVoice, settings.voiceKey]);
+  }, [settings.useSystemVoice, settings.voiceKey, setSelectedLanguage]);
 
   useAppBack();
 
@@ -195,25 +235,49 @@ export default function Settings() {
               )}
 
               {!settings.useSystemVoice && (
-                <div className="mt-3">
-                  <label className="text-xs text-[#8b949e] block mb-1">Stimme auswählen</label>
-                  {loading ? (
-                    <div className="text-xs text-[#8b949e]">Stimmen werden geladen...</div>
-                  ) : voices.length === 0 ? (
-                    <div className="text-xs text-[#ffcc00]">Keine Stimmen gefunden. Bitte verwende die Systemstimme.</div>
-                  ) : (
-                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                      {voices.map((voice, idx) => (
-                        <button
-                          key={`${voice.voiceURI || ''}-${voice.name || ''}-${idx}`}
-                          type="button"
-                          onClick={() => selectVoice(voice)}
-                          className={`text-left p-2 rounded border text-xs ${isVoiceSelected(voice) ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-white' : 'border-[#30363d] text-[#c9d1d9] hover:border-[#00f0ff]/60'}`}
-                        >
-                          <div className="font-bold">{getDisplayVoiceLabel(voice)}</div>
-                          <div className="text-[10px] text-[#8b949e]">{voice.lang} · {voice.localService ? 'lokal' : 'Netzwerk'}{voice.index !== undefined ? ` · ID ${voice.index}` : ''}</div>
-                        </button>
-                      ))}
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="text-xs text-[#8b949e] block mb-1">Sprache auswählen</label>
+                    {languagesLoading ? (
+                      <div className="text-xs text-[#8b949e]">Sprachen werden geladen...</div>
+                    ) : languages.length === 0 ? (
+                      <div className="text-xs text-[#ffcc00]">Keine Sprachen gefunden.</div>
+                    ) : (
+                      <select
+                        value={selectedLanguage}
+                        onChange={(e) => handleLanguageChange(e.target.value)}
+                        className="w-full bg-[#0d1117] border border-[#30363d] text-[#c9d1d9] text-xs rounded p-2 focus:border-[#00f0ff] outline-none"
+                      >
+                        <option value="">Sprache wählen</option>
+                        {languages.map((l) => (
+                          <option key={l.lang} value={l.lang}>{l.label}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {selectedLanguage && (
+                    <div>
+                      <label className="text-xs text-[#8b949e] block mb-1">Stimme auswählen</label>
+                      {voicesLoading ? (
+                        <div className="text-xs text-[#8b949e]">Stimmen werden geladen...</div>
+                      ) : voices.length === 0 ? (
+                        <div className="text-xs text-[#ffcc00]">Keine Stimmen für diese Sprache gefunden.</div>
+                      ) : (
+                        <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+                          {voices.map((voice) => (
+                            <button
+                              key={`${voice.voiceURI || ''}-${voice.name || ''}-${voice.index ?? ''}`}
+                              type="button"
+                              onClick={() => selectVoice(voice)}
+                              className={`text-left p-2 rounded border text-xs ${isVoiceSelected(voice) ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-white' : 'border-[#30363d] text-[#c9d1d9] hover:border-[#00f0ff]/60'}`}
+                            >
+                              <div className="font-bold">{getDisplayVoiceLabel(voice)}</div>
+                              <div className="text-[10px] text-[#8b949e]">{voice.localService ? 'lokal' : 'Netzwerk'}{voice.index !== undefined ? ` · ID ${voice.index}` : ''}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -12,6 +12,7 @@ const SIDE_MISSION_TITLES = {
   'cisco-side-basic-001': 'Die offene Konsole',
   'cisco-side-basic-002': 'Passwörter auf dem Präsentierteller',
   'cisco-side-basic-003': 'Wer darf sich anmelden?',
+  'cisco-side-l2-001': 'Offene Türen',
 };
 
 // Ordered "first learning round" sequence within the fundamentals category.
@@ -112,26 +113,36 @@ export function getNextMainMission() {
   const sideCount = (state.completedSideMissions || []).length;
   const ciscoSideCount = (state.completedCiscoSideMissions || []).length;
   const totalSideCount = sideCount + ciscoSideCount;
+  const completedCiscoSide = new Set(state.completedCiscoSideMissions || []);
 
   const ordered = quests.slice().sort((a, b) => a.chapter - b.chapter);
   for (const quest of ordered) {
     if (completed.includes(quest.id)) continue;
     const previousDone = (quest.requires || []).every((id) => completed.includes(id));
-    const neededSide = Math.max(0, (quest.chapter - 1) * SIDE_MISSIONS_PER_MAIN_QUEST);
-    const missingSide = totalSideCount < neededSide;
+    const requiredCiscoSides = quest.sideMissionsRequired || [];
+    const neededSide = requiredCiscoSides.length
+      ? requiredCiscoSides.length
+      : Math.max(0, (quest.chapter - 1) * SIDE_MISSIONS_PER_MAIN_QUEST);
+    const missingCiscoSides = requiredCiscoSides.filter((id) => !completedCiscoSide.has(id));
+    const missingSideCount = requiredCiscoSides.length
+      ? missingCiscoSides.length
+      : Math.max(0, neededSide - totalSideCount);
+    const missingSide = missingSideCount > 0;
     const isGate = quest.gate;
     const missingPrevious = (quest.requires || []).filter((id) => !completed.includes(id));
     const locked = !previousDone || missingSide || isGate;
     const reasons = [];
     if (isGate) reasons.push('Der nächste Hauptauftrag wird noch vorbereitet.');
     if (missingPrevious.length) reasons.push(`Schließe zuerst ab: ${missingPrevious.map((id) => questById(id)?.title || id).join(', ')}`);
-    if (missingSide) reasons.push(`Noch ${neededSide - totalSideCount} Nebenmission${neededSide - totalSideCount === 1 ? '' : 'en'} erforderlich`);
+    if (missingSide) {
+      reasons.push(`Noch ${missingSideCount} Nebenmission${missingSideCount === 1 ? '' : 'en'} erforderlich`);
+    }
     return {
       type: 'main',
       quest,
       available: !locked,
       reasons: locked ? reasons : [],
-      sideProgress: { completed: totalSideCount, needed: neededSide },
+      sideProgress: { completed: requiredCiscoSides.length ? requiredCiscoSides.length - missingCiscoSides.length : totalSideCount, needed: neededSide },
     };
   }
   return null;
@@ -142,15 +153,20 @@ export function getRecommendedSideMissions(limit = 2) {
   const open = sortedInbox().filter((item) => !item.resolved);
   const ciscoSideCompleted = new Set(state.completedCiscoSideMissions || []);
 
-  // Cisco side missions become available once Mission 001 is complete and are
-  // recommended until at least two of them have been completed (story gate).
   const ciscoSideMissions = [];
   if (state.completedQuests.includes('cisco-main-001')) {
-    const allCiscoSide = Object.keys(SIDE_MISSION_TITLES);
-    for (const id of allCiscoSide) {
+    // Basic side missions 001-003 are available after Mission 001.
+    const basicSides = ['cisco-side-basic-001', 'cisco-side-basic-002', 'cisco-side-basic-003'];
+    for (const id of basicSides) {
       if (!ciscoSideCompleted.has(id)) {
         ciscoSideMissions.push({ type: 'side', id, title: SIDE_MISSION_TITLES[id], priority: 'P2' });
       }
+    }
+  }
+  if (state.completedQuests.includes('cisco-main-002')) {
+    // L2 security side mission becomes available after Mission 002.
+    if (!ciscoSideCompleted.has('cisco-side-l2-001')) {
+      ciscoSideMissions.push({ type: 'side', id: 'cisco-side-l2-001', title: SIDE_MISSION_TITLES['cisco-side-l2-001'], priority: 'P2' });
     }
   }
 

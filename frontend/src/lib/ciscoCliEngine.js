@@ -11,6 +11,8 @@ export const CLI_MODE = {
   PRIVILEGED_EXEC: 'PRIVILEGED_EXEC',
   GLOBAL_CONFIG: 'GLOBAL_CONFIG',
   INTERFACE_CONFIG: 'INTERFACE_CONFIG',
+  INTERFACE_RANGE_CONFIG: 'INTERFACE_RANGE_CONFIG',
+  VLAN_CONFIG: 'VLAN_CONFIG',
   LINE_CONSOLE_CONFIG: 'LINE_CONSOLE_CONFIG',
   LINE_VTY_CONFIG: 'LINE_VTY_CONFIG',
 };
@@ -44,26 +46,67 @@ function createInterface(id) {
     ipv4: null,
     mask: null,
     administrativelyDown: true,
+    operationalStatus: 'notconnect',
     description: '',
     duplex: null,
     speed: null,
+    switchportMode: null,
+    accessVlan: null,
+    trunkAllowedVlans: null,
+    nativeVlan: null,
+  };
+}
+
+// ============================================================================
+// Device profiles
+// ============================================================================
+//
+// A device profile describes the physical interface layout of a well known
+// Cisco device model. `createCiscoDevice({ profile: 'catalyst_24fe_2ge' })`
+// builds its interface set from this list instead of the generic defaults.
+
+function buildInterfaceRangeIds(canonicalPrefix, slot, start, end) {
+  const ids = [];
+  for (let port = start; port <= end; port += 1) {
+    ids.push(`${canonicalPrefix}${slot}/${port}`);
+  }
+  return ids;
+}
+
+export const DEVICE_PROFILES = {
+  catalyst_24fe_2ge: {
+    type: 'layer2_switch',
+    label: 'Catalyst 24-Port FastEthernet + 2 GigabitEthernet',
+    interfaces: [
+      ...buildInterfaceRangeIds('FastEthernet', 0, 1, 24),
+      ...buildInterfaceRangeIds('GigabitEthernet', 0, 1, 2),
+    ],
+  },
+};
+
+function defaultVlans() {
+  return {
+    1: { id: 1, name: 'default' },
   };
 }
 
 export function createCiscoDevice(options = {}) {
-  const type = options.type || 'router';
+  const profile = options.profile ? DEVICE_PROFILES[options.profile] : null;
+  const type = options.type || profile?.type || 'router';
   const hostname = options.hostname || 'Router';
-  const interfaces = options.interfaces || ['GigabitEthernet0/0', 'GigabitEthernet0/1'];
+  const interfaces = options.interfaces || profile?.interfaces || ['GigabitEthernet0/0', 'GigabitEthernet0/1'];
   const defaultGateway = options.defaultGateway || null;
   return {
     type,
     hostname,
+    profile: options.profile || null,
     runningConfig: {
       hostname,
       noIpDomainLookup: false,
       enableSecret: null,
       users: {},
       interfaces: Object.fromEntries(interfaces.map((id) => [id, createInterface(id)])),
+      vlans: defaultVlans(),
       lines: {
         console: { password: null, login: false, loginLocal: false, execTimeout: { minutes: 5, seconds: 0 } },
         vty: { password: null, login: false, loginLocal: false, execTimeout: { minutes: 10, seconds: 0 }, range: [0, 15] },
@@ -76,6 +119,8 @@ export function createCiscoDevice(options = {}) {
     cli: {
       mode: CLI_MODE.USER_EXEC,
       currentInterface: null,
+      currentInterfaceRange: null,
+      currentVlanId: null,
       currentLine: null,
     },
     history: [],
@@ -129,6 +174,76 @@ function resolveInterfaceName(device, input) {
   ) || null;
 }
 
+function shortInterfaceName(name) {
+  for (const { short, canonical } of Object.values(INTERFACE_TYPES)) {
+    if (name.toLowerCase().startsWith(canonical.toLowerCase())) {
+      return `${short}${name.slice(canonical.length)}`;
+    }
+  }
+  return name;
+}
+
+// ============================================================================
+// Interface range parsing ("interface range fa0/1 - 4")
+// ============================================================================
+
+function parseInterfaceRangeSpec(rangeTokens) {
+  const joined = rangeTokens.join('').replace(/\s+/g, '');
+  const match = joined.match(/^([A-Za-z]+)(\d+)\/(\d+)-(\d+)$/);
+  if (!match) return null;
+  const [, typeToken, slot, startStr, endStr] = match;
+  const start = parseInt(startStr, 10);
+  const end = parseInt(endStr, 10);
+  if (Number.isNaN(start) || Number.isNaN(end) || start > end) return null;
+  return { typeToken, slot, start, end };
+}
+
+function resolveInterfaceRange(device, rangeTokens) {
+  const spec = parseInterfaceRangeSpec(rangeTokens);
+  if (!spec) return { error: CLI_ERROR.INVALID_ARGUMENT };
+  const ids = [];
+  for (let port = spec.start; port <= spec.end; port += 1) {
+    const raw = `${spec.typeToken}${spec.slot}/${port}`;
+    const iface = resolveInterfaceName(device, raw);
+    if (!iface) return { error: CLI_ERROR.INVALID_ARGUMENT };
+    ids.push(iface.id);
+  }
+  if (ids.length === 0) return { error: CLI_ERROR.INVALID_ARGUMENT };
+  return { ids };
+}
+
+function getTargetInterfaceIds(device) {
+  if (device.cli.mode === CLI_MODE.INTERFACE_RANGE_CONFIG) {
+    return device.cli.currentInterfaceRange || [];
+  }
+  if (device.cli.currentInterface) return [device.cli.currentInterface];
+  return [];
+}
+
+function forEachTargetInterface(device, fn) {
+  const ids = getTargetInterfaceIds(device);
+  ids.forEach((id) => {
+    const iface = device.runningConfig.interfaces[id];
+    if (iface) fn(iface);
+  });
+  return ids.length > 0;
+}
+
+// ============================================================================
+// VLAN helpers
+// ============================================================================
+
+function defaultVlanName(id) {
+  return `VLAN${String(id).padStart(4, '0')}`;
+}
+
+function ensureVlan(device, id, name) {
+  if (!device.runningConfig.vlans[id]) {
+    device.runningConfig.vlans[id] = { id, name: name || defaultVlanName(id) };
+  }
+  return device.runningConfig.vlans[id];
+}
+
 // ============================================================================
 // Command tree
 // ============================================================================
@@ -146,6 +261,46 @@ function node(keyword, options = {}) {
 
 function cmd(keyword, execute, help, skill = null, complete = null) {
   return node(keyword, { execute, help, skill, complete });
+}
+
+function setInterfaceShutdown(device, isDown) {
+  forEachTargetInterface(device, (iface) => {
+    iface.administrativelyDown = isDown;
+    iface.operationalStatus = isDown ? 'disabled' : 'notconnect';
+  });
+}
+
+function buildSwitchportNode() {
+  return node('switchport', {
+    help: 'Set switchport parameters',
+    children: [
+      node('mode', {
+        help: 'Set trunking mode of the interface',
+        children: [
+          cmd('access', (device) => {
+            forEachTargetInterface(device, (iface) => { iface.switchportMode = 'access'; });
+            return { output: '', stateChanged: true };
+          }, 'Set VLAN classification of the interface as access', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_mode', dimension: SKILL_DIMENSION.CONFIGURE }),
+        ],
+      }),
+      node('access', {
+        help: 'Set access mode characteristics of the interface',
+        children: [
+          cmd('vlan', (device, tokens) => {
+            if (tokens.length < 4) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+            const id = parseInt(tokens[3], 10);
+            if (Number.isNaN(id) || id < 1 || id > 4094) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+            ensureVlan(device, id);
+            forEachTargetInterface(device, (iface) => {
+              if (!iface.switchportMode) iface.switchportMode = 'access';
+              iface.accessVlan = id;
+            });
+            return { output: '', stateChanged: true };
+          }, 'Set VLAN when interface is in access mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_access_vlan', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<vlan-id>']),
+        ],
+      }),
+    ],
+  });
 }
 
 export const BASE_COMMAND_TREE = {
@@ -184,6 +339,18 @@ export const BASE_COMMAND_TREE = {
                 cmd('brief', (device) => ({ output: renderIpInterfaceBrief(device), stateChanged: false }), 'IP interface status and configuration summary', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.VERIFY }),
               ],
             }),
+          ],
+        }),
+        node('vlan', {
+          help: 'VLAN status',
+          children: [
+            cmd('brief', (device) => ({ output: renderVlanBrief(device), stateChanged: false }), 'VLAN status summary', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.VERIFY }),
+          ],
+        }),
+        node('interfaces', {
+          help: 'Interface status and configuration',
+          children: [
+            cmd('status', (device) => ({ output: renderInterfacesStatus(device), stateChanged: false }), 'Display interface status', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.VERIFY }),
           ],
         }),
       ],
@@ -307,12 +474,30 @@ export const BASE_COMMAND_TREE = {
     }),
     cmd('interface', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      if (tokens[1].toLowerCase() === 'range') {
+        if (tokens.length < 3) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+        const range = resolveInterfaceRange(device, tokens.slice(2));
+        if (range.error) return { output: '', error: range.error };
+        device.cli.mode = CLI_MODE.INTERFACE_RANGE_CONFIG;
+        device.cli.currentInterfaceRange = range.ids;
+        device.cli.currentInterface = null;
+        return { output: '', modeChanged: true };
+      }
       const target = resolveInterfaceName(device, tokens[1]);
       if (!target) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
       device.cli.mode = CLI_MODE.INTERFACE_CONFIG;
       device.cli.currentInterface = target.id;
       return { output: '', modeChanged: true };
-    }, 'Select an interface to configure', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.CONFIGURE }, () => Object.values(INTERFACE_TYPES).map((t) => `${t.canonical}0/0`)),
+    }, 'Select an interface to configure', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.CONFIGURE }, () => [...Object.values(INTERFACE_TYPES).map((t) => `${t.canonical}0/0`), 'range']),
+    cmd('vlan', (device, tokens) => {
+      if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      const id = parseInt(tokens[1], 10);
+      if (Number.isNaN(id) || id < 1 || id > 4094) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+      ensureVlan(device, id);
+      device.cli.mode = CLI_MODE.VLAN_CONFIG;
+      device.cli.currentVlanId = id;
+      return { output: '', modeChanged: true };
+    }, 'Configure VLAN parameters', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<1-4094>']),
     node('line', {
       help: 'Select a line to configure',
       children: [
@@ -363,8 +548,7 @@ export const BASE_COMMAND_TREE = {
       help: 'Negate a command or set its defaults',
       children: [
         cmd('shutdown', (device) => {
-          const iface = device.runningConfig.interfaces[device.cli.currentInterface];
-          iface.administrativelyDown = false;
+          setInterfaceShutdown(device, false);
           return { output: '', stateChanged: true };
         }, 'Cancel shutdown and enable the interface', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_enable', dimension: SKILL_DIMENSION.CONFIGURE }),
         node('ip', {
@@ -381,16 +565,16 @@ export const BASE_COMMAND_TREE = {
       ],
     }),
     cmd('shutdown', (device) => {
-      const iface = device.runningConfig.interfaces[device.cli.currentInterface];
-      iface.administrativelyDown = true;
+      setInterfaceShutdown(device, true);
       return { output: '', stateChanged: true };
     }, 'Shut down the interface', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_enable', dimension: SKILL_DIMENSION.CONFIGURE }),
     cmd('description', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
-      const iface = device.runningConfig.interfaces[device.cli.currentInterface];
-      iface.description = tokens.slice(1).join(' ');
+      const description = tokens.slice(1).join(' ');
+      forEachTargetInterface(device, (iface) => { iface.description = description; });
       return { output: '', stateChanged: true };
     }, 'Interface specific description', null, () => ['<text>']),
+    buildSwitchportNode(),
     cmd('exit', (device) => {
       device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
       device.cli.currentInterface = null;
@@ -399,7 +583,66 @@ export const BASE_COMMAND_TREE = {
     cmd('end', (device) => {
       device.cli.mode = CLI_MODE.PRIVILEGED_EXEC;
       device.cli.currentInterface = null;
+      device.cli.currentInterfaceRange = null;
       device.cli.currentLine = null;
+      return { output: '', modeChanged: true };
+    }, 'End configuration mode and return to privileged EXEC'),
+  ],
+  [CLI_MODE.INTERFACE_RANGE_CONFIG]: [
+    cmd('do', executeDoCommand, 'Execute an EXEC command from configuration mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'do_command', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
+    node('no', {
+      help: 'Negate a command or set its defaults',
+      children: [
+        cmd('shutdown', (device) => {
+          setInterfaceShutdown(device, false);
+          return { output: '', stateChanged: true };
+        }, 'Cancel shutdown and enable the interfaces', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_enable', dimension: SKILL_DIMENSION.CONFIGURE }),
+      ],
+    }),
+    cmd('shutdown', (device) => {
+      setInterfaceShutdown(device, true);
+      return { output: '', stateChanged: true };
+    }, 'Shut down the interfaces', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_enable', dimension: SKILL_DIMENSION.CONFIGURE }),
+    cmd('description', (device, tokens) => {
+      if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      const description = tokens.slice(1).join(' ');
+      forEachTargetInterface(device, (iface) => { iface.description = description; });
+      return { output: '', stateChanged: true };
+    }, 'Interface specific description', null, () => ['<text>']),
+    buildSwitchportNode(),
+    cmd('exit', (device) => {
+      device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
+      device.cli.currentInterfaceRange = null;
+      return { output: '', modeChanged: true };
+    }, 'Exit from interface range configuration mode'),
+    cmd('end', (device) => {
+      device.cli.mode = CLI_MODE.PRIVILEGED_EXEC;
+      device.cli.currentInterface = null;
+      device.cli.currentInterfaceRange = null;
+      device.cli.currentLine = null;
+      return { output: '', modeChanged: true };
+    }, 'End configuration mode and return to privileged EXEC'),
+  ],
+  [CLI_MODE.VLAN_CONFIG]: [
+    cmd('do', executeDoCommand, 'Execute an EXEC command from configuration mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'do_command', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
+    cmd('name', (device, tokens) => {
+      if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      const vlan = device.runningConfig.vlans[device.cli.currentVlanId];
+      if (!vlan) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+      vlan.name = tokens.slice(1).join(' ');
+      return { output: '', stateChanged: true };
+    }, 'Set VLAN name', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<name>']),
+    cmd('exit', (device) => {
+      device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
+      device.cli.currentVlanId = null;
+      return { output: '', modeChanged: true };
+    }, 'Exit from VLAN configuration mode'),
+    cmd('end', (device) => {
+      device.cli.mode = CLI_MODE.PRIVILEGED_EXEC;
+      device.cli.currentInterface = null;
+      device.cli.currentInterfaceRange = null;
+      device.cli.currentLine = null;
+      device.cli.currentVlanId = null;
       return { output: '', modeChanged: true };
     }, 'End configuration mode and return to privileged EXEC'),
   ],
@@ -645,6 +888,10 @@ export function buildPrompt(device) {
       return `${base}(config)#`;
     case CLI_MODE.INTERFACE_CONFIG:
       return `${base}(config-if)#`;
+    case CLI_MODE.INTERFACE_RANGE_CONFIG:
+      return `${base}(config-if-range)#`;
+    case CLI_MODE.VLAN_CONFIG:
+      return `${base}(config-vlan)#`;
     case CLI_MODE.LINE_CONSOLE_CONFIG:
     case CLI_MODE.LINE_VTY_CONFIG:
       return `${base}(config-line)#`;
@@ -987,6 +1234,8 @@ export function completeInput(device, input) {
 function isConfigMode(mode) {
   return mode === CLI_MODE.GLOBAL_CONFIG
     || mode === CLI_MODE.INTERFACE_CONFIG
+    || mode === CLI_MODE.INTERFACE_RANGE_CONFIG
+    || mode === CLI_MODE.VLAN_CONFIG
     || mode === CLI_MODE.LINE_CONSOLE_CONFIG
     || mode === CLI_MODE.LINE_VTY_CONFIG;
 }
@@ -1008,7 +1257,7 @@ export function formatError(errorType, command, mode = CLI_MODE.USER_EXEC, marke
       if (isConfigMode(mode)) {
         return buildErrorOutput("% Invalid input detected at '^' marker.", command, markerStart);
       }
-      return `% Unknown command or computer name, unable to process.\n"${command}"`;
+      return `% Unknown command or computer name, unable to resolve request.\n"${command}"`;
     case CLI_ERROR.AMBIGUOUS_COMMAND:
       return `% Ambiguous command: "${command}"`;
     case CLI_ERROR.INCOMPLETE_COMMAND:
@@ -1084,10 +1333,23 @@ export function renderRunningConfig(device) {
   Object.values(cfg.interfaces).forEach((iface) => {
     lines.push(`interface ${iface.name}`);
     if (iface.description) lines.push(` description ${iface.description}`);
+    if (iface.switchportMode === 'access') lines.push(' switchport mode access');
+    if (iface.accessVlan) lines.push(` switchport access vlan ${iface.accessVlan}`);
     if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
     lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
     lines.push('!');
   });
+
+  if (cfg.vlans) {
+    Object.values(cfg.vlans)
+      .filter((vlan) => vlan.id !== 1)
+      .sort((a, b) => a.id - b.id)
+      .forEach((vlan) => {
+        lines.push(`vlan ${vlan.id}`);
+        if (vlan.name) lines.push(` name ${vlan.name}`);
+        lines.push('!');
+      });
+  }
 
   ['console', 'vty'].forEach((lineType) => {
     const line = cfg.lines[lineType];
@@ -1131,6 +1393,60 @@ export function renderIpInterfaceBrief(device) {
     const status = (iface.administrativelyDown ? 'administratively down' : 'up').padEnd(22);
     const protocol = iface.administrativelyDown ? 'down' : 'up';
     return `${name}${ip}${ok}${method}${status}${protocol}`;
+  });
+  return [header, ...rows].join('\n');
+}
+
+export function renderVlanBrief(device) {
+  const cfg = device.runningConfig;
+  const header = 'VLAN Name                             Status    Ports';
+  const separator = '---- -------------------------------- --------- -------------------------------';
+
+  const interfaces = Object.values(cfg.interfaces);
+  const lines = [header, separator];
+
+  Object.values(cfg.vlans)
+    .sort((a, b) => a.id - b.id)
+    .forEach((vlan) => {
+      let ports;
+      if (vlan.id === 1) {
+        ports = interfaces.filter((iface) => !iface.accessVlan);
+      } else {
+        ports = interfaces.filter((iface) => iface.accessVlan === vlan.id);
+      }
+      const portList = ports.map((iface) => shortInterfaceName(iface.name)).join(', ');
+      const idCol = String(vlan.id).padEnd(5);
+      const nameCol = (vlan.name || '').padEnd(33);
+      const statusCol = 'active'.padEnd(10);
+      lines.push(`${idCol}${nameCol}${statusCol}${portList}`);
+    });
+
+  return lines.join('\n');
+}
+
+function interfaceTypeLabel(iface) {
+  if (iface.name.toLowerCase().startsWith('fastethernet')) return '10/100BaseTX';
+  if (iface.name.toLowerCase().startsWith('gigabitethernet')) return '100/1000BaseTX';
+  return 'unknown';
+}
+
+function interfaceVlanColumn(iface) {
+  if (iface.administrativelyDown) return iface.accessVlan ? String(iface.accessVlan) : '1';
+  if (iface.switchportMode === 'access' && iface.accessVlan) return String(iface.accessVlan);
+  return '1';
+}
+
+export function renderInterfacesStatus(device) {
+  const header = 'Port      Name                 Status       Vlan       Duplex  Speed Type';
+  const rows = Object.values(device.runningConfig.interfaces).map((iface) => {
+    const port = shortInterfaceName(iface.name).padEnd(10);
+    const name = (iface.description || '').slice(0, 20).padEnd(21);
+    const status = (iface.administrativelyDown ? 'disabled' : iface.operationalStatus || 'notconnect').padEnd(13);
+    const vlan = interfaceVlanColumn(iface).padEnd(11);
+    const duplex = (iface.duplex || 'auto').padEnd(8);
+    const speed = (iface.speed || 'auto').padEnd(6);
+    const type = interfaceTypeLabel(iface);
+    return `${port}${name}${status}${vlan}${duplex}${speed}${type}`;
   });
   return [header, ...rows].join('\n');
 }

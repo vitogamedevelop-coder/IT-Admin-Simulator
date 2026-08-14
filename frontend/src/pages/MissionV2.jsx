@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  startMission001,
-  loadActiveMission,
+  startMainMission,
+  loadActiveMainMission,
   clearActiveMission,
   executeMissionCommand,
   getMissionHint,
   consumeMissionHint,
   revealMissionSolution,
-  getMission001Progress,
-  evaluateMission001,
-  mission001Feedback,
+  getMainMissionProgress,
+  evaluateMainMission,
+  mainMissionFeedback,
+  getMainMissionRequirements,
+  isMainMission,
   MISSION_001_ID,
-  MISSION_001_REQUIREMENTS,
 } from '../lib/missionV2';
 import {
   isCiscoSideMission,
@@ -29,9 +30,11 @@ import {
   SIDE_001_REQUIREMENTS,
   SIDE_002_REQUIREMENTS,
   SIDE_003_REQUIREMENTS,
+  SIDE_004_REQUIREMENTS,
 } from '../lib/ciscoSideMissions';
 import { completeQuest, setActiveQuest, completeCiscoSideMission } from '../lib/gameState';
 import { recordKnownCredentialsFromMission001 } from '../lib/credentials';
+import { questById } from '../lib/questData';
 import { buildPrompt, getCommandHelp, completeInput } from '../lib/ciscoCliEngine';
 import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield } from 'lucide-react';
 
@@ -39,31 +42,32 @@ const SIDE_REQUIREMENTS = {
   'cisco-side-basic-001': SIDE_001_REQUIREMENTS,
   'cisco-side-basic-002': SIDE_002_REQUIREMENTS,
   'cisco-side-basic-003': SIDE_003_REQUIREMENTS,
+  'cisco-side-l2-001': SIDE_004_REQUIREMENTS,
 };
 
-const RUNTIME = {
-  [MISSION_001_ID]: {
-    start: () => startMission001(),
-    load: () => loadActiveMission(),
+function buildMainRuntime(missionId) {
+  return {
+    start: () => startMainMission(missionId),
+    load: () => loadActiveMainMission(missionId),
     clear: () => clearActiveMission(),
     execute: (state, input) => executeMissionCommand(state, input),
-    getProgress: (state) => getMission001Progress(state.device, state.scenario),
-    evaluate: (state) => evaluateMission001(state),
-    feedback: (state, evaluation) => mission001Feedback(evaluation.state, evaluation),
+    getProgress: (state) => getMainMissionProgress(state),
+    evaluate: (state) => evaluateMainMission(state),
+    feedback: (state, evaluation) => mainMissionFeedback(evaluation.state, evaluation),
     getHint: (state, req) => getMissionHint(state, req),
     consumeHint: (state, req) => consumeMissionHint(state, req),
     revealSolution: (state, req) => revealMissionSolution(state, req),
-    requirements: MISSION_001_REQUIREMENTS,
+    requirements: getMainMissionRequirements(missionId),
     complete: (state) => {
-      const quest = { id: MISSION_001_ID };
-      completeQuest(quest, { xp: 60, reputation: { network: 5, management: 3 } });
-      if (state?.device && state?.scenario) {
+      const quest = questById(missionId);
+      if (quest) completeQuest(quest, { xp: 80, reputation: { network: 8, management: 4 } });
+      if (missionId === MISSION_001_ID && state?.device && state?.scenario) {
         recordKnownCredentialsFromMission001(state.device, state.scenario);
       }
       clearActiveMission();
     },
-  },
-};
+  };
+}
 
 function buildSideRuntime(missionId) {
   return {
@@ -89,11 +93,18 @@ function buildSideRuntime(missionId) {
   };
 }
 
+const RUNTIME_CACHE = {};
+
 function getRuntime(missionId) {
-  if (RUNTIME[missionId]) return RUNTIME[missionId];
+  if (RUNTIME_CACHE[missionId]) return RUNTIME_CACHE[missionId];
+  if (isMainMission(missionId)) {
+    const rt = buildMainRuntime(missionId);
+    RUNTIME_CACHE[missionId] = rt;
+    return rt;
+  }
   if (isCiscoSideMission(missionId)) {
     const rt = buildSideRuntime(missionId);
-    RUNTIME[missionId] = rt;
+    RUNTIME_CACHE[missionId] = rt;
     return rt;
   }
   return null;
@@ -121,7 +132,7 @@ export default function MissionV2() {
     const active = runtime.load();
     if (active && active.missionId === missionId) {
       setState(active);
-    } else if (missionId === MISSION_001_ID || isCiscoSideMission(missionId)) {
+    } else if (isMainMission(missionId) || isCiscoSideMission(missionId)) {
       setState(runtime.start());
     } else {
       setState(null);

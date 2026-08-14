@@ -56,15 +56,24 @@ const FINISHED_LESSONS = [
   'fundamentals/switching',
   'fundamentals/vlan-basics',
   'cisco-packet-tracer/grundkonfiguration',
+  // Added by later Cisco content milestones.
+  'cisco-packet-tracer/static-routing',
+  'cisco-packet-tracer/ospf',
+  'cisco-packet-tracer/inter-vlan-routing',
+  'cisco-packet-tracer/multilayer-switching',
+  'cisco-packet-tracer/stp',
+  'cisco-packet-tracer/acl',
+  'cisco-packet-tracer/packet-filter',
+  'cisco-packet-tracer/nat',
+  'cisco-packet-tracer/troubleshooting',
+  'cisco-packet-tracer/ssh',
+  'cisco-packet-tracer/dhcp',
 ];
 
 // "packet-tracer-ui"/"connect-end-devices"/"switch-basics" were removed from
-// the catalog entirely (Milestone: Cisco-Struktur bereinigen) - "acl"/"nat"
-// remain genuine content-less placeholders for a later milestone.
-const PLACEHOLDER_TOPICS = [
-  { categoryId: 'cisco-packet-tracer', topicId: 'acl' },
-  { categoryId: 'cisco-packet-tracer', topicId: 'nat' },
-];
+// the catalog entirely (Milestone: Cisco-Struktur bereinigen).
+// As of Phase 1F all Cisco catalog topics have lesson content.
+const PLACEHOLDER_TOPICS = [];
 
 // ============================================================
 // 1. All finished lessons registered in LESSONS

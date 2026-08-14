@@ -9,11 +9,12 @@ import {
 } from './notificationSystem.js';
 import { createDialog } from './dialogSystem.js';
 import { colleagues } from './officeWorld.js';
-import { MISSION_001_ID } from './missionV2.js';
+import { MISSION_001_ID, MISSION_002_ID } from './missionV2.js';
 import {
   SIDE_MISSION_001_ID,
   SIDE_MISSION_002_ID,
   SIDE_MISSION_003_ID,
+  SIDE_MISSION_004_ID,
 } from './ciscoSideMissions.js';
 
 export const WORLD_EVENT_IDS = {
@@ -21,6 +22,10 @@ export const WORLD_EVENT_IDS = {
   SIDE_001_MAIL: 'side-001-mail',
   SIDE_002_PHONE: 'side-002-phone',
   SIDE_003_SAM: 'side-003-sam',
+  POST_SIDE_003_SAM: 'post-side-003-sam',
+  MAIN_002_MAIL: 'main-002-mail',
+  POST_MAIN_002_SAM: 'post-main-002-sam',
+  SECURITY_MAIL: 'security-mail',
 };
 
 const WORLD_EVENTS = [
@@ -96,14 +101,9 @@ const WORLD_EVENTS = [
           id: 'start',
           text: 'Noch ein kleiner Sicherheitspunkt. Auf dem Test-Switch gibt es bereits einen lokalen Admin-Benutzer, aber die Console-Line fragt noch das gemeinsame Line-Passwort ab.\n\nStelle um auf "login local", damit jeder Mitarbeiter mit seinem eigenen Benutzer arbeitet.',
           options: [
-            { label: 'Ich kümmere mich drum.', nextId: 'accept' },
+            { label: 'Ich kümmere mich drum.', nextId: 'close' },
             { label: 'Erst später.', nextId: 'close' },
           ],
-        },
-        {
-          id: 'accept',
-          text: 'Super. Denk daran, die Änderung auch zu speichern.',
-          onComplete: { action: 'close' },
         },
         {
           id: 'close',
@@ -114,6 +114,94 @@ const WORLD_EVENTS = [
       entryNode: 'start',
     },
     linkedMissionId: SIDE_MISSION_003_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.POST_SIDE_003_SAM,
+    trigger: (state) => state.completedCiscoSideMissions.includes(SIDE_MISSION_003_ID)
+      && !state.completedQuests.includes(MISSION_002_ID)
+      && !state.completedCiscoSideMissions.includes(SIDE_MISSION_004_ID),
+    delivery: 'dialog-sam',
+    data: {
+      personId: 'sam',
+      mode: 'face-to-face',
+      title: 'Der nächste Switch wartet',
+      nodes: [
+        {
+          id: 'start',
+          text: 'Die kleinen Aufträge waren Absicht. Ich wollte sehen, ob du einen Switch vorbereiten kannst, ohne dass ich danebenstehe.\n\nJetzt bekommst du etwas, das hier häufiger vorkommt. Die Personalabteilung bekommt neue Arbeitsplätze. Die sollen nicht einfach im gleichen Netzsegment wie alle anderen landen.',
+          options: [
+            { label: 'Ich bin bereit.', nextId: 'close' },
+            { label: 'Erst später.', nextId: 'close' },
+          ],
+        },
+        {
+          id: 'close',
+          text: 'Ich schicke dir gleich eine Mail mit den Details. Bearbeite den Auftrag in Ruhe.',
+          onComplete: { action: 'close' },
+        },
+      ],
+      entryNode: 'start',
+    },
+    linkedMissionId: MISSION_002_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.MAIN_002_MAIL,
+    trigger: (state) => state.completedCiscoSideMissions.includes(SIDE_MISSION_003_ID)
+      && !state.completedQuests.includes(MISSION_002_ID)
+      && !state.completedCiscoSideMissions.includes(SIDE_MISSION_004_ID),
+    delivery: 'email',
+    data: {
+      id: 'world-mail-main-002',
+      from: { personId: 'sam', name: 'Sam Richter', role: 'Senior-Administrator' },
+      to: ['spieler@nexus.local'],
+      subject: 'Netzwerksegment Personalabteilung',
+      body: 'Moin,\n\nfür die neuen Arbeitsplätze der Personalabteilung wurde ein eigener Layer-2-Bereich vorgesehen.\n\nAm Switch Sw2 sollen vier Arbeitsplätze in VLAN 10 PERSONAL eingerichtet werden.\n\nSchau dir zuerst den aktuellen Zustand des Switches an, prüfe anschließend deine Änderungen und speichere die Konfiguration.\n\n– Sam',
+      priority: 'high',
+    },
+    linkedMissionId: MISSION_002_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.POST_MAIN_002_SAM,
+    trigger: (state) => state.completedQuests.includes(MISSION_002_ID)
+      && !state.completedCiscoSideMissions.includes(SIDE_MISSION_004_ID),
+    delivery: 'dialog-sam',
+    data: {
+      personId: 'sam',
+      mode: 'face-to-face',
+      title: 'Sw2 vor der Übergabe',
+      nodes: [
+        {
+          id: 'start',
+          text: 'Sieht gut aus.\n\nBevor der Switch so in Betrieb geht, fehlt mir allerdings noch etwas. Schau dir die übrigen Ports einmal genauer an. Was nicht gebraucht wird, muss auch nicht offen herumstehen.',
+          options: [
+            { label: 'Verstanden.', nextId: 'close' },
+            { label: 'Später.', nextId: 'close' },
+          ],
+        },
+        {
+          id: 'close',
+          text: 'Ich schicke dir eine Mail mit dem genauen Auftrag.',
+          onComplete: { action: 'close' },
+        },
+      ],
+      entryNode: 'start',
+    },
+    linkedMissionId: SIDE_MISSION_004_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.SECURITY_MAIL,
+    trigger: (state) => state.completedQuests.includes(MISSION_002_ID)
+      && !state.completedCiscoSideMissions.includes(SIDE_MISSION_004_ID),
+    delivery: 'email',
+    data: {
+      id: 'world-mail-security-004',
+      from: { personId: 'sam', name: 'Sam Richter', role: 'Senior-Administrator' },
+      to: ['spieler@nexus.local'],
+      subject: 'Sw2 vor der Inbetriebnahme absichern',
+      body: 'Moin,\n\nSw2 geht bald in Betrieb. Auf dem Gerät sind noch mehrere ungenutzte Accessports aktiv.\n\nPrüfe, welche Ports tatsächlich benötigt werden. Nicht verwendete Accessports sollen nach NEXUS-Standard in unser Parking-VLAN verschoben und administrativ deaktiviert werden.\n\nNEXUS-Standard:\n- Parking VLAN: 999\n- Name: UNUSED\n\nPass auf die Uplinks auf.\n\n– Sam',
+      priority: 'high',
+    },
+    linkedMissionId: SIDE_MISSION_004_ID,
   },
 ];
 
@@ -267,10 +355,8 @@ export function processWorldEvents() {
   return { dispatched, pendingDialog: pendingDialog || getPendingWorldDialog(state) };
 }
 
-export function worldDialogResultAction(option, linkedMissionId) {
-  if (!option) return null;
-  if (option.nextId === 'accept' && linkedMissionId) {
-    return { action: 'mission', missionId: linkedMissionId };
-  }
+export function worldDialogResultAction(_option, _linkedMissionId) {
+  // World-flow dialogs never auto-start missions. They only acknowledge the
+  // event; the player starts missions manually via mail/phone/objective panel.
   return { action: 'close' };
 }

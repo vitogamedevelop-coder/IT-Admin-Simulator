@@ -89,11 +89,15 @@ const EXPECTED_LESSONS = [
   'cisco-packet-tracer/trunk',
   'cisco-packet-tracer/router-basics',
   'cisco-packet-tracer/static-routing',
+  'cisco-packet-tracer/ospf',
   'cisco-packet-tracer/inter-vlan-routing',
   'cisco-packet-tracer/multilayer-switching',
   'cisco-packet-tracer/troubleshooting',
   // Added by Milestone C7 (STP/PVST+ and SSH deep-dive lessons).
   'cisco-packet-tracer/stp',
+  'cisco-packet-tracer/acl',
+  'cisco-packet-tracer/packet-filter',
+  'cisco-packet-tracer/nat',
   'cisco-packet-tracer/ssh',
   // Added by Milestone C7 part 2 (DHCP Relay).
   'cisco-packet-tracer/dhcp',

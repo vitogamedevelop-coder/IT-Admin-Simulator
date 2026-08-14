@@ -48,7 +48,7 @@ assert(reloaded.missionId === state.missionId, 'Reloaded mission ID matches');
 assert(reloaded.scenario.seed === state.scenario.seed, 'Reloaded scenario seed matches');
 
 // 5. Invalid mission ID does not create a valid mission.
-storage.setItem('cyberlearn:active-mission-v1', JSON.stringify({ missionId: 'unknown-mission' }));
+storage.setItem('cyberlearn:active-main-mission-v1', JSON.stringify({ missionId: 'unknown-mission' }));
 const invalid = loadActiveMission();
 assert(invalid === null, 'Unknown mission ID returns null');
 storage.removeItem('cyberlearn:active-mission-v1');

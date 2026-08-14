@@ -48,7 +48,7 @@ console.log('3. Testing the current Cisco topic set...');
 // configuration" (now titled "Grundkonfiguration & IP-Konfiguration").
 const EXPECTED_EXISTING = [
   'grundkonfiguration', 'basic-device-configuration', 'vlan', 'access-port', 'router-basics',
-  'trunk', 'inter-vlan-routing', 'static-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting', 'ssh', 'dhcp',
+  'trunk', 'static-routing', 'ospf', 'inter-vlan-routing', 'multilayer-switching', 'stp', 'acl', 'packet-filter', 'nat', 'troubleshooting', 'ssh', 'dhcp',
 ];
 const REMOVED_TOPICS = ['packet-tracer-ui', 'connect-end-devices', 'switch-basics', 'ip-configuration'];
 for (const topicId of EXPECTED_EXISTING) {

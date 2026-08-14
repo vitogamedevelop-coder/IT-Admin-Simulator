@@ -1,6 +1,6 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
-import { createCiscoDevice, executeCommand, getCommandHelp, completeInput, CLI_ERROR } from '../src/lib/ciscoCliEngine.js';
+import { createCiscoDevice, executeCommand, getCommandHelp, completeInput, renderRunningConfig, CLI_ERROR } from '../src/lib/ciscoCliEngine.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,18 +20,22 @@ function isArgumentWildcard(keyword) {
 }
 
 function setCliContext(device, mode) {
+  device.cli.currentInterface = null;
+  device.cli.currentInterfaceRange = null;
+  device.cli.currentVlanId = null;
+  device.cli.currentLine = null;
+
   if (mode === 'INTERFACE_CONFIG') {
     device.cli.currentInterface = Object.keys(device.runningConfig.interfaces)[0];
-    device.cli.currentLine = null;
+  } else if (mode === 'INTERFACE_RANGE_CONFIG') {
+    device.cli.currentInterfaceRange = Object.keys(device.runningConfig.interfaces).slice(0, 2);
+  } else if (mode === 'VLAN_CONFIG') {
+    device.runningConfig.vlans[10] = device.runningConfig.vlans[10] || { id: 10, name: 'VLAN0010' };
+    device.cli.currentVlanId = 10;
   } else if (mode === 'LINE_CONSOLE_CONFIG') {
-    device.cli.currentInterface = null;
     device.cli.currentLine = 'console';
   } else if (mode === 'LINE_VTY_CONFIG') {
-    device.cli.currentInterface = null;
     device.cli.currentLine = 'vty';
-  } else {
-    device.cli.currentInterface = null;
-    device.cli.currentLine = null;
   }
 }
 
@@ -153,3 +157,113 @@ for (const [mode, tree] of Object.entries(BASE_COMMAND_TREE)) {
 }
 
 console.log('Prefix collision, help and tab tests passed across all CLI modes.');
+
+// ============================================================================
+// Phase 1F: functional coverage for VLAN / interface range / switchport / show
+// ============================================================================
+
+function run(dev, input) {
+  return executeCommand(dev, input);
+}
+
+const fdev = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: 'Sw2' });
+
+// vlan / name
+let r = run(fdev, 'enable');
+assert(r.success, 'enable should succeed');
+r = run(fdev, 'configure terminal');
+assert(r.success, 'configure terminal should succeed');
+r = run(fdev, 'vlan 10');
+assert(r.success && fdev.cli.mode === 'VLAN_CONFIG', 'vlan 10 should enter VLAN_CONFIG mode');
+r = run(fdev, 'name PERSONAL');
+assert(r.success, 'name should succeed inside vlan config');
+assert(fdev.runningConfig.vlans[10].name === 'PERSONAL', 'vlan 10 name should be PERSONAL');
+r = run(fdev, 'exit');
+assert(r.success && fdev.cli.mode === 'GLOBAL_CONFIG', 'exit should return to GLOBAL_CONFIG');
+
+r = run(fdev, 'vlan 999');
+run(fdev, 'name UNUSED');
+run(fdev, 'end');
+assert(fdev.cli.mode === 'PRIVILEGED_EXEC', 'end from vlan config should return to PRIVILEGED_EXEC');
+
+const runningConfig = renderRunningConfig(fdev);
+assert(runningConfig.includes('vlan 10'), 'running-config should include vlan 10');
+assert(runningConfig.includes(' name PERSONAL'), 'running-config should include vlan 10 name');
+assert(runningConfig.includes('vlan 999'), 'running-config should include vlan 999');
+assert(runningConfig.includes(' name UNUSED'), 'running-config should include vlan 999 name');
+
+// interface fa0/1 (single interface, prefix form)
+run(fdev, 'configure terminal');
+r = run(fdev, 'interface fa0/1');
+assert(r.success && fdev.cli.mode === 'INTERFACE_CONFIG', 'interface fa0/1 should enter INTERFACE_CONFIG');
+assert(fdev.cli.currentInterface === 'FastEthernet0/1', 'interface fa0/1 should resolve to FastEthernet0/1');
+
+// switchport mode access / switchport access vlan
+r = run(fdev, 'switchport mode access');
+assert(r.success, 'switchport mode access should succeed');
+r = run(fdev, 'switchport access vlan 10');
+assert(r.success, 'switchport access vlan 10 should succeed');
+assert(fdev.runningConfig.interfaces['FastEthernet0/1'].accessVlan === 10, 'FastEthernet0/1 should be assigned to vlan 10');
+
+// switchport access vlan should auto-create a vlan that does not exist yet
+r = run(fdev, 'switchport access vlan 55');
+assert(r.success, 'switchport access vlan 55 should succeed even for a new vlan');
+assert(fdev.runningConfig.vlans[55], 'vlan 55 should be auto-created');
+
+// shutdown / no shutdown
+r = run(fdev, 'shutdown');
+assert(r.success, 'shutdown should succeed');
+assert(fdev.runningConfig.interfaces['FastEthernet0/1'].administrativelyDown === true, 'interface should be administratively down');
+assert(fdev.runningConfig.interfaces['FastEthernet0/1'].operationalStatus === 'disabled', 'interface operational status should be disabled');
+r = run(fdev, 'no shutdown');
+assert(r.success, 'no shutdown should succeed');
+assert(fdev.runningConfig.interfaces['FastEthernet0/1'].administrativelyDown === false, 'interface should no longer be administratively down');
+assert(fdev.runningConfig.interfaces['FastEthernet0/1'].operationalStatus === 'notconnect', 'interface operational status should be notconnect after no shutdown');
+run(fdev, 'end');
+
+// interface range fa0/1 - 4
+run(fdev, 'configure terminal');
+r = run(fdev, 'interface range fa0/1 - 4');
+assert(r.success && fdev.cli.mode === 'INTERFACE_RANGE_CONFIG', 'interface range fa0/1 - 4 should enter INTERFACE_RANGE_CONFIG');
+assert(fdev.cli.currentInterfaceRange.length === 4, 'interface range fa0/1 - 4 should target 4 interfaces');
+r = run(fdev, 'switchport mode access');
+assert(r.success, 'switchport mode access should succeed in interface range mode');
+r = run(fdev, 'switchport access vlan 20');
+assert(r.success, 'switchport access vlan 20 should succeed in interface range mode');
+['FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4'].forEach((id) => {
+  assert(fdev.runningConfig.interfaces[id].accessVlan === 20, `${id} should be assigned to vlan 20`);
+  assert(fdev.runningConfig.interfaces[id].switchportMode === 'access', `${id} should be in access mode`);
+});
+r = run(fdev, 'shutdown');
+assert(r.success, 'shutdown should succeed for interface range');
+['FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4'].forEach((id) => {
+  assert(fdev.runningConfig.interfaces[id].administrativelyDown === true, `${id} should be administratively down`);
+});
+run(fdev, 'end');
+
+// interface range with a full type name should also work
+run(fdev, 'configure terminal');
+r = run(fdev, 'interface range fastethernet0/5 - 6');
+assert(r.success && fdev.cli.mode === 'INTERFACE_RANGE_CONFIG', 'interface range fastethernet0/5 - 6 should enter INTERFACE_RANGE_CONFIG');
+assert(fdev.cli.currentInterfaceRange.length === 2, 'interface range fastethernet0/5 - 6 should target 2 interfaces');
+run(fdev, 'end');
+
+// invalid interface range should be rejected
+run(fdev, 'configure terminal');
+r = run(fdev, 'interface range fa0/1 - 999');
+assert(!r.success && r.errorType === CLI_ERROR.INVALID_ARGUMENT, 'interface range fa0/1 - 999 should be rejected as invalid');
+run(fdev, 'end');
+
+// show vlan brief / show interfaces status
+r = run(fdev, 'show vlan brief');
+assert(r.success, 'show vlan brief should succeed');
+assert(r.output.includes('PERSONAL'), 'show vlan brief should include vlan 10 name');
+assert(r.output.includes('Fa0/1'), 'show vlan brief should include Fa0/1 in a vlan port list');
+
+r = run(fdev, 'show interfaces status');
+assert(r.success, 'show interfaces status should succeed');
+assert(r.output.includes('Fa0/1'), 'show interfaces status should include Fa0/1');
+assert(r.output.includes('Gi0/1'), 'show interfaces status should include Gi0/1');
+assert(r.output.includes('10/100BaseTX'), 'show interfaces status should include FastEthernet type');
+
+console.log('Phase 1F VLAN / interface-range / switchport / show functional tests passed.');

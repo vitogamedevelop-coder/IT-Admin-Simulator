@@ -29,7 +29,8 @@ global.window = {
 
 const { pathToFileURL } = await import('node:url');
 
-const { MISSION_001_ID } = await import(pathToFileURL(join(srcDir, 'lib/missionV2.js')).href);
+const { MISSION_001_ID, MISSION_002_ID } = await import(pathToFileURL(join(srcDir, 'lib/missionV2.js')).href);
+const { SIDE_MISSION_004_ID } = await import(pathToFileURL(join(srcDir, 'lib/ciscoSideMissions.js')).href);
 const { completeQuest } = await import(pathToFileURL(join(srcDir, 'lib/gameState.js')).href);
 const { processWorldEvents, acknowledgePendingWorldDialog, getPendingWorldDialog, WORLD_EVENT_IDS } = await import(pathToFileURL(join(srcDir, 'lib/worldDispatcher.js')).href);
 const { readEmails } = await import(pathToFileURL(join(srcDir, 'lib/emails.js')).href);
@@ -119,6 +120,8 @@ console.log('\nAfter side-002 completion');
     assert(result3.pendingDialog, 'pendingDialog should be set for side-003');
     assert(result3.pendingDialog.linkedMissionId === 'cisco-side-basic-003', 'linked mission should be side-003');
   });
+  // Acknowledge so the next event (main-002 preparation) can dispatch.
+  acknowledgePendingWorldDialog();
 }
 
 console.log('\nAfter all three side missions');
@@ -134,6 +137,42 @@ console.log('\nAfter all three side missions');
     assert(top, 'top objective should exist');
     assert(top.key === 'main', `top should be main gate, got ${top.key}`);
   });
+}
+
+console.log('\nAfter all three basic side missions');
+{
+  // Game state already contains all three basic side missions from previous block.
+  const result4 = processWorldEvents();
+  test('post-side-003 Sam dialog is pending', () => {
+    assert(result4.pendingDialog, 'pendingDialog should be set');
+    assert(result4.pendingDialog.eventId === WORLD_EVENT_IDS.POST_SIDE_003_SAM, 'event should be post-side-003-sam');
+  });
+  test('main-002 mail is delivered', () => {
+    const emails = readEmails();
+    assert(emails.some((e) => e.linkedMissionId === MISSION_002_ID), 'email for main-002 should exist');
+  });
+
+  acknowledgePendingWorldDialog();
+}
+
+console.log('\nAfter main-002 completion');
+{
+  const { readGameState, writeGameState } = await import(pathToFileURL(join(srcDir, 'lib/gameState.js')).href);
+  const state = readGameState();
+  state.completedQuests.push(MISSION_002_ID);
+  writeGameState(state);
+
+  const result5 = processWorldEvents();
+  test('post-main-002 Sam dialog is pending', () => {
+    assert(result5.pendingDialog, 'pendingDialog should be set');
+    assert(result5.pendingDialog.eventId === WORLD_EVENT_IDS.POST_MAIN_002_SAM, 'event should be post-main-002-sam');
+  });
+  test('security side mail is delivered', () => {
+    const emails = readEmails();
+    assert(emails.some((e) => e.linkedMissionId === SIDE_MISSION_004_ID), 'email for side-004 should exist');
+  });
+
+  acknowledgePendingWorldDialog();
 }
 
 console.log(`\n${passed} tests passed`);

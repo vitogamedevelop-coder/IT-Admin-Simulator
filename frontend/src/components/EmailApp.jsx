@@ -6,6 +6,7 @@ import { questPath } from '../lib/questRouter';
 import { registerMission, updateMissionStatus, getMissionEntry, MissionStatus } from '../lib/missionLog';
 import { readGameState } from '../lib/gameState';
 import { isCiscoSideMission } from '../lib/ciscoSideMissions';
+import { isMainMission } from '../lib/missionV2';
 
 const priorityBadge = {
   urgent: 'text-[#ff3355] border-[#ff3355]',
@@ -25,6 +26,7 @@ export default function EmailApp({ onClose }) {
   }
 
   function missionPath(email) {
+    if (isMainMission(email.linkedMissionId)) return `/mission/${encodeURIComponent(email.linkedMissionId)}`;
     if (isCiscoSideMission(email.linkedMissionId)) return `/side-mission/${encodeURIComponent(email.linkedMissionId)}`;
     return questPath(email.linkedMissionId);
   }

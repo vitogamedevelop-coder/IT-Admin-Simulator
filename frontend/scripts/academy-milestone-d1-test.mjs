@@ -147,10 +147,8 @@ const tcpUdpDims = getTopicScoreDimensions('fundamentals', 'tcp-udp');
 assert(tcpUdpDims.theory && tcpUdpDims.practice && !tcpUdpDims.retention, 'TCP & UDP shows theory + practice');
 // "dhcp" gained a full LessonRunner lesson in the "Themenstruktur-Anpassung"
 // milestone, so it now shows theory + practice like any other real lesson -
-// use a topic that is still an actual placeholder instead. "packet-tracer-ui"
-// was removed from the catalog entirely (Milestone: Cisco-Struktur
-// bereinigen); "acl" remains a genuine content-less placeholder.
-const placeholderDims = getTopicScoreDimensions('cisco-packet-tracer', 'acl');
+// use a topic that is still an actual placeholder instead.
+const placeholderDims = getTopicScoreDimensions('information-security', 'security-objectives');
 assert(!placeholderDims.theory && !placeholderDims.practice && !placeholderDims.retention, 'Placeholder shows no scores');
 
 console.log('All Milestone D1 tests passed.');

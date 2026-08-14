@@ -9,7 +9,7 @@ function createKnownCredentials() {
 }
 
 const initialState = {
-  stateVersion: 7,
+  stateVersion: 8,
   contentPackVersion: 1,
   company: 'NEXUS Systems',
   // Purely local display name (no account, no PII beyond a self-chosen
@@ -96,6 +96,12 @@ function migrateState(saved) {
     migrated.knownCredentials = saved.knownCredentials || createKnownCredentials();
     migrated.dispatchedWorldEvents = saved.dispatchedWorldEvents || [];
     migrated.pendingWorldDialog = saved.pendingWorldDialog || null;
+  }
+  if (!saved.stateVersion || saved.stateVersion < 8) {
+    migrated.stateVersion = 8;
+    // Phase 1F introduces main mission 002 and the L2 security side mission.
+    // Old quest gate placeholder is replaced by the real main mission ID.
+    migrated.completedQuests = (saved.completedQuests || []).map((id) => (id === 'cisco-main-002-gate' ? 'cisco-main-002' : id));
   }
   return migrated;
 }

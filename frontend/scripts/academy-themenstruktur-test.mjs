@@ -74,7 +74,7 @@ assert.deepEqual(ciscoTopics[1].prerequisites, ['grundlagen'], 'grundkonfigurati
 // to "grundlagen") - see academyTopics.js for the reasoning.
 const EXPECTED_EXISTING_CISCO = [
   'grundlagen', 'grundkonfiguration', 'basic-device-configuration', 'vlan', 'access-port',
-  'trunk', 'router-basics', 'static-routing', 'inter-vlan-routing', 'multilayer-switching', 'stp', 'acl', 'nat', 'troubleshooting', 'ssh', 'dhcp',
+  'trunk', 'router-basics', 'static-routing', 'ospf', 'inter-vlan-routing', 'multilayer-switching', 'stp', 'acl', 'packet-filter', 'nat', 'troubleshooting', 'ssh', 'dhcp',
 ];
 assert.deepEqual(ciscoTopics.map((t) => t.topicId), EXPECTED_EXISTING_CISCO, 'Cisco catalog order matches expectations after the structure cleanup');
 const basicDeviceConfigTopic = ciscoTopics.find((t) => t.topicId === 'basic-device-configuration');
