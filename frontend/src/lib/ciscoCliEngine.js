@@ -270,6 +270,13 @@ function setInterfaceShutdown(device, isDown) {
   });
 }
 
+function parseVlanList(rawList) {
+  const ids = rawList.split(',').map((s) => s.trim()).filter(Boolean).map((s) => parseInt(s, 10));
+  if (ids.length === 0) return null;
+  if (ids.some((id) => Number.isNaN(id) || id < 1 || id > 4094)) return null;
+  return ids;
+}
+
 function buildSwitchportNode() {
   return node('switchport', {
     help: 'Set switchport parameters',
@@ -281,6 +288,10 @@ function buildSwitchportNode() {
             forEachTargetInterface(device, (iface) => { iface.switchportMode = 'access'; });
             return { output: '', stateChanged: true };
           }, 'Set VLAN classification of the interface as access', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_mode', dimension: SKILL_DIMENSION.CONFIGURE }),
+          cmd('trunk', (device) => {
+            forEachTargetInterface(device, (iface) => { iface.switchportMode = 'trunk'; });
+            return { output: '', stateChanged: true };
+          }, 'Set trunking mode to trunk unconditionally', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_mode_trunk', dimension: SKILL_DIMENSION.CONFIGURE }),
         ],
       }),
       node('access', {
@@ -297,6 +308,24 @@ function buildSwitchportNode() {
             });
             return { output: '', stateChanged: true };
           }, 'Set VLAN when interface is in access mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_access_vlan', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<vlan-id>']),
+        ],
+      }),
+      node('trunk', {
+        help: 'Set trunking characteristics of the interface',
+        children: [
+          node('allowed', {
+            help: 'Set allowed VLAN characteristics when interface is in trunking mode',
+            children: [
+              cmd('vlan', (device, tokens) => {
+                if (tokens.length < 5) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+                const ids = parseVlanList(tokens.slice(4).join(''));
+                if (!ids) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+                ids.forEach((id) => ensureVlan(device, id));
+                forEachTargetInterface(device, (iface) => { iface.trunkAllowedVlans = ids; });
+                return { output: '', stateChanged: true };
+              }, 'Set allowed VLANs when interface is in trunking mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_trunk_allowed_vlan', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<vlan-id[,vlan-id...]>']),
+            ],
+          }),
         ],
       }),
     ],
@@ -351,6 +380,18 @@ export const BASE_COMMAND_TREE = {
           help: 'Interface status and configuration',
           children: [
             cmd('status', (device) => ({ output: renderInterfacesStatus(device), stateChanged: false }), 'Display interface status', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.VERIFY }),
+            cmd('trunk', (device) => ({ output: renderInterfacesTrunk(device), stateChanged: false }), 'Display interfaces that are in trunking mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'verify_trunk', dimension: SKILL_DIMENSION.VERIFY }),
+            node('<interface>', {
+              help: 'Interface name',
+              complete: () => Object.values(INTERFACE_TYPES).map((t) => `${t.canonical}0/0`),
+              children: [
+                cmd('switchport', (device, tokens) => {
+                  const iface = resolveInterfaceName(device, tokens[2]);
+                  if (!iface) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+                  return { output: renderInterfaceSwitchport(iface), stateChanged: false };
+                }, 'Display switchport configuration of the interface', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'verify_switchport', dimension: SKILL_DIMENSION.VERIFY }),
+              ],
+            }),
           ],
         }),
       ],
@@ -372,6 +413,15 @@ export const BASE_COMMAND_TREE = {
     }),
     node('write', {
       help: 'Write running configuration to memory',
+      // "write" alone (without "memory") is itself a valid, historic IOS
+      // shortcut for "write memory". Giving this node its own `execute`
+      // (in addition to the "memory" child) lets the generic tree walker
+      // accept both "write" and "write memory" as complete commands.
+      execute: (device) => {
+        device.startupConfig = deepClone(device.runningConfig);
+        return { output: '\nBuilding configuration...\n[OK]\n', stateChanged: true };
+      },
+      skill: { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'save_config', dimension: SKILL_DIMENSION.CONFIGURE },
       children: [
         cmd('memory', (device) => {
           device.startupConfig = deepClone(device.runningConfig);
@@ -1335,6 +1385,8 @@ export function renderRunningConfig(device) {
     if (iface.description) lines.push(` description ${iface.description}`);
     if (iface.switchportMode === 'access') lines.push(' switchport mode access');
     if (iface.accessVlan) lines.push(` switchport access vlan ${iface.accessVlan}`);
+    if (iface.switchportMode === 'trunk') lines.push(' switchport mode trunk');
+    if (iface.trunkAllowedVlans) lines.push(` switchport trunk allowed vlan ${iface.trunkAllowedVlans.join(',')}`);
     if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
     lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
     lines.push('!');
@@ -1410,9 +1462,9 @@ export function renderVlanBrief(device) {
     .forEach((vlan) => {
       let ports;
       if (vlan.id === 1) {
-        ports = interfaces.filter((iface) => !iface.accessVlan);
+        ports = interfaces.filter((iface) => !iface.accessVlan && iface.switchportMode !== 'trunk');
       } else {
-        ports = interfaces.filter((iface) => iface.accessVlan === vlan.id);
+        ports = interfaces.filter((iface) => iface.accessVlan === vlan.id && iface.switchportMode !== 'trunk');
       }
       const portList = ports.map((iface) => shortInterfaceName(iface.name)).join(', ');
       const idCol = String(vlan.id).padEnd(5);
@@ -1431,6 +1483,7 @@ function interfaceTypeLabel(iface) {
 }
 
 function interfaceVlanColumn(iface) {
+  if (iface.switchportMode === 'trunk') return 'trunk';
   if (iface.administrativelyDown) return iface.accessVlan ? String(iface.accessVlan) : '1';
   if (iface.switchportMode === 'access' && iface.accessVlan) return String(iface.accessVlan);
   return '1';
@@ -1449,6 +1502,53 @@ export function renderInterfacesStatus(device) {
     return `${port}${name}${status}${vlan}${duplex}${speed}${type}`;
   });
   return [header, ...rows].join('\n');
+}
+
+// ============================================================================
+// Trunk / switchport verification (show interfaces trunk, show interfaces
+// <interface> switchport) - Phase 1F.
+// ============================================================================
+
+export function renderInterfacesTrunk(device) {
+  const trunks = Object.values(device.runningConfig.interfaces).filter((iface) => iface.switchportMode === 'trunk');
+  if (trunks.length === 0) return '';
+
+  const modeHeader = 'Port        Mode             Encapsulation  Status        Native vlan';
+  const modeRows = trunks.map((iface) => {
+    const port = shortInterfaceName(iface.name).padEnd(12);
+    const mode = 'on'.padEnd(17);
+    const encap = '802.1q'.padEnd(15);
+    const status = (iface.administrativelyDown ? 'not-trunking' : 'trunking').padEnd(14);
+    const nativeVlan = String(iface.nativeVlan || 1);
+    return `${port}${mode}${encap}${status}${nativeVlan}`;
+  });
+
+  const vlanHeader = '\nPort        Vlans allowed on trunk';
+  const vlanRows = trunks.map((iface) => {
+    const port = shortInterfaceName(iface.name).padEnd(12);
+    const vlans = iface.trunkAllowedVlans ? iface.trunkAllowedVlans.join(',') : '1-4094';
+    return `${port}${vlans}`;
+  });
+
+  return [modeHeader, ...modeRows, vlanHeader, ...vlanRows].join('\n');
+}
+
+export function renderInterfaceSwitchport(iface) {
+  const mode = iface.switchportMode || 'access';
+  const lines = [
+    `Name: ${iface.name}`,
+    `Switchport: ${iface.switchportMode ? 'Enabled' : 'Disabled'}`,
+    `Administrative Mode: ${mode}`,
+    `Operational Mode: ${mode}`,
+  ];
+  if (mode === 'trunk') {
+    lines.push('Administrative Trunking Encapsulation: dot1q');
+    lines.push(`Trunking Native Mode VLAN: ${iface.nativeVlan || 1} (default)`);
+    lines.push(`Trunking VLANs Enabled: ${iface.trunkAllowedVlans ? iface.trunkAllowedVlans.join(',') : 'ALL'}`);
+  } else {
+    lines.push(`Access Mode VLAN: ${iface.accessVlan || 1}${iface.accessVlan ? '' : ' (default)'}`);
+  }
+  return lines.join('\n');
 }
 
 

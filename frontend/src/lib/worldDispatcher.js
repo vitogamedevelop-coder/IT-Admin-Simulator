@@ -128,7 +128,7 @@ const WORLD_EVENTS = [
       nodes: [
         {
           id: 'start',
-          text: 'Die kleinen Aufträge waren Absicht. Ich wollte sehen, ob du einen Switch vorbereiten kannst, ohne dass ich danebenstehe.\n\nJetzt bekommst du etwas, das hier häufiger vorkommt. Die Personalabteilung bekommt neue Arbeitsplätze. Die sollen nicht einfach im gleichen Netzsegment wie alle anderen landen.',
+          text: 'Die kleinen Aufträge waren Absicht. Ich wollte sehen, ob du einen Switch vorbereiten kannst, ohne dass ich danebenstehe.\n\nJetzt bekommst du etwas, das hier häufiger vorkommt. Personal und Buchhaltung bekommen neue Arbeitsplätze am selben Switch. Die sollen aber nicht einfach in derselben Layer-2-Domäne landen.',
           options: [
             { label: 'Ich bin bereit.', nextId: 'close' },
             { label: 'Erst später.', nextId: 'close' },
@@ -154,8 +154,8 @@ const WORLD_EVENTS = [
       id: 'world-mail-main-002',
       from: { personId: 'sam', name: 'Sam Richter', role: 'Senior-Administrator' },
       to: ['spieler@nexus.local'],
-      subject: 'Netzwerksegment Personalabteilung',
-      body: 'Moin,\n\nfür die neuen Arbeitsplätze der Personalabteilung wurde ein eigener Layer-2-Bereich vorgesehen.\n\nAm Switch Sw2 sollen vier Arbeitsplätze in VLAN 10 PERSONAL eingerichtet werden.\n\nSchau dir zuerst den aktuellen Zustand des Switches an, prüfe anschließend deine Änderungen und speichere die Konfiguration.\n\n– Sam',
+      subject: 'Netzwerksegmente Personal & Buchhaltung',
+      body: 'Moin,\n\nder Bürobereich wird gerade neu gepatcht.\n\nPersonal und Buchhaltung hängen künftig am selben Access-Switch (Sw2), sollen aber logisch getrennt bleiben.\n\nRichte bitte die beiden Bereiche ein und bereite den Uplink vor.\n\nVorgaben:\n\nPersonal: VLAN 10\nBuchhaltung: VLAN 20\nUnser Parking-VLAN für ungenutzte Anschlüsse: VLAN 999 / UNUSED\n\nPrüf vorher kurz, welche Ports auf Sw2 vorhanden und bereits belegt sind. Offene Anschlüsse sollen nicht aktiv bleiben.\n\n– Sam',
       priority: 'high',
     },
     linkedMissionId: MISSION_002_ID,

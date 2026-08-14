@@ -202,12 +202,32 @@ const HINT_LADDERS_001 = {
 };
 
 // ============================================================================
-// Mission 002: Neue Abteilung (VLAN)
+// Mission 002: Neue Abteilung (zwei VLANs, Parking-VLAN, Uplink-Trunk)
 // ============================================================================
+//
+// Sw2 wird für zwei logisch getrennte Arbeitsplatzbereiche (Personal und
+// Buchhaltung) vorbereitet. Die Mission bildet die drei zentralen Layer-2-
+// Rollen an einem Gerät ab:
+//   - Access Port  -> Client, genau ein produktives VLAN
+//   - Trunk Port   -> Uplink zur restlichen Infrastruktur, mehrere VLANs
+//   - Parking VLAN -> ungenutzte Ports, isoliert und administrativ down
+//
+// VLAN 999 "UNUSED" ist eine NEXUS-interne Konvention für dieses Parking-VLAN,
+// keine Cisco-Vorgabe.
 
 const TARGET_HOSTNAME_002 = 'Sw2';
 const PERSONAL_VLAN_ID = 10;
 const PERSONAL_VLAN_NAME = 'PERSONAL';
+const BUCHHALTUNG_VLAN_ID = 20;
+const BUCHHALTUNG_VLAN_NAME = 'BUCHHALTUNG';
+const PARKING_VLAN_ID_002 = 999;
+const PARKING_VLAN_NAME_002 = 'UNUSED';
+const PERSONAL_PORTS_002 = ['FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4'];
+const BUCHHALTUNG_PORTS_002 = ['FastEthernet0/5', 'FastEthernet0/6', 'FastEthernet0/7', 'FastEthernet0/8'];
+const UNUSED_PORTS_002 = Array.from({ length: 16 }, (_, i) => `FastEthernet0/${i + 9}`); // Fa0/9 - Fa0/24
+const UPLINK_PORT_002 = 'GigabitEthernet0/1';
+
+const VERIFY_HINTS_002 = ['show vlan brief', 'show interfaces trunk', 'show interfaces status', 'switchport', 'show running-config'];
 
 export function generateMission002Scenario(seed = Date.now()) {
   return {
@@ -220,11 +240,16 @@ export function generateMission002Scenario(seed = Date.now()) {
       targetHostname: TARGET_HOSTNAME_002,
       personalVlanId: PERSONAL_VLAN_ID,
       personalVlanName: PERSONAL_VLAN_NAME,
-      personalPorts: [
-        'FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4',
-      ],
+      personalPorts: PERSONAL_PORTS_002,
+      buchhaltungVlanId: BUCHHALTUNG_VLAN_ID,
+      buchhaltungVlanName: BUCHHALTUNG_VLAN_NAME,
+      buchhaltungPorts: BUCHHALTUNG_PORTS_002,
+      parkingVlanId: PARKING_VLAN_ID_002,
+      parkingVlanName: PARKING_VLAN_NAME_002,
+      unusedPorts: UNUSED_PORTS_002,
+      uplinkPort: UPLINK_PORT_002,
     },
-    briefing: `Für die neuen Arbeitsplätze der Personalabteilung wurde ein eigener Layer-2-Bereich vorgesehen.\n\nAuftrag:\n- Gerät: ${TARGET_HOSTNAME_002}\n- VLAN ${PERSONAL_VLAN_ID} ${PERSONAL_VLAN_NAME} anlegen\n- Vier Arbeitsplatzports (Fa0/1–Fa0/4) diesem VLAN zuordnen\n- Konfiguration mit einem geeigneten Show-Befehl prüfen\n- Konfiguration dauerhaft speichern`,
+    briefing: `Moin,\n\nder Bürobereich wird gerade neu gepatcht.\n\nPersonal und Buchhaltung hängen künftig am selben Access-Switch, sollen aber logisch getrennt bleiben.\n\n${TARGET_HOSTNAME_002} ist bereits grundkonfiguriert.\n\nRichte bitte die beiden Bereiche ein und bereite den Uplink vor.\n\nVorgaben:\n\nPersonal:\nVLAN ${PERSONAL_VLAN_ID}\n\nBuchhaltung:\nVLAN ${BUCHHALTUNG_VLAN_ID}\n\nUnser Parking-VLAN für ungenutzte Anschlüsse:\nVLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}\n\nPrüf vorher kurz, welche Ports auf ${TARGET_HOSTNAME_002} vorhanden und bereits belegt sind. Offene Anschlüsse sollen nicht aktiv bleiben.\n\n– Sam`,
   };
 }
 
@@ -235,7 +260,10 @@ export function createMission002Device(scenario) {
   });
 
   const params = scenario.parameters;
-  params.personalPorts.forEach((id) => {
+
+  // Personal + Buchhaltung: workstations are already cabled and powered on,
+  // but not yet configured (no switchport mode/VLAN set).
+  [...params.personalPorts, ...params.buchhaltungPorts].forEach((id) => {
     const iface = device.runningConfig.interfaces[id];
     if (iface) {
       iface.operationalStatus = 'connected';
@@ -243,7 +271,19 @@ export function createMission002Device(scenario) {
     }
   });
 
-  const uplink = device.runningConfig.interfaces['GigabitEthernet0/1'];
+  // Unused ports are currently open (not shut down) in the default VLAN -
+  // exactly the "offene Anschlüsse" the briefing warns about.
+  params.unusedPorts.forEach((id) => {
+    const iface = device.runningConfig.interfaces[id];
+    if (iface) {
+      iface.operationalStatus = 'notconnect';
+      iface.administrativelyDown = false;
+    }
+  });
+
+  // Uplink is already cabled towards the rest of the infrastructure, but
+  // still needs to become a trunk.
+  const uplink = device.runningConfig.interfaces[params.uplinkPort];
   if (uplink) {
     uplink.operationalStatus = 'connected';
     uplink.administrativelyDown = false;
@@ -253,95 +293,145 @@ export function createMission002Device(scenario) {
 }
 
 export const MISSION_002_REQUIREMENTS = [
-  { id: 'vlan_created', label: `VLAN ${PERSONAL_VLAN_ID} ${PERSONAL_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
-  { id: 'ports_configured', label: 'Arbeitsplatzports im richtigen VLAN', skill: 'cisco.layer2.access_ports' },
-  { id: 'verified', label: 'Konfiguration geprüft', skill: 'cisco.layer2.verify_vlan' },
-  { id: 'config_saved', label: 'Konfiguration gespeichert', skill: 'cisco.basic_configuration.save_config' },
+  { id: 'vlan_personal', label: `VLAN ${PERSONAL_VLAN_ID} ${PERSONAL_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
+  { id: 'vlan_buchhaltung', label: `VLAN ${BUCHHALTUNG_VLAN_ID} ${BUCHHALTUNG_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
+  { id: 'access_ports_configured', label: 'Arbeitsplatzports als Access Ports im richtigen VLAN', skill: 'cisco.layer2.access_ports' },
+  { id: 'unused_ports_parked', label: 'Ungenutzte Ports im Parking-VLAN und deaktiviert', skill: 'cisco.layer2.shutdown' },
+  { id: 'uplink_trunk', label: 'Uplink als Trunk vorbereitet', skill: 'cisco.layer2.trunking' },
+  { id: 'verified_and_saved', label: 'Konfiguration geprüft und dauerhaft gespeichert', skill: 'cisco.basic_configuration.save_config' },
 ];
 
 const HINT_LADDERS_002 = {
-  vlan_created: defineHintLadder({
+  vlan_personal: defineHintLadder({
     subskillPath: 'cisco.layer2.vlan_creation',
     nudge: 'Bevor Ports einem VLAN zugeordnet werden können, muss das VLAN existieren.',
     focus: 'Wechsle in den VLAN-Konfigurationsmodus und gib dem VLAN einen sprechenden Namen.',
-    directive: 'Verwende "vlan 10" gefolgt von "name PERSONAL" im Global Configuration Mode.',
+    directive: `Verwende "vlan ${PERSONAL_VLAN_ID}" gefolgt von "name ${PERSONAL_VLAN_NAME}" im Global Configuration Mode.`,
     solution: {
-      answer: 'vlan 10\nname PERSONAL\nexit',
+      answer: `vlan ${PERSONAL_VLAN_ID}\nname ${PERSONAL_VLAN_NAME}\nexit`,
       explanation: 'Mit "vlan <id>" wechselst du in den VLAN-Config-Modus. "name <name>" vergibt die Bezeichnung.',
     },
   }),
-  ports_configured: defineHintLadder({
+  vlan_buchhaltung: defineHintLadder({
+    subskillPath: 'cisco.layer2.vlan_creation',
+    nudge: 'Die Buchhaltung braucht ein eigenes, zweites VLAN.',
+    focus: 'Lege ein zweites VLAN für die Buchhaltung an.',
+    directive: `Verwende "vlan ${BUCHHALTUNG_VLAN_ID}" gefolgt von "name ${BUCHHALTUNG_VLAN_NAME}".`,
+    solution: {
+      answer: `vlan ${BUCHHALTUNG_VLAN_ID}\nname ${BUCHHALTUNG_VLAN_NAME}\nexit`,
+      explanation: 'Jede Abteilung, die logisch getrennt sein soll, bekommt ihr eigenes VLAN.',
+    },
+  }),
+  access_ports_configured: defineHintLadder({
     subskillPath: 'cisco.layer2.access_ports',
     nudge: 'Access-Ports gehören zu genau einem VLAN.',
-    focus: 'Wähle die vier Arbeitsplatzports aus und setze sie als Access-Ports in VLAN 10.',
-    directive: 'Nutze "interface range fa0/1 - 4" und dann "switchport mode access" sowie "switchport access vlan 10".',
+    focus: 'Ordne die Arbeitsplatzports beider Abteilungen ihrem jeweiligen VLAN zu.',
+    directive: 'Nutze "interface range" für die Personal- und die Buchhaltungsports und setze jeweils "switchport mode access" sowie "switchport access vlan <id>".',
     solution: {
-      answer: 'interface range fa0/1 - 4\nswitchport mode access\nswitchport access vlan 10\nexit',
+      answer: `interface range fa0/1 - 4\nswitchport mode access\nswitchport access vlan ${PERSONAL_VLAN_ID}\nexit\ninterface range fa0/5 - 8\nswitchport mode access\nswitchport access vlan ${BUCHHALTUNG_VLAN_ID}\nexit`,
       explanation: 'Im Interface-Range-Modus werden alle Befehle auf alle ausgewählten Ports angewendet.',
     },
   }),
-  verified: defineHintLadder({
-    subskillPath: 'cisco.layer2.verify_vlan',
-    nudge: 'Cisco bietet einen kompakten Befehl, um VLANs und ihre Ports zu sehen.',
-    focus: 'Überprüfe, ob VLAN 10 existiert und die richtigen Ports zugeordnet sind.',
-    directive: 'Führe "show vlan brief" aus.',
+  unused_ports_parked: defineHintLadder({
+    subskillPath: 'cisco.layer2.shutdown',
+    nudge: 'Ports, die aktuell niemand nutzt, sollten nicht offen und im Standard-VLAN bleiben.',
+    focus: `Finde heraus, welche Ports noch frei sind, und verschiebe sie in das Parking-VLAN ${PARKING_VLAN_ID_002}.`,
+    directive: `Nutze "show interfaces status", um freie Ports zu erkennen. Setze sie per Interface-Range in VLAN ${PARKING_VLAN_ID_002} und fahre sie mit "shutdown" herunter.`,
     solution: {
-      answer: 'show vlan brief',
-      explanation: '"show vlan brief" zeigt alle VLANs und die dazugehörigen Ports in einer kurzen Übersicht.',
+      answer: `vlan ${PARKING_VLAN_ID_002}\nname ${PARKING_VLAN_NAME_002}\nexit\ninterface range fa0/9 - 24\nswitchport mode access\nswitchport access vlan ${PARKING_VLAN_ID_002}\nshutdown\nexit`,
+      explanation: 'Ungenutzte Accessports gehören nach NEXUS-Standard in ein dediziertes Parking-VLAN und werden administrativ deaktiviert.',
     },
   }),
-  config_saved: defineHintLadder({
-    subskillPath: 'cisco.basic_configuration.save_config',
-    nudge: 'Ohne Speichern geht die Konfiguration beim nächsten Neustart verloren.',
-    focus: 'Kopiere die Running-Config in die Startup-Config.',
-    directive: 'Verwende "copy running-config startup-config" oder "write memory".',
+  uplink_trunk: defineHintLadder({
+    subskillPath: 'cisco.layer2.trunking',
+    nudge: 'Zwischen Switches werden mehrere VLANs über eine einzige Verbindung transportiert.',
+    focus: `Der Uplink (${UPLINK_PORT_002}) verbindet Sw2 mit der restlichen Infrastruktur und muss beide VLANs transportieren können.`,
+    directive: 'Wechsle auf die Uplink-Schnittstelle und setze "switchport mode trunk". Fahre den Uplink nicht herunter und weise ihm kein Access-VLAN zu.',
     solution: {
-      answer: 'copy running-config startup-config',
-      explanation: '"copy running-config startup-config" speichert die aktuelle Konfiguration dauerhaft.',
+      answer: 'interface gi0/1\nswitchport mode trunk\nexit',
+      explanation: 'Ein Trunk-Port transportiert mehrere VLANs gleichzeitig und wird für Switch-zu-Switch- bzw. Switch-zu-Infrastruktur-Verbindungen verwendet.',
+    },
+  }),
+  verified_and_saved: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.save_config',
+    nudge: 'Ohne Prüfen und Speichern ist die Arbeit nicht abgeschlossen.',
+    focus: 'Kontrolliere VLANs, Ports und den Uplink, bevor du die Konfiguration sicherst.',
+    directive: '"show vlan brief" oder "show interfaces trunk" zur Kontrolle, danach "copy running-config startup-config" (oder "write") zum Speichern.',
+    solution: {
+      answer: 'show vlan brief\ncopy running-config startup-config',
+      explanation: '"show vlan brief"/"show interfaces trunk" zeigen den aktuellen Zustand. "copy running-config startup-config" (oder "write") sichert ihn dauerhaft.',
     },
   }),
 };
+
+function accessPortsOk(interfaces, vlanId) {
+  return interfaces.length > 0
+    && interfaces.every((iface) => iface.switchportMode === 'access'
+      && iface.accessVlan === vlanId
+      && !iface.administrativelyDown);
+}
+
+function parkedPortsOk(interfaces, parkingVlanId) {
+  return interfaces.length > 0
+    && interfaces.every((iface) => iface.switchportMode === 'access'
+      && iface.accessVlan === parkingVlanId
+      && iface.administrativelyDown);
+}
+
+function uplinkTrunkOk(iface, parkingVlanId) {
+  if (!iface) return false;
+  if (iface.switchportMode !== 'trunk') return false;
+  if (iface.administrativelyDown) return false;
+  if (iface.accessVlan === parkingVlanId) return false;
+  if (iface.trunkAllowedVlans && iface.trunkAllowedVlans.includes(parkingVlanId)) return false;
+  return true;
+}
 
 function _getMission002Progress(device, scenario, state = null) {
   const p = scenario.parameters;
   const rc = device.runningConfig;
 
-  const vlan = rc.vlans?.[p.personalVlanId];
-  const vlanCreated = !!vlan && vlan.name === p.personalVlanName;
+  const personalVlan = rc.vlans?.[p.personalVlanId];
+  const vlanPersonal = !!personalVlan && personalVlan.name === p.personalVlanName;
 
-  const personalInterfaces = p.personalPorts
-    .map((id) => rc.interfaces[id])
-    .filter(Boolean);
-  const portsConfigured = personalInterfaces.length > 0
-    && personalInterfaces.every((iface) => iface.switchportMode === 'access'
-      && iface.accessVlan === p.personalVlanId
-      && !iface.administrativelyDown);
+  const buchhaltungVlan = rc.vlans?.[p.buchhaltungVlanId];
+  const vlanBuchhaltung = !!buchhaltungVlan && buchhaltungVlan.name === p.buchhaltungVlanName;
 
-  const verified = (state?.showCommandsUsed || []).some((c) => c.includes('show vlan brief'));
+  const personalInterfaces = p.personalPorts.map((id) => rc.interfaces[id]).filter(Boolean);
+  const buchhaltungInterfaces = p.buchhaltungPorts.map((id) => rc.interfaces[id]).filter(Boolean);
+  const accessPortsConfigured = accessPortsOk(personalInterfaces, p.personalVlanId)
+    && accessPortsOk(buchhaltungInterfaces, p.buchhaltungVlanId);
+
+  const unusedInterfaces = p.unusedPorts.map((id) => rc.interfaces[id]).filter(Boolean);
+  const unusedPortsParked = parkedPortsOk(unusedInterfaces, p.parkingVlanId);
+
+  const uplinkInterface = rc.interfaces[p.uplinkPort];
+  const uplinkTrunk = uplinkTrunkOk(uplinkInterface, p.parkingVlanId);
+
+  const verified = (state?.showCommandsUsed || []).some((c) => VERIFY_HINTS_002.some((v) => c.includes(v)));
 
   let saved = false;
   if (device.startupConfig !== null) {
     const sc = device.startupConfig;
+    const savedPersonal = p.personalPorts.map((id) => sc.interfaces[id]).filter(Boolean);
+    const savedBuchhaltung = p.buchhaltungPorts.map((id) => sc.interfaces[id]).filter(Boolean);
+    const savedUnused = p.unusedPorts.map((id) => sc.interfaces[id]).filter(Boolean);
+    const savedUplink = sc.interfaces[p.uplinkPort];
     saved = sc.vlans?.[p.personalVlanId]?.name === p.personalVlanName
-      && p.personalPorts.every((id) => {
-        const ri = rc.interfaces[id];
-        const si = sc.interfaces[id];
-        return si
-          && si.switchportMode === 'access'
-          && si.accessVlan === p.personalVlanId
-          && !si.administrativelyDown
-          && ri
-          && ri.switchportMode === si.switchportMode
-          && ri.accessVlan === si.accessVlan
-          && ri.administrativelyDown === si.administrativelyDown;
-      });
+      && sc.vlans?.[p.buchhaltungVlanId]?.name === p.buchhaltungVlanName
+      && accessPortsOk(savedPersonal, p.personalVlanId)
+      && accessPortsOk(savedBuchhaltung, p.buchhaltungVlanId)
+      && parkedPortsOk(savedUnused, p.parkingVlanId)
+      && uplinkTrunkOk(savedUplink, p.parkingVlanId);
   }
 
   const checks = {
-    vlan_created: vlanCreated,
-    ports_configured: portsConfigured,
-    verified,
-    config_saved: saved,
+    vlan_personal: vlanPersonal,
+    vlan_buchhaltung: vlanBuchhaltung,
+    access_ports_configured: accessPortsConfigured,
+    unused_ports_parked: unusedPortsParked,
+    uplink_trunk: uplinkTrunk,
+    verified_and_saved: verified && saved,
   };
 
   const completed = MISSION_002_REQUIREMENTS.filter((r) => checks[r.id]).length;
@@ -359,7 +449,7 @@ function _evaluateMission002State(device, scenario, state = null) {
   const progress = _getMission002Progress(device, scenario, state);
   const misconceptions = [];
 
-  if (!progress.checks.find((c) => c.id === 'config_saved').ok && progress.completed > 0) {
+  if (!progress.checks.find((c) => c.id === 'verified_and_saved').ok && progress.completed > 0) {
     misconceptions.push('forgot_save_config');
   }
 

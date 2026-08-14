@@ -1466,3 +1466,85 @@ Nebeneinsatz (Parken ungenutzter Ports).
 - APK build via `scripts/build-apk.ps1` ✅ und archiviert.
 - Version auf 1.25.0 erhoeht (`frontend/package.json`,
   `frontend/src/lib/version.js`, `frontend/public/version.json`).
+
+## Phase 1F Correction: VLAN-Mission-Redesign, Access/Trunk-Logik, Parking-VLAN, write-Abkürzung
+
+### Ziel
+Main Mission 002 war fachlich zu trivial (ein VLAN, vier Ports, fertig) und
+zeigte nicht den eigentlichen Sinn von VLAN-Segmentierung. Außerdem akzeptierte
+der Simulator das historische IOS-Kommando `write` (ohne `memory`) nicht als
+gültige Abkürzung, obwohl unser Command Tree generische Präfix-Auflösung
+unterstützt.
+
+### `write`/`wr` Korrektur
+- `frontend/src/lib/ciscoCliEngine.js`: Der `write`-Knoten in `PRIVILEGED_EXEC`
+  hat jetzt zusätzlich zum Kind `memory` ein eigenes `execute`. Der generische
+  Tree-Walker erkennt dadurch `write` (bare), `write memory`, `wr` und
+  `copy running-config startup-config` gleichwertig als Speicherbefehl - auch
+  über `do write`/`do wr` aus jedem Config-Untermodus (Interface, Interface
+  Range, VLAN). Die Missionsbewertung prüft weiterhin nur den resultierenden
+  `startupConfig`-Zustand, nie den exakten Befehlswortlaut.
+
+### Neue Cisco-CLI-Befehle: Trunk
+- `switchport mode trunk` (zusätzlich zu `switchport mode access`).
+- `switchport trunk allowed vlan <id>[,<id>...]` (auto-erzeugt fehlende VLANs).
+- `show interfaces trunk` - listet alle Trunk-Interfaces dynamisch aus dem
+  Device State (Mode/Encapsulation/Status/Native VLAN + erlaubte VLANs).
+- `show interfaces <interface> switchport` - Access- oder Trunk-Detailansicht
+  pro Interface, ebenfalls dynamisch.
+- `running-config`/`show vlan brief`/`show interfaces status` berücksichtigen
+  jetzt den Trunk-Modus (z. B. Spalte „Vlan" zeigt `trunk`, Trunk-Ports
+  erscheinen nicht mehr fälschlich unter VLAN 1).
+- Alle neuen Befehle sind über `?`, Tab-Completion und die generische
+  Präfix-/Ambiguitäts-Auflösung erreichbar (kein Sondercode nötig, da über
+  den bestehenden Command-Tree-Mechanismus abgebildet).
+
+### Main Mission 002 neu: "Neue Abteilung"
+- `frontend/src/lib/missionV2.js`: Sw2 bekommt jetzt zwei produktive VLANs
+  (10 PERSONAL, 20 BUCHHALTUNG), ein NEXUS-internes Parking-VLAN (999 UNUSED)
+  für ungenutzte Ports, und einen Uplink (Gi0/1), der als Trunk vorbereitet
+  werden muss.
+- Portbelegung (Device Profile `catalyst_24fe_2ge`, Fa0/1-24 + Gi0/1-2):
+  Fa0/1-4 Personal, Fa0/5-8 Buchhaltung, Fa0/9-24 aktuell unbenutzt (zu
+  Missionsbeginn offen/nicht heruntergefahren - genau das Risiko, das die
+  Mission beheben soll), Gi0/1 Uplink, Gi0/2 frei/reserviert (kein Check).
+- Sechs Anforderungen statt vorher vier: `vlan_personal`, `vlan_buchhaltung`,
+  `access_ports_configured` (beide Abteilungen), `unused_ports_parked`
+  (VLAN 999 + shutdown), `uplink_trunk` (Trunk, nicht shutdown, nicht in
+  VLAN 999), `verified_and_saved` (mind. ein passender Show-Befehl UND
+  dauerhaft gespeichert). Einzelport- und Interface-Range-Konfiguration sind
+  beide gültig; bewertet wird der Device State, keine Musterlösung.
+- Verifikation akzeptiert mehrere passende Befehle (`show vlan brief`,
+  `show interfaces trunk`, `show interfaces status`, `show interfaces
+  <interface> switchport`, `show running-config`) statt nur eines fest
+  vorgeschriebenen Kommandos.
+- Story/Mail (`frontend/src/lib/worldDispatcher.js`, Briefing in
+  `missionV2.js`, `frontend/src/lib/questData.js`) erklärt den betrieblichen
+  Grund ("Personal und Buchhaltung hängen am selben Switch, sollen aber nicht
+  in derselben Layer-2-Domäne landen") statt eine Musterlösung vorzugeben.
+- Side Mission 004 ("Offene Türen", Layer-2-Security-Nachfolgeauftrag) bleibt
+  unverändert - sie vertieft dasselbe Parking-VLAN-Konzept an einem eigenen
+  Geräte-Snapshot nach Abschluss von Main Mission 002.
+
+### Tests
+- `frontend/scripts/cisco-main-002-test.mjs` komplett neu geschrieben: Device-
+  Discovery, Erfolgspfad (Range- und Einzelport-Variante), sieben
+  Negativfälle (fehlende VLANs, falscher Name, vergessener Port, offene
+  Unused-Ports, Uplink nicht/falsch konfiguriert, Uplink im Parking-VLAN,
+  nicht gespeichert) sowie ein Block, der `write`/`write memory`/`wr`/
+  `copy running-config startup-config` gleichwertig als Abschluss verifiziert.
+- `frontend/scripts/cisco-prefix-collision-test.mjs`: neuer Funktionsblock für
+  Trunk-Modus, `switchport trunk allowed vlan`, `show interfaces trunk`/
+  `show interfaces <interface> switchport`, sowie `write`/`wr`/`do write` aus
+  allen Config-Untermodi (Global, Interface, Interface Range, VLAN). Der
+  generische Präfix-Kollisions-Walker deckt weiterhin alle Modi automatisch ab.
+
+### Acceptance checks
+- Alle `frontend/scripts/*-test.mjs` grün (inkl. der neuen/erweiterten oben).
+- `npm run lint` ohne neue Fehler/Warnungen (nur die 13 bekannten Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅ und archiviert.
+- Version auf 1.25.1 erhöht (PATCH, da Korrektur einer bestehenden Mission
+  ohne neuen Hauptinhalt).
+- Kein Push, kein Deployment.

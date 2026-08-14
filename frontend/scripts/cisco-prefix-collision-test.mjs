@@ -267,3 +267,97 @@ assert(r.output.includes('Gi0/1'), 'show interfaces status should include Gi0/1'
 assert(r.output.includes('10/100BaseTX'), 'show interfaces status should include FastEthernet type');
 
 console.log('Phase 1F VLAN / interface-range / switchport / show functional tests passed.');
+
+// ============================================================================
+// Phase 1F correction: trunk mode, switchport trunk allowed vlan, show
+// interfaces trunk / switchport, and write/wr abbreviations.
+// ============================================================================
+
+const tdev = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: 'Sw2' });
+
+// switchport mode trunk
+run(tdev, 'enable');
+run(tdev, 'configure terminal');
+r = run(tdev, 'interface gi0/1');
+assert(r.success && tdev.cli.mode === 'INTERFACE_CONFIG', 'interface gi0/1 should enter INTERFACE_CONFIG');
+r = run(tdev, 'switchport mode trunk');
+assert(r.success, 'switchport mode trunk should succeed');
+assert(tdev.runningConfig.interfaces['GigabitEthernet0/1'].switchportMode === 'trunk', 'Gi0/1 should be in trunk mode');
+
+// switchport trunk allowed vlan
+r = run(tdev, 'switchport trunk allowed vlan 10,20');
+assert(r.success, 'switchport trunk allowed vlan 10,20 should succeed');
+assert(JSON.stringify(tdev.runningConfig.interfaces['GigabitEthernet0/1'].trunkAllowedVlans) === JSON.stringify([10, 20]), 'Gi0/1 trunk allowed vlans should be [10, 20]');
+run(tdev, 'end');
+
+const trunkRunningConfig = renderRunningConfig(tdev);
+assert(trunkRunningConfig.includes('switchport mode trunk'), 'running-config should include switchport mode trunk');
+assert(trunkRunningConfig.includes('switchport trunk allowed vlan 10,20'), 'running-config should include trunk allowed vlan list');
+
+// show interfaces trunk / show interfaces <interface> switchport
+r = run(tdev, 'show interfaces trunk');
+assert(r.success, 'show interfaces trunk should succeed');
+assert(r.output.includes('Gi0/1'), 'show interfaces trunk should list Gi0/1');
+assert(r.output.includes('10,20'), 'show interfaces trunk should list the allowed vlans');
+
+r = run(tdev, 'show interfaces gi0/1 switchport');
+assert(r.success, 'show interfaces gi0/1 switchport should succeed');
+assert(r.output.includes('Administrative Mode: trunk'), 'show interfaces gi0/1 switchport should report trunk mode');
+
+r = run(tdev, 'show interfaces fa0/1 switchport');
+assert(r.success, 'show interfaces fa0/1 switchport should succeed for an access port');
+assert(r.output.includes('Access Mode VLAN'), 'show interfaces fa0/1 switchport should report access mode for a non-trunk port');
+
+r = run(tdev, 'show interfaces fa0/99 switchport');
+assert(!r.success && r.errorType === CLI_ERROR.INVALID_ARGUMENT, 'show interfaces fa0/99 switchport should fail for a non-existent interface');
+
+// write / wr abbreviations - all equivalent ways to persist the config.
+function freshWriteDevice() {
+  const d = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: 'Sw2' });
+  run(d, 'enable');
+  run(d, 'configure terminal');
+  run(d, 'hostname Sw2');
+  run(d, 'end');
+  return d;
+}
+
+let wdev = freshWriteDevice();
+assert(wdev.startupConfig === null, 'startupConfig should start as null');
+r = run(wdev, 'write');
+assert(r.success, '"write" alone should be accepted as a valid save command');
+assert(wdev.startupConfig !== null, '"write" should persist the running-config to startupConfig');
+
+wdev = freshWriteDevice();
+r = run(wdev, 'write memory');
+assert(r.success, '"write memory" should still be accepted');
+assert(wdev.startupConfig !== null, '"write memory" should persist the running-config to startupConfig');
+
+wdev = freshWriteDevice();
+r = run(wdev, 'wr');
+assert(r.success, '"wr" should still be accepted as a unique shortcut');
+assert(wdev.startupConfig !== null, '"wr" should persist the running-config to startupConfig');
+
+wdev = freshWriteDevice();
+r = run(wdev, 'copy running-config startup-config');
+assert(r.success, '"copy running-config startup-config" should still be accepted');
+assert(wdev.startupConfig !== null, '"copy running-config startup-config" should persist the running-config to startupConfig');
+
+// "do write" must work from every configuration sub-mode.
+function assertDoWriteWorksFrom(setup) {
+  const d = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: 'Sw2' });
+  run(d, 'enable');
+  run(d, 'configure terminal');
+  setup(d);
+  const modeBefore = d.cli.mode;
+  const result = run(d, 'do write');
+  assert(result.success, `"do write" should succeed from ${modeBefore}`);
+  assert(d.startupConfig !== null, `"do write" should persist config from ${modeBefore}`);
+  assert(d.cli.mode === modeBefore, `"do write" should not change the current mode (${modeBefore})`);
+}
+
+assertDoWriteWorksFrom(() => {}); // GLOBAL_CONFIG
+assertDoWriteWorksFrom((d) => run(d, 'interface fa0/1')); // INTERFACE_CONFIG
+assertDoWriteWorksFrom((d) => run(d, 'interface range fa0/1 - 2')); // INTERFACE_RANGE_CONFIG
+assertDoWriteWorksFrom((d) => run(d, 'vlan 50')); // VLAN_CONFIG
+
+console.log('Phase 1F correction: trunk mode, switchport trunk allowed vlan, show interfaces trunk/switchport, and write/wr abbreviations passed.');
