@@ -5,6 +5,7 @@ import DialogView from './DialogView';
 import { readNotifications, acknowledge, notificationTypes } from '../lib/notificationSystem';
 import { colleagues } from '../lib/officeWorld';
 import { createDialog } from '../lib/dialogSystem';
+import { isProceduralMissionId, instanceIdFromMissionId } from '../lib/missionGenerator';
 
 function pendingPhoneCalls() {
   return readNotifications().filter(
@@ -42,7 +43,10 @@ export default function PhoneApp({ onClose }) {
   function acceptCall(notification) {
     acknowledge(notification.id);
     if (notification.linkedMissionId) {
-      navigate(`/side-mission/${encodeURIComponent(notification.linkedMissionId)}`);
+      const path = isProceduralMissionId(notification.linkedMissionId)
+        ? `/procedural-mission/${encodeURIComponent(instanceIdFromMissionId(notification.linkedMissionId))}`
+        : `/side-mission/${encodeURIComponent(notification.linkedMissionId)}`;
+      navigate(path);
       if (onClose) onClose();
     } else {
       setActiveCall(null);

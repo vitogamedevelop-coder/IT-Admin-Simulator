@@ -1660,3 +1660,121 @@ darf die Missionsseite nicht mehr endlos verlängern.
 - Version auf 1.25.2 erhöht (PATCH: Stabilitäts-/UX-Fixes, kein neuer
   Hauptcontent, kein prozeduraler Missionsgenerator).
 - Kein Push, kein Deployment.
+
+## Phase 1H: Adaptive Learning + Prozedurales Nebenmissionssystem V1
+
+### Ziel
+Hauptmissionen bleiben handgebaut und lehren neue Fähigkeiten. Ein neues,
+domänen-agnostisches Generator-/Validator-/Adaptive-Selector-System erzeugt
+darüber hinaus glaubwürdige, an den echten Lernstand angepasste Cisco-
+Nebenmissionen - ausschließlich aus Skills, die bereits durch Main 001/002
+freigeschaltet wurden. Bestehende Systeme (Skill Tree, Mission Log, Hint
+Ladder, World-Flow-Delivery, Objective-Relevanz, Badges) werden erweitert,
+nicht ersetzt.
+
+### Neue Dateien
+- `frontend/src/lib/missionTemplateEngine.js` - domänen-agnostischer
+  `MissionTemplate`-Vertrag (Archetypen, Channels, Difficulty-Profile,
+  Seeded-RNG-Helfer) + zwei Cisco-V1-Templates:
+  - `cisco-basic-config-hardening` (unlockedBy Main 001; Archetypen BUILD,
+    AUDIT; Skills hostname/enable_secret/local_user/disable_dns_lookup/
+    save_config).
+  - `cisco-vlan-access-port` (unlockedBy Main 002; Archetypen BUILD, REPAIR,
+    AUDIT, DIAGNOSE, COMPLETE - deckt genau das Beispiel aus dem Auftrag ab;
+    Skills vlan.create/name, access_port.configure/assign_vlan/verify).
+  - Beide Templates erzeugen einen echten `createCiscoDevice()`-Zustand und
+    nutzen ausschließlich `ciscoCliEngine.js` zur Befehlsausführung - kein
+    eigener Parser.
+- `frontend/src/lib/missionGenerator.js` - der eigentliche Kern:
+  - **Persistenz** (`readInstances`/`getInstance`/`getOpenInstances`) unter
+    eigenen, additiven localStorage-Keys (`cyberlearn:procedural-*`) - keine
+    Änderung an bestehenden Schemas, daher migrationsfrei.
+  - **Curriculum-Unlock** (`isSkillGroupUnlocked`, `generatableSkillPaths`):
+    `basic_configuration` durch `cisco-main-001`, `switching` durch
+    `cisco-main-002` - Erweiterungspunkt für zukünftigen Content (item 26).
+  - **Adaptive Selector** (`selectSkillForGeneration`): konfigurierbare
+    Gewichte (`ADAPTIVE_WEIGHTS`: weakness/reviewDue/progression/
+    timeSincePractice/varietyNeed/strugglingRepeatedErrors) mit
+    60/25/15-Baseline-Fallback, wenn keine klare Schwäche vorliegt.
+  - **Adaptive Difficulty** (`suggestDifficulty`): zwei Fehlversuche in Folge
+    → EASY, zwei unabhängige Erfolge bei Mastery > 0.5 → HARD.
+  - **Archetyp-/Channel-Wahl**: gewichtet nach Mastery (nie hart
+    ausgeschlossen, sonst keine Varianz bei identischer Mastery), Channel
+    aus der Schnittmenge von Template- und Archetyp-Affinität.
+  - **Anti-Repetition** (`isImmediateRepeat`, 50 Einträge Historie).
+  - **Validator** (`validateMissionInstance`): Parameter, Unlock-Status,
+    Erfolgskriterien, Difficulty, Channel-Passung, Anti-Repetition,
+    Device-State-Konsistenz (Ziel-Interface existiert, kein Uplink als Ziel,
+    keine reservierten/kollidierenden VLAN-IDs).
+  - **Generator** (`generateMissionInstance`): GENERATE → VALIDATE →
+    ACCEPT/REJECT mit bis zu 12 Versuchen; zeigt nie eine ungültige Mission.
+  - **Delivery** (`deliverMissionInstance`): E-Mail/Ticket/Telefon über die
+    bestehenden Stores (`emails.js`, `notificationSystem.js`), verlinkt via
+    `procedural:<instanceId>`.
+  - **Batch-Scheduler** (`maybeGenerateBatch`, `notifyMissionCompleted`,
+    `BATCH_CAP = 3`): läuft ausschließlich bei einem echten Trigger
+    (Missionsabschluss), niemals bei Seitenaufruf/Reload/Postfach-Öffnen.
+  - **Content-End** (`hasReachedContentEnd`, `maybeAnnounceContentEnd`):
+    rein listenbasiert über `missionV2.js`' neues `MAIN_MISSION_ORDER` -
+    verschiebt sich automatisch, sobald eine neue Hauptmission ergänzt wird.
+  - **Runtime-Adapter** (`startProceduralMission`,
+    `executeProceduralMissionCommand`, `evaluateProceduralMission`,
+    `getProceduralMissionHint`/`consumeProceduralMissionHint`/
+    `revealProceduralMissionSolution`): spiegelt `missionV2.js`s
+    Ausführung/Bewertung, aber generisch über `getTemplate(...)`.
+- `frontend/src/pages/ProceduralMission.jsx` - eigene, spielbare Seite unter
+  `/procedural-mission/:instanceId`; übernimmt 1:1 das in Phase 1G fixierte
+  Terminal-Verhalten (feste Höhe, eigener Scroll, manuelles Scrollen bleibt
+  erhalten, eigener Befehl scrollt zum Prompt).
+
+### Geänderte Dateien
+- `frontend/src/lib/missionV2.js` - `MAIN_MISSION_ORDER`/
+  `getHighestImplementedMainMissionId()` (einzige Stelle, die bei einer
+  neuen Hauptmission erweitert werden muss).
+- `frontend/src/lib/skillTree.js` - `SKILL_SOURCE.PROCEDURAL` ergänzt.
+- `frontend/src/lib/notificationSystem.js` - `notificationTypes.TICKET`
+  ergänzt (Tickets sind jetzt echte Notifications, keine Ad-hoc-Liste).
+- `frontend/src/lib/communicationBadges.js` - Ticket-Badge zählt jetzt auch
+  offene `TICKET`-Notifications zusätzlich zum Legacy-Inbox.
+- `frontend/src/lib/objectives.js` - `getUnreadMissionCommunication()`
+  erkennt jetzt auch Ticket-Kommunikation; `getActiveMissionObjective()`
+  erkennt prozedurale Missions-IDs.
+- `frontend/src/components/ObjectivePanel.jsx` - Navigation für aktive
+  prozedurale Missionen.
+- `frontend/src/components/EmailApp.jsx` / `PhoneApp.jsx` - erkennen
+  `procedural:`-Missions-IDs und routen zu `/procedural-mission/:instanceId`;
+  `emailCompleted()` prüft für prozedurale Mails den echten Instanz-Status.
+- `frontend/src/pages/MissionV2.jsx` - ruft nach Abschluss einer
+  Haupt-/Nebenmission `notifyMissionCompleted()` auf, damit der
+  Batch-Scheduler an einen echten Trigger gekoppelt bleibt.
+- `frontend/src/App.jsx` - neue Route `/procedural-mission/:instanceId`.
+
+### Bekannte Einschränkungen (V1)
+- Nur zwei Templates (Grundkonfiguration-Hardening, VLAN/Access-Port) - exakt
+  die aktuell handgebaut eingeführten Skills, bewusst "Qualität vor Menge".
+- Ticket-Channel-Missionen erscheinen als echte Notification (Badge korrekt),
+  aber die bestehende `/inbox`-Seite (Legacy-Ticketliste aus
+  `sideMissionEngine.js`) zeigt sie noch nicht zusätzlich an; erreichbar sind
+  sie aktuell über den (im selben Kanal ebenfalls sinnvollen) Objective-Panel-
+  Hinweis. Eine dedizierte Ticket-Ansicht ist ein sinnvoller Folgeschritt.
+- `maybeGenerateBatch` erzeugt V1 bewusst konservativ höchstens 1 Mission pro
+  Trigger (Spezifikation erlaubt bis zu 3) - einfacher zu balancieren und zu
+  testen; Wert ist zentral als Konstante anpassbar.
+- Troubleshooting-Steigerung (item 33) ist über den DIAGNOSE-Archetyp der
+  VLAN-Vorlage angelegt, aber noch nicht mit einem eigenständigen
+  Multi-Schritt-Diagnoseablauf (wie `diagnosticState.js`) verknüpft.
+
+### Tests
+- `frontend/scripts/procedural-mission-generator-test.mjs` (35 Tests,
+  A-O aus dem Abnahmekatalog plus End-to-End-Runtime-Test plus
+  Persistenz-/Migrationstest).
+- Alle bestehenden `frontend/scripts/*-test.mjs` bleiben grün (Regression).
+
+### Acceptance checks
+- Alle `frontend/scripts/*-test.mjs` grün (inkl. der 35 neuen Tests).
+- `npm run lint` ohne neue Fehler/Warnungen (nur die 13 bekannten Warnungen).
+- `npm run build` ✅ (inkl. neuer `ProceduralMission`-Route).
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅ und archiviert.
+- Version auf 1.26.0 erhöht (MINOR: neue große Funktionalität).
+- Kein Push, kein Deployment.

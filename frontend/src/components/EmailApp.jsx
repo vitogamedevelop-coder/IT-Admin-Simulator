@@ -7,6 +7,7 @@ import { registerMission, updateMissionStatus, getMissionEntry, MissionStatus } 
 import { readGameState } from '../lib/gameState';
 import { isCiscoSideMission } from '../lib/ciscoSideMissions';
 import { isMainMission } from '../lib/missionV2';
+import { isProceduralMissionId, instanceIdFromMissionId, getInstance } from '../lib/missionGenerator';
 
 const priorityBadge = {
   urgent: 'text-[#ff3355] border-[#ff3355]',
@@ -26,6 +27,7 @@ export default function EmailApp({ onClose }) {
   }
 
   function missionPath(email) {
+    if (isProceduralMissionId(email.linkedMissionId)) return `/procedural-mission/${encodeURIComponent(instanceIdFromMissionId(email.linkedMissionId))}`;
     if (isMainMission(email.linkedMissionId)) return `/mission/${encodeURIComponent(email.linkedMissionId)}`;
     if (isCiscoSideMission(email.linkedMissionId)) return `/side-mission/${encodeURIComponent(email.linkedMissionId)}`;
     return questPath(email.linkedMissionId);
@@ -33,8 +35,10 @@ export default function EmailApp({ onClose }) {
 
   function startMission(email) {
     if (email.linkedMissionId) {
-      registerMission({ instanceId: `email-${email.id}`, questId: email.linkedMissionId, source: 'email', title: email.subject });
-      updateMissionStatus(`email-${email.id}`, MissionStatus.ACCEPTED);
+      if (!isProceduralMissionId(email.linkedMissionId)) {
+        registerMission({ instanceId: `email-${email.id}`, questId: email.linkedMissionId, source: 'email', title: email.subject });
+        updateMissionStatus(`email-${email.id}`, MissionStatus.ACCEPTED);
+      }
       navigate(missionPath(email));
       if (onClose) onClose();
     }
@@ -42,6 +46,10 @@ export default function EmailApp({ onClose }) {
 
   function emailCompleted(email) {
     if (!email.linkedMissionId) return false;
+    if (isProceduralMissionId(email.linkedMissionId)) {
+      const instance = getInstance(instanceIdFromMissionId(email.linkedMissionId));
+      return instance?.status === 'completed';
+    }
     const state = readGameState();
     if (state.completedQuests.includes(email.linkedMissionId)) return true;
     if (state.completedCiscoSideMissions?.includes(email.linkedMissionId)) return true;

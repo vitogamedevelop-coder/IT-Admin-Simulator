@@ -10,6 +10,7 @@ const Quest = lazy(() => import('./pages/Quest'));
 const DiagnosticQuest = lazy(() => import('./pages/DiagnosticQuest'));
 const SideMission = lazy(() => import('./pages/SideMission'));
 const MissionV2 = lazy(() => import('./pages/MissionV2'));
+const ProceduralMission = lazy(() => import('./pages/ProceduralMission'));
 const Inbox = lazy(() => import('./pages/Inbox'));
 const Infrastructure = lazy(() => import('./pages/Infrastructure'));
 const Career = lazy(() => import('./pages/Career'));
@@ -48,6 +49,7 @@ function AppRoutes() {
     <Route path="/diagnostic/:questId" element={secure(<DiagnosticQuest />)} />
     <Route path="/side-mission/:missionId" element={secure(<SideMission />)} />
     <Route path="/mission/:missionId" element={secure(<MissionV2 />)} />
+    <Route path="/procedural-mission/:instanceId" element={secure(<ProceduralMission />)} />
     <Route path="/inbox" element={secure(<Inbox />)} />
     <Route path="/infrastructure" element={secure(<Infrastructure />)} />
     <Route path="/career" element={secure(<Career />)} />

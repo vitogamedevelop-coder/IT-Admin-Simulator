@@ -13,6 +13,11 @@ export const notificationTypes = {
   SIDE: 'side',
   MAIN: 'main',
   ALERT: 'alert',
+  // Phase 1H: procedural missions delivered as a "ticket" (incident/service
+  // request) use this type. It is a real notification, not a separate
+  // ad-hoc store, so it is covered by the same acknowledge/dismiss/badge
+  // machinery as email/phone.
+  TICKET: 'ticket',
 };
 
 export const defaultRules = {

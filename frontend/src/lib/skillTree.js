@@ -43,6 +43,8 @@ export const SKILL_SOURCE = {
   LAB: 'lab',
   CONVERSATION: 'conversation',
   EXAM: 'exam',
+  // Phase 1H: procedural (generated) side missions.
+  PROCEDURAL: 'procedural',
 };
 
 // Common misconception IDs, stored per-skill.  More can be added later.

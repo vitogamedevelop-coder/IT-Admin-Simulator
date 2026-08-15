@@ -18,7 +18,14 @@ export function getPhonePendingCount() {
 }
 
 export function getTicketsOpenCount() {
-  return sortedInbox().filter((item) => !item.resolved).length;
+  const legacyInboxCount = sortedInbox().filter((item) => !item.resolved).length;
+  // Phase 1H: procedural missions delivered via the "ticket" channel are
+  // real notifications (notificationTypes.TICKET), not the legacy
+  // learningObjectives-driven inbox - counted here too so the badge never
+  // drifts from what the player can actually open.
+  const proceduralTicketCount = pendingNotifications(readNotifications())
+    .filter((n) => n.type === notificationTypes.TICKET).length;
+  return legacyInboxCount + proceduralTicketCount;
 }
 
 // Combined snapshot for components that need more than one channel at once.

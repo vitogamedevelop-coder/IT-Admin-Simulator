@@ -13,6 +13,17 @@ import { registerMission, updateMissionStatus, MissionStatus } from './missionLo
 export const MISSION_001_ID = 'cisco-main-001';
 export const MISSION_002_ID = 'cisco-main-002';
 
+// Ordered list of every hand-built main mission that currently exists, in
+// curriculum order. This is the single place that needs to be extended when
+// a new main mission is added - everything that depends on "what is the
+// current end of content" (Phase 1H content-end detection, the procedural
+// generator's unlock check) reads this list instead of hardcoding an ID.
+export const MAIN_MISSION_ORDER = [MISSION_001_ID, MISSION_002_ID];
+
+export function getHighestImplementedMainMissionId() {
+  return MAIN_MISSION_ORDER[MAIN_MISSION_ORDER.length - 1] || null;
+}
+
 const ACTIVE_MISSION_KEY = 'cyberlearn:active-main-mission-v1';
 
 // ============================================================================

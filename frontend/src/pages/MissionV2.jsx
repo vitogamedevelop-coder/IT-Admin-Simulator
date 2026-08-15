@@ -33,6 +33,7 @@ import {
   SIDE_004_REQUIREMENTS,
 } from '../lib/ciscoSideMissions';
 import { completeQuest, setActiveQuest, completeCiscoSideMission } from '../lib/gameState';
+import { notifyMissionCompleted } from '../lib/missionGenerator';
 import { recordKnownCredentialsFromMission001 } from '../lib/credentials';
 import { questById } from '../lib/questData';
 import { buildPrompt, getCommandHelp, completeInput } from '../lib/ciscoCliEngine';
@@ -65,6 +66,7 @@ function buildMainRuntime(missionId) {
         recordKnownCredentialsFromMission001(state.device, state.scenario);
       }
       clearActiveMission();
+      notifyMissionCompleted();
     },
   };
 }
@@ -89,6 +91,7 @@ function buildSideRuntime(missionId) {
     complete: (state) => {
       completeCiscoSideMission(state.missionId, { xp: 30, reputation: { network: 3, security: 3 } });
       clearActiveCiscoSideMission();
+      notifyMissionCompleted();
     },
   };
 }

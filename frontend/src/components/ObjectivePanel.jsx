@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Target, BookOpen, Shield, MessageSquare, Zap, Mail, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
 import { getCurrentPlayerObjectives, getTopObjective, getObjectiveLabel } from '../lib/objectives';
 import { isMainMission } from '../lib/missionV2';
+import { isProceduralMissionId, instanceIdFromMissionId } from '../lib/missionGenerator';
 
 const POSITION_KEY = 'cyberlearn:current-goal-panel-position-v1';
 const CLICK_THRESHOLD = 5; // px
@@ -304,7 +305,11 @@ export default function ObjectivePanel({ overrideObjective = null }) {
                   <div className="rounded-lg border border-[#ff9933]/40 bg-[#0a1628]/60 p-2">
                     <div className="text-sm font-medium text-white">{data.title}</div>
                     <button
-                      onClick={() => { setExpanded(false); navigate(isMainMission(data.missionId) ? `/mission/${data.missionId}` : `/side-mission/${data.missionId}`); }}
+                      onClick={() => {
+                        setExpanded(false);
+                        if (isProceduralMissionId(data.missionId)) navigate(`/procedural-mission/${instanceIdFromMissionId(data.missionId)}`);
+                        else navigate(isMainMission(data.missionId) ? `/mission/${data.missionId}` : `/side-mission/${data.missionId}`);
+                      }}
                       className="mt-2 w-full rounded-md border border-[#ff9933]/40 px-2 py-1.5 text-xs text-[#ff9933] hover:bg-[#ff9933]/10"
                     >
                       Weitermachen

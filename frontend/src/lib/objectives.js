@@ -12,6 +12,7 @@ import { readNotifications, pendingNotifications, notificationTypes } from './no
 import { colleagues } from './officeWorld.js';
 import { isMainMission } from './missionV2.js';
 import { isCiscoSideMission } from './ciscoSideMissions.js';
+import { isProceduralMissionId, instanceIdFromMissionId, getInstance } from './missionGenerator.js';
 
 const SIDE_MISSION_TITLES = {
   'cisco-side-basic-001': 'Die offene Konsole',
@@ -212,6 +213,11 @@ export const RELEVANCE_TIER = {
 export function getActiveMissionObjective(state = readGameState()) {
   const missionId = state.activeQuest;
   if (!missionId) return null;
+  if (isProceduralMissionId(missionId)) {
+    const instance = getInstance(instanceIdFromMissionId(missionId));
+    if (!instance) return null;
+    return { type: 'active', missionId, title: instance.title };
+  }
   if (isMainMission(missionId)) {
     const quest = questById(missionId);
     return { type: 'active', missionId, title: quest?.title || missionId };
@@ -256,6 +262,17 @@ export function getUnreadMissionCommunication(state = readGameState()) {
       missionId: pendingCall.linkedMissionId,
       title: `Nachricht von ${person?.name || 'einem Kollegen'} abhören`,
       subject: pendingCall.title,
+    };
+  }
+  const pendingTicket = pendingNotifications(readNotifications())
+    .find((n) => n.type === notificationTypes.TICKET && n.linkedMissionId && !isMissionAlreadyCompleted(n.linkedMissionId, state));
+  if (pendingTicket) {
+    return {
+      type: 'communication',
+      channel: 'ticket',
+      missionId: pendingTicket.linkedMissionId,
+      title: 'Neues Ticket ansehen',
+      subject: pendingTicket.title,
     };
   }
   return null;
