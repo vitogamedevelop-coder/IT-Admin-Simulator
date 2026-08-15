@@ -7,6 +7,11 @@ import { readGameState } from './gameState.js';
 import { quests, questById } from './questData.js';
 import { sortedInbox } from './sideMissionEngine.js';
 import { getTopicScoreDimensions } from './academyLessonData.js';
+import { readEmails } from './emails.js';
+import { readNotifications, pendingNotifications, notificationTypes } from './notificationSystem.js';
+import { colleagues } from './officeWorld.js';
+import { isMainMission } from './missionV2.js';
+import { isCiscoSideMission } from './ciscoSideMissions.js';
 
 const SIDE_MISSION_TITLES = {
   'cisco-side-basic-001': 'Die offene Konsole',
@@ -181,40 +186,121 @@ export function getRecommendedSideMissions(limit = 2) {
   return result;
 }
 
+// ============================================================================
+// Central relevance/priority scoring (Phase 1G, item 6).
+//
+// "WAS KANN ODER SOLL DER SPIELER JETZT SINNVOLL TUN?" - a single numeric
+// scale used by every objective candidate, so the ObjectivePanel (and any
+// other UI) never needs its own if/else priority ladder. Higher wins.
+// ============================================================================
+export const RELEVANCE_TIER = {
+  ACTIVE_MISSION: 100,
+  URGENT_STORY_EVENT: 95,
+  UNREAD_MISSION_COMMUNICATION: 90,
+  AVAILABLE_PROGRESSION_MISSION: 80,
+  AVAILABLE_SIDE_MISSION: 70,
+  ADAPTIVE_REPETITION: 30,
+  LOCKED_FUTURE_MAIN_READY: 20,
+  LOCKED_FUTURE_MAIN: 10,
+  FUTURE_INFO: 5,
+  NONE: 0,
+};
+
+// The mission the player is currently, actively working on (Terminal/Mission
+// page open right now). This always outranks everything else - there is
+// nothing "more relevant" than the thing already in progress.
+export function getActiveMissionObjective(state = readGameState()) {
+  const missionId = state.activeQuest;
+  if (!missionId) return null;
+  if (isMainMission(missionId)) {
+    const quest = questById(missionId);
+    return { type: 'active', missionId, title: quest?.title || missionId };
+  }
+  if (isCiscoSideMission(missionId)) {
+    const title = SIDE_MISSION_TITLES[missionId] || missionId;
+    return { type: 'active', missionId, title };
+  }
+  return null;
+}
+
+function isMissionAlreadyCompleted(missionId, state) {
+  return (state.completedQuests || []).includes(missionId)
+    || (state.completedCiscoSideMissions || []).includes(missionId)
+    || (state.completedSideMissions || []).includes(missionId);
+}
+
+// An unread email or an un-acknowledged phone call that is linked to a
+// mission. This is the "sehr hohe Relevanz" tier: the player has not even
+// looked at the in-world anchor yet, so it outranks "just" a generally
+// available mission that they already know about. Mail/calls for a mission
+// the player already finished (e.g. read the mail late) are no longer an
+// urgent nudge, so completed missions are excluded here.
+export function getUnreadMissionCommunication(state = readGameState()) {
+  const unreadMail = readEmails().find((e) => !e.read && e.linkedMissionId && !isMissionAlreadyCompleted(e.linkedMissionId, state));
+  if (unreadMail) {
+    return {
+      type: 'communication',
+      channel: 'email',
+      missionId: unreadMail.linkedMissionId,
+      title: `Neue Mail von ${unreadMail.from?.name || 'Sam'} lesen`,
+      subject: unreadMail.subject,
+    };
+  }
+  const pendingCall = pendingNotifications(readNotifications())
+    .find((n) => n.type === notificationTypes.PHONE && n.linkedMissionId && !isMissionAlreadyCompleted(n.linkedMissionId, state));
+  if (pendingCall) {
+    const person = colleagues.find((c) => c.id === pendingCall.source?.personId);
+    return {
+      type: 'communication',
+      channel: 'phone',
+      missionId: pendingCall.linkedMissionId,
+      title: `Nachricht von ${person?.name || 'einem Kollegen'} abhören`,
+      subject: pendingCall.title,
+    };
+  }
+  return null;
+}
+
 function relevanceForMain(main) {
-  if (!main) return 0;
-  if (main.available) return 90;
+  if (!main) return RELEVANCE_TIER.NONE;
+  if (main.available) return RELEVANCE_TIER.AVAILABLE_PROGRESSION_MISSION;
   const sideSatisfied = main.sideProgress && main.sideProgress.completed >= main.sideProgress.needed;
-  if (main.quest?.gate && sideSatisfied) return 60;
-  if (main.quest?.gate) return 10;
-  return 20;
+  if (main.quest?.gate && sideSatisfied) return RELEVANCE_TIER.LOCKED_FUTURE_MAIN_READY;
+  if (main.quest?.gate) return RELEVANCE_TIER.LOCKED_FUTURE_MAIN;
+  return RELEVANCE_TIER.FUTURE_INFO;
 }
 
 function relevanceForSide(side, state) {
-  if (!side || side.length === 0) return 0;
+  if (!side || side.length === 0) return RELEVANCE_TIER.NONE;
   // Cisco side missions are progress-relevant until the next main gate is satisfied.
   const completed = (state.completedSideMissions || []).length + (state.completedCiscoSideMissions || []).length;
   const nextMain = getNextMainMission();
   const needed = nextMain ? nextMain.sideProgress?.needed || 0 : 0;
   const progressRelevant = nextMain && nextMain.quest?.gate && completed < needed;
-  return progressRelevant ? 80 : 40;
+  return progressRelevant ? RELEVANCE_TIER.AVAILABLE_PROGRESSION_MISSION - 5 : RELEVANCE_TIER.AVAILABLE_SIDE_MISSION;
 }
 
 function relevanceForLearning(learning) {
-  return learning ? 30 : 0;
+  return learning ? RELEVANCE_TIER.ADAPTIVE_REPETITION : RELEVANCE_TIER.NONE;
 }
 
 export function getCurrentPlayerObjectives() {
   const state = readGameState();
+  const active = getActiveMissionObjective(state);
+  const communication = active ? null : getUnreadMissionCommunication(state);
   const learning = getRecommendedLearningTopic();
   const main = getNextMainMission();
   const side = getRecommendedSideMissions(2);
 
   return {
+    active,
+    communication,
     learning,
     main,
     side,
     relevance: {
+      active: active ? RELEVANCE_TIER.ACTIVE_MISSION : RELEVANCE_TIER.NONE,
+      communication: communication ? RELEVANCE_TIER.UNREAD_MISSION_COMMUNICATION : RELEVANCE_TIER.NONE,
       learning: relevanceForLearning(learning),
       main: relevanceForMain(main),
       side: relevanceForSide(side, state),
@@ -222,11 +308,32 @@ export function getCurrentPlayerObjectives() {
   };
 }
 
+// Concrete, actionable label for a given top-objective entry - never a bare
+// "Verfügbar". See item 6 of the Phase 1G brief for the expected wording.
+export function getObjectiveLabel(entry) {
+  if (!entry) return 'Alle Ziele abgeschlossen';
+  switch (entry.key) {
+    case 'active':
+    case 'communication':
+      return entry.item.title;
+    case 'main':
+      return entry.item.quest?.title || 'Verfügbar';
+    case 'side':
+      return entry.item[0]?.title || 'Verfügbar';
+    case 'learning':
+      return entry.item.title || 'Verfügbar';
+    default:
+      return 'Verfügbar';
+  }
+}
+
 export function getTopObjective(objectives = getCurrentPlayerObjectives()) {
   const entries = [
-    { key: 'learning', item: objectives.learning, score: objectives.relevance.learning },
+    { key: 'active', item: objectives.active, score: objectives.relevance.active },
+    { key: 'communication', item: objectives.communication, score: objectives.relevance.communication },
     { key: 'main', item: objectives.main, score: objectives.relevance.main },
     { key: 'side', item: objectives.side, score: objectives.relevance.side },
+    { key: 'learning', item: objectives.learning, score: objectives.relevance.learning },
   ];
   const sorted = entries.filter((e) => e.item && e.score > 0).sort((a, b) => b.score - a.score);
   return sorted[0] || null;

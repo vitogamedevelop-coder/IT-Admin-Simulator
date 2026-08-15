@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Terminal as TermIcon, Globe, FolderOpen, Inbox as InboxIcon, Shield, MonitorSmartphone, Network, Trash2, Power, Coffee, MessageSquare, Users, Phone } from 'lucide-react';
-import { readNotifications, pendingNotifications } from '../lib/notificationSystem';
 import { seedEmails } from '../lib/emails';
+import { getCommunicationBadgeCounts } from '../lib/communicationBadges';
 import { seedNotebook } from '../lib/notebook';
 import { readGameState } from '../lib/gameState';
 import { characterAsset } from '../lib/rpgAssets';
@@ -268,7 +268,6 @@ export default function Workspace() {
   const [monitorOpen, setMonitorOpen] = useState(false); // desktop view
   const [openApp, setOpenApp] = useState(null);            // app running on monitor
   const [zoomPhase, setZoomPhase] = useState('none');      // none | zooming-in | desktop | zooming-out
-  const [notifications, setNotifications] = useState(readNotifications);
   const [corridorDialog, setCorridorDialog] = useState(null);
   const [worldDialog, setWorldDialog] = useState(null);
   const [corridorMenu, setCorridorMenu] = useState(false); // room-selection menu shown when entering the hallway
@@ -288,8 +287,10 @@ export default function Workspace() {
   const longPressTimer = useRef(null);
   const resizeObserverRef = useRef(null);
   const panoramaElRef = useRef(null);
-  const pending = useMemo(() => pendingNotifications(notifications), [notifications]);
-  const emailCount = pending.filter((n) => n.type === 'email').length;
+  // Communication badges (Phase 1G, item 8): always derived from the real
+  // email/notification/ticket state, never a separately maintained counter.
+  const [badgeCounts, setBadgeCounts] = useState(getCommunicationBadgeCounts);
+  const refreshBadgeCounts = useCallback(() => setBadgeCounts(getCommunicationBadgeCounts()), []);
 
   // --- Back handler stack ---
   useEffect(() => {
@@ -297,6 +298,13 @@ export default function Workspace() {
     // App open: back closes app → returns to desktop
     return pushBackHandler(() => { setOpenApp(null); });
   }, [openApp]);
+
+  // Recompute communication badges whenever an app opens or closes (e.g.
+  // reading an email or resolving a ticket only changes localStorage, not
+  // the game-state event) so counts never lag behind the real state.
+  useEffect(() => {
+    refreshBadgeCounts();
+  }, [openApp, refreshBadgeCounts]);
 
   useEffect(() => {
     if (!monitorOpen || openApp) return;
@@ -324,7 +332,7 @@ export default function Workspace() {
   useEffect(() => {
     // Evaluate world-flow events when the workspace is first shown.
     const result = processWorldEvents();
-    setNotifications(readNotifications());
+    refreshBadgeCounts();
     if (result.pendingDialog && !worldDialog) {
       setWorldDialog(result.pendingDialog);
     }
@@ -369,7 +377,7 @@ export default function Workspace() {
     seedEmails();
     seedNotebook();
     startAmbient();
-    const handler = () => setNotifications(readNotifications());
+    const handler = () => refreshBadgeCounts();
     window.addEventListener('it-learn:game-state', handler);
     const timer = setInterval(() => setClock(new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })), 60_000);
     const orientationHandler = () => setIsLandscape(window.innerWidth > window.innerHeight);
@@ -380,7 +388,7 @@ export default function Workspace() {
       clearInterval(timer);
       stopAmbient();
     };
-  }, []);
+  }, [refreshBadgeCounts]);
 
   useEffect(() => {
     function recomputeStage() {
@@ -743,7 +751,7 @@ export default function Workspace() {
   // 2. Desktop view (monitor opened, no app yet)
   if (monitorOpen && zoomPhase === 'desktop') return (
     <div className="fullscreen-overlay bg-[#060a10] select-none" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-      <NexusDesktop apps={DESKTOP_APPS} emailCount={emailCount} clock={clock} onOpen={openDesktopApp} onClose={closeMonitor} />
+      <NexusDesktop apps={DESKTOP_APPS} badgeCounts={badgeCounts} clock={clock} onOpen={openDesktopApp} onClose={closeMonitor} />
     </div>
   );
 
@@ -878,7 +886,7 @@ export default function Workspace() {
               style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
               edgeSide={edgeSideOf(rect)} label={h.label} coords={h} pressed={activeHotspotKey === key}
               onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode}
-              badge={key === 'workstation' && (emailCount > 0 || pending.some((n) => n.type === 'phone'))} />
+              badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0 || badgeCounts.tickets > 0)} />
           );
         })}
       </div>
@@ -906,7 +914,7 @@ export default function Workspace() {
                 style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
                 edgeSide={edgeSideOf(rect)} label={h.label} coords={h} pressed={activeHotspotKey === key}
                 onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode}
-                badge={key === 'workstation' && (emailCount > 0 || pending.some((n) => n.type === 'phone'))} />
+                badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0 || badgeCounts.tickets > 0)} />
             );
           })}
         </div>
@@ -958,7 +966,7 @@ export default function Workspace() {
 // =====================================================
 // NexusOS Desktop - realistic OS-style desktop
 // =====================================================
-function NexusDesktop({ apps, emailCount, clock, onOpen, onClose }) {
+function NexusDesktop({ apps, badgeCounts, clock, onOpen, onClose }) {
   // Local fix: this view used `fixed inset-0`, which anchors it to the true
   // viewport top - underneath the global sticky NEXUS header (z-10), hiding
   // the first icon row behind it. Instead of `inset-0`, pin `top` to the
@@ -1003,15 +1011,18 @@ function NexusDesktop({ apps, emailCount, clock, onOpen, onClose }) {
           {apps.map((dApp) => {
             const Icon = dApp.icon;
             const enabled = !!dApp.app;
-            const hasNotif = dApp.id === 'email' && emailCount > 0;
+            // Badge counts are keyed by desktop app id (email/phone/tickets).
+            // 0 (or an app without a tracked channel) means no badge at all.
+            const count = badgeCounts?.[dApp.id] || 0;
+            const hasNotif = count > 0;
             return (
               <button key={dApp.id} onClick={() => onOpen(dApp)}
                 className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all ${enabled ? 'active:bg-white/10 active:scale-90' : 'opacity-40'}`}>
                 <div className="relative w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${dApp.color}15`, border: `1px solid ${dApp.color}30` }}>
                   <Icon size={20} style={{ color: dApp.color }} />
                   {hasNotif && (
-                    <div className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-[#ff3355] flex items-center justify-center px-0.5">
-                      <span className="text-[8px] text-white font-bold">{emailCount}</span>
+                    <div className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-[#ff3355] flex items-center justify-center px-0.5 animate-[pulse_1.5s_ease-in-out_infinite]">
+                      <span className="text-[8px] text-white font-bold">{count}</span>
                     </div>
                   )}
                 </div>

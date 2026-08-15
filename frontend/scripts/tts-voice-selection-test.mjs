@@ -89,6 +89,7 @@ const {
   getTtsVoiceDiagnostics,
   getDisplayVoiceLabel,
   voiceKeyFromVoice,
+  voiceMatchesKey,
   __resetTtsDiscovery,
 } = await import('../src/lib/speechSynthesis.js');
 
@@ -215,6 +216,59 @@ async function testAsync(name, fn) {
       assert.ok(selected.voice);
       assert.ok(selected.voice.lang?.toLowerCase().startsWith('de'));
       assert.equal(selected.voice.localService, true);
+      setTtsSettings({ enabled: true, useSystemVoice: false, voiceKey: null });
+    });
+  }
+
+  console.log('\nSingle-select identity (Phase 1G regression: duplicate-name Android voices)');
+  {
+    // All three German sample voices intentionally share the exact same
+    // generic `name` ("Deutsch Deutschland"), mirroring real Android TTS
+    // engines. Only voiceURI/index must disambiguate them - never name+lang.
+    const [, isf, gpp, rad] = sampleVoices;
+    test('same-named voices are distinguished by voiceURI', () => {
+      const key = voiceKeyFromVoice(gpp);
+      assert.equal(voiceMatchesKey(isf, key), false);
+      assert.equal(voiceMatchesKey(gpp, key), true);
+      assert.equal(voiceMatchesKey(rad, key), false);
+    });
+
+    test('exactly one voice matches a given key among duplicates', async () => {
+      const list = await getVoicesForLanguage('de-DE');
+      const key = voiceKeyFromVoice(list[1]);
+      const matches = list.filter((v) => voiceMatchesKey(v, key));
+      assert.equal(matches.length, 1, `expected exactly one match, got ${matches.length}`);
+    });
+
+    test('switching selection deselects the previous voice (radio-button behavior)', async () => {
+      const list = await getVoicesForLanguage('de-DE');
+      let selectedKey = voiceKeyFromVoice(list[0]);
+      assert.equal(list.filter((v) => voiceMatchesKey(v, selectedKey)).length, 1);
+      assert.ok(voiceMatchesKey(list[0], selectedKey));
+      assert.ok(!voiceMatchesKey(list[1], selectedKey));
+      assert.ok(!voiceMatchesKey(list[2], selectedKey));
+
+      // Select a different voice - the old selection must lose its state.
+      selectedKey = voiceKeyFromVoice(list[2]);
+      assert.ok(!voiceMatchesKey(list[0], selectedKey));
+      assert.ok(!voiceMatchesKey(list[1], selectedKey));
+      assert.ok(voiceMatchesKey(list[2], selectedKey));
+    });
+
+    test('a key without uri/index still falls back to name+lang (legacy persisted data)', () => {
+      const legacyKey = { uri: '', name: 'Deutsch Deutschland', lang: 'de-DE', index: null };
+      // Legacy keys genuinely cannot disambiguate - this documents the
+      // fallback behavior for old persisted settings, not the normal path.
+      assert.ok(voiceMatchesKey(isf, legacyKey));
+    });
+
+    await testAsync('persisted voiceKey selects the exact saved voice, not a same-named sibling', async () => {
+      const saved = voiceKeyFromVoice(gpp);
+      setTtsSettings({ enabled: true, useSystemVoice: false, voiceKey: saved });
+      const selected = await getSelectedVoice();
+      assert.equal(selected.voice.voiceURI, 'de-de-x-gpp-local');
+      assert.notEqual(selected.voice.voiceURI, isf.voiceURI);
+      assert.notEqual(selected.voice.voiceURI, rad.voiceURI);
       setTtsSettings({ enabled: true, useSystemVoice: false, voiceKey: null });
     });
   }

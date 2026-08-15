@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, BookOpen, Shield, MessageSquare, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
-import { getCurrentPlayerObjectives, getTopObjective } from '../lib/objectives';
+import { Target, BookOpen, Shield, MessageSquare, Zap, Mail, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
+import { getCurrentPlayerObjectives, getTopObjective, getObjectiveLabel } from '../lib/objectives';
+import { isMainMission } from '../lib/missionV2';
 
 const POSITION_KEY = 'cyberlearn:current-goal-panel-position-v1';
 const CLICK_THRESHOLD = 5; // px
@@ -227,10 +228,11 @@ export default function ObjectivePanel({ overrideObjective = null }) {
 
   const objectives = getCurrentPlayerObjectives();
   const top = getTopObjective(objectives);
-  const learningLabel = overrideObjective?.title
-    || (top ? (top.item.title || top.item.quest?.title || 'Verfügbar') : 'Alle Ziele abgeschlossen');
+  const learningLabel = overrideObjective?.title || getObjectiveLabel(top);
 
   const sectionOrder = [
+    { key: 'active', data: objectives.active, score: objectives.relevance.active },
+    { key: 'communication', data: objectives.communication, score: objectives.relevance.communication },
     { key: 'main', data: objectives.main, score: objectives.relevance.main },
     { key: 'side', data: objectives.side, score: objectives.relevance.side },
     { key: 'learning', data: objectives.learning, score: objectives.relevance.learning },
@@ -293,6 +295,43 @@ export default function ObjectivePanel({ overrideObjective = null }) {
 
           {sectionOrder.map(({ key, data }, idx) => {
             const isLast = idx === sectionOrder.length - 1;
+            if (key === 'active' && data) {
+              return (
+                <div key={key} className={isLast ? '' : 'mb-3'}>
+                  <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#ff9933]">
+                    <Zap size={12} /> Aktiver Auftrag
+                  </div>
+                  <div className="rounded-lg border border-[#ff9933]/40 bg-[#0a1628]/60 p-2">
+                    <div className="text-sm font-medium text-white">{data.title}</div>
+                    <button
+                      onClick={() => { setExpanded(false); navigate(isMainMission(data.missionId) ? `/mission/${data.missionId}` : `/side-mission/${data.missionId}`); }}
+                      className="mt-2 w-full rounded-md border border-[#ff9933]/40 px-2 py-1.5 text-xs text-[#ff9933] hover:bg-[#ff9933]/10"
+                    >
+                      Weitermachen
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+            if (key === 'communication' && data) {
+              return (
+                <div key={key} className={isLast ? '' : 'mb-3'}>
+                  <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#00f0ff]">
+                    <Mail size={12} /> Ungelesen
+                  </div>
+                  <div className="rounded-lg border border-[#00f0ff]/40 bg-[#0a1628]/60 p-2">
+                    <div className="text-sm font-medium text-white">{data.title}</div>
+                    {data.subject && <div className="mt-1 text-xs text-[#8b949e] truncate">{data.subject}</div>}
+                    <button
+                      onClick={() => { setExpanded(false); navigate('/'); }}
+                      className="mt-2 w-full rounded-md border border-[#00f0ff]/30 px-2 py-1.5 text-xs text-[#00f0ff] hover:bg-[#00f0ff]/10"
+                    >
+                      {data.channel === 'phone' ? 'Zum Telefon' : 'Zur Mail'}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
             if (key === 'learning' && data) {
               return (
                 <div key={key} className={isLast ? '' : 'mb-3'}>

@@ -16,6 +16,7 @@ import {
   SIDE_MISSION_003_ID,
   SIDE_MISSION_004_ID,
 } from './ciscoSideMissions.js';
+import { readMissionLog, MissionStatus } from './missionLog.js';
 
 export const WORLD_EVENT_IDS = {
   POST_MAIN_001_SAM: 'post-main-001-sam',
@@ -40,20 +41,25 @@ const WORLD_EVENTS = [
       nodes: [
         {
           id: 'start',
-          text: 'Gute Arbeit. Der erste Switch ist einsatzbereit.\n\nBevor wir die nächste Hauptaufgabe angehen, vertiefen wir die Grundkonfiguration an drei kleineren Einsätzen.',
+          text: 'Gute Arbeit. Der erste Switch ist einsatzbereit.\n\nBevor wir die nächste Hauptaufgabe angehen, vertiefen wir die Grundkonfiguration an drei kleineren Einsätzen. Willst du dich gleich damit befassen?',
           options: [
-            { label: 'Was kommt als Erstes?', nextId: 'next' },
-            { label: 'Ich schaue mich erst um.', nextId: 'close' },
+            { label: 'Jetzt gleich.', nextId: 'now' },
+            { label: 'Erst später.', nextId: 'later' },
           ],
         },
         {
-          id: 'next',
-          text: 'Ich schicke dir gleich eine Mail mit dem ersten Auftrag. Bearbeite die Einsätze in Ruhe — du brauchst mindestens zwei von drei, bevor die nächste Hauptmission freigeschaltet werden kann.',
+          // "Jetzt"/"Später" never change WHETHER a mail is sent - that is
+          // decided purely by the world-event trigger (see WORLD_EVENT_IDS.
+          // SIDE_001_MAIL below), not by this dialog choice. Only the
+          // acknowledgement text differs, so the player understands where to
+          // find the persistent in-world anchor either way.
+          id: 'now',
+          text: 'Alles klar. Ich hab dir die Details schon in die Mail geschickt - schau gleich rein.',
           onComplete: { action: 'close' },
         },
         {
-          id: 'close',
-          text: 'Melde dich, wenn du Fragen hast. Mein Büro ist im Flur.',
+          id: 'later',
+          text: 'Kein Problem, eilt gerade nicht. Die Mail mit dem Auftrag liegt trotzdem in deinem Postfach, wenn du Zeit hast.',
           onComplete: { action: 'close' },
         },
       ],
@@ -99,15 +105,20 @@ const WORLD_EVENTS = [
       nodes: [
         {
           id: 'start',
-          text: 'Noch ein kleiner Sicherheitspunkt. Auf dem Test-Switch gibt es bereits einen lokalen Admin-Benutzer, aber die Console-Line fragt noch das gemeinsame Line-Passwort ab.\n\nStelle um auf "login local", damit jeder Mitarbeiter mit seinem eigenen Benutzer arbeitet.',
+          text: 'Noch ein kleiner Sicherheitspunkt. Auf dem Test-Switch gibt es bereits einen lokalen Admin-Benutzer, aber die Console-Line fragt noch das gemeinsame Line-Passwort ab.\n\nStelle um auf "login local", damit jeder Mitarbeiter mit seinem eigenen Benutzer arbeitet. Willst du dich direkt darum kümmern?',
           options: [
-            { label: 'Ich kümmere mich drum.', nextId: 'close' },
-            { label: 'Erst später.', nextId: 'close' },
+            { label: 'Ich kümmere mich sofort drum.', nextId: 'now' },
+            { label: 'Erst später.', nextId: 'later' },
           ],
         },
         {
-          id: 'close',
-          text: 'In Ordnung. Schau später vorbei, wenn du Zeit hast.',
+          id: 'now',
+          text: 'Gut. Der Auftrag ist bereits als Nebenmission hinterlegt - du kannst direkt loslegen.',
+          onComplete: { action: 'close' },
+        },
+        {
+          id: 'later',
+          text: 'In Ordnung. Der Auftrag bleibt hinterlegt, schau später vorbei, wenn du Zeit hast.',
           onComplete: { action: 'close' },
         },
       ],
@@ -130,13 +141,18 @@ const WORLD_EVENTS = [
           id: 'start',
           text: 'Die kleinen Aufträge waren Absicht. Ich wollte sehen, ob du einen Switch vorbereiten kannst, ohne dass ich danebenstehe.\n\nJetzt bekommst du etwas, das hier häufiger vorkommt. Personal und Buchhaltung bekommen neue Arbeitsplätze am selben Switch. Die sollen aber nicht einfach in derselben Layer-2-Domäne landen.',
           options: [
-            { label: 'Ich bin bereit.', nextId: 'close' },
-            { label: 'Erst später.', nextId: 'close' },
+            { label: 'Ich bin bereit.', nextId: 'now' },
+            { label: 'Erst später.', nextId: 'later' },
           ],
         },
         {
-          id: 'close',
-          text: 'Ich schicke dir gleich eine Mail mit den Details. Bearbeite den Auftrag in Ruhe.',
+          id: 'now',
+          text: 'Gut, dann schau gleich in dein Postfach - die Details stehen schon drin.',
+          onComplete: { action: 'close' },
+        },
+        {
+          id: 'later',
+          text: 'Kein Problem. Die Mail mit den Details liegt bereits in deinem Postfach, wenn du bereit bist.',
           onComplete: { action: 'close' },
         },
       ],
@@ -174,13 +190,18 @@ const WORLD_EVENTS = [
           id: 'start',
           text: 'Sieht gut aus.\n\nBevor der Switch so in Betrieb geht, fehlt mir allerdings noch etwas. Schau dir die übrigen Ports einmal genauer an. Was nicht gebraucht wird, muss auch nicht offen herumstehen.',
           options: [
-            { label: 'Verstanden.', nextId: 'close' },
-            { label: 'Später.', nextId: 'close' },
+            { label: 'Verstanden.', nextId: 'now' },
+            { label: 'Später.', nextId: 'later' },
           ],
         },
         {
-          id: 'close',
-          text: 'Ich schicke dir eine Mail mit dem genauen Auftrag.',
+          id: 'now',
+          text: 'Gut. Die Mail mit dem genauen Auftrag ist schon unterwegs.',
+          onComplete: { action: 'close' },
+        },
+        {
+          id: 'later',
+          text: 'Kein Problem. Die Mail mit dem genauen Auftrag liegt bereit, sobald du Zeit findest.',
           onComplete: { action: 'close' },
         },
       ],
@@ -359,4 +380,72 @@ export function worldDialogResultAction(_option, _linkedMissionId) {
   // World-flow dialogs never auto-start missions. They only acknowledge the
   // event; the player starts missions manually via mail/phone/objective panel.
   return { action: 'close' };
+}
+
+// ============================================================================
+// Delivery-state introspection (Phase 1G, item 2).
+//
+// A single, semantically distinct read of "where is this mission's delivery
+// right now" - so callers (ObjectivePanel, tests, ...) never have to
+// reinvent this from a boolean soup of completedQuests/emails/notifications.
+// This is purely additive: it reads the existing email/notification/
+// missionLog/gameState stores, it does not introduce a second, competing
+// state machine.
+// ============================================================================
+
+export const DeliveryState = {
+  // A WORLD_EVENT triggered, but nothing was actually created for the
+  // player yet (should not normally be observable from the outside - see
+  // dispatchEmail/dispatchPhone/dispatchDialogSam - but kept for completeness).
+  EVENT_DISPATCHED: 'eventDispatched',
+  // A persistent in-world anchor (email or phone/voicemail entry) exists.
+  DELIVERY_CREATED: 'deliveryCreated',
+  // The delivery exists, is unread/unacknowledged, and the mission has not
+  // been started yet.
+  MISSION_AVAILABLE: 'missionAvailable',
+  // The player has explicitly accepted the mission (opened the mail/call
+  // and chosen to start it) but has not entered the mission runtime yet.
+  MISSION_ACCEPTED: 'missionAccepted',
+  // The mission runtime is currently active (in progress).
+  MISSION_ACTIVE: 'missionActive',
+  MISSION_COMPLETED: 'missionCompleted',
+  // No delivery exists for this mission at all yet.
+  NONE: 'none',
+};
+
+function isMissionCompleted(missionId, state) {
+  return (state.completedQuests || []).includes(missionId)
+    || (state.completedCiscoSideMissions || []).includes(missionId);
+}
+
+function findMissionLogEntries(missionId) {
+  const log = readMissionLog();
+  return Object.values(log.missions).filter((m) => m.questId === missionId);
+}
+
+// Returns one of the DeliveryState values for a given mission/quest ID,
+// based purely on real, persisted state (emails, notifications, missionLog,
+// gameState) - never a separately tracked flag.
+export function getMissionDeliveryState(missionId, state = readGameState()) {
+  if (isMissionCompleted(missionId, state)) return DeliveryState.MISSION_COMPLETED;
+
+  if (state.activeQuest === missionId) return DeliveryState.MISSION_ACTIVE;
+
+  const logEntries = findMissionLogEntries(missionId);
+  if (logEntries.some((m) => m.status === MissionStatus.IN_PROGRESS)) return DeliveryState.MISSION_ACTIVE;
+  if (logEntries.some((m) => m.status === MissionStatus.ACCEPTED)) return DeliveryState.MISSION_ACCEPTED;
+
+  const hasEmail = readEmails().some((e) => e.linkedMissionId === missionId);
+  const hasNotification = readNotifications().some((n) => n.linkedMissionId === missionId);
+  const hasPendingDialog = state.pendingWorldDialog?.linkedMissionId === missionId;
+
+  if (hasEmail || hasNotification) return DeliveryState.MISSION_AVAILABLE;
+  if (hasPendingDialog) return DeliveryState.DELIVERY_CREATED;
+
+  const eventDispatched = (state.dispatchedWorldEvents || []).some(
+    (id) => WORLD_EVENTS.find((e) => e.id === id)?.linkedMissionId === missionId,
+  );
+  if (eventDispatched) return DeliveryState.EVENT_DISPATCHED;
+
+  return DeliveryState.NONE;
 }

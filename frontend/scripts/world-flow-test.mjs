@@ -77,7 +77,14 @@ console.log('Fresh-state flow after Mission 001');
     const objectives = getCurrentPlayerObjectives();
     const top = getTopObjective(objectives);
     assert(top, 'there should be a top objective');
-    assert(top.key === 'side' || top.key === 'learning', `top should be side or learning, got ${top.key}`);
+    // The side-001 mail was just delivered and is still unread, so it
+    // correctly outranks everything else (Phase 1G: unread mission
+    // communication is a higher-relevance tier than a generic available
+    // side mission - see objectives.js RELEVANCE_TIER).
+    assert(
+      top.key === 'communication' || top.key === 'side' || top.key === 'learning',
+      `top should be communication, side or learning, got ${top.key}`,
+    );
     assert(objectives.relevance.main < objectives.relevance.side, 'locked main should be less relevant than side');
   });
 

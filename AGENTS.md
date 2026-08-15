@@ -1548,3 +1548,115 @@ unterstützt.
 - Version auf 1.25.1 erhöht (PATCH, da Korrektur einer bestehenden Mission
   ohne neuen Hauptinhalt).
 - Kein Push, kein Deployment.
+
+## Phase 1G: World Flow / UX / TTS / Delivery-Persistenz / Cisco-Regressionspass
+
+### Ziel
+Kein neuer Content-Pass. Der bestehende NEXUS-Spielablauf soll stabiler,
+glaubwürdiger und simulationsartiger werden: Missionen brauchen einen
+persistenten In-World-Anker, Jetzt/Später-Entscheidungen müssen Text UND
+Gameplay konsistent behandeln, das ObjectivePanel soll nach Relevanz statt
+Kategorie sortieren, Kommunikations-Badges müssen aus echtem State kommen,
+ein Android-TTS-Bug (Mehrfachauswahl) und ein Cisco-Regressionsbug
+(Allowed-VLAN erzeugt VLANs) mussten behoben werden, und das Cisco-Terminal
+darf die Missionsseite nicht mehr endlos verlängern.
+
+### TTS Single-Select Fix
+- `frontend/src/lib/speechSynthesis.js`: `voiceMatchesKey()` neu geschrieben.
+  Vorher fiel die Prüfung bei fehlendem/leerem `voiceURI` (typisch für
+  manche Android-Engines, die für alle Stimmen einer Sprache den gleichen
+  generischen `name` liefern, z. B. "Deutsch (Deutschland)") auf einen
+  Name+Lang-Vergleich zurück, der dann ALLE gleichnamigen Stimmen als
+  "ausgewählt" markierte. Jetzt ist die Priorität strikt: passender
+  `voiceURI` ist entscheidend, wenn beide Seiten einen haben; sonst der
+  stabile Discovery-`index`; erst danach (nur bei wirklich fehlenden IDs)
+  Name+Lang als letzter Ausweg. `voiceKeyFromVoice()` persistiert jetzt
+  zusätzlich den `index`.
+- `frontend/src/pages/Settings.jsx`: `isVoiceSelected()` nutzt jetzt die
+  gemeinsame `voiceMatchesKey()` statt einer eigenen (fehlerhaften) Kopie -
+  Single-Select wie Radio-Buttons, exakt eine Karte markiert.
+- Test: `frontend/scripts/tts-voice-selection-test.mjs`, neuer Abschnitt
+  "Single-select identity" mit drei absichtlich gleichnamigen Sample-Voices.
+
+### Cisco Fix: `switchport trunk allowed vlan` erzeugt keine VLANs mehr
+- `frontend/src/lib/ciscoCliEngine.js`: Der Handler ruft `ensureVlan()`
+  nicht mehr auf. Die Allowed-VLAN-Liste des Interfaces wird weiterhin
+  gesetzt, aber die VLAN-Datenbank bleibt unverändert.
+- `renderInterfacesTrunk()` zeigt jetzt zwei Abschnitte wie echtes IOS:
+  "Vlans allowed on trunk" (konfiguriert, unabhängig von der VLAN-DB) und
+  "Vlans allowed and active in management domain" (nur die VLANs, die
+  tatsächlich existieren).
+- Test: neuer Block in `frontend/scripts/cisco-prefix-collision-test.mjs`
+  (VLAN 20/30 bleiben nicht angelegt, obwohl sie in der Allowed-Liste
+  stehen; beide Show-Abschnitte respektieren den Unterschied).
+
+### Terminal-Fenster
+- `frontend/src/pages/MissionV2.jsx`: Die Terminal-Historie hatte
+  `flex-1 min-h-0` gegen einen unbegrenzten Elterncontainer (`.app-shell`
+  hat nur `min-height: 100vh`, nie eine Obergrenze) - dadurch hatte
+  `flex-1` keine Wirkung und das Terminal wuchs mit jeder Ausgabe die ganze
+  Seite auf. Jetzt hat die Historie eine feste, sichtbare Höhe
+  (`h-64 sm:h-80`) mit eigenem `overflow-y-auto`. Auto-Scroll respektiert
+  jetzt manuelles Hochscrollen (`autoScrollRef`, `handleTerminalScroll`);
+  ein eigener Befehl scrollt immer zum aktuellen Prompt
+  (`scrollTerminalToBottom()`).
+- Test: `frontend/scripts/mission-v2-terminal-scroll-test.mjs` (statische
+  Quellcode-Prüfung, gleiches Muster wie `settings-tdz-regression-test.mjs`,
+  da es im Projekt keinen React-Rendering-Testharness gibt).
+
+### Kommunikations-Badges
+- `frontend/src/lib/communicationBadges.js` (neu): einzige Quelle für
+  Mail-/Telefon-/Ticket-Zähler, direkt aus `emails.js`/`notificationSystem.js`/
+  `sideMissionEngine.js` abgeleitet - kein separat gepflegter Zähler.
+- `frontend/src/pages/Workspace.jsx`: Desktop-Icons (E-Mail, Telefon,
+  Tickets) zeigen jetzt alle einen echten numerischen Badge; der
+  Hotspot-Punkt berücksichtigt alle drei Kanäle. Badges werden bei
+  App-Öffnen/-Schließen und beim `it-learn:game-state`-Event neu berechnet.
+  Totes `notifications`/`pending`-State entfernt.
+- Test: `frontend/scripts/communication-badges-test.mjs`.
+
+### Delivery-Persistenz & Jetzt/Später
+- `frontend/src/lib/worldDispatcher.js`: Die vier Sam-Dialoge mit
+  Jetzt/Später-Wahl haben jetzt unterschiedliche Abschlusstexte für beide
+  Zweige; die Mail/das Ereignis existiert bereits vorher unabhängig von der
+  gewählten Option (WORLD_EVENTS lösen ausschließlich über Spielzustand
+  aus, nie über die Dialogwahl). Neue Funktion `getMissionDeliveryState()`
+  liefert einen einzelnen, klar benannten Zustand
+  (`none | eventDispatched | deliveryCreated | missionAvailable |
+  missionAccepted | missionActive | missionCompleted`) rein additiv aus
+  bestehenden Stores (E-Mails, Notifications, `missionLog`, `gameState`).
+- Verifiziert (nicht verändert, da bereits korrekt): Verlassen einer
+  Mission ohne Abschluss (`returnToWorkspace()`) löscht den Mission-State
+  nicht; die Mail/der Anruf bleibt im jeweiligen Store erhalten;
+  App-Neustart liest denselben persistierten Zustand erneut.
+- Test: `frontend/scripts/world-flow-delivery-test.mjs` (Jetzt-/Später-Mail,
+  Mail-Persistenz, Telefon-Persistenz, Mission abbrechen, Reload,
+  vollständiger Delivery-State-Lebenszyklus).
+
+### ObjectivePanel: Relevanz statt Kategorie
+- `frontend/src/lib/objectives.js`: neue `RELEVANCE_TIER`-Konstante als
+  einzige Prioritätsskala (aktive Mission > dringendes Ereignis > ungelesene
+  missionsrelevante Kommunikation > verfügbare Progressions-Mission >
+  verfügbare Nebenmission > adaptive Wiederholung > gesperrte, bereit
+  freischaltbare Hauptmission > gesperrte Hauptmission > reine
+  Zukunftsinfo). Neue Funktionen `getActiveMissionObjective()` und
+  `getUnreadMissionCommunication()` (mit Schutz gegen bereits abgeschlossene
+  Missionen). `getObjectiveLabel()` liefert immer einen konkreten Text
+  (nie nur "Verfügbar") - auch für den bisher fehlerhaften Fall, dass die
+  Top-Nebenmission ein Array statt eines Titels war.
+- `frontend/src/components/ObjectivePanel.jsx`: neue Karten für "Aktiver
+  Auftrag" und "Ungelesen" (E-Mail/Anruf); Drag/Clamp/Persistenz-Logik
+  unverändert (Regressionstest bleibt grün).
+- Tests: `frontend/scripts/objective-priority-test.mjs` (neu),
+  `frontend/scripts/world-flow-test.mjs` (Erwartungen an die neue,
+  korrektere Prioritätsreihenfolge angepasst).
+
+### Acceptance checks
+- Alle `frontend/scripts/*-test.mjs` grün (inkl. neuer/erweiterter Tests).
+- `npm run lint` ohne neue Fehler/Warnungen (nur die 13 bekannten Warnungen).
+- `npm run build` ✅.
+- `npx cap sync` ✅.
+- APK build via `scripts/build-apk.ps1` ✅ und archiviert.
+- Version auf 1.25.2 erhöht (PATCH: Stabilitäts-/UX-Fixes, kein neuer
+  Hauptcontent, kein prozeduraler Missionsgenerator).
+- Kein Push, kein Deployment.

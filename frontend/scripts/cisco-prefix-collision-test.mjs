@@ -361,3 +361,48 @@ assertDoWriteWorksFrom((d) => run(d, 'interface range fa0/1 - 2')); // INTERFACE
 assertDoWriteWorksFrom((d) => run(d, 'vlan 50')); // VLAN_CONFIG
 
 console.log('Phase 1F correction: trunk mode, switchport trunk allowed vlan, show interfaces trunk/switchport, and write/wr abbreviations passed.');
+
+// ============================================================================
+// Phase 1G fix: "switchport trunk allowed vlan" must NEVER create VLANs.
+// ============================================================================
+
+const avdev = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: 'Sw2' });
+run(avdev, 'enable');
+run(avdev, 'configure terminal');
+// Only VLAN 10 is actually created; VLAN 20 is deliberately left out.
+run(avdev, 'vlan 10');
+run(avdev, 'name PERSONAL');
+run(avdev, 'exit');
+r = run(avdev, 'interface gi0/1');
+assert(r.success, 'interface gi0/1 should succeed');
+r = run(avdev, 'switchport mode trunk');
+assert(r.success, 'switchport mode trunk should succeed');
+r = run(avdev, 'switchport trunk allowed vlan 10,20,30');
+assert(r.success, 'switchport trunk allowed vlan 10,20,30 should succeed even though 20/30 do not exist yet');
+
+assert(avdev.runningConfig.vlans[10], 'VLAN 10 still exists (it was created explicitly)');
+assert(!avdev.runningConfig.vlans[20], 'VLAN 20 must NOT be auto-created by "switchport trunk allowed vlan"');
+assert(!avdev.runningConfig.vlans[30], 'VLAN 30 must NOT be auto-created by "switchport trunk allowed vlan"');
+assert(
+  JSON.stringify(avdev.runningConfig.interfaces['GigabitEthernet0/1'].trunkAllowedVlans) === JSON.stringify([10, 20, 30]),
+  'the allowed-vlan list on the interface is still configured with all three IDs',
+);
+run(avdev, 'end');
+
+const avRunningConfig = renderRunningConfig(avdev);
+assert(avRunningConfig.includes('switchport trunk allowed vlan 10,20,30'), 'running-config reflects the configured allowed-vlan list as entered');
+assert(!/^vlan 20$/m.test(avRunningConfig), 'running-config VLAN database section does not contain VLAN 20');
+assert(!/^vlan 30$/m.test(avRunningConfig), 'running-config VLAN database section does not contain VLAN 30');
+
+const avVlanBrief = run(avdev, 'show vlan brief').output;
+assert(avVlanBrief.includes('PERSONAL'), 'show vlan brief lists the actually created VLAN 10');
+assert(!avVlanBrief.includes('20   '), 'show vlan brief does not list the merely-allowed, never-created VLAN 20');
+
+const avTrunk = run(avdev, 'show interfaces trunk').output;
+assert(avTrunk.includes('Vlans allowed on trunk'), 'show interfaces trunk has an "allowed" section (configured, regardless of VLAN DB)');
+assert(avTrunk.includes('Vlans allowed and active in management domain'), 'show interfaces trunk has an "active" section (intersected with the VLAN DB)');
+const [allowedBlock, activeBlock] = avTrunk.split('Vlans allowed and active in management domain');
+assert(allowedBlock.includes('Gi0/1       10,20,30'), 'the "allowed" section shows all three configured IDs, including the non-existent ones');
+assert(activeBlock.trim() === 'Gi0/1       10', 'the "active" section only shows VLAN 10, since 20/30 were never created');
+
+console.log('Phase 1G fix: switchport trunk allowed vlan no longer auto-creates VLANs; show interfaces trunk distinguishes allowed vs. active.');

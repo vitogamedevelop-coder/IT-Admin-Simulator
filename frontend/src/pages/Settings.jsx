@@ -13,6 +13,7 @@ import {
   getVoicesForLanguage,
   getDisplayVoiceLabel,
   voiceKeyFromVoice,
+  voiceMatchesKey,
   openTtsSettings,
   getTtsVoiceDiagnostics,
   getSelectedVoice,
@@ -109,15 +110,13 @@ export default function Settings() {
     setTtsSettings(next);
   }
 
+  // Single-select: exactly one voice card can be selected at a time. The
+  // shared voiceMatchesKey() identity (uri > index > name+lang) prevents the
+  // "every same-named Android voice looks selected" bug.
   function isVoiceSelected(voice) {
     const key = selectedVoice ? voiceKeyFromVoice(selectedVoice) : settings.voiceKey;
     if (!key) return false;
-    if (key.uri && voice.voiceURI === key.uri) return true;
-    if (key.name && voice.name === key.name) {
-      if (key.lang && voice.lang !== key.lang) return false;
-      return true;
-    }
-    return false;
+    return voiceMatchesKey(voice, key);
   }
 
   async function playTest() {

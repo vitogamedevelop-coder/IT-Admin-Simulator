@@ -416,9 +416,29 @@ export async function getVoicesForLanguage(lang) {
   }));
 }
 
-function voiceMatchesKey(voice, key) {
+// Single-select identity match between a stored voice key and a live voice
+// object. On some Android TTS engines every voice for a language reports the
+// same generic `name` (e.g. "Deutsch (Deutschland)") and no (or an empty)
+// `voiceURI`. Falling back straight to name+lang in that case would make
+// every voice in the list match the same key ("all selected" bug). The
+// stable `index` assigned during discovery (see getNativeVoices/getVoices)
+// is therefore used as a secondary, unambiguous identity before falling
+// back to name+lang for voices that genuinely have neither a URI nor index
+// (e.g. some Web Speech voices).
+export function voiceMatchesKey(voice, key) {
   if (!voice || !key) return false;
-  if (key.uri && (voice.voiceURI === key.uri || voice.voiceURI === `urn:moz-tts:${key.uri}?0`)) return true;
+  // If both sides have a voiceURI, it is decisive - either it matches or it
+  // does not, never fall through to a weaker identity check.
+  if (key.uri && voice.voiceURI) {
+    return voice.voiceURI === key.uri || voice.voiceURI === `urn:moz-tts:${key.uri}?0`;
+  }
+  // Otherwise, if both sides have a stable discovery index, that is decisive.
+  if (typeof key.index === 'number' && typeof voice.index === 'number') {
+    return voice.index === key.index;
+  }
+  // Last resort for voices with neither a real URI nor an index (e.g. some
+  // legacy persisted keys): fall back to name+lang. This can genuinely be
+  // ambiguous on engines that reuse the same name for every voice.
   if (voice.name && key.name && voice.name === key.name) {
     if (key.lang && voice.lang !== key.lang) return false;
     return true;
@@ -509,6 +529,7 @@ export function voiceKeyFromVoice(voice) {
     uri: voice.voiceURI || '',
     name: voice.name || '',
     lang: voice.lang || '',
+    index: typeof voice.index === 'number' ? voice.index : null,
   };
 }
 

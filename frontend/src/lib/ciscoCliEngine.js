@@ -320,7 +320,12 @@ function buildSwitchportNode() {
                 if (tokens.length < 5) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
                 const ids = parseVlanList(tokens.slice(4).join(''));
                 if (!ids) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
-                ids.forEach((id) => ensureVlan(device, id));
+                // "switchport trunk allowed vlan" only edits the trunk's allowed-
+                // VLAN list. It must NEVER create VLANs in the VLAN database -
+                // that is the job of "vlan <id>" / "name <name>" in global config.
+                // A VLAN ID that is merely allowed but not created is configured
+                // but not active (see renderInterfacesTrunk's allowed vs. active
+                // in management domain split).
                 forEachTargetInterface(device, (iface) => { iface.trunkAllowedVlans = ids; });
                 return { output: '', stateChanged: true };
               }, 'Set allowed VLANs when interface is in trunking mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_trunk_allowed_vlan', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<vlan-id[,vlan-id...]>']),
@@ -1530,7 +1535,21 @@ export function renderInterfacesTrunk(device) {
     return `${port}${vlans}`;
   });
 
-  return [modeHeader, ...modeRows, vlanHeader, ...vlanRows].join('\n');
+  // "Allowed" (configured on the interface) and "active in management
+  // domain" (actually present in the VLAN database) are two different
+  // things in real IOS. "switchport trunk allowed vlan" never creates a
+  // VLAN, so an allowed ID that was never created with "vlan <id>" shows up
+  // here but not in the active list.
+  const activeHeader = '\nPort        Vlans allowed and active in management domain';
+  const activeRows = trunks.map((iface) => {
+    const port = shortInterfaceName(iface.name).padEnd(12);
+    const allowedIds = iface.trunkAllowedVlans || Object.keys(device.runningConfig.vlans).map(Number);
+    const activeIds = allowedIds.filter((id) => !!device.runningConfig.vlans[id]).sort((a, b) => a - b);
+    const vlans = activeIds.length ? activeIds.join(',') : 'none';
+    return `${port}${vlans}`;
+  });
+
+  return [modeHeader, ...modeRows, vlanHeader, ...vlanRows, activeHeader, ...activeRows].join('\n');
 }
 
 export function renderInterfaceSwitchport(iface) {

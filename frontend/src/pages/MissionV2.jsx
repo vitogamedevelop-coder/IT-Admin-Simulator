@@ -127,6 +127,11 @@ export default function MissionV2() {
   const terminalRef = useRef(null);
   const inputRef = useRef(null);
   const savedInput = useRef('');
+  // Auto-scroll only while the player is at (or near) the bottom of the
+  // terminal history. If they scroll up to re-read older output, new lines
+  // must not rip the view back down. A command the player sends themselves
+  // always re-anchors to the bottom (they are acting "at the prompt").
+  const autoScrollRef = useRef(true);
 
   useEffect(() => {
     const active = runtime.load();
@@ -149,10 +154,27 @@ export default function MissionV2() {
   }, [state, runtime, selectedRequirement]);
 
   useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    const el = terminalRef.current;
+    if (el && autoScrollRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [history, helpOutput]);
+
+  // Manual scroll must not be overridden: only keep auto-scrolling while the
+  // player is already near the bottom of the terminal history.
+  const SCROLL_BOTTOM_THRESHOLD_PX = 24;
+  function handleTerminalScroll() {
+    const el = terminalRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    autoScrollRef.current = distanceFromBottom <= SCROLL_BOTTOM_THRESHOLD_PX;
+  }
+
+  function scrollTerminalToBottom() {
+    autoScrollRef.current = true;
+    const el = terminalRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }
 
   if (loading) return <div className="app-shell flex items-center justify-center text-[#00ff66]">Mission wird geladen...</div>;
   if (!runtime || !state) return <div className="app-shell p-4 text-[#ff3355]">Mission konnte nicht geladen werden.</div>;
@@ -187,6 +209,9 @@ export default function MissionV2() {
     setHistoryIndex(-1);
     setHistory((h) => [...h, { command: trimmed, prompt: promptBefore, output: result.output || '' }]);
     setHint(null);
+    // The player just acted "at the prompt" - always scroll to the current
+    // prompt, even if they had previously scrolled up to re-read output.
+    scrollTerminalToBottom();
     inputRef.current?.focus();
   }
 
@@ -309,6 +334,7 @@ export default function MissionV2() {
     setState(runtime.start());
     setActiveQuest(missionId);
     setHistory([]);
+    autoScrollRef.current = true;
     setHelpOutput(null);
     setInput('');
     setHistoryIndex(-1);
@@ -381,13 +407,21 @@ export default function MissionV2() {
         </div>
       )}
 
-      <div className="cyber-card flex-1 min-h-0 flex flex-col">
+      <div className="cyber-card flex flex-col">
         <div className="flex items-center gap-2 text-[#00ff66] text-xs uppercase tracking-wider mb-2">
           <TermIcon size={14} /> Cisco IOS Terminal
         </div>
+        {/*
+          Fixed, bounded height (not flex-1 against an unbounded page) so the
+          terminal never stretches the whole mission page. Only this inner
+          area scrolls; the page height stays stable regardless of history
+          length. touch-pan-y / overscroll-contain keep mobile scrolling
+          inside the terminal instead of bouncing the whole page.
+        */}
         <div
           ref={terminalRef}
-          className="flex-1 overflow-y-auto font-mono text-sm bg-[#0a0a0a] rounded p-2 text-[#c9d1d9] whitespace-pre-wrap"
+          onScroll={handleTerminalScroll}
+          className="h-64 sm:h-80 overflow-y-auto overscroll-contain touch-pan-y font-mono text-sm bg-[#0a0a0a] rounded p-2 text-[#c9d1d9] whitespace-pre-wrap"
         >
           {history.map((entry, index) => (
             <div key={index} className="mb-2">
