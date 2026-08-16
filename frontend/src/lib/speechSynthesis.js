@@ -717,12 +717,22 @@ function scoreVoiceForProfile(voice, profile) {
   let score = 0;
   const voiceLang = (voice.lang || '').toLowerCase();
   const wantedLang = (profile.lang || 'de-DE').toLowerCase();
-  if (voiceLang === wantedLang) score += 100;
-  else if (voiceLang.startsWith(wantedLang.split('-')[0])) score += 50;
-  if (typeof profile.preferredIndex === 'number' && typeof voice.index === 'number' && voice.index === profile.preferredIndex) score += 40;
-  const name = (voice.name || '').toLowerCase();
-  if (profile.genderHint === 'female' && /weiblich|female|woman|girl|anna|lisa|sarah/i.test(name)) score += 20;
-  if (profile.genderHint === 'male' && /männlich|male|man|hans|max|stefan/i.test(name)) score += 20;
+
+  // Locale is the baseline requirement.
+  if (voiceLang === wantedLang) score += 50;
+  else if (voiceLang.startsWith(wantedLang.split('-')[0])) score += 25;
+
+  // Primary matching: the exact display name of the intended voice on the
+  // current device (e.g. "Deutsch Stimme 1").
+  const profileVoiceName = (profile.voiceName || '').toLowerCase();
+  const voiceName = (voice.name || '').toLowerCase();
+  if (profileVoiceName && voiceName && voiceName.includes(profileVoiceName)) score += 200;
+
+  // Secondary fallback: the device-specific index hint. We do not treat it as
+  // a stable constant across devices, but it resolves ties on the test unit.
+  if (typeof profile.preferredIndex === 'number' && typeof voice.index === 'number' && voice.index === profile.preferredIndex) score += 100;
+
+  // Prefer built-in / local voices over network voices.
   if (voice.localService) score += 10;
   return score;
 }

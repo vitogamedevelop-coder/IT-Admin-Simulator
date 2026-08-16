@@ -1,7 +1,7 @@
 import { ACADEMY_TOPICS, topicKey } from './academyTopics.js';
 import { getTopicProgress, getFullTopic } from './academyProgress.js';
 import { topicOverallProgress, isTopicMastered, applyConversationPractice } from './academyEngine.js';
-import { randomEmployee } from './officeWorld.js';
+import { randomConversationPartner } from './officeWorld.js';
 
 // =============================================================================
 // NEXUS Mitarbeitergespräche – adaptive Wiederholung im Flur (Phase 1I / 1I.2).
@@ -106,7 +106,7 @@ function pickConversationLength() {
 }
 
 function pickEmployee() {
-  return randomEmployee();
+  return randomConversationPartner();
 }
 
 function pickIntro(topicData, employee) {

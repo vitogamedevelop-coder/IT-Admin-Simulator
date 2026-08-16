@@ -53,9 +53,11 @@ withLocalStorage(() => {
 withLocalStorage(() => {
   resetEmployeeConversations();
   const conv = startEmployeeConversation();
+  const allowedIds = new Set(['mara', 'david', 'aylin', 'thomas']);
   assert.ok(conv, 'Conversation starts when topics are available');
   assert.ok(conv.conversationId, 'Has session id');
   assert.ok(conv.employee, 'Has employee');
+  assert.ok(allowedIds.has(conv.employee.id), `Conversation partner is a story character, got ${conv.employee.id}`);
   assert.ok(conv.topicData, 'Has topicData');
   assert.ok(conv.question, 'Has first question');
   assert.ok(conv.plannedLength >= 1 && conv.plannedLength <= 5, 'Planned length 1–5');
@@ -158,6 +160,19 @@ withLocalStorage(() => {
     assert.ok(topic.questions.length > 0, `${key} has questions`);
     assert.ok(topic.relatedTopics, `${key} has related topics`);
     assert.ok(topic.introPool.length > 0, `${key} has intro pool`);
+  }
+});
+
+// 9. Nur Story-Charaktere als Gesprächspartner, niemals generierte Accounts
+withLocalStorage(() => {
+  resetEmployeeConversations();
+  const allowedIds = new Set(['mara', 'david', 'aylin', 'thomas']);
+  const forbiddenIds = new Set(['henrik', 'nina', 'tom', 'mats', 'mila']);
+  for (let i = 0; i < 20; i += 1) {
+    const conv = startEmployeeConversation();
+    assert.ok(conv, `Conversation ${i + 1} starts`);
+    assert.ok(allowedIds.has(conv.employee.id), `Conversation partner is story character, got ${conv.employee.id}`);
+    assert.ok(!forbiddenIds.has(conv.employee.id), `No generated account appears as partner, got ${conv.employee.id}`);
   }
 });
 
