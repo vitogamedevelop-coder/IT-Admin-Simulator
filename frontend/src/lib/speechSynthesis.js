@@ -1,3 +1,5 @@
+import { CHARACTER_VOICE_PROFILES } from './officeWorld.js';
+
 // Isolated text-to-speech utility for the Sam TTS test.
 // Set this to false to disable the test feature with a single change.
 export const ENABLE_SAM_TTS_TEST = true;
@@ -706,6 +708,66 @@ export async function speakWithVoice(text, voice, callbacks = {}) {
     await speakNative(normalized, voice.index, false, callbacks);
   } else if (isWebSpeechSupported()) {
     speakWeb(normalized, voice, callbacks);
+  }
+}
+
+// ---------- Character voices for NPC dialogs ----------
+
+function scoreVoiceForProfile(voice, profile) {
+  let score = 0;
+  const voiceLang = (voice.lang || '').toLowerCase();
+  const wantedLang = (profile.lang || 'de-DE').toLowerCase();
+  if (voiceLang === wantedLang) score += 100;
+  else if (voiceLang.startsWith(wantedLang.split('-')[0])) score += 50;
+  if (typeof profile.preferredIndex === 'number' && typeof voice.index === 'number' && voice.index === profile.preferredIndex) score += 40;
+  const name = (voice.name || '').toLowerCase();
+  if (profile.genderHint === 'female' && /weiblich|female|woman|girl|anna|lisa|sarah/i.test(name)) score += 20;
+  if (profile.genderHint === 'male' && /männlich|male|man|hans|max|stefan/i.test(name)) score += 20;
+  if (voice.localService) score += 10;
+  return score;
+}
+
+export async function getCharacterVoice(speakerId) {
+  const profile = CHARACTER_VOICE_PROFILES[speakerId];
+  if (!profile) return null;
+  const voices = await getVoices();
+  if (!voices.length) return null;
+  const scored = voices.map((v) => ({ voice: v, score: scoreVoiceForProfile(v, profile) }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.voice || null;
+}
+
+export async function speakAs(text, { speakerId, speechText } = {}) {
+  if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
+  await stop();
+
+  const normalized = normalizeCiscoText(speechText || text);
+  const settings = getTtsSettings();
+
+  if (settings.useSystemVoice) {
+    if (isNativePlatform() && (await checkNativeTts())) {
+      await speakNative(normalized, -1, true, {});
+    } else if (isWebSpeechSupported()) {
+      speakWeb(normalized, null, {});
+    }
+    return;
+  }
+
+  const characterVoice = speakerId ? await getCharacterVoice(speakerId) : null;
+  if (characterVoice) {
+    if (isNativePlatform() && (await checkNativeTts())) {
+      await speakNative(normalized, characterVoice.index, false, {});
+    } else if (isWebSpeechSupported()) {
+      speakWeb(normalized, characterVoice, {});
+    }
+    return;
+  }
+
+  const selected = await selectVoice();
+  if (isNativePlatform() && (await checkNativeTts())) {
+    await speakNative(normalized, selected.index, selected.useSystemVoice, {});
+  } else if (isWebSpeechSupported()) {
+    speakWeb(normalized, selected.voice, {});
   }
 }
 

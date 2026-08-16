@@ -233,9 +233,9 @@ const BUCHHALTUNG_VLAN_ID = 20;
 const BUCHHALTUNG_VLAN_NAME = 'BUCHHALTUNG';
 const PARKING_VLAN_ID_002 = 999;
 const PARKING_VLAN_NAME_002 = 'UNUSED';
-const PERSONAL_PORTS_002 = ['FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4'];
-const BUCHHALTUNG_PORTS_002 = ['FastEthernet0/5', 'FastEthernet0/6', 'FastEthernet0/7', 'FastEthernet0/8'];
-const UNUSED_PORTS_002 = Array.from({ length: 16 }, (_, i) => `FastEthernet0/${i + 9}`); // Fa0/9 - Fa0/24
+const PERSONAL_PORTS_002 = ['FastEthernet0/1', 'FastEthernet0/2'];
+const BUCHHALTUNG_PORTS_002 = ['FastEthernet0/3', 'FastEthernet0/4'];
+const UNUSED_PORTS_002 = ['FastEthernet0/5', 'FastEthernet0/6', 'FastEthernet0/7', 'FastEthernet0/8'];
 const UPLINK_PORT_002 = 'GigabitEthernet0/1';
 
 const VERIFY_HINTS_002 = ['show vlan brief', 'show interfaces trunk', 'show interfaces status', 'switchport', 'show running-config'];
@@ -266,7 +266,7 @@ export function generateMission002Scenario(seed = Date.now()) {
 
 export function createMission002Device(scenario) {
   const device = createCiscoDevice({
-    profile: 'catalyst_24fe_2ge',
+    profile: 'catalyst_8fe_1ge',
     hostname: scenario.initialHostname || TARGET_HOSTNAME_002,
   });
 

@@ -1,7 +1,7 @@
-// Procedural Side-Mission System V1 (Phase 1H).
+// Procedural Side-Mission System V1 (Phase 1H / 1I).
 //
 // Domain-agnostic generator/validator/adaptive-selector/scheduler built on
-// top of the EXISTING skill tree, mission log, delivery (mail/phone/ticket)
+// top of the EXISTING skill tree, mission log, delivery (mail/phone)
 // and objective systems. This does NOT replace the hand-built main/side
 // mission engines - it produces additional, procedurally varied Cisco side
 // work from skills the player has already been taught (item 28).
@@ -17,7 +17,7 @@ import { readGameState } from './gameState.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
 import { readEmails, writeEmails } from './emails.js';
 import {
-  enqueue, createNotification, notificationTypes, readNotifications, acknowledge,
+  enqueue, createNotification, notificationTypes, readNotifications, writeNotifications,
 } from './notificationSystem.js';
 import { executeCommand } from './ciscoCliEngine.js';
 import {
@@ -57,7 +57,7 @@ export function readInstances() {
   }
 }
 
-function writeInstances(instances) {
+export function writeInstances(instances) {
   localStorage.setItem(INSTANCES_KEY, JSON.stringify(instances));
 }
 
@@ -105,6 +105,67 @@ function readScheduler() {
 function writeScheduler(s) {
   localStorage.setItem(SCHEDULER_KEY, JSON.stringify(s));
 }
+
+// ============================================================================
+// Phase 1I migration: legacy "ticket" channel -> e-mail
+// ============================================================================
+
+const MIGRATION_KEY = 'cyberlearn:ticket-channel-migrated';
+
+export function migrateTicketChannel() {
+  if (typeof localStorage === 'undefined') return;
+  if (localStorage.getItem(MIGRATION_KEY)) return;
+
+  // Migrate persisted procedural instances.
+  const instances = readInstances();
+  let instancesChanged = false;
+  Object.values(instances).forEach((instance) => {
+    if (instance.channel === 'ticket') {
+      instance.channel = MISSION_CHANNEL.EMAIL;
+      instancesChanged = true;
+    }
+  });
+  if (instancesChanged) writeInstances(instances);
+
+  // Migrate pending ticket notifications to e-mails, then dismiss them.
+  const notifications = readNotifications ? readNotifications() : [];
+  let notificationsChanged = false;
+  const emails = readEmails();
+  let emailsChanged = false;
+  notifications.forEach((n) => {
+    if (n.type !== 'ticket' || !n.linkedMissionId || n.dismissed || n.acknowledged) return;
+    const instanceId = instanceIdFromMissionId(n.linkedMissionId);
+    if (!instanceId) return;
+    const instance = instances[instanceId];
+    if (!instance) return;
+    const emailId = `procedural-mail-${instanceId}`;
+    if (!emails.some((e) => e.id === emailId)) {
+      emails.push({
+        id: emailId,
+        from: { personId: n.source?.personId || 'sam', name: n.source?.name || 'Sam Richter', role: 'Senior-Administrator' },
+        to: ['spieler@nexus.local'],
+        subject: n.title || instance.title,
+        body: instance.briefing || n.body || '',
+        priority: 'normal',
+        date: n.createdAt || Date.now(),
+        read: false,
+        attachments: [],
+        linkedMissionId: n.linkedMissionId,
+      });
+      emailsChanged = true;
+    }
+    n.acknowledged = true;
+    n.dismissed = true;
+    notificationsChanged = true;
+  });
+  if (notificationsChanged && writeNotifications) writeNotifications(notifications);
+  if (emailsChanged) writeEmails(emails);
+
+  localStorage.setItem(MIGRATION_KEY, '1');
+}
+
+// Run once at module load. Safe to call repeatedly because of the guard above.
+migrateTicketChannel();
 
 // ============================================================================
 // Curriculum unlock (item 1, 2, 23, 28)
@@ -487,7 +548,6 @@ export function generateMissionInstance({ seed = Date.now() } = {}) {
 
 const CHANNEL_PERSONA = {
   [MISSION_CHANNEL.EMAIL]: { personId: 'sam', name: 'Sam Richter', role: 'Senior-Administrator' },
-  [MISSION_CHANNEL.TICKET]: { personId: 'lea', name: 'Lea Novak', role: 'Security Operations' },
   [MISSION_CHANNEL.PHONE]: { personId: 'mara', name: 'Mara König', role: 'Helpdesk' },
 };
 
@@ -511,17 +571,6 @@ export function deliverMissionInstance(instance) {
     if (!readEmails().some((e) => e.id === email.id)) {
       writeEmails([...readEmails(), email]);
     }
-  } else if (instance.channel === MISSION_CHANNEL.TICKET) {
-    const notification = createNotification({
-      id: `ticket-${instance.instanceId}`,
-      type: notificationTypes.TICKET,
-      priority: 2,
-      source: { personId: persona.personId, channel: 'ticket' },
-      title: instance.title,
-      body: instance.briefing.split('\n')[0],
-      linkedMissionId,
-    });
-    enqueue(notification);
   } else if (instance.channel === MISSION_CHANNEL.PHONE) {
     const notification = createNotification({
       id: `phone-${instance.instanceId}`,
@@ -772,4 +821,4 @@ export function __resetProceduralState() {
   writeScheduler({ completedSinceLastBatch: 0, contentEndAnnounced: false });
 }
 
-export { acknowledge as acknowledgeProceduralNotification, readNotifications as __readNotificationsForTest };
+export { readNotifications as __readNotificationsForTest };

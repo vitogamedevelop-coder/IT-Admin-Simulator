@@ -33,7 +33,7 @@ export const ONBOARDING_STEPS = [
     title: '1. Arbeitsplatz',
     lines: [
       'Hier wirst du die meiste Zeit arbeiten.',
-      'Über den Computer bearbeitest du später Tickets.',
+      'Über den Computer bearbeitest du später E-Mails, Anrufe und Aufgaben.',
       'Auch viele Werkzeuge werden hier freigeschaltet.',
       'Tippe einfach auf den Monitor.',
     ],

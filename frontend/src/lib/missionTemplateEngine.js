@@ -15,6 +15,7 @@
 
 import { createCiscoDevice } from './ciscoCliEngine.js';
 import { defineHintLadder } from './missionHintSystem.js';
+import { randomPersonalUsername } from './officeWorld.js';
 
 // ============================================================================
 // Archetypes (item 8)
@@ -44,20 +45,20 @@ export const MISSION_CHANNEL = {
 };
 
 // Archetypes that are inherently "something is broken / urgent" map to
-// phone/ticket; planned work maps to email; NPC is reserved for story-heavy
+// phone; planned work maps to email; NPC is reserved for story-heavy
 // introductions (procedural missions never use NPC dialogs - those stay
 // hand-built - but the constant exists for future domains).
 export const ARCHETYPE_CHANNEL_AFFINITY = {
-  [MISSION_ARCHETYPE.BUILD]: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.TICKET],
-  [MISSION_ARCHETYPE.REPAIR]: [MISSION_CHANNEL.TICKET, MISSION_CHANNEL.PHONE],
-  [MISSION_ARCHETYPE.DIAGNOSE]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.TICKET],
+  [MISSION_ARCHETYPE.BUILD]: [MISSION_CHANNEL.EMAIL],
+  [MISSION_ARCHETYPE.REPAIR]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
+  [MISSION_ARCHETYPE.DIAGNOSE]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
   [MISSION_ARCHETYPE.AUDIT]: [MISSION_CHANNEL.EMAIL],
-  [MISSION_ARCHETYPE.COMPLETE]: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.TICKET],
+  [MISSION_ARCHETYPE.COMPLETE]: [MISSION_CHANNEL.EMAIL],
   [MISSION_ARCHETYPE.VERIFY]: [MISSION_CHANNEL.EMAIL],
   [MISSION_ARCHETYPE.CHANGE]: [MISSION_CHANNEL.EMAIL],
-  [MISSION_ARCHETYPE.USER_REPORT]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.TICKET],
+  [MISSION_ARCHETYPE.USER_REPORT]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
   [MISSION_ARCHETYPE.COWORKER_REQUEST]: [MISSION_CHANNEL.EMAIL],
-  [MISSION_ARCHETYPE.INCIDENT]: [MISSION_CHANNEL.TICKET, MISSION_CHANNEL.PHONE],
+  [MISSION_ARCHETYPE.INCIDENT]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
 };
 
 // ============================================================================
@@ -134,13 +135,39 @@ export function defineMissionTemplate(def) {
 // ============================================================================
 
 const BASIC_CONFIG_CONTEXTS = ['ersatzgerat', 'aussenstelle', 'wartungsfenster', 'security_audit'];
-const BASIC_CONFIG_HOSTNAMES = ['Sw3', 'Sw4', 'Sw5', 'Sw-Lager', 'Sw-Aussenstelle'];
-const BASIC_CONFIG_USERNAMES = ['admin', 'noc', 'support', 'helpdesk'];
+const BASIC_CONFIG_SHORT_NAMES = ['Sw1', 'Sw2', 'Sw3', 'Sw4', 'Sw5', 'Sw6'];
+const BASIC_CONFIG_LOCATIONS = ['HQ', 'AST', 'BH', 'HR', 'LAG', 'IT', 'VERT'];
+const BASIC_CONFIG_LOCATION_BY_CONTEXT = {
+  ersatzgerat: 'HQ',
+  aussenstelle: 'AST',
+  wartungsfenster: 'HQ',
+  security_audit: 'IT',
+};
+const ADMIN_ACCOUNTS = ['admin', 'netadmin'];
 const SECRET_WORDS = ['cisco', 'nexus', 'switch', 'netlab', 'admin'];
 const SECRET_SUFFIXES = ['101', '202', '303', '404', '505'];
 
 function generateSecret(rng) {
   return `${pickFrom(rng, SECRET_WORDS)}${pickFrom(rng, SECRET_SUFFIXES)}${rng(1, 9)}`;
+}
+
+function generateHostname(rng, context) {
+  if (rng(0, 99) < 35) {
+    return pickFrom(rng, BASIC_CONFIG_SHORT_NAMES);
+  }
+  const loc = BASIC_CONFIG_LOCATION_BY_CONTEXT[context] || pickFrom(rng, BASIC_CONFIG_LOCATIONS);
+  const index = String(rng(1, 9)).padStart(2, '0');
+  return `SW-${loc}-${index}`;
+}
+
+function generateUsername(rng) {
+  // Standard missions use a personal employee account or a generic admin.
+  // Service/role accounts are reserved for templates that explicitly explain
+  // why a break-glass / service account is needed.
+  const roll = rng(1, 100);
+  if (roll <= 70) return { type: 'personal', name: randomPersonalUsername() };
+  if (roll <= 90) return { type: 'admin', name: pickFrom(rng, ADMIN_ACCOUNTS) };
+  return { type: 'admin', name: pickFrom(rng, ADMIN_ACCOUNTS) };
 }
 
 export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
@@ -156,7 +183,7 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
   unlockedBy: ['cisco-main-001'],
   archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.AUDIT],
   contexts: BASIC_CONFIG_CONTEXTS,
-  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.TICKET],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
   difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
   hintDefinitions: {
     'cisco.basic_configuration.hostname': defineHintLadder({
@@ -196,13 +223,14 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
     }),
   },
   resolveParameters(rng, archetype, context) {
-    const targetHostname = pickFrom(rng, BASIC_CONFIG_HOSTNAMES);
-    const username = pickFrom(rng, BASIC_CONFIG_USERNAMES);
+    const targetHostname = generateHostname(rng, context);
+    const { type: usernameType, name: username } = generateUsername(rng);
     const enableSecret = generateSecret(rng);
     const userSecret = generateSecret(rng);
     return {
       initialHostname: archetype === MISSION_ARCHETYPE.AUDIT ? targetHostname : 'Switch',
       targetHostname,
+      usernameType,
       username,
       enableSecret,
       userSecret,
@@ -225,10 +253,12 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
   },
   evaluate(device, params) {
     const rc = device.runningConfig;
+    const usernameType = params.usernameType || 'personal';
+    const userLabel = usernameType === 'personal' ? 'Benutzer' : 'Konto';
     const checks = [
-      { id: 'hostname', label: `Gerätename ${params.targetHostname}`, ok: device.hostname === params.targetHostname },
+      { id: 'hostname', label: `Hostname: ${params.targetHostname}`, ok: device.hostname === params.targetHostname },
       { id: 'enable_secret', label: 'Enable Secret gesetzt', ok: !!rc.enableSecret },
-      { id: 'local_user', label: `Lokaler Benutzer ${params.username}`, ok: !!(rc.users[params.username]?.secret || rc.users[params.username]?.password) },
+      { id: 'local_user', label: `${userLabel}: ${params.username}`, ok: !!(rc.users[params.username]?.secret || rc.users[params.username]?.password) },
       { id: 'no_dns_lookup', label: 'DNS-Lookup deaktiviert', ok: !!rc.noIpDomainLookup },
       {
         id: 'save_config',
@@ -253,10 +283,12 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       security_audit: 'Die Security-Abteilung bittet um einen kurzen Konfigurations-Check.',
     }[context] || 'Ein weiterer Switch braucht die NEXUS-Grundabsicherung.';
 
+    const usernameType = params.usernameType || 'personal';
+    const userLabel = usernameType === 'personal' ? 'lokaler Benutzer' : 'administratives Konto';
     if (archetype === MISSION_ARCHETYPE.AUDIT) {
-      return `${contextText}\n\nPrüfe ${params.targetHostname} gegen den NEXUS-Standard:\n- enable secret gesetzt\n- lokaler Benutzer ${params.username}\n- DNS-Lookup deaktiviert\n- Konfiguration gespeichert\n\nSchließe alle noch offenen Lücken.`;
+      return `${contextText}\n\nPrüfe ${params.targetHostname} gegen den NEXUS-Standard:\n- Hostname: ${params.targetHostname}\n- enable secret gesetzt\n- ${userLabel}: ${params.username}\n- DNS-Lookup deaktiviert\n- Konfiguration gespeichert\n\nSchließe alle noch offenen Lücken.`;
     }
-    return `${contextText}\n\nAuftrag für ${params.targetHostname}:\n- Gerätenamen setzen\n- enable secret\n- lokalen Benutzer ${params.username}\n- DNS-Lookup deaktivieren\n- Konfiguration speichern`;
+    return `${contextText}\n\nAuftrag für ${params.targetHostname}:\n- Hostname: ${params.targetHostname}\n- enable secret setzen\n- ${userLabel}: ${params.username}\n- DNS-Lookup deaktivieren\n- Konfiguration speichern`;
   },
   antiRepetitionMetadata(params, archetype, context) {
     return { skillGroup: 'basic_configuration', archetype, context, hostname: params.targetHostname };
@@ -295,7 +327,7 @@ export const TEMPLATE_VLAN_ACCESS_PORT = defineMissionTemplate({
     MISSION_ARCHETYPE.COMPLETE,
   ],
   contexts: VLAN_CONTEXTS,
-  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.TICKET, MISSION_CHANNEL.PHONE],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
   difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
   hintDefinitions: {
     'cisco.switching.vlan.create': defineHintLadder({

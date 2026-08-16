@@ -264,17 +264,6 @@ export function getUnreadMissionCommunication(state = readGameState()) {
       subject: pendingCall.title,
     };
   }
-  const pendingTicket = pendingNotifications(readNotifications())
-    .find((n) => n.type === notificationTypes.TICKET && n.linkedMissionId && !isMissionAlreadyCompleted(n.linkedMissionId, state));
-  if (pendingTicket) {
-    return {
-      type: 'communication',
-      channel: 'ticket',
-      missionId: pendingTicket.linkedMissionId,
-      title: 'Neues Ticket ansehen',
-      subject: pendingTicket.title,
-    };
-  }
   return null;
 }
 

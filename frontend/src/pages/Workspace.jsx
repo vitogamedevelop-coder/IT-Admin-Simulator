@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Terminal as TermIcon, Globe, FolderOpen, Inbox as InboxIcon, Shield, MonitorSmartphone, Network, Trash2, Power, Coffee, MessageSquare, Users, Phone } from 'lucide-react';
+import { Mail, Terminal as TermIcon, Globe, FolderOpen, Shield, MonitorSmartphone, Network, Trash2, Power, Coffee, MessageSquare, Users, Phone, Monitor } from 'lucide-react';
 import { seedEmails } from '../lib/emails';
 import { getCommunicationBadgeCounts } from '../lib/communicationBadges';
 import { seedNotebook } from '../lib/notebook';
@@ -22,8 +22,8 @@ import Directory from '../components/Directory';
 import DialogView from '../components/DialogView';
 import BackBar from '../components/BackBar';
 import { registerMission, updateMissionStatus, MissionStatus } from '../lib/missionLog';
-import { interactionById } from '../lib/learningInteractions';
-import LearningInteraction from '../components/LearningInteraction';
+import { startEmployeeConversation } from '../lib/employeeConversations';
+import EmployeeConversation from '../components/EmployeeConversation';
 import ObjectivePanel from '../components/ObjectivePanel';
 import { startAmbient, stopAmbient, playMonitorOn, playMailNotification, playPhoneRing } from '../lib/sound';
 import { useAppBack, pushBackHandler } from '../lib/useAppBack';
@@ -37,7 +37,7 @@ const BREAK_ROOM_HINTS = [
   'Kaffee ist heute besonders stark. Sollte das Netzwerk mal wieder zusammenbrechen, sind wir zumindest wach.',
   'Lea hat einen Zettel hinterlassen: "Bitte keine VLANs in der Mikrowelle erhitzen."',
   'Jemand hat einen halben Donut auf dem Tisch stehenlassen. Cyber-Hygiene gilt auch für Snacks.',
-  'Aus dem Flur hörst du, wie Sam jemandem erklärt, warum "es funktioniert nicht" kein Ticket ist.',
+  'Aus dem Flur hörst du, wie Sam jemandem erklärt, warum "es funktioniert nicht" keine aussagekräftige Fehlerbeschreibung ist.',
   'Der Kaffeeautomat blinzelt mit seinem Display: "Ready".',
   'Ein Post-it am Kühlschrank: "Backups sind wie Kaffee – am Morgen am wichtigsten."',
   'Hier riecht es nach frischem Kaffee und nach abgekühlten Serverräumen.',
@@ -82,7 +82,7 @@ function BreakRoom({ onBack }) {
           {leaPortrait ? <img src={leaPortrait} alt="Lea" className="h-12 w-12 rounded-full border border-[#00f0ff] object-cover" /> : null}
           <div>
             <div className="text-xs text-[#00f0ff]">Lea Novak</div>
-            <p className="text-sm text-[#c9d1d9] mt-1">„Willkommen im Aufenthaltsraum. Hier gibt es erst mal keine Tickets – nur Kaffee und Ruhe.“</p>
+            <p className="text-sm text-[#c9d1d9] mt-1">„Willkommen im Aufenthaltsraum. Hier gibt es erst mal keine Störungen – nur Kaffee und Ruhe.“</p>
           </div>
         </div>
       </div>
@@ -248,8 +248,8 @@ function edgeSideOf(rect) {
 const DESKTOP_APPS = [
   { id: 'email', label: 'E-Mail', icon: Mail, color: '#00f0ff', app: 'email' },
   { id: 'phone', label: 'Telefon', icon: Phone, color: '#ffcc00', app: 'phone' },
-  { id: 'tickets', label: 'Tickets', icon: InboxIcon, color: '#ff3355', app: 'missions' },
   { id: 'terminal', label: 'Terminal', icon: TermIcon, color: '#00ff66', app: 'terminal' },
+  { id: 'putty', label: 'PuTTY', icon: Monitor, color: '#ffcc00', app: null, lockedReason: 'Wird mit Remote-Administration freigeschaltet' },
   { id: 'browser', label: 'Browser', icon: Globe, color: '#ffcc00', app: null },
   { id: 'ad', label: 'Active Directory', icon: Shield, color: '#8b949e', app: null },
   { id: 'linux', label: 'Linux', icon: MonitorSmartphone, color: '#ff9933', app: null },
@@ -273,7 +273,7 @@ export default function Workspace() {
   const [corridorMenu, setCorridorMenu] = useState(false); // room-selection menu shown when entering the hallway
   const [corridorMenuReady, setCorridorMenuReady] = useState(false); // touch-through guard
   const [breakRoom, setBreakRoom] = useState(false); // atmosphere-only break room screen
-  const [activeInteraction, setActiveInteraction] = useState(null);
+  const [activeConversation, setActiveConversation] = useState(null);
   const [activeHint, setActiveHint] = useState(null);
   const [clock, setClock] = useState(() => new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   const [isLandscape, setIsLandscape] = useState(() => window.innerWidth > window.innerHeight);
@@ -288,7 +288,7 @@ export default function Workspace() {
   const resizeObserverRef = useRef(null);
   const panoramaElRef = useRef(null);
   // Communication badges (Phase 1G, item 8): always derived from the real
-  // email/notification/ticket state, never a separately maintained counter.
+  // email/notification state, never a separately maintained counter.
   const [badgeCounts, setBadgeCounts] = useState(getCommunicationBadgeCounts);
   const refreshBadgeCounts = useCallback(() => setBadgeCounts(getCommunicationBadgeCounts()), []);
 
@@ -300,7 +300,7 @@ export default function Workspace() {
   }, [openApp]);
 
   // Recompute communication badges whenever an app opens or closes (e.g.
-  // reading an email or resolving a ticket only changes localStorage, not
+  // reading an email or resolving a side mission only changes localStorage, not
   // the game-state event) so counts never lag behind the real state.
   useEffect(() => {
     refreshBadgeCounts();
@@ -359,9 +359,9 @@ export default function Workspace() {
   }, [breakRoom]);
 
   useEffect(() => {
-    if (!activeInteraction) return;
-    return pushBackHandler(() => setActiveInteraction(null));
-  }, [activeInteraction]);
+    if (!activeConversation) return;
+    return pushBackHandler(() => setActiveConversation(null));
+  }, [activeConversation]);
 
   useEffect(() => {
     if (!activeHint) return;
@@ -592,7 +592,6 @@ export default function Workspace() {
 
   function openDesktopApp(dApp) {
     if (!dApp.app) return;
-    if (dApp.app === 'missions') { navigate('/inbox'); return; }
     if (appComponents[dApp.app]) {
       if (dApp.app === 'email') playMailNotification();
       else if (dApp.app === 'phone') playPhoneRing();
@@ -609,7 +608,6 @@ export default function Workspace() {
     if (app === '__monitor__') { openMonitor(); return; }
     if (appComponents[app]) { if (app === 'email') playMailNotification(); else if (app === 'phone') playPhoneRing(); else playMonitorOn(); setOpenApp(app); }
     else if (app === 'runbooks') navigate('/runbooks');
-    else if (app === 'missions') navigate('/inbox');
     else if (app === 'training') navigate('/training');
     else if (app === 'hints') setActiveHint(randomHint());
     else if (app === 'people') { setCorridorDialog(null); setBreakRoom(false); setCorridorMenu(true); }
@@ -642,7 +640,7 @@ export default function Workspace() {
       const personId = mission.personId || 'sam';
       const person = colleagues.find((c) => c.id === personId) || colleagues[0];
       const intro = mission.personIntro || `${person.name} spricht dich an:`;
-      // `mission.title` is written for the ticket/notification list (e.g.
+      // `mission.title` is written for the notification list (e.g.
       // "Mara König ruft an: DNS-Konfiguration" for phone-channel missions)
       // and must never be spoken verbatim in a face-to-face hallway
       // encounter - "ruft an" only makes sense on the phone. Build a clean,
@@ -660,7 +658,7 @@ export default function Workspace() {
               { label: 'Nein, das passt gerade nicht.', nextId: 'decline' },
             ] },
             { id: 'accept', text: 'Super, danke. Ich leite dir alles weiter.', onComplete: { action: 'accept', missionId: mission.id } },
-            { id: 'defer', text: 'Alles klar, ich schreib dir ein Ticket. Melde dich, wenn du Zeit hast.', onComplete: { action: 'defer', missionId: mission.id } },
+            { id: 'defer', text: 'Alles klar, ich merk es mir. Melde dich, wenn du Zeit hast.', onComplete: { action: 'defer', missionId: mission.id } },
             { id: 'decline', text: person.tone === 'direkt und freundlich' ? 'Okay, kein Problem. Dann frag ich jemand anderen.' : person.tone === 'fragt nach Risiko und Auswirkung' ? 'Verstehe. Hoffen wir, dass es nicht dringender wird.' : 'Gut, dann schaue ich, wer sonst verfügbar ist.', onComplete: { action: 'decline', missionId: mission.id } },
           ],
           entryNode: 'start',
@@ -669,29 +667,9 @@ export default function Workspace() {
       });
       return;
     }
-    const learningDialogs = [
-      { interactionId: 'osi-layers', personId: 'david', intro: 'Sam hat vorhin wieder vom Schichtenmodell gesprochen. Ich bekomme die Reihenfolge nie vollständig zusammen. Hilfst du mir kurz?' },
-      { interactionId: 'subnet-powers', personId: 'mara', intro: 'Für die Subnetting-Übung brauche ich die Zweierpotenzen. Kannst du die kurz in die richtige Reihenfolge bringen?' },
-      { interactionId: 'subnet-cidr', personId: 'david', intro: 'Kurze Frage: Wenn ich ein /26-Netz habe – wie groß ist der Block und welche Maske ist das?' },
-      { interactionId: 'subnet-calculate', personId: 'lea', intro: 'Wir haben einen Server auf 192.168.1.50/26. Kannst du mir schnell sagen, was Netz-ID und Broadcast sind?' },
-    ];
-    const completed = JSON.parse(localStorage.getItem('cyberlearn:completed-interactions') || '[]');
-    const available = learningDialogs.filter((d) => !completed.includes(d.interactionId));
-    if (available.length > 0) {
-      const chosen = available[Math.floor(Math.random() * available.length)];
-      const person = colleagues.find((c) => c.id === chosen.personId) || colleagues[0];
-      setCorridorDialog({
-        dialog: {
-          id: `learning-${chosen.interactionId}`, personId: chosen.personId, mode: 'face-to-face',
-          nodes: [
-            { id: 'start', text: chosen.intro, options: [{ label: 'Klar, machen wir.', nextId: 'interact' }, { label: 'Gerade nicht.', nextId: 'skip' }] },
-            { id: 'interact', text: '__INTERACTION__', onComplete: { action: 'interaction', interactionId: chosen.interactionId } },
-            { id: 'skip', text: 'Alles klar, ein andermal!' },
-          ],
-          entryNode: 'start',
-        },
-        person,
-      });
+    const conversation = startEmployeeConversation();
+    if (conversation) {
+      setActiveConversation(conversation);
       return;
     }
     // Fallback smalltalk always features Sam (matches defaultDialog's
@@ -726,12 +704,8 @@ export default function Workspace() {
     setCorridorDialog(null);
   }
 
-  function handleInteractionComplete() {
-    if (activeInteraction) {
-      const completed = JSON.parse(localStorage.getItem('cyberlearn:completed-interactions') || '[]');
-      if (!completed.includes(activeInteraction.id)) { completed.push(activeInteraction.id); localStorage.setItem('cyberlearn:completed-interactions', JSON.stringify(completed)); }
-    }
-    setActiveInteraction(null);
+  function handleConversationComplete() {
+    setActiveConversation(null);
   }
 
   // === SUB-VIEWS ===
@@ -807,11 +781,11 @@ export default function Workspace() {
     </div>
   );
 
-  // 4. Learning interaction
-  if (activeInteraction) return (
+  // 4. Employee conversation (adaptive hallway repetition)
+  if (activeConversation) return (
     <div className="fullscreen-overlay bg-[#030508]">
-      <BackBar label={`Flur · ${activeInteraction.title}`} onBack={() => setActiveInteraction(null)} />
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2"><div className="cyber-card p-4"><LearningInteraction interaction={activeInteraction} onComplete={handleInteractionComplete} /></div></div>
+      <BackBar label={`Flur · ${activeConversation.topicData?.title || 'Gespräch'}`} onBack={() => setActiveConversation(null)} />
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2"><div className="cyber-card p-4"><EmployeeConversation conversation={activeConversation} onComplete={handleConversationComplete} /></div></div>
     </div>
   );
 
@@ -886,7 +860,7 @@ export default function Workspace() {
               style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
               edgeSide={edgeSideOf(rect)} label={h.label} coords={h} pressed={activeHotspotKey === key}
               onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode}
-              badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0 || badgeCounts.tickets > 0)} />
+              badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0)} />
           );
         })}
       </div>
@@ -914,7 +888,7 @@ export default function Workspace() {
                 style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
                 edgeSide={edgeSideOf(rect)} label={h.label} coords={h} pressed={activeHotspotKey === key}
                 onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode}
-                badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0 || badgeCounts.tickets > 0)} />
+                badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0)} />
             );
           })}
         </div>
@@ -1011,7 +985,7 @@ function NexusDesktop({ apps, badgeCounts, clock, onOpen, onClose }) {
           {apps.map((dApp) => {
             const Icon = dApp.icon;
             const enabled = !!dApp.app;
-            // Badge counts are keyed by desktop app id (email/phone/tickets).
+            // Badge counts are keyed by desktop app id (email/phone).
             // 0 (or an app without a tracked channel) means no badge at all.
             const count = badgeCounts?.[dApp.id] || 0;
             const hasNotif = count > 0;
@@ -1027,6 +1001,9 @@ function NexusDesktop({ apps, badgeCounts, clock, onOpen, onClose }) {
                   )}
                 </div>
                 <span className="text-[9px] text-[#c9d1d9]/70 text-center leading-tight truncate w-full">{dApp.label}</span>
+                {dApp.lockedReason && (
+                  <span className="text-[7px] text-[#8b949e]/50 text-center leading-tight px-0.5 line-clamp-2">{dApp.lockedReason}</span>
+                )}
               </button>
             );
           })}

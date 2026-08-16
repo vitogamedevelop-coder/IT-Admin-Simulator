@@ -82,6 +82,14 @@ export const DEVICE_PROFILES = {
       ...buildInterfaceRangeIds('GigabitEthernet', 0, 1, 2),
     ],
   },
+  catalyst_8fe_1ge: {
+    type: 'layer2_switch',
+    label: 'Catalyst 8-Port FastEthernet + 1 GigabitEthernet',
+    interfaces: [
+      ...buildInterfaceRangeIds('FastEthernet', 0, 1, 8),
+      ...buildInterfaceRangeIds('GigabitEthernet', 0, 1, 1),
+    ],
+  },
 };
 
 function defaultVlans() {
@@ -184,29 +192,58 @@ function shortInterfaceName(name) {
 }
 
 // ============================================================================
-// Interface range parsing ("interface range fa0/1 - 4")
+// Interface range parsing
+// Supported syntaxes:
+//   interface range fa0/3 - 8
+//   interface range fa0/3-8
+//   interface range fa0/3 - 8, gi0/1
+//   interface range fa0/3-8,g0/1
+//   interface range fa0/3 - 8, gi0/1 - 2
+//   interface range fa0/3-8,g0/1-2
+// Long and short interface type names are both accepted.
 // ============================================================================
 
-function parseInterfaceRangeSpec(rangeTokens) {
-  const joined = rangeTokens.join('').replace(/\s+/g, '');
-  const match = joined.match(/^([A-Za-z]+)(\d+)\/(\d+)-(\d+)$/);
+function normalizeRangeInput(rangeTokens) {
+  // Tokens may contain attached commas (e.g. "fa0/3-8,g0/1") or be split by
+  // whitespace around commas. Normalize into comma-separated segments.
+  return rangeTokens
+    .join('')
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s+-\s+/g, '-')
+    .replace(/\s+/g, '');
+}
+
+function parseRangeSegment(segment) {
+  // Match e.g. "fa0/3-8" or "gigabitethernet0/1" or "gi0/1-2".
+  const match = segment.match(/^([a-z]+)(\d+)\/(\d+)(?:-(\d+))?$/i);
   if (!match) return null;
   const [, typeToken, slot, startStr, endStr] = match;
   const start = parseInt(startStr, 10);
-  const end = parseInt(endStr, 10);
-  if (Number.isNaN(start) || Number.isNaN(end) || start > end) return null;
+  const end = endStr != null ? parseInt(endStr, 10) : start;
+  if (Number.isNaN(start) || Number.isNaN(end) || start > end || start < 0) return null;
   return { typeToken, slot, start, end };
 }
 
 function resolveInterfaceRange(device, rangeTokens) {
-  const spec = parseInterfaceRangeSpec(rangeTokens);
-  if (!spec) return { error: CLI_ERROR.INVALID_ARGUMENT };
+  const normalized = normalizeRangeInput(rangeTokens);
+  if (!normalized) return { error: CLI_ERROR.INVALID_ARGUMENT };
+  const segments = normalized.split(',').filter(Boolean);
+  if (segments.length === 0) return { error: CLI_ERROR.INVALID_ARGUMENT };
+
   const ids = [];
-  for (let port = spec.start; port <= spec.end; port += 1) {
-    const raw = `${spec.typeToken}${spec.slot}/${port}`;
-    const iface = resolveInterfaceName(device, raw);
-    if (!iface) return { error: CLI_ERROR.INVALID_ARGUMENT };
-    ids.push(iface.id);
+  const seen = new Set();
+  for (const segment of segments) {
+    const spec = parseRangeSegment(segment);
+    if (!spec) return { error: CLI_ERROR.INVALID_ARGUMENT };
+    for (let port = spec.start; port <= spec.end; port += 1) {
+      const raw = `${spec.typeToken}${spec.slot}/${port}`;
+      const iface = resolveInterfaceName(device, raw);
+      if (!iface) return { error: CLI_ERROR.INVALID_ARGUMENT };
+      if (!seen.has(iface.id)) {
+        seen.add(iface.id);
+        ids.push(iface.id);
+      }
+    }
   }
   if (ids.length === 0) return { error: CLI_ERROR.INVALID_ARGUMENT };
   return { ids };
@@ -680,6 +717,15 @@ export const BASE_COMMAND_TREE = {
   ],
   [CLI_MODE.VLAN_CONFIG]: [
     cmd('do', executeDoCommand, 'Execute an EXEC command from configuration mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'do_command', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<command>']),
+    // Cross-config transition: from VLAN_CONFIG a new VLAN can be created directly.
+    cmd('vlan', (device, tokens) => {
+      if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      const id = parseInt(tokens[1], 10);
+      if (Number.isNaN(id) || id < 1 || id > 4094) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+      ensureVlan(device, id);
+      device.cli.currentVlanId = id;
+      return { output: '', modeChanged: true, stateChanged: true };
+    }, 'Configure VLAN parameters from VLAN config mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<1-4094>']),
     cmd('name', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       const vlan = device.runningConfig.vlans[device.cli.currentVlanId];

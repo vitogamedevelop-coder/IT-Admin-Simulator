@@ -205,6 +205,12 @@ export function applySideMission(categoryId, topicId, amount = ACTIVITY_SCORE_DE
   return applyToTopic(categoryId, topicId, { retention: amount }, { repetition: true });
 }
 
+// Informal employee hallway conversation -> small retention bump, no repetition
+// event (those only come from deliberate side-mission practice).
+export function applyConversationPractice(categoryId, topicId, amount = 3) {
+  return applyToTopic(categoryId, topicId, { retention: amount }, { conversation: true });
+}
+
 // Quiz -> theoryScore OR retentionScore depending on the quiz's intent.
 export function applyQuiz(categoryId, topicId, kind = 'theory') {
   const amount = kind === 'retention' ? ACTIVITY_SCORE_DELTAS.quizRetention.retention : ACTIVITY_SCORE_DELTAS.quizTheory.theory;

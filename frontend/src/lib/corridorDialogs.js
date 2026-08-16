@@ -5,7 +5,7 @@ import { TOPIC_STATUS } from './academyTopics.js';
 // Smalltalk lines for the hallway fallback and Sam's "Nur kurz reden" option.
 export const SAM_SMALLTALK = [
   'Das Netzwerk läuft vielleicht nicht immer, aber der Kaffee muss laufen.',
-  'Ich hab heute Morgen schon drei Tickets gesehen, die mit "Hilfe, kein Internet!" angefangen haben.',
+  'Ich hab heute Morgen schon drei E-Mails gesehen, die mit "Hilfe, kein Internet!" angefangen haben.',
   'Manchmal vermisse ich die Zeit, in der ein einfacher Neustart wirklich alles gelöst hat.',
   'Wusstest du, dass der durchschnittliche Mensch sein Passwort häufiger ändert als seine Zahnpasta?',
   'Ich überlege, ob ich meinen Schreibtisch mal wieder nach MAC-Adressen sortiere.',
@@ -18,7 +18,7 @@ export const SAM_SMALLTALK = [
   'Ein Backup ist wie ein Regenschirm: Man merkt erst, dass man keins hat, wenn es anfängt zu regnen.',
   'Ich plane, meinen Ruhestand in einem voll vermaschten Netzwerk zu verbringen.',
   'Der beste IT-Support-Satz der Welt: "Haben Sie es schon aus- und wieder eingeschaltet?"',
-  'Ich schwöre, manche Tickets lösen sich nur, weil das Gerät spürt, dass wir uns nähern.',
+  'Ich schwöre, manche Probleme lösen sich nur, weil das Gerät spürt, dass wir uns nähern.',
   'Unser WLAN-Passwort ist so lang, dass es theoretisch als Netzwerkkabel durchgeht.',
   'Ich habe versucht, ein VLAN für meine Gefühle einzurichten. Zu viel Broadcast-Verkehr.',
   'In der IT ist der einzige Konstante Wandel – und dass jemand den Kaffee ausgetrunken hat.',
@@ -37,7 +37,7 @@ export function randomSamSmalltalk() {
 export const CORRIDOR_ROOMS = [
   { id: 'sams-office', label: "Sam's Büro", icon: '🧑‍💻', action: 'sams-office', description: 'Mentor, Academy und Lernfortschritt' },
   { id: 'break-room', label: 'Aufenthaltsraum', icon: '☕', action: 'break-room', description: 'Kollegen treffen, Hinweise erhalten, kleine Gespräche.' },
-  { id: 'colleagues', label: 'Mitarbeiter', icon: '💬', action: 'colleagues', description: 'Nebenmissionen, Smalltalk, aktuelle Informationen.' },
+  { id: 'colleagues', label: 'Mitarbeiter', icon: '💬', action: 'colleagues', description: 'Adaptive Fachgespräche, Nebenmissionen, Smalltalk.' },
 ];
 
 function samProgressLine(topic) {
