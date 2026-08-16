@@ -112,6 +112,7 @@ export const ACADEMY_TOPICS = [
   topic('fundamentals', 'routing', 'Routing', 'Wie Pakete zwischen Netzwerken weitergeleitet werden.', ['ipv4']),
   topic('fundamentals', 'switching', 'Switching', 'Wie Switches Datenverkehr im lokalen Netz vermitteln.', ['grundbegriffe']),
   topic('fundamentals', 'vlan-basics', 'VLAN-Grundlagen', 'Logische Trennung eines physischen Netzwerks.', ['switching']),
+  topic('fundamentals', 'inter-vlan-routing', 'Inter-VLAN Routing', 'Router-on-a-Stick, Subinterfaces, 802.1Q, Gateways und Layer-2-/Layer-3-Unterschiede.', ['routing', 'vlan-basics']),
 
   // ---------------------------------------------------------------------
   // 2. Cisco – Packet Tracer

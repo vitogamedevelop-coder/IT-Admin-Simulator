@@ -177,6 +177,7 @@ migrateTicketChannel();
 const SKILL_GROUP_UNLOCK = {
   basic_configuration: 'cisco-main-001',
   switching: 'cisco-main-002',
+  routing: 'cisco-main-003',
 };
 
 export function isSkillGroupUnlocked(skillId, state = readGameState()) {
@@ -474,6 +475,11 @@ const MAX_GENERATION_ATTEMPTS = 12;
 
 function centralParamFor(templateId, params) {
   if (templateId === 'cisco-vlan-access-port') return { hostname: params.hostname, port: params.targetPort, vlanId: params.vlanId };
+  if (templateId === 'cisco-vlan-access-range') return { hostname: params.hostname, port: params.targetPorts?.[0], vlanId: params.vlanId };
+  if (templateId === 'cisco-vlan-move') return { hostname: params.hostname, port: params.targetPort, targetVlanId: params.targetVlanId };
+  if (templateId === 'cisco-trunk-uplink') return { hostname: params.hostname, port: params.uplinkPort, vlanIds: params.vlans?.map((v) => v.id) };
+  if (templateId === 'cisco-trunk-allowed-vlan') return { hostname: params.hostname, port: params.uplinkPort, missingVlanId: params.missingVlanId };
+  if (templateId === 'cisco-router-on-a-stick' || templateId === 'cisco-router-fault') return { hostname: params.hostname, vlanIds: params.vlans?.map((v) => v.id), faultId: params.faultId };
   return { hostname: params.targetHostname || params.initialHostname };
 }
 

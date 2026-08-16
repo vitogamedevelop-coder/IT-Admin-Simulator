@@ -3,7 +3,7 @@
 // Defines playable main missions and a small runtime that evaluates the
 // simulated Cisco device state instead of a fixed command sequence.
 
-import { createCiscoDevice, executeCommand } from './ciscoCliEngine.js';
+import { createCiscoDevice, executeCommand, evaluateRouterOnAStick } from './ciscoCliEngine.js';
 import { recordSkillEvent, SKILL_DIMENSION, SKILL_SOURCE } from './skillTree.js';
 import {
   HINT_LEVEL_LABELS, createHintState, getNextHint, consumeHint, revealSolution, defineHintLadder,
@@ -12,13 +12,14 @@ import { registerMission, updateMissionStatus, MissionStatus } from './missionLo
 
 export const MISSION_001_ID = 'cisco-main-001';
 export const MISSION_002_ID = 'cisco-main-002';
+export const MISSION_003_ID = 'cisco-main-003';
 
 // Ordered list of every hand-built main mission that currently exists, in
 // curriculum order. This is the single place that needs to be extended when
 // a new main mission is added - everything that depends on "what is the
 // current end of content" (Phase 1H content-end detection, the procedural
 // generator's unlock check) reads this list instead of hardcoding an ID.
-export const MAIN_MISSION_ORDER = [MISSION_001_ID, MISSION_002_ID];
+export const MAIN_MISSION_ORDER = [MISSION_001_ID, MISSION_002_ID, MISSION_003_ID];
 
 export function getHighestImplementedMainMissionId() {
   return MAIN_MISSION_ORDER[MAIN_MISSION_ORDER.length - 1] || null;
@@ -233,9 +234,13 @@ const BUCHHALTUNG_VLAN_ID = 20;
 const BUCHHALTUNG_VLAN_NAME = 'BUCHHALTUNG';
 const PARKING_VLAN_ID_002 = 999;
 const PARKING_VLAN_NAME_002 = 'UNUSED';
-const PERSONAL_PORTS_002 = ['FastEthernet0/1', 'FastEthernet0/2'];
-const BUCHHALTUNG_PORTS_002 = ['FastEthernet0/3', 'FastEthernet0/4'];
-const UNUSED_PORTS_002 = ['FastEthernet0/5', 'FastEthernet0/6', 'FastEthernet0/7', 'FastEthernet0/8'];
+const PERSONAL_PORTS_002 = [
+  'FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4',
+];
+const BUCHHALTUNG_PORTS_002 = [
+  'FastEthernet0/5', 'FastEthernet0/6', 'FastEthernet0/7', 'FastEthernet0/8',
+];
+const UNUSED_PORTS_002 = Array.from({ length: 16 }, (_, i) => `FastEthernet0/${i + 9}`);
 const UPLINK_PORT_002 = 'GigabitEthernet0/1';
 
 const VERIFY_HINTS_002 = ['show vlan brief', 'show interfaces trunk', 'show interfaces status', 'switchport', 'show running-config'];
@@ -266,7 +271,7 @@ export function generateMission002Scenario(seed = Date.now()) {
 
 export function createMission002Device(scenario) {
   const device = createCiscoDevice({
-    profile: 'catalyst_8fe_1ge',
+    profile: 'catalyst_24fe_2ge',
     hostname: scenario.initialHostname || TARGET_HOSTNAME_002,
   });
 
@@ -472,37 +477,283 @@ function _evaluateMission002State(device, scenario, state = null) {
 }
 
 // ============================================================================
+// Mission 003: Router-on-a-Stick / Inter-VLAN Routing
+// ============================================================================
+//
+// Follow-up to HM2: VLAN segmentation works, but departments can no longer
+// reach resources in other VLANs. The player introduces a router with 802.1Q
+// subinterfaces to enable inter-VLAN routing.
+
+const DEPARTMENT_POOL = ['PERSONAL', 'TECHNIK', 'VERWALTUNG', 'LAGER', 'VERTIEB', 'PRODUKTION'];
+const VLAN_ID_POOL_003 = [10, 20, 30, 40, 50, 60];
+const SWITCH_HOSTNAMES_003 = ['Sw-HQ-01', 'Sw-HQ-02', 'Sw-AST-01'];
+const ROUTER_HOSTNAMES_003 = ['R-HQ-01', 'R-HQ-02', 'R-AST-01'];
+const ACCESS_PORTS_PER_VLAN_003 = 4;
+const UPLINK_PORT_003 = 'GigabitEthernet0/1';
+const ROUTER_PHYSICAL_PORT_003 = 'GigabitEthernet0/0';
+
+function generateMission003Scenario(seed = Date.now()) {
+  const rng = seededRng(seed);
+  const pickFromArr = (arr) => arr[rng(0, arr.length - 1)];
+  const switchHostname = pickFromArr(SWITCH_HOSTNAMES_003);
+  const routerHostname = pickFromArr(ROUTER_HOSTNAMES_003);
+  const vlanIds = [];
+  while (vlanIds.length < 3) {
+    const candidate = pickFromArr(VLAN_ID_POOL_003);
+    if (!vlanIds.includes(candidate)) vlanIds.push(candidate);
+  }
+  const usedDepartments = [];
+  const vlans = vlanIds.map((id) => {
+    let name;
+    do {
+      name = pickFromArr(DEPARTMENT_POOL);
+    } while (usedDepartments.includes(name));
+    usedDepartments.push(name);
+    const base = `192.168.${id}`;
+    return {
+      id,
+      name,
+      network: `${base}.0`,
+      mask: '255.255.255.0',
+      gateway: `${base}.1`,
+      accessPorts: Array.from({ length: ACCESS_PORTS_PER_VLAN_003 }, (_, i) => {
+        const portIndex = vlanIds.indexOf(id) * ACCESS_PORTS_PER_VLAN_003 + i + 1;
+        return `FastEthernet0/${portIndex}`;
+      }),
+    };
+  });
+
+  const vlanList = vlans.map((v) => `- VLAN ${v.id} ${v.name}: Netz ${v.network}/24, Gateway ${v.gateway}`).join('\n');
+  const accessList = vlans.map((v) => `${v.name}: ${v.accessPorts.map((p) => p.replace('FastEthernet', 'Fa')).join(', ')}`).join('\n');
+
+  return {
+    missionId: MISSION_003_ID,
+    title: 'Inter-VLAN Routing',
+    seed,
+    deviceType: 'router_on_a_stick',
+    initialHostname: switchHostname,
+    parameters: {
+      switchHostname,
+      routerHostname,
+      vlans,
+      uplinkPort: UPLINK_PORT_003,
+      routerPhysicalPort: ROUTER_PHYSICAL_PORT_003,
+    },
+    briefing: `Moin,
+
+die Segmentierung aus dem letzten Auftrag funktioniert - vielleicht etwas zu gut. Einige Abteilungen erreichen Ressourcen in anderen Netzen nicht mehr.
+
+Wir hängen den Router ${routerHostname} an ${switchHostname} an, um zwischen den VLANs zu routen.
+
+Vorhandene VLANs auf ${switchHostname}:
+${vlanList}
+
+Anschlüsse:
+${accessList}
+
+Uplink Switch <-> Router: ${UPLINK_PORT_003.replace('GigabitEthernet', 'Gi')} (Trunk, alle obigen VLANs)
+Router-Interface für die Subinterfaces: ${ROUTER_PHYSICAL_PORT_003.replace('GigabitEthernet', 'Gi')}
+
+Auftrag:
+1. Stelle sicher, dass alle VLANs mit korrektem Namen existieren.
+2. Die Arbeitsplatzports liegen in ihrem VLAN und sind aktiv.
+3. Der Uplink ist ein Trunk und erlaubt alle benötigten VLANs.
+4. Das Router-Physikinterface ist aktiv.
+5. Für jedes VLAN legst du ein Subinterface auf ${ROUTER_PHYSICAL_PORT_003.replace('GigabitEthernet', 'Gi')} an, taggst es mit 802.1Q und weist das passende Gateway zu.
+6. Prüfe die Konfiguration und speichere sie.
+
+– Sam`,
+  };
+}
+
+export function createMission003Device(scenario) {
+  const device = createCiscoDevice({
+    profile: 'router_on_a_stick',
+    hostname: scenario.initialHostname,
+  });
+  const params = scenario.parameters;
+
+  // Access ports are connected and should stay up for their department.
+  params.vlans.forEach((vlan) => {
+    vlan.accessPorts.forEach((id) => {
+      const iface = device.runningConfig.interfaces[id];
+      if (iface) {
+        iface.operationalStatus = 'connected';
+        iface.administrativelyDown = false;
+      }
+    });
+  });
+
+  // Uplink is connected to the router but not yet configured as trunk.
+  const uplink = device.runningConfig.interfaces[params.uplinkPort];
+  if (uplink) {
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+  }
+
+  // Router physical interface is cabled but initially administratively down,
+  // so the player must explicitly enable it.
+  const routerPhysical = device.runningConfig.interfaces[params.routerPhysicalPort];
+  if (routerPhysical) {
+    routerPhysical.operationalStatus = 'notconnect';
+    routerPhysical.administrativelyDown = true;
+  }
+
+  return device;
+}
+
+export const MISSION_003_REQUIREMENTS = [
+  { id: 'vlans', label: 'VLANs existieren mit korrekten Namen', skill: 'cisco.layer2.vlan_creation' },
+  { id: 'access_ports', label: 'Access-Ports liegen in den richtigen VLANs', skill: 'cisco.layer2.access_ports' },
+  { id: 'uplink_trunk', label: 'Switch-Uplink ist Trunk für alle VLANs', skill: 'cisco.layer2.trunking' },
+  { id: 'router_physical_up', label: 'Router-Physikinterface ist aktiv', skill: 'cisco.routing.router_interface.configure' },
+  { id: 'subinterfaces', label: 'Subinterfaces mit 802.1Q und Gateway-IP', skill: 'cisco.routing.inter_vlan.encapsulation_dot1q' },
+  { id: 'verified_and_saved', label: 'Konfiguration geprüft und gespeichert', skill: 'cisco.basic_configuration.save_config' },
+];
+
+const VERIFY_HINTS_003 = ['show vlan brief', 'show interfaces trunk', 'show ip interface brief', 'show running-config'];
+
+const HINT_LADDERS_003 = {
+  vlans: defineHintLadder({
+    subskillPath: 'cisco.layer2.vlan_creation',
+    nudge: 'Der Router braucht die VLANs, sonst können die Subinterfaces nicht taggen.',
+    focus: 'Vergleiche die VLAN-Liste aus dem Auftrag mit der aktuellen Konfiguration.',
+    directive: 'Lege fehlende VLANs im Global Configuration Mode mit "vlan <id>" und "name <name>" an.',
+    solution: { answer: 'vlan <id>\nname <name>\nexit', explanation: 'Jedes VLAN bekommt eine ID und einen sprechenden Namen.' },
+  }),
+  access_ports: defineHintLadder({
+    subskillPath: 'cisco.layer2.access_ports',
+    nudge: 'Die Arbeitsplätze müssen im passenden VLAN erreichbar sein.',
+    focus: 'Nutze "interface range", um mehrere Ports gleichzeitig zu konfigurieren.',
+    directive: 'Setze jeden Bereich auf Access-Mode, weise das VLAN zu und aktiviere die Ports.',
+    solution: { answer: 'interface range fa0/x - y\nswitchport mode access\nswitchport access vlan <id>\nno shutdown\nexit', explanation: 'Access-Ports gehören zu genau einem VLAN und müssen aktiv sein.' },
+  }),
+  uplink_trunk: defineHintLadder({
+    subskillPath: 'cisco.layer2.trunking',
+    nudge: 'Der Router muss alle VLAN-Tags über den Uplink sehen.',
+    focus: 'Der Uplink-Port muss Trunk-Modus erhalten und alle VLANs erlauben.',
+    directive: 'Konfiguriere den Uplink als "switchport mode trunk" und erlaube alle VLANs.',
+    solution: { answer: 'interface <uplink>\nswitchport mode trunk\nno shutdown\nexit', explanation: 'Ein Trunk transportiert mehrere VLANs zwischen Switch und Router.' },
+  }),
+  router_physical_up: defineHintLadder({
+    subskillPath: 'cisco.routing.router_interface.configure',
+    nudge: 'Das Physikinterface des Routers muss erreichbar sein, bevor Subinterfaces funktionieren.',
+    focus: 'Schalte das Router-Interface ein.',
+    directive: 'Wechsle auf das Physikinterface und führe "no shutdown" aus.',
+    solution: { answer: 'interface <physik>\nno shutdown\nexit', explanation: 'Ohne aktives Physikinterface bleiben alle Subinterfaces down.' },
+  }),
+  subinterfaces: defineHintLadder({
+    subskillPath: 'cisco.routing.inter_vlan.encapsulation_dot1q',
+    nudge: 'Für jedes VLAN braucht der Router ein eigenes logisches Interface.',
+    focus: 'Erstelle Subinterfaces, tagge sie mit "encapsulation dot1q" und setze die Gateway-IP.',
+    directive: 'interface <physik>.<vlan-id>\nencapsulation dot1q <vlan-id>\nip address <gateway> <mask>\nno shutdown\nexit',
+    solution: { answer: 'interface <physik>.<vlan-id>\nencapsulation dot1q <vlan-id>\nip address <gateway> <mask>\nno shutdown\nexit', explanation: 'Router-on-a-Stick nutzt 802.1Q-Subinterfaces, damit ein Router-Port mehrere VLANs bedienen kann.' },
+  }),
+  verified_and_saved: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.save_config',
+    nudge: 'Ohne Speichern ist die Konfiguration nach einem Neustart weg.',
+    focus: 'Prüfe mit "show"-Befehlen und sichere danach die Konfiguration.',
+    directive: 'Verwende "show ip interface brief", "show interfaces trunk" oder "show running-config" und speichere mit "write" bzw. "copy running-config startup-config".',
+    solution: { answer: 'show ip interface brief\ncopy running-config startup-config', explanation: 'Zeige die Subinterfaces und den Trunk an, bevor du die Konfiguration dauerhaft speicherst.' },
+  }),
+};
+
+function _getMission003Progress(device, scenario, state = null) {
+  const routing = evaluateRouterOnAStick(device, scenario);
+
+  const verified = (state?.showCommandsUsed || []).some((c) => VERIFY_HINTS_003.some((v) => c.includes(v)));
+
+  let saved = false;
+  if (device.startupConfig !== null) {
+    const sc = device.startupConfig;
+    saved = evaluateRouterOnAStick({ ...device, runningConfig: sc }, scenario).allCorrect;
+  }
+
+  const checks = {
+    vlans: routing.checks.filter((c) => c.id.startsWith('vlan_') && c.id.endsWith('_exists')).every((c) => c.ok),
+    access_ports: routing.checks.filter((c) => c.id.endsWith('_access')).every((c) => c.ok),
+    uplink_trunk: routing.checks.find((c) => c.id === 'uplink_trunk')?.ok || false,
+    router_physical_up: routing.checks.find((c) => c.id === 'router_physical_up')?.ok || false,
+    subinterfaces: routing.checks.filter((c) => c.id.startsWith('subinterface_')).every((c) => c.ok),
+    verified_and_saved: verified && saved,
+  };
+
+  const completed = MISSION_003_REQUIREMENTS.filter((r) => checks[r.id]).length;
+  const total = MISSION_003_REQUIREMENTS.length;
+
+  return {
+    completed,
+    total,
+    checks: MISSION_003_REQUIREMENTS.map((r) => ({ ...r, ok: checks[r.id] })),
+    allCorrect: completed === total,
+  };
+}
+
+export function getMission003Progress(device, scenario) {
+  return _getMission003Progress(device, scenario);
+}
+
+export function mission003RequiredState(scenario) {
+  return scenario.parameters;
+}
+
+function _evaluateMission003State(device, scenario, state = null) {
+  const progress = _getMission003Progress(device, scenario, state);
+  const misconceptions = [];
+
+  if (!progress.checks.find((c) => c.id === 'verified_and_saved').ok && progress.completed > 0) {
+    misconceptions.push('forgot_save_config');
+  }
+
+  return {
+    ...progress,
+    allCorrect: progress.allCorrect,
+    misconceptions,
+  };
+}
+
+export function evaluateMission003State(device, scenario) {
+  return _evaluateMission003State(device, scenario);
+}
+
+// ============================================================================
 // Registry
 // ============================================================================
 
 const SCENARIO_GENERATORS = {
   [MISSION_001_ID]: generateMission001Scenario,
   [MISSION_002_ID]: generateMission002Scenario,
+  [MISSION_003_ID]: generateMission003Scenario,
 };
 
 const DEVICE_CREATORS = {
   [MISSION_001_ID]: createMission001Device,
   [MISSION_002_ID]: createMission002Device,
+  [MISSION_003_ID]: createMission003Device,
 };
 
 const PROGRESS_GETTERS = {
   [MISSION_001_ID]: _getMission001Progress,
   [MISSION_002_ID]: _getMission002Progress,
+  [MISSION_003_ID]: _getMission003Progress,
 };
 
 const EVALUATORS = {
   [MISSION_001_ID]: _evaluateMission001State,
   [MISSION_002_ID]: _evaluateMission002State,
+  [MISSION_003_ID]: _evaluateMission003State,
 };
 
 const REQUIREMENTS = {
   [MISSION_001_ID]: MISSION_001_REQUIREMENTS,
   [MISSION_002_ID]: MISSION_002_REQUIREMENTS,
+  [MISSION_003_ID]: MISSION_003_REQUIREMENTS,
 };
 
 const HINT_LADDERS_BY_MISSION = {
   [MISSION_001_ID]: HINT_LADDERS_001,
   [MISSION_002_ID]: HINT_LADDERS_002,
+  [MISSION_003_ID]: HINT_LADDERS_003,
 };
 
 // ============================================================================
@@ -747,4 +998,12 @@ export function mainMissionFeedback(state, evaluation) {
 
 export function mission001Feedback(state, evaluation) {
   return mainMissionFeedback(state, evaluation);
+}
+
+export function startMission003(seed = Date.now()) {
+  return startMainMission(MISSION_003_ID, seed);
+}
+
+export function evaluateMission003(state) {
+  return evaluateMainMission(state);
 }

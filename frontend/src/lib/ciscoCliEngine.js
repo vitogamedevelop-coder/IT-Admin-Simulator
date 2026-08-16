@@ -38,11 +38,12 @@ function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
-function createInterface(id) {
+function createInterface(id, type = 'physical', parentId = null) {
   return {
     id,
     name: id,
-    type: 'physical',
+    type,
+    parentId,
     ipv4: null,
     mask: null,
     administrativelyDown: true,
@@ -54,7 +55,14 @@ function createInterface(id) {
     accessVlan: null,
     trunkAllowedVlans: null,
     nativeVlan: null,
+    encapsulationVlan: null,
+    encapsulationDot1q: null,
   };
+}
+
+export function createSubinterface(parentId, subId) {
+  const id = `${parentId}.${subId}`;
+  return createInterface(id, 'subinterface', parentId);
 }
 
 // ============================================================================
@@ -74,6 +82,19 @@ function buildInterfaceRangeIds(canonicalPrefix, slot, start, end) {
 }
 
 export const DEVICE_PROFILES = {
+  router_on_a_stick: {
+    type: 'router',
+    label: 'Router-on-a-Stick (Switch + Router in one device model)',
+    interfaces: [
+      ...buildInterfaceRangeIds('FastEthernet', 0, 1, 24),
+      ...buildInterfaceRangeIds('GigabitEthernet', 0, 0, 1),
+    ],
+  },
+  router_1ge: {
+    type: 'router',
+    label: 'Router with one GigabitEthernet interface',
+    interfaces: ['GigabitEthernet0/0'],
+  },
   catalyst_24fe_2ge: {
     type: 'layer2_switch',
     label: 'Catalyst 24-Port FastEthernet + 2 GigabitEthernet',
@@ -180,6 +201,21 @@ function resolveInterfaceName(device, input) {
   return Object.values(device.runningConfig.interfaces).find(
     (iface) => iface.name.toLowerCase() === lower || iface.id.toLowerCase() === lower,
   ) || null;
+}
+
+function ensureInterface(device, input) {
+  const target = resolveInterfaceName(device, input);
+  if (target) return target;
+  const canonical = parseInterfaceId(input);
+  if (!canonical || !canonical.includes('.')) return null;
+  const [parentId] = canonical.split('.');
+  const parent = device.runningConfig.interfaces[parentId];
+  if (!parent) return null;
+  const subId = canonical.slice(parentId.length + 1);
+  if (!/^\d+$/.test(subId)) return null;
+  const subinterface = createSubinterface(parentId, subId);
+  device.runningConfig.interfaces[subinterface.id] = subinterface;
+  return subinterface;
 }
 
 function shortInterfaceName(name) {
@@ -575,7 +611,7 @@ export const BASE_COMMAND_TREE = {
         device.cli.currentInterface = null;
         return { output: '', modeChanged: true };
       }
-      const target = resolveInterfaceName(device, tokens[1]);
+      const target = ensureInterface(device, tokens[1]);
       if (!target) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
       device.cli.mode = CLI_MODE.INTERFACE_CONFIG;
       device.cli.currentInterface = target.id;
@@ -667,6 +703,25 @@ export const BASE_COMMAND_TREE = {
       return { output: '', stateChanged: true };
     }, 'Interface specific description', null, () => ['<text>']),
     buildSwitchportNode(),
+    node('encapsulation', {
+      help: 'Set encapsulation type for a subinterface',
+      children: [
+        cmd('dot1q', (device, tokens, leftover) => {
+          if (!leftover || leftover.length < 1) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+          const vlanId = parseInt(leftover[0], 10);
+          if (Number.isNaN(vlanId) || vlanId < 1 || vlanId > 4094) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+          const ids = getTargetInterfaceIds(device);
+          if (ids.length === 0) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+          for (const id of ids) {
+            const iface = device.runningConfig.interfaces[id];
+            if (iface.type !== 'subinterface') return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+            iface.encapsulationVlan = vlanId;
+            iface.encapsulationDot1q = true;
+          }
+          return { output: '', stateChanged: true };
+        }, '802.1Q encapsulation with VLAN ID', { domainId: 'cisco', skillId: 'routing', subskillId: 'inter_vlan.encapsulation_dot1q', dimension: SKILL_DIMENSION.CONFIGURE }),
+      ],
+    }),
     cmd('exit', (device) => {
       device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
       device.cli.currentInterface = null;
@@ -1431,17 +1486,29 @@ export function renderRunningConfig(device) {
     lines.push('!');
   });
 
-  Object.values(cfg.interfaces).forEach((iface) => {
+  function renderInterfaceConfig(iface) {
     lines.push(`interface ${iface.name}`);
     if (iface.description) lines.push(` description ${iface.description}`);
-    if (iface.switchportMode === 'access') lines.push(' switchport mode access');
-    if (iface.accessVlan) lines.push(` switchport access vlan ${iface.accessVlan}`);
-    if (iface.switchportMode === 'trunk') lines.push(' switchport mode trunk');
-    if (iface.trunkAllowedVlans) lines.push(` switchport trunk allowed vlan ${iface.trunkAllowedVlans.join(',')}`);
-    if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
-    lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
+    if (iface.type === 'subinterface') {
+      if (iface.encapsulationVlan != null) lines.push(` encapsulation dot1q ${iface.encapsulationVlan}`);
+      if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
+      lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
+    } else {
+      if (iface.switchportMode === 'access') lines.push(' switchport mode access');
+      if (iface.accessVlan) lines.push(` switchport access vlan ${iface.accessVlan}`);
+      if (iface.switchportMode === 'trunk') lines.push(' switchport mode trunk');
+      if (iface.trunkAllowedVlans) lines.push(` switchport trunk allowed vlan ${iface.trunkAllowedVlans.join(',')}`);
+      if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
+      lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
+    }
     lines.push('!');
-  });
+  }
+
+  const allInterfaces = Object.values(cfg.interfaces);
+  const physicalInterfaces = allInterfaces.filter((i) => i.type === 'physical');
+  const subinterfaces = allInterfaces.filter((i) => i.type === 'subinterface');
+  physicalInterfaces.forEach(renderInterfaceConfig);
+  subinterfaces.forEach(renderInterfaceConfig);
 
   if (cfg.vlans) {
     Object.values(cfg.vlans)
@@ -1614,6 +1681,85 @@ export function renderInterfaceSwitchport(iface) {
     lines.push(`Access Mode VLAN: ${iface.accessVlan || 1}${iface.accessVlan ? '' : ' (default)'}`);
   }
   return lines.join('\n');
+}
+
+// ============================================================================
+// Router-on-a-Stick simulation helpers
+// ============================================================================
+
+function isInterfaceUp(iface, device) {
+  if (iface.administrativelyDown) return false;
+  if (iface.type === 'subinterface') {
+    const parent = device.runningConfig.interfaces[iface.parentId];
+    if (!parent || parent.administrativelyDown) return false;
+  }
+  return true;
+}
+
+export function evaluateRouterOnAStick(device, scenario) {
+  const p = scenario.parameters || scenario;
+  const rc = device.runningConfig;
+  const checks = [];
+
+  // VLANs exist with correct names
+  p.vlans.forEach((vlan) => {
+    const actual = rc.vlans?.[vlan.id];
+    checks.push({
+      id: `vlan_${vlan.id}_exists`,
+      label: `VLAN ${vlan.id} ${vlan.name} existiert`,
+      ok: !!actual && actual.name === vlan.name,
+    });
+  });
+
+  // Access ports for each VLAN
+  p.vlans.forEach((vlan) => {
+    const accessPorts = vlan.accessPorts || [];
+    const ok = accessPorts.length > 0 && accessPorts.every((id) => {
+      const iface = rc.interfaces[id];
+      return iface && iface.switchportMode === 'access' && iface.accessVlan === vlan.id && !iface.administrativelyDown;
+    });
+    checks.push({ id: `vlan_${vlan.id}_access`, label: `Access-Ports für VLAN ${vlan.id}`, ok });
+  });
+
+  // Uplink is trunk and allows all VLANs
+  const uplink = rc.interfaces[p.uplinkPort];
+  const uplinkOk = !!uplink
+    && uplink.switchportMode === 'trunk'
+    && !uplink.administrativelyDown
+    && (!uplink.trunkAllowedVlans || p.vlans.every((v) => uplink.trunkAllowedVlans.includes(v.id)));
+  checks.push({ id: 'uplink_trunk', label: 'Switch-Uplink ist Trunk', ok: uplinkOk });
+
+  // Router physical interface is up
+  const routerPhysical = rc.interfaces[p.routerPhysicalPort];
+  const physicalOk = !!routerPhysical && isInterfaceUp(routerPhysical, device);
+  checks.push({ id: 'router_physical_up', label: 'Router-Physikinterface ist aktiv', ok: physicalOk });
+
+  // Subinterface per VLAN with dot1q and gateway IP
+  p.vlans.forEach((vlan) => {
+    const subId = `${p.routerPhysicalPort}.${vlan.id}`;
+    const sub = rc.interfaces[subId];
+    const ok = !!sub
+      && sub.type === 'subinterface'
+      && sub.encapsulationVlan === vlan.id
+      && sub.ipv4 === vlan.gateway
+      && sub.mask === vlan.mask
+      && isInterfaceUp(sub, device);
+    checks.push({ id: `subinterface_${vlan.id}`, label: `Subinterface für VLAN ${vlan.id}`, ok });
+  });
+
+  return { checks, allCorrect: checks.every((c) => c.ok) };
+}
+
+export function isVlanReachable(device, vlanId) {
+  const uplink = Object.values(device.runningConfig.interfaces).find((i) => i.switchportMode === 'trunk' && !i.administrativelyDown);
+  if (!uplink) return false;
+  const allowed = uplink.trunkAllowedVlans || Object.keys(device.runningConfig.vlans).map(Number);
+  if (!allowed.includes(Number(vlanId))) return false;
+  const routerPhysical = Object.values(device.runningConfig.interfaces).find((i) => i.type === 'physical' && i.name.toLowerCase().startsWith('gigabitethernet'));
+  if (!routerPhysical || routerPhysical.administrativelyDown) return false;
+  const sub = device.runningConfig.interfaces[`${routerPhysical.id}.${vlanId}`];
+  if (!sub || sub.encapsulationVlan !== vlanId || sub.administrativelyDown || !sub.ipv4) return false;
+  return true;
 }
 
 

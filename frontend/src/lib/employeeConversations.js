@@ -803,7 +803,7 @@ export const CONVERSATION_TOPICS = {
   },
   [topicKey('fundamentals', 'routing')]: {
     title: 'Routing',
-    relatedTopics: [topicKey('fundamentals', 'ipv4'), topicKey('fundamentals', 'tcp-ip-model')],
+    relatedTopics: [topicKey('fundamentals', 'ipv4'), topicKey('fundamentals', 'tcp-ip-model'), topicKey('fundamentals', 'inter-vlan-routing')],
     introPool: [
       'Warum antwortet ein Host in einem anderen Netz nicht auf meinen Ping?',
       'Wie entscheidet ein Router, wohin ein Paket geschickt wird?',
@@ -814,6 +814,21 @@ export const CONVERSATION_TOPICS = {
       { id: 'route-2', difficulty: 'easy', text: 'Auf welcher OSI-Schicht arbeitet Routing?', options: ['Schicht 2', 'Schicht 3', 'Schicht 4', 'Schicht 7'], correct: 1, explanation: 'Routing arbeitet auf der Vermittlungsschicht (Schicht 3) mit IP-Adressen.' },
       { id: 'route-3', difficulty: 'medium', text: 'Welche Information nutzt ein Router, um ein Paket weiterzuleiten?', options: ['MAC-Adresse des Senders', 'Ziel-IP-Adresse und Routing-Tabelle', 'VLAN-ID allein', 'Hostname des Empfängers'], correct: 1, explanation: 'Der Router prüft die Ziel-IP und sucht den besten Eintrag in seiner Routing-Tabelle.' },
       { id: 'route-4', difficulty: 'medium', text: 'Was ist der Default Gateway?', options: ['Der schnellste Router im Internet', 'Der Router, den ein Host für fremde Netze verwendet', 'Das lokale Subnetz', 'Ein DNS-Server'], correct: 1, explanation: 'Der Default Gateway ist der Router, an den ein Host Pakete sendet, deren Ziel nicht im lokalen Subnetz liegt.' },
+    ],
+  },
+  [topicKey('fundamentals', 'inter-vlan-routing')]: {
+    title: 'Inter-VLAN Routing',
+    relatedTopics: [topicKey('fundamentals', 'routing'), topicKey('fundamentals', 'vlan-basics')],
+    introPool: [
+      'Wie können Geräte in unterschiedlichen VLANs miteinander kommunizieren?',
+      'Router-on-a-Stick – wie funktioniert das eigentlich?',
+    ],
+    samHelp: 'VLANs trennen Broadcast-Domains auf Schicht 2. Für Inter-VLAN-Routing braucht man einen Router (oder L3-Switch): auf dem Router-Physikinterface werden Subinterfaces angelegt, jedes mit "encapsulation dot1q" für genau ein VLAN getaggt und mit der passenden Gateway-IP versehen. Der Switch-Uplink muss Trunk sein und alle VLANs erlauben.',
+    questions: [
+      { id: 'ivr-1', difficulty: 'easy', text: 'Wozu dient Router-on-a-Stick?', options: ['Schnelleres WLAN', 'Routing zwischen VLANs über einen Router-Port', 'Redundanter Internetzugang', 'DHCP für mehrere Netze'], correct: 1, explanation: 'Router-on-a-Stick ermöglicht Inter-VLAN-Routing über Subinterfaces auf einem einzelnen Router-Port.' },
+      { id: 'ivr-2', difficulty: 'medium', text: 'Welchen Befehl verwendet man auf einem Subinterface für VLAN-Tagging?', options: ['switchport mode trunk', 'encapsulation dot1q', 'vlan trunk encapsulation', 'ip routing vlan'], correct: 1, explanation: 'Mit "encapsulation dot1q <vlan-id>" weist man ein Subinterface einem VLAN zu.' },
+      { id: 'ivr-3', difficulty: 'medium', text: 'Was muss der Switch-Uplink zum Router sein?', options: ['Access-Port', 'Trunk-Port', 'Loopback', 'Shutdown'], correct: 1, explanation: 'Der Uplink muss Trunk sein, damit mehrere VLAN-Tags zum Router gelangen.' },
+      { id: 'ivr-4', difficulty: 'hard', text: 'Was passiert, wenn ein Subinterface heruntergefahren ist?', options: ['Nur dieses VLAN kann nicht geroutet werden', 'Alle VLANs werden ausfallen', 'Der Switch-Uplink wird deaktiviert', 'Nichts'], correct: 0, explanation: 'Ein shutdown auf einem Subinterface unterbricht das Routing für genau das zugehörige VLAN.' },
     ],
   },
   [topicKey('fundamentals', 'kommunikation-uebertragung')]: {

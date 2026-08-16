@@ -13,7 +13,7 @@
 // LinuxMissionValidator/templates would live in a sibling file and reuse the
 // same `defineMissionTemplate` contract.
 
-import { createCiscoDevice } from './ciscoCliEngine.js';
+import { createCiscoDevice, evaluateRouterOnAStick, createSubinterface } from './ciscoCliEngine.js';
 import { defineHintLadder } from './missionHintSystem.js';
 import { randomPersonalUsername } from './officeWorld.js';
 
@@ -308,6 +308,12 @@ const DECOY_VLAN_ID_POOL = [15, 25, 35, 45];
 const VLAN_DEVICE_HOSTNAMES = ['Sw3', 'Sw4', 'Sw5', 'Sw6'];
 const EMPLOYEE_NAMES = ['Nina Berger', 'Tom Weiss', 'Julia Krause', 'Marco Feldt'];
 
+// Stage 2/3 shared pools
+const STAGE2_VLAN_ID_POOL = [110, 120, 130, 140, 150, 160, 170, 180, 190, 200];
+const STAGE2_DEPARTMENT_NAMES = ['PERSONAL', 'TECHNIK', 'VERWALTUNG', 'LAGER', 'MARKETING', 'FINANZEN', 'ENTWICKLUNG', 'HR'];
+const STAGE2_DEVICE_HOSTNAMES = ['Sw-HQ-03', 'Sw-HQ-04', 'Sw-AST-02', 'Sw-LAB-01'];
+const STAGE3_ROUTER_HOSTNAMES = ['R-HQ-01', 'R-HQ-02', 'R-AST-01', 'R-LAB-01'];
+
 export const TEMPLATE_VLAN_ACCESS_PORT = defineMissionTemplate({
   id: 'cisco-vlan-access-port',
   domain: 'cisco',
@@ -436,9 +442,554 @@ export const TEMPLATE_VLAN_ACCESS_PORT = defineMissionTemplate({
   },
 });
 
+const TEMPLATE_VLAN_ACCESS_RANGE = defineMissionTemplate({
+  id: 'cisco-vlan-access-range',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.vlan.create',
+    'cisco.switching.vlan.name',
+    'cisco.switching.access_port.configure',
+    'cisco.switching.access_port.assign_vlan',
+  ],
+  unlockedBy: ['cisco-main-002'],
+  archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.DIAGNOSE, MISSION_ARCHETYPE.AUDIT, MISSION_ARCHETYPE.COMPLETE],
+  contexts: ['neue_abteilung', 'erweiterung', 'umzug', 'fehler'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.switching.vlan.create': defineHintLadder({
+      subskillPath: 'cisco.switching.vlan.create',
+      nudge: 'Mehrere Ports sollen ein gemeinsames VLAN erhalten.',
+      focus: 'Das VLAN muss zuerst angelegt werden.',
+      directive: 'Verwende "vlan <id>" und "name <name>" im Global Configuration Mode.',
+      solution: { answer: 'vlan <id>\nname <name>\nexit', explanation: 'Ein VLAN braucht eine ID und einen Namen.' },
+    }),
+    'cisco.switching.access_port.assign_vlan': defineHintLadder({
+      subskillPath: 'cisco.switching.access_port.assign_vlan',
+      nudge: 'Alle Ports einer Abteilung gehören in dasselbe VLAN.',
+      focus: 'Nutze "interface range", um die Ports gemeinsam zu konfigurieren.',
+      directive: 'interface range fa0/x - y\nswitchport mode access\nswitchport access vlan <id>\nno shutdown\nexit',
+      solution: { answer: 'interface range fa0/x - y\nswitchport mode access\nswitchport access vlan <id>\nno shutdown\nexit', explanation: 'Im Interface-Range-Modus werden alle Befehle auf die gewählten Ports angewendet.' },
+    }),
+  },
+  resolveParameters(rng, _archetype) {
+    const vlanId = pickFrom(rng, STAGE2_VLAN_ID_POOL);
+    const decoyVlanId = pickFrom(rng, STAGE2_VLAN_ID_POOL.filter((id) => id !== vlanId));
+    const vlanName = pickFrom(rng, STAGE2_DEPARTMENT_NAMES);
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    const startPort = rng(1, 20);
+    const rangeLen = rng(3, 5);
+    const targetPorts = Array.from({ length: rangeLen }, (_, i) => `FastEthernet0/${startPort + i}`);
+    return { vlanId, vlanName, decoyVlanId, hostname, targetPorts };
+  },
+  buildDevice(params, archetype) {
+    const device = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: params.hostname });
+    params.targetPorts.forEach((id) => {
+      const iface = device.runningConfig.interfaces[id];
+      if (iface) {
+        iface.operationalStatus = 'connected';
+        iface.administrativelyDown = false;
+      }
+    });
+    if (archetype === MISSION_ARCHETYPE.REPAIR || archetype === MISSION_ARCHETYPE.DIAGNOSE) {
+      device.runningConfig.vlans[params.decoyVlanId] = { id: params.decoyVlanId, name: 'ALT' };
+      params.targetPorts.forEach((id) => {
+        const iface = device.runningConfig.interfaces[id];
+        if (iface) {
+          iface.switchportMode = 'access';
+          iface.accessVlan = params.decoyVlanId;
+        }
+      });
+    } else if (archetype === MISSION_ARCHETYPE.COMPLETE) {
+      device.runningConfig.vlans[params.vlanId] = { id: params.vlanId, name: params.vlanName };
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const vlan = device.runningConfig.vlans?.[params.vlanId];
+    const vlanOk = !!vlan && vlan.name === params.vlanName;
+    const portsOk = params.targetPorts.every((id) => {
+      const iface = device.runningConfig.interfaces[id];
+      return iface && iface.switchportMode === 'access' && iface.accessVlan === params.vlanId && !iface.administrativelyDown;
+    });
+    return {
+      checks: [
+        { id: 'vlan_created', label: `VLAN ${params.vlanId} ${params.vlanName}`, ok: vlanOk },
+        { id: 'ports_configured', label: 'Access-Ports im richtigen VLAN', ok: portsOk },
+      ],
+      allCorrect: vlanOk && portsOk,
+    };
+  },
+  buildTitle(params, archetype) {
+    const titles = {
+      [MISSION_ARCHETYPE.BUILD]: `Neue Abteilung: ${params.vlanName}`,
+      [MISSION_ARCHETYPE.REPAIR]: `Falsches VLAN auf ${params.hostname}`,
+      [MISSION_ARCHETYPE.AUDIT]: `VLAN-Check ${params.hostname}`,
+      [MISSION_ARCHETYPE.DIAGNOSE]: `Bereich ${params.vlanName} nicht erreichbar`,
+      [MISSION_ARCHETYPE.COMPLETE]: `VLAN ${params.vlanName} fertigstellen`,
+    };
+    return titles[archetype] || `VLAN-Auftrag ${params.hostname}`;
+  },
+  buildBriefing(params, archetype) {
+    const portList = params.targetPorts.map((p) => p.replace('FastEthernet', 'Fa')).join(', ');
+    if (archetype === MISSION_ARCHETYPE.REPAIR) {
+      return `Auf ${params.hostname} wurden ${portList} offenbar falsch gepatcht. Die Ports sollen zu VLAN ${params.vlanId} ${params.vlanName} gehören. Prüfe den Zustand und korrigiere ihn.`;
+    }
+    if (archetype === MISSION_ARCHETYPE.DIAGNOSE) {
+      return `Einige Mitarbeiter an ${portList} auf ${params.hostname} melden Netzprobleme. Finde heraus, warum und stelle sicher, dass die Ports in VLAN ${params.vlanId} ${params.vlanName} liegen.`;
+    }
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) {
+      return `VLAN ${params.vlanId} ${params.vlanName} ist auf ${params.hostname} bereits angelegt, aber ${portList} wurden noch nicht zugewiesen. Schließe die Konfiguration ab.`;
+    }
+    return `Für die Abteilung ${params.vlanName} werden auf ${params.hostname} neue Arbeitsplätze an ${portList} benötigt. Richte das VLAN ein, weise die Ports zu und aktiviere sie.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return { skillGroup: 'switching_vlan', archetype, context, hostname: params.hostname, vlanId: params.vlanId, ports: params.targetPorts };
+  },
+});
+
+const TEMPLATE_VLAN_MOVE = defineMissionTemplate({
+  id: 'cisco-vlan-move',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.access_port.assign_vlan',
+    'cisco.switching.vlan.verify',
+  ],
+  unlockedBy: ['cisco-main-002'],
+  archetypes: [MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.CHANGE, MISSION_ARCHETYPE.USER_REPORT, MISSION_ARCHETYPE.INCIDENT],
+  contexts: ['mitarbeiter_umzug', 'abteilungswechsel', 'fehler'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.switching.access_port.assign_vlan': defineHintLadder({
+      subskillPath: 'cisco.switching.access_port.assign_vlan',
+      nudge: 'Ein Arbeitsplatz soll in ein anderes VLAN verschoben werden.',
+      focus: 'Wähle den Port aus und ändere das Access-VLAN.',
+      directive: 'interface <if>\nswitchport access vlan <ziel-vlan>\nexit',
+      solution: { answer: 'interface <if>\nswitchport access vlan <ziel-vlan>\nexit', explanation: 'Mit "switchport access vlan" wechselt der Port das VLAN.' },
+    }),
+  },
+  resolveParameters(rng) {
+    const ids = [];
+    while (ids.length < 2) {
+      const candidate = pickFrom(rng, STAGE2_VLAN_ID_POOL);
+      if (!ids.includes(candidate)) ids.push(candidate);
+    }
+    const [sourceVlanId, targetVlanId] = ids;
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    const targetPort = `FastEthernet0/${rng(1, 24)}`;
+    return {
+      sourceVlanId,
+      targetVlanId,
+      sourceVlanName: pickFrom(rng, STAGE2_DEPARTMENT_NAMES),
+      targetVlanName: pickFrom(rng, STAGE2_DEPARTMENT_NAMES.filter((n) => n !== sourceVlanName)),
+      hostname,
+      targetPort,
+      targetPorts: [targetPort],
+    };
+  },
+  buildDevice(params) {
+    const device = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: params.hostname });
+    device.runningConfig.vlans[params.sourceVlanId] = { id: params.sourceVlanId, name: params.sourceVlanName };
+    device.runningConfig.vlans[params.targetVlanId] = { id: params.targetVlanId, name: params.targetVlanName };
+    const iface = device.runningConfig.interfaces[params.targetPort];
+    if (iface) {
+      iface.operationalStatus = 'connected';
+      iface.administrativelyDown = false;
+      iface.switchportMode = 'access';
+      iface.accessVlan = params.sourceVlanId;
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const iface = device.runningConfig.interfaces[params.targetPort];
+    const ok = !!iface && iface.switchportMode === 'access' && iface.accessVlan === params.targetVlanId && !iface.administrativelyDown;
+    return { checks: [{ id: 'port_moved', label: `Port ${params.targetPort} in VLAN ${params.targetVlanId}`, ok }], allCorrect: ok };
+  },
+  buildTitle(params, archetype) {
+    return archetype === MISSION_ARCHETYPE.INCIDENT ? `Port ${params.targetPort.replace('FastEthernet', 'Fa')} offline` : `VLAN-Wechsel auf ${params.hostname}`;
+  },
+  buildBriefing(params, _archetype, _context, _difficulty) {
+    const port = params.targetPort.replace('FastEthernet', 'Fa');
+    if (archetype === MISSION_ARCHETYPE.INCIDENT) {
+      return `Notfall: Der Arbeitsplatz an ${port} auf ${params.hostname} meldet keinen Netzzugriff mehr. Der Port befindet sich aktuell in VLAN ${params.sourceVlanId} ${params.sourceVlanName}, soll aber VLAN ${params.targetVlanId} ${params.targetVlanName} gehören.`;
+    }
+    return `Ein Mitarbeiter ist umgezogen: Der Arbeitsplatz an ${port} auf ${params.hostname} soll aus VLAN ${params.sourceVlanId} ${params.sourceVlanName} in VLAN ${params.targetVlanId} ${params.targetVlanName} verschoben werden.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return { skillGroup: 'switching_vlan', archetype, context, hostname: params.hostname, port: params.targetPort, targetVlanId: params.targetVlanId };
+  },
+});
+
+const TEMPLATE_TRUNK_UPLINK = defineMissionTemplate({
+  id: 'cisco-trunk-uplink',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.vlan.create',
+    'cisco.switching.trunking',
+    'cisco.switching.vlan.verify',
+  ],
+  unlockedBy: ['cisco-main-002'],
+  archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.AUDIT],
+  contexts: ['neuer_switch', 'uplink', 'infrastruktur'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.switching.trunking': defineHintLadder({
+      subskillPath: 'cisco.switching.trunking',
+      nudge: 'Zwischen zwei Switches müssen mehrere VLANs transportiert werden.',
+      focus: 'Der Uplink-Port muss Trunk-Modus erhalten.',
+      directive: 'interface <uplink>\nswitchport mode trunk\nswitchport trunk allowed vlan <vlan-list>\nno shutdown\nexit',
+      solution: { answer: 'interface gi0/1\nswitchport mode trunk\nswitchport trunk allowed vlan 10,20\nno shutdown\nexit', explanation: 'Ein Trunk transportiert mehrere VLANs über einen Port.' },
+    }),
+  },
+  resolveParameters(rng) {
+    const vlanCount = rng(2, 3);
+    const vlanIds = [];
+    while (vlanIds.length < vlanCount) {
+      const candidate = pickFrom(rng, STAGE2_VLAN_ID_POOL);
+      if (!vlanIds.includes(candidate)) vlanIds.push(candidate);
+    }
+    const vlans = vlanIds.map((id) => ({ id, name: pickFrom(rng, STAGE2_DEPARTMENT_NAMES) }));
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    return { hostname, uplinkPort: 'GigabitEthernet0/1', vlans };
+  },
+  buildDevice(params, archetype) {
+    const device = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: params.hostname });
+    params.vlans.forEach((v) => { device.runningConfig.vlans[v.id] = { id: v.id, name: v.name }; });
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+    if (archetype === MISSION_ARCHETYPE.REPAIR) {
+      uplink.switchportMode = 'access';
+      uplink.accessVlan = 999;
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    const allowed = uplink.trunkAllowedVlans || Object.keys(device.runningConfig.vlans).map(Number);
+    const ok = !!uplink
+      && uplink.switchportMode === 'trunk'
+      && !uplink.administrativelyDown
+      && params.vlans.every((v) => allowed.includes(v.id));
+    return { checks: [{ id: 'uplink_trunk', label: 'Uplink ist Trunk für alle VLANs', ok }], allCorrect: ok };
+  },
+  buildTitle(params, archetype) {
+    return archetype === MISSION_ARCHETYPE.REPAIR ? `Uplink-Fehler auf ${params.hostname}` : `Trunk-Uplink auf ${params.hostname}`;
+  },
+  buildBriefing(params, archetype) {
+    const vlanList = params.vlans.map((v) => `VLAN ${v.id} ${v.name}`).join(', ');
+    if (archetype === MISSION_ARCHETYPE.REPAIR) {
+      return `Der Uplink ${params.uplinkPort.replace('GigabitEthernet', 'Gi')} auf ${params.hostname} ist falsch konfiguriert und transportiert die VLANs ${vlanList} nicht. Repariere den Trunk.`;
+    }
+    return `Der neue Switch ${params.hostname} soll über ${params.uplinkPort.replace('GigabitEthernet', 'Gi')} als Trunk angebunden werden. Zulässige VLANs: ${vlanList}.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return { skillGroup: 'switching_trunk', archetype, context, hostname: params.hostname, vlanIds: params.vlans.map((v) => v.id) };
+  },
+});
+
+const TEMPLATE_TRUNK_ALLOWED_VLAN = defineMissionTemplate({
+  id: 'cisco-trunk-allowed-vlan',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.trunking',
+    'cisco.switching.vlan.verify',
+  ],
+  unlockedBy: ['cisco-main-002'],
+  archetypes: [MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.CHANGE, MISSION_ARCHETYPE.USER_REPORT],
+  contexts: ['neues_vlan_auf_trunk', 'fehler', 'erweiterung'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.switching.trunking': defineHintLadder({
+      subskillPath: 'cisco.switching.trunking',
+      nudge: 'Ein VLAN fehlt auf dem bestehenden Trunk.',
+      focus: 'Ergänze die Allowed-VLAN-Liste des Uplinks.',
+      directive: 'interface <uplink>\nswitchport trunk allowed vlan <vlan-list>\nexit',
+      solution: { answer: 'interface gi0/1\nswitchport trunk allowed vlan 10,20,30\nexit', explanation: 'Nur in der Trunk-Allowed-Liste enthaltene VLANs werden über den Uplink transportiert.' },
+    }),
+  },
+  resolveParameters(rng) {
+    const vlanIds = [];
+    while (vlanIds.length < 3) {
+      const candidate = pickFrom(rng, STAGE2_VLAN_ID_POOL);
+      if (!vlanIds.includes(candidate)) vlanIds.push(candidate);
+    }
+    const missingVlanId = vlanIds[2];
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    return {
+      hostname,
+      uplinkPort: 'GigabitEthernet0/1',
+      vlans: vlanIds.map((id) => ({ id, name: pickFrom(rng, STAGE2_DEPARTMENT_NAMES) })),
+      missingVlanId,
+      allowedVlanIds: vlanIds.slice(0, 2),
+    };
+  },
+  buildDevice(params) {
+    const device = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: params.hostname });
+    params.vlans.forEach((v) => { device.runningConfig.vlans[v.id] = { id: v.id, name: v.name }; });
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+    uplink.switchportMode = 'trunk';
+    uplink.trunkAllowedVlans = params.allowedVlanIds;
+    return { device };
+  },
+  evaluate(device, params) {
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    const allowed = uplink.trunkAllowedVlans || [];
+    const ok = !!uplink && uplink.switchportMode === 'trunk' && !uplink.administrativelyDown && params.vlans.every((v) => allowed.includes(v.id));
+    return { checks: [{ id: 'allowed_vlans', label: 'Alle VLANs auf dem Trunk erlaubt', ok }], allCorrect: ok };
+  },
+  buildTitle(params) {
+    return `Fehlendes VLAN auf Trunk ${params.hostname}`;
+  },
+  buildBriefing(params, _archetype) {
+    const vlanList = params.vlans.map((v) => `VLAN ${v.id} ${v.name}`).join(', ');
+    return `Auf ${params.hostname} fehlt VLAN ${params.missingVlanId} auf dem Trunk ${params.uplinkPort.replace('GigabitEthernet', 'Gi')}. Aktuell erlaubt: ${params.allowedVlanIds.join(', ')}. Ziel: ${vlanList}.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return { skillGroup: 'switching_trunk', archetype, context, hostname: params.hostname, missingVlanId: params.missingVlanId };
+  },
+});
+
+function buildVlanListForRouter(rng, count) {
+  const vlanIds = [];
+  while (vlanIds.length < count) {
+    const candidate = pickFrom(rng, STAGE2_VLAN_ID_POOL);
+    if (!vlanIds.includes(candidate)) vlanIds.push(candidate);
+  }
+  return vlanIds.map((id, index) => {
+    const name = pickFrom(rng, STAGE2_DEPARTMENT_NAMES);
+    const base = `192.168.${id % 256}`;
+    return {
+      id,
+      name,
+      network: `${base}.0`,
+      mask: '255.255.255.0',
+      gateway: `${base}.1`,
+      accessPorts: Array.from({ length: 3 }, (_, j) => `FastEthernet0/${index * 4 + j + 1}`),
+    };
+  });
+}
+
+const TEMPLATE_ROUTER_ON_A_STICK = defineMissionTemplate({
+  id: 'cisco-router-on-a-stick',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.vlan.create',
+    'cisco.switching.access_port.configure',
+    'cisco.switching.trunking',
+    'cisco.routing.router_interface.configure',
+    'cisco.routing.inter_vlan.subinterface',
+    'cisco.routing.inter_vlan.encapsulation_dot1q',
+    'cisco.routing.inter_vlan.gateway',
+  ],
+  unlockedBy: ['cisco-main-003'],
+  archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.COMPLETE, MISSION_ARCHETYPE.REPAIR],
+  contexts: ['neue_abteilung_router', 'standorterweiterung'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.routing.inter_vlan.subinterface': defineHintLadder({
+      subskillPath: 'cisco.routing.inter_vlan.subinterface',
+      nudge: 'Für jedes VLAN braucht der Router ein eigenes logisches Interface.',
+      focus: 'Erstelle Subinterfaces auf dem Router-Physikinterface.',
+      directive: 'interface <physik>.<vlan-id>\nencapsulation dot1q <vlan-id>\nip address <gateway> <mask>\nno shutdown\nexit',
+      solution: { answer: 'interface gi0/0.10\nencapsulation dot1q 10\nip address 192.168.10.1 255.255.255.0\nno shutdown\nexit', explanation: 'Router-on-a-Stick verwendet 802.1Q-Subinterfaces, damit ein Router-Port mehrere VLANs routen kann.' },
+    }),
+    'cisco.switching.trunking': defineHintLadder({
+      subskillPath: 'cisco.switching.trunking',
+      nudge: 'Der Router sieht die VLANs nur, wenn der Switch-Uplink ein Trunk ist.',
+      focus: 'Konfiguriere den Uplink als Trunk und erlaube alle VLANs.',
+      directive: 'interface <uplink>\nswitchport mode trunk\nswitchport trunk allowed vlan <vlan-list>\nno shutdown\nexit',
+      solution: { answer: 'interface gi0/1\nswitchport mode trunk\nswitchport trunk allowed vlan 10,20\nno shutdown\nexit', explanation: 'Der Trunk transportiert die getaggten VLANs zwischen Switch und Router.' },
+    }),
+  },
+  resolveParameters(rng, _archetype) {
+    const vlanCount = rng(1, 2);
+    const vlans = buildVlanListForRouter(rng, vlanCount);
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    const routerHostname = pickFrom(rng, STAGE3_ROUTER_HOSTNAMES);
+    return { hostname, routerHostname, vlans, uplinkPort: 'GigabitEthernet0/1', routerPhysicalPort: 'GigabitEthernet0/0' };
+  },
+  buildDevice(params, archetype) {
+    const device = createCiscoDevice({ profile: 'router_on_a_stick', hostname: params.hostname });
+    params.vlans.forEach((v) => {
+      if (archetype === MISSION_ARCHETYPE.COMPLETE) device.runningConfig.vlans[v.id] = { id: v.id, name: v.name };
+      v.accessPorts.forEach((id) => {
+        const iface = device.runningConfig.interfaces[id];
+        if (iface) {
+          iface.operationalStatus = 'connected';
+          iface.administrativelyDown = false;
+        }
+      });
+    });
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+    const physical = device.runningConfig.interfaces[params.routerPhysicalPort];
+    physical.operationalStatus = 'notconnect';
+    physical.administrativelyDown = true;
+    return { device };
+  },
+  evaluate(device, params) {
+    return evaluateRouterOnAStick(device, params);
+  },
+  buildTitle(params, archetype) {
+    return archetype === MISSION_ARCHETYPE.REPAIR ? `Inter-VLAN Routing auf ${params.hostname}` : `Neues VLAN auf ${params.hostname} routen`;
+  },
+  buildBriefing(params, archetype, _context, _difficulty) {
+    const vlanList = params.vlans.map((v) => `- VLAN ${v.id} ${v.name}: ${v.network}/24, Gateway ${v.gateway}`).join('\n');
+    const accessList = params.vlans.map((v) => `${v.name}: ${v.accessPorts.map((p) => p.replace('FastEthernet', 'Fa')).join(', ')}`).join('\n');
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) {
+      return `Auf ${params.hostname} sind die VLANs bereits angelegt, aber ${params.routerHostname} routet sie noch nicht.\n\n${vlanList}\n\nAccess-Ports:\n${accessList}\n\nErstelle die Subinterfaces auf ${params.routerPhysicalPort.replace('GigabitEthernet', 'Gi')} und konfiguriere den Uplink ${params.uplinkPort.replace('GigabitEthernet', 'Gi')} als Trunk.`;
+    }
+    return `Eine neue Abteilung braucht auf ${params.hostname} Inter-VLAN-Routing.\n\n${vlanList}\n\nAccess-Ports:\n${accessList}\n\nUplink: ${params.uplinkPort.replace('GigabitEthernet', 'Gi')} (Trunk)\nRouter-Interface: ${params.routerPhysicalPort.replace('GigabitEthernet', 'Gi')}\n\nKonfiguriere VLANs, Access-Ports, Trunk und Router-Subinterfaces.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return { skillGroup: 'inter_vlan', archetype, context, hostname: params.hostname, vlanIds: params.vlans.map((v) => v.id) };
+  },
+});
+
+const ROUTER_FAULTS = ['wrong_dot1q', 'wrong_gateway', 'router_physical_down', 'missing_subinterface', 'missing_allowed_vlan', 'uplink_access'];
+
+const TEMPLATE_ROUTER_FAULT = defineMissionTemplate({
+  id: 'cisco-router-fault',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.vlan.verify',
+    'cisco.switching.trunking',
+    'cisco.routing.router_interface.configure',
+    'cisco.routing.inter_vlan.subinterface',
+    'cisco.routing.inter_vlan.encapsulation_dot1q',
+    'cisco.routing.inter_vlan.gateway',
+    'cisco.routing.inter_vlan.troubleshoot',
+  ],
+  unlockedBy: ['cisco-main-003'],
+  archetypes: [MISSION_ARCHETYPE.DIAGNOSE, MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.INCIDENT],
+  contexts: ['kein_zugriff', 'falsches_netz', 'langsam'],
+  allowedChannels: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.routing.inter_vlan.troubleshoot': defineHintLadder({
+      subskillPath: 'cisco.routing.inter_vlan.troubleshoot',
+      nudge: 'Ein Fehler verhindert das Inter-VLAN-Routing.',
+      focus: 'Prüfe Schritt für Schritt: Uplink-Trunk, Router-Physikinterface, Subinterfaces, Encapsulation, Gateway-IP.',
+      directive: 'show interfaces trunk\nshow ip interface brief\nshow running-config',
+      solution: { answer: 'Vergleiche Subinterfaces, Encapsulation-VLAN, Gateway-IP und Trunk-Allowed-Liste mit dem Auftrag.', explanation: 'Ein einzelner falscher Wert an einer dieser Stellen unterbricht die Kommunikation für das betroffene VLAN.' },
+    }),
+  },
+  resolveParameters(rng) {
+    const vlans = buildVlanListForRouter(rng, 2);
+    const faultId = pickFrom(rng, ROUTER_FAULTS);
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    const routerHostname = pickFrom(rng, STAGE3_ROUTER_HOSTNAMES);
+    return { hostname, routerHostname, vlans, uplinkPort: 'GigabitEthernet0/1', routerPhysicalPort: 'GigabitEthernet0/0', faultId };
+  },
+  buildDevice(params) {
+    const device = createCiscoDevice({ profile: 'router_on_a_stick', hostname: params.hostname });
+    params.vlans.forEach((v) => {
+      device.runningConfig.vlans[v.id] = { id: v.id, name: v.name };
+      v.accessPorts.forEach((id) => {
+        const iface = device.runningConfig.interfaces[id];
+        if (iface) {
+          iface.operationalStatus = 'connected';
+          iface.administrativelyDown = false;
+          iface.switchportMode = 'access';
+          iface.accessVlan = v.id;
+        }
+      });
+    });
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+    uplink.switchportMode = 'trunk';
+    uplink.trunkAllowedVlans = params.vlans.map((v) => v.id);
+    const physical = device.runningConfig.interfaces[params.routerPhysicalPort];
+    physical.operationalStatus = 'notconnect';
+    physical.administrativelyDown = false;
+    params.vlans.forEach((v) => {
+      const sub = createSubinterface(params.routerPhysicalPort, String(v.id));
+      device.runningConfig.interfaces[sub.id] = sub;
+      sub.encapsulationVlan = v.id;
+      sub.encapsulationDot1q = true;
+      sub.ipv4 = v.gateway;
+      sub.mask = v.mask;
+      sub.administrativelyDown = false;
+    });
+    const [firstVlan, secondVlan] = params.vlans;
+    switch (params.faultId) {
+      case 'wrong_dot1q': {
+        const sub = device.runningConfig.interfaces[`${params.routerPhysicalPort}.${firstVlan.id}`];
+        if (sub) sub.encapsulationVlan = secondVlan.id;
+        break;
+      }
+      case 'wrong_gateway': {
+        const sub = device.runningConfig.interfaces[`${params.routerPhysicalPort}.${firstVlan.id}`];
+        if (sub) sub.ipv4 = secondVlan.gateway;
+        break;
+      }
+      case 'router_physical_down': {
+        physical.administrativelyDown = true;
+        break;
+      }
+      case 'missing_subinterface': {
+        delete device.runningConfig.interfaces[`${params.routerPhysicalPort}.${firstVlan.id}`];
+        break;
+      }
+      case 'missing_allowed_vlan': {
+        uplink.trunkAllowedVlans = [firstVlan.id];
+        break;
+      }
+      case 'uplink_access': {
+        uplink.switchportMode = 'access';
+        uplink.accessVlan = firstVlan.id;
+        uplink.trunkAllowedVlans = null;
+        break;
+      }
+      default:
+        break;
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    return evaluateRouterOnAStick(device, params);
+  },
+  buildTitle(params, archetype) {
+    return archetype === MISSION_ARCHETYPE.INCIDENT ? `Inter-VLAN-Ausfall auf ${params.hostname}` : `Inter-VLAN-Fehler auf ${params.hostname}`;
+  },
+  buildBriefing(params, archetype, context, difficulty) {
+    const vlanList = params.vlans.map((v) => `- VLAN ${v.id} ${v.name}: ${v.network}/24, Gateway ${v.gateway}`).join('\n');
+    const faultText = {
+      wrong_dot1q: 'Ein Subinterface scheint die falsche VLAN-ID zu taggen.',
+      wrong_gateway: 'Ein Subinterface hat offenbar die falsche IP-Adresse.',
+      router_physical_down: 'Das Router-Physikinterface ist unerwartet down.',
+      missing_subinterface: 'Für ein VLAN fehlt das Subinterface komplett.',
+      missing_allowed_vlan: 'Ein VLAN fehlt auf dem Trunk.',
+      uplink_access: 'Der Uplink ist nicht als Trunk, sondern als Access-Port konfiguriert.',
+    }[params.faultId] || 'Eine Konfiguration verhindert das Routing zwischen VLANs.';
+    if (difficulty === DIFFICULTY_PROFILE.EASY) {
+      return `Auf ${params.hostname} funktioniert das Inter-VLAN-Routing nicht mehr.\n\n${vlanList}\n\nHinweis: ${faultText} Finde und behebe den Fehler.`;
+    }
+    return `Mitarbeiter melden auf ${params.hostname}, dass sie Ressourcen im anderen VLAN nicht erreichen.\n\n${vlanList}\n\nDiagnostiziere das Problem und behebe es.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return { skillGroup: 'inter_vlan', archetype, context, hostname: params.hostname, faultId: params.faultId };
+  },
+});
+
 export const TEMPLATE_REGISTRY = {
   [TEMPLATE_BASIC_CONFIG_HARDENING.id]: TEMPLATE_BASIC_CONFIG_HARDENING,
   [TEMPLATE_VLAN_ACCESS_PORT.id]: TEMPLATE_VLAN_ACCESS_PORT,
+  [TEMPLATE_VLAN_ACCESS_RANGE.id]: TEMPLATE_VLAN_ACCESS_RANGE,
+  [TEMPLATE_VLAN_MOVE.id]: TEMPLATE_VLAN_MOVE,
+  [TEMPLATE_TRUNK_UPLINK.id]: TEMPLATE_TRUNK_UPLINK,
+  [TEMPLATE_TRUNK_ALLOWED_VLAN.id]: TEMPLATE_TRUNK_ALLOWED_VLAN,
+  [TEMPLATE_ROUTER_ON_A_STICK.id]: TEMPLATE_ROUTER_ON_A_STICK,
+  [TEMPLATE_ROUTER_FAULT.id]: TEMPLATE_ROUTER_FAULT,
 };
 
 export function getTemplate(id) {
