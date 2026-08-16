@@ -136,30 +136,34 @@ export default function Onboarding() {
         <DraggableWindow
           initialPosition="bottom-center"
           resetKey={step}
-          className="inset-x-4 mx-auto max-h-[36dvh] max-w-sm overflow-y-auto rounded-2xl border border-[#00f0ff] bg-[#0d1117] p-4 shadow-[0_0_3rem_rgba(0,240,255,0.3)]"
+          className="inset-x-4 mx-auto max-h-[70dvh] max-w-sm rounded-2xl border border-[#00f0ff] bg-[#0d1117] p-0 shadow-[0_0_3rem_rgba(0,240,255,0.3)] flex flex-col"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {portrait ? <img src={portrait} alt={current.person} className="h-10 w-10 rounded-full border border-[#00f0ff] object-cover" draggable={false} /> : null}
-              <div>
-                <div className="text-xs text-[#00f0ff]">{current.person}</div>
-                <h3 className="mt-0.5 text-sm font-bold text-white">{current.title}</h3>
+          <div className="flex flex-col h-full max-h-[70dvh]">
+            <div className="flex-shrink-0 flex items-start justify-between gap-3 p-4 pb-0">
+              <div className="flex items-center gap-3">
+                {portrait ? <img src={portrait} alt={current.person} className="h-10 w-10 rounded-full border border-[#00f0ff] object-cover" draggable={false} /> : null}
+                <div>
+                  <div className="text-xs text-[#00f0ff]">{current.person}</div>
+                  <h3 className="mt-0.5 text-sm font-bold text-white">{current.title}</h3>
+                </div>
               </div>
+              {!isLastStep && (
+                <button onClick={() => setMinimized(true)} className="text-[#8b949e] hover:text-white" aria-label="Tutorialfenster schließen">
+                  <X size={18} />
+                </button>
+              )}
             </div>
-            {!isLastStep && (
-              <button onClick={() => setMinimized(true)} className="text-[#8b949e] hover:text-white" aria-label="Tutorialfenster schließen">
-                <X size={18} />
-              </button>
-            )}
-          </div>
 
-          <div className="mt-2 space-y-1.5">
-            {current.lines.map((line, i) => (
-              <p key={i} className="text-xs text-[#c9d1d9] leading-relaxed">{line}</p>
-            ))}
-          </div>
+            <div
+              className="flex-1 min-h-0 overflow-y-auto touch-auto p-4 space-y-1.5"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {current.lines.map((line, i) => (
+                <p key={i} className="text-xs text-[#c9d1d9] leading-relaxed">{line}</p>
+              ))}
+            </div>
 
-          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex-shrink-0 mt-auto p-4 pt-0 flex flex-col gap-2">
             {current.finish ? (
               <button onClick={() => finish(true)} className="cyber-btn w-full py-2 text-xs flex items-center justify-center gap-2">
                 <Icon size={14} /> Erste Mission starten
@@ -179,12 +183,13 @@ export default function Onboarding() {
                 Tutorial überspringen
               </button>
             )}
-          </div>
+            </div>
 
-          <div className="mt-3 flex items-center justify-center gap-1">
-            {ONBOARDING_STEPS.map((_, i) => (
-              <div key={i} className={`h-1 w-1 rounded-full ${i === step ? 'bg-[#00f0ff]' : 'bg-[#8b949e]/40'}`} />
-            ))}
+            <div className="flex-shrink-0 p-4 pt-0 flex items-center justify-center gap-1">
+              {ONBOARDING_STEPS.map((_, i) => (
+                <div key={i} className={`h-1 w-1 rounded-full ${i === step ? 'bg-[#00f0ff]' : 'bg-[#8b949e]/40'}`} />
+              ))}
+            </div>
           </div>
         </DraggableWindow>
       )}

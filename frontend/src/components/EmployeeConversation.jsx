@@ -1,22 +1,49 @@
 import { useState, useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, MessageCircle, User, GraduationCap, RotateCcw } from 'lucide-react';
+import {
+  CheckCircle, XCircle, MessageCircle, User, GraduationCap, RotateCcw,
+} from 'lucide-react';
 import { characterAsset } from '../lib/rpgAssets';
 import { evaluateEmployeeAnswer, advanceConversation, getConversationSummary } from '../lib/employeeConversations';
 import { speakAs } from '../lib/speechSynthesis';
-
-function formatSpeechText(employee, text) {
-  // Strip speaker name prefix if present; the UI already shows the name.
-  return text.replace(/^[^\wäöüÄÖÜß]+?:\s*/, '');
-}
+import ConversationOrdering from './ConversationOrdering';
+import ConversationMatching from './ConversationMatching';
 
 function openAcademyTopic(categoryId, topicId) {
   const path = `/academy/${categoryId}/${topicId}`;
   window.location.href = path;
 }
 
+function ConversationMc({ question, disabled, onAnswer }) {
+  const [selected, setSelected] = useState(null);
+  return (
+    <div className="flex flex-col gap-2">
+      {question.options.map((opt) => (
+        <button
+          key={opt.id}
+          disabled={disabled}
+          onClick={() => !disabled && setSelected(opt.id)}
+          className={`text-left p-2.5 rounded-lg border text-sm transition-all ${
+            selected === opt.id
+              ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-[#c9d1d9]'
+              : 'border-[#30363d] bg-[#0d1117]/60 text-[#c9d1d9] hover:bg-[#21262d]'
+          }`}>
+          {opt.label}
+        </button>
+      ))}
+      {!disabled && (
+        <button
+          disabled={selected === null}
+          onClick={() => onAnswer(selected)}
+          className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+          Antworten
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function EmployeeConversation({ conversation: initialConversation, onComplete }) {
   const [conversation, setConversation] = useState(initialConversation);
-  const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -27,8 +54,8 @@ export default function EmployeeConversation({ conversation: initialConversation
 
   useEffect(() => {
     const text = transition ? `${transition} „${question.text}“` : `„${intro}“ Und zwar: „${question.text}“`;
-    speakAs(`${employee.name}: ${text}`, { speakerId: employee.id, speechText: formatSpeechText(employee, text) });
-  }, [employee, intro, transition, question.text]);
+    speakAs(`${employee.name}: ${text}`, { speakerId: employee.id, speechText: text });
+  }, [employee, intro, transition, question.instanceId, question.text]);
 
   useEffect(() => {
     if (submitted && resultRef.current) {
@@ -36,25 +63,17 @@ export default function EmployeeConversation({ conversation: initialConversation
     }
   }, [submitted]);
 
-  function handleSubmit() {
-    if (selected === null) return;
-    const evaluation = evaluateEmployeeAnswer(conversation, selected);
+  function handleAnswer(answer) {
+    const evaluation = evaluateEmployeeAnswer(conversation, answer);
     setResult(evaluation);
     setSubmitted(true);
 
-    if (evaluation.correct) {
-      const reaction = evaluation.employeeReaction;
-      speakAs(reaction, { speakerId: employee.id, speechText: formatSpeechText(employee, reaction) });
-    } else {
-      const reaction = evaluation.employeeReaction;
-      speakAs(reaction, { speakerId: employee.id, speechText: formatSpeechText(employee, reaction) });
-      if (evaluation.samStageDirection) {
-        const samText = `${evaluation.samStageDirection} ${evaluation.samExplanation}`;
-        // Small delay so the employee reaction and Sam explanation do not overlap.
-        setTimeout(() => {
-          speakAs(samText, { speakerId: 'sam', speechText: samText.replace(/^[^.]+\.\s*/, '') });
-        }, 1200);
-      }
+    speakAs(evaluation.employeeReaction, { speakerId: employee.id, speechText: evaluation.employeeReaction });
+    if (!evaluation.correct) {
+      const samText = `${evaluation.samStageDirection} ${evaluation.samExplanation}`;
+      setTimeout(() => {
+        speakAs(samText, { speakerId: 'sam', speechText: samText.replace(/^[^.]+\.\s*/, '') });
+      }, 1200);
     }
   }
 
@@ -63,13 +82,22 @@ export default function EmployeeConversation({ conversation: initialConversation
     if (next.state === 'summary') {
       setSummary(getConversationSummary(conversation));
       const bye = pickGoodbye();
-      speakAs(bye, { speakerId: conversation.employee.id, speechText: formatSpeechText(conversation.employee, bye) });
+      speakAs(bye, { speakerId: conversation.employee.id, speechText: bye });
     } else {
       setConversation({ ...next.conversation });
-      setSelected(null);
       setSubmitted(false);
       setResult(null);
     }
+  }
+
+  function renderQuestionInput() {
+    if (question.type === 'ordering') {
+      return <ConversationOrdering question={question} disabled={submitted} onAnswer={handleAnswer} />;
+    }
+    if (question.type === 'matching') {
+      return <ConversationMatching question={question} disabled={submitted} onAnswer={handleAnswer} />;
+    }
+    return <ConversationMc question={question} disabled={submitted} onAnswer={handleAnswer} />;
   }
 
   function pickGoodbye() {
@@ -158,30 +186,7 @@ export default function EmployeeConversation({ conversation: initialConversation
         <div className="text-[10px] uppercase tracking-widest text-[#8b949e] mb-3 flex items-center gap-1">
           <MessageCircle size={12} /> Deine Antwort
         </div>
-        <div className="flex flex-col gap-2">
-          {question.options.map((opt, idx) => (
-            <button
-              key={idx}
-              disabled={submitted}
-              onClick={() => !submitted && setSelected(idx)}
-              className={`text-left p-2.5 rounded-lg border text-sm transition-all ${
-                selected === idx
-                  ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-[#c9d1d9]'
-                  : 'border-[#30363d] bg-[#0d1117]/60 text-[#c9d1d9] hover:bg-[#21262d]'
-              } ${submitted && idx === question.correct ? 'border-[#00ff66]/70 bg-[#00ff66]/10' : ''} ${submitted && selected === idx && idx !== question.correct ? 'border-[#ff3355]/70 bg-[#ff3355]/10' : ''}`}>
-              {opt}
-            </button>
-          ))}
-        </div>
-
-        {!submitted && (
-          <button
-            disabled={selected === null}
-            onClick={handleSubmit}
-            className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-            Antworten
-          </button>
-        )}
+        {renderQuestionInput()}
       </div>
 
       {submitted && result && (

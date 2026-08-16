@@ -45,10 +45,19 @@ function personalizedIntro(person) {
   return fn ? fn(person.name) : `${person.name} fragt:`;
 }
 
+function pruneInbox(state, keepResolved = 3) {
+  const resolved = (state.inbox || []).filter((item) => item.resolved && !item.archived)
+    .sort((a, b) => (b.resolvedAt || 0) - (a.resolvedAt || 0));
+  for (const item of resolved.slice(keepResolved)) {
+    item.archived = true;
+  }
+}
+
 export function ensureInbox() {
   const state = readGameState();
+  pruneInbox(state, 3);
   const today = new Date().toISOString().slice(0, 10);
-  const unresolved = (state.inbox || []).filter((item) => !item.resolved);
+  const unresolved = (state.inbox || []).filter((item) => !item.resolved && !item.archived);
   if (state.lastEventDate === today) return unresolved;
   const specializationTopics = { 'Netzwerk': ['DNS', 'DHCP', 'Netzwerk'], 'Windows/AD': ['Berechtigungen', 'Active Directory'], 'Linux': ['Linux'], 'Security': ['IT-Sicherheit', 'Backup'], 'Automatisierung': ['PowerShell', 'Automatisierung'], 'Datenbanken': ['Datenbanken', 'SQL'] };
   const preferred = specializationTopics[state.specialization] || [];
@@ -75,8 +84,10 @@ export function ensureInbox() {
       personTone: person.tone,
       personIntro: channel === 'monitor' ? null : personalizedIntro(person),
       variant,
+      countsTowardStoryGate: true,
       createdAt: Date.now() + index,
       resolved: false,
+      archived: false,
     });
   }
   state.inbox = [...unresolved, ...generated].slice(-8);
@@ -103,6 +114,11 @@ export function resolveSideMission(id, correct) {
   state.sideMissionsResolved += 1;
   state.careerXp += correct ? 20 : 8;
   if (!state.completedSideMissions.includes(id)) state.completedSideMissions.push(id);
+  if (!state.sideMissionHistory) state.sideMissionHistory = {};
+  state.sideMissionHistory[id] = {
+    completedAt: Date.now(),
+    countsTowardStoryGate: mission.countsTowardStoryGate !== false,
+  };
   if (correct) {
     const academyRef = academyTopicForSideMission(mission.topic);
     if (academyRef) applySideMission(academyRef.categoryId, academyRef.topicId);
@@ -114,7 +130,16 @@ export function inboxMission(id) {
   return readGameState().inbox.find((item) => item.id === id);
 }
 
+export function getVisibleInbox() {
+  const state = readGameState();
+  pruneInbox(state, 3);
+  writeGameState(state);
+  return (state.inbox || [])
+    .filter((item) => !item.archived)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
 export function sortedInbox() {
-  const rank = { P1: 1, P2: 2, P3: 3 };
-  return ensureInbox().sort((a, b) => rank[a.priority] - rank[b.priority] || a.createdAt - b.createdAt);
+  ensureInbox();
+  return getVisibleInbox();
 }

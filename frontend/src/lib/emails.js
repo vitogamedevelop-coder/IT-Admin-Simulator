@@ -36,3 +36,22 @@ export function emailById(id) {
 export function unreadEmailCount() {
   return readEmails().filter((e) => !e.read).length;
 }
+
+export function archiveEmail(id) {
+  const emails = readEmails().map((e) => (e.id === id ? { ...e, archived: true } : e));
+  writeEmails(emails);
+  return emails;
+}
+
+export function archiveOldCompletedEmails(isCompletedFn, keep = 3) {
+  const emails = readEmails();
+  const completed = emails
+    .map((e, i) => ({ email: e, index: i }))
+    .filter(({ email }) => isCompletedFn(email) && !email.archived)
+    .sort((a, b) => (b.email.date || 0) - (a.email.date || 0));
+  const toArchive = new Set(completed.slice(keep).map(({ email }) => email.id));
+  if (toArchive.size === 0) return emails;
+  const next = emails.map((e) => (toArchive.has(e.id) ? { ...e, archived: true } : e));
+  writeEmails(next);
+  return next;
+}

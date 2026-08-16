@@ -13,7 +13,7 @@ import {
   getSubskill, recordSkillEvent, readSkillEvents, listAllSubskills,
   SKILL_DIMENSION, SKILL_SOURCE, COMPETENCY_STATE,
 } from './skillTree.js';
-import { readGameState } from './gameState.js';
+import { readGameState, hasMissionDelivery, recordMissionDelivery } from './gameState.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
 import { readEmails, writeEmails } from './emails.js';
 import {
@@ -401,6 +401,19 @@ export function isImmediateRepeat(combo, history = readHistory()) {
     && JSON.stringify(last.centralParam) === JSON.stringify(combo.centralParam);
 }
 
+function hasOpenDuplicate(candidate) {
+  const instances = readInstances();
+  for (const inst of Object.values(instances)) {
+    if (!OPEN_STATUSES.includes(inst.status)) continue;
+    if (inst.templateId !== candidate.templateId) continue;
+    if (inst.archetype !== candidate.archetype) continue;
+    if (inst.context !== candidate.context) continue;
+    if (JSON.stringify(inst.centralParam) !== JSON.stringify(candidate.centralParam)) continue;
+    return true;
+  }
+  return false;
+}
+
 // ============================================================================
 // Validator (item 14)
 // ============================================================================
@@ -429,6 +442,9 @@ export function validateMissionInstance(candidate, template, state) {
   }
   if (isImmediateRepeat({ skillPath: candidate.skillIds[0], archetype: candidate.archetype, context: candidate.context, centralParam: candidate.centralParam })) {
     reasons.push('immediate_repetition');
+  }
+  if (hasOpenDuplicate(candidate)) {
+    reasons.push('active_duplicate');
   }
 
   // Device-state sanity (Cisco-specific, item 15): every referenced
@@ -553,6 +569,7 @@ const CHANNEL_PERSONA = {
 
 export function deliverMissionInstance(instance) {
   const linkedMissionId = proceduralMissionId(instance.instanceId);
+  if (hasMissionDelivery(instance.instanceId, instance.channel)) return false;
   const persona = CHANNEL_PERSONA[instance.channel] || CHANNEL_PERSONA[MISSION_CHANNEL.EMAIL];
 
   if (instance.channel === MISSION_CHANNEL.EMAIL) {
@@ -584,6 +601,7 @@ export function deliverMissionInstance(instance) {
     enqueue(notification);
   }
 
+  recordMissionDelivery(instance.instanceId, instance.channel);
   registerMission({ instanceId: instance.instanceId, questId: instance.templateId, source: instance.channel, title: instance.title });
   return instance;
 }

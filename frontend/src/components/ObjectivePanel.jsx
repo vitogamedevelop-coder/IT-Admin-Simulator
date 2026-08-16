@@ -278,7 +278,7 @@ export default function ObjectivePanel({ overrideObjective = null }) {
       </div>
 
       {expanded && (
-        <div className="mt-2 rounded-xl border border-[#00f0ff]/30 bg-[#0d1117]/95 p-3 shadow-[0_0_1.5rem_rgba(0,240,255,0.2)] backdrop-blur-sm">
+        <div className="mt-2 max-h-[60dvh] overflow-y-auto rounded-xl border border-[#00f0ff]/30 bg-[#0d1117]/95 p-3 shadow-[0_0_1.5rem_rgba(0,240,255,0.2)] backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-wider text-[#8b949e]">Position</span>
             <button

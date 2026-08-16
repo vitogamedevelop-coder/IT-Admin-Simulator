@@ -36,6 +36,8 @@ const initialState = {
   sideMissionsResolved: 0,
   inbox: [],
   completedSideMissions: [],
+  sideMissionHistory: {},
+  deliveredMissionInstances: [],
   generatedTicketHistory: [],
   runbooks: [],
   specialization: null,
@@ -102,6 +104,19 @@ function migrateState(saved) {
     // Phase 1F introduces main mission 002 and the L2 security side mission.
     // Old quest gate placeholder is replaced by the real main mission ID.
     migrated.completedQuests = (saved.completedQuests || []).map((id) => (id === 'cisco-main-002-gate' ? 'cisco-main-002' : id));
+  }
+  if (!saved.stateVersion || saved.stateVersion < 9) {
+    migrated.stateVersion = 9;
+    // Phase 1I.2.4: track completed side-mission metadata and delivered
+    // procedural deliveries so the story gate and delivery layer have a
+    // single, idempotent source of truth.
+    migrated.sideMissionHistory = saved.sideMissionHistory || {};
+    for (const id of saved.completedSideMissions || []) {
+      if (!migrated.sideMissionHistory[id]) {
+        migrated.sideMissionHistory[id] = { completedAt: Date.now(), countsTowardStoryGate: true };
+      }
+    }
+    migrated.deliveredMissionInstances = saved.deliveredMissionInstances || [];
   }
   return migrated;
 }
@@ -205,6 +220,8 @@ export function completeCiscoSideMission(missionId, result) {
   const state = readGameState();
   if (!state.completedCiscoSideMissions) state.completedCiscoSideMissions = [];
   if (!state.completedCiscoSideMissions.includes(missionId)) state.completedCiscoSideMissions.push(missionId);
+  if (!state.sideMissionHistory) state.sideMissionHistory = {};
+  state.sideMissionHistory[missionId] = { completedAt: Date.now(), countsTowardStoryGate: true };
   state.careerXp += result.xp || 20;
   Object.entries(result.reputation || {}).forEach(([key, amount]) => {
     state.reputation[key] = Math.max(0, Math.min(100, (state.reputation[key] || 50) + amount));
@@ -215,6 +232,26 @@ export function completeCiscoSideMission(missionId, result) {
 export function ciscoSideMissionsCompleted() {
   const state = readGameState();
   return state.completedCiscoSideMissions || [];
+}
+
+function deliveryKey(instanceId, channel) {
+  return `${instanceId}:${channel}`;
+}
+
+export function hasMissionDelivery(instanceId, channel) {
+  const state = readGameState();
+  return (state.deliveredMissionInstances || []).includes(deliveryKey(instanceId, channel));
+}
+
+export function recordMissionDelivery(instanceId, channel) {
+  const state = readGameState();
+  if (!state.deliveredMissionInstances) state.deliveredMissionInstances = [];
+  const key = deliveryKey(instanceId, channel);
+  if (!state.deliveredMissionInstances.includes(key)) {
+    state.deliveredMissionInstances.push(key);
+    writeGameState(state);
+  }
+  return state;
 }
 
 export function setActiveQuest(id) {

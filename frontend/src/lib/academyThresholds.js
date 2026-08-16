@@ -35,6 +35,7 @@ export const ACTIVITY_SCORE_DELTAS = {
   sideMission: { retention: 6 },
   quizTheory: { theory: 2 },
   quizRetention: { retention: 2 },
+  conversationPractice: { practice: 4 },
   // TRANSITIONAL: reflection's "diagnostic understanding" bonus is folded
   // into retentionScore for now, since no dedicated diagnosticScore field
   // exists in the data model yet. See academyEngine.applyReflectionBonus.

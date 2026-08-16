@@ -1,7 +1,7 @@
 {
   "name": "it-admin-simulator",
   "private": true,
-  "version": "1.27.3",
+  "version": "1.27.5",
   "type": "module",
   "scripts": {
     "dev": "vite",

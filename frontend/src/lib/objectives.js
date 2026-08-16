@@ -36,6 +36,18 @@ export const FUNDAMENTALS_COURSE_ORDER = [
 
 const SIDE_MISSIONS_PER_MAIN_QUEST = 2;
 
+// Central set of side-mission IDs that have been completed and count toward
+// the next main-mission gate. Combines fixed Cisco side missions and
+// procedural side missions, de-duplicated, and respects countsTowardStoryGate.
+export function getCompletedProgressSideMissions(state = readGameState()) {
+  const set = new Set();
+  for (const id of state.completedCiscoSideMissions || []) set.add(id);
+  for (const [id, rec] of Object.entries(state.sideMissionHistory || {})) {
+    if (rec && rec.countsTowardStoryGate !== false) set.add(id);
+  }
+  return set;
+}
+
 function byCourseOrder(a, b) {
   const ai = FUNDAMENTALS_COURSE_ORDER.indexOf(topicKey(a.categoryId, a.topicId));
   const bi = FUNDAMENTALS_COURSE_ORDER.indexOf(topicKey(b.categoryId, b.topicId));
@@ -116,23 +128,24 @@ export function getRecommendedLearningTopic() {
 export function getNextMainMission() {
   const state = readGameState();
   const completed = state.completedQuests || [];
-  const sideCount = (state.completedSideMissions || []).length;
-  const ciscoSideCount = (state.completedCiscoSideMissions || []).length;
-  const totalSideCount = sideCount + ciscoSideCount;
-  const completedCiscoSide = new Set(state.completedCiscoSideMissions || []);
+  const completedProgressSides = getCompletedProgressSideMissions(state);
 
   const ordered = quests.slice().sort((a, b) => a.chapter - b.chapter);
   for (const quest of ordered) {
     if (completed.includes(quest.id)) continue;
     const previousDone = (quest.requires || []).every((id) => completed.includes(id));
     const requiredCiscoSides = quest.sideMissionsRequired || [];
-    const neededSide = requiredCiscoSides.length
-      ? requiredCiscoSides.length
-      : Math.max(0, (quest.chapter - 1) * SIDE_MISSIONS_PER_MAIN_QUEST);
-    const missingCiscoSides = requiredCiscoSides.filter((id) => !completedCiscoSide.has(id));
-    const missingSideCount = requiredCiscoSides.length
-      ? missingCiscoSides.length
-      : Math.max(0, neededSide - totalSideCount);
+    const defaultNeeded = Math.max(0, (quest.chapter - 1) * SIDE_MISSIONS_PER_MAIN_QUEST);
+    // sideMissionsRequiredCount lets a quest require N valid side missions,
+    // counting any completed mission that counts toward the story gate.
+    const neededSide = quest.sideMissionsRequiredCount ?? (requiredCiscoSides.length || defaultNeeded);
+    const completedSpecific = Math.min(neededSide, requiredCiscoSides.filter((id) => completedProgressSides.has(id)).length);
+    const completedAny = Math.min(neededSide, completedProgressSides.size);
+    // Prefer progress against the listed required missions, but allow any
+    // valid side mission to fill the gate if enough of them were completed.
+    const completedTowardGate = Math.max(completedSpecific, completedAny);
+    const missingSideCount = Math.max(0, neededSide - completedTowardGate);
+    const missingSpecific = requiredCiscoSides.filter((id) => !completedProgressSides.has(id));
     const missingSide = missingSideCount > 0;
     const isGate = quest.gate;
     const missingPrevious = (quest.requires || []).filter((id) => !completed.includes(id));
@@ -148,7 +161,8 @@ export function getNextMainMission() {
       quest,
       available: !locked,
       reasons: locked ? reasons : [],
-      sideProgress: { completed: requiredCiscoSides.length ? requiredCiscoSides.length - missingCiscoSides.length : totalSideCount, needed: neededSide },
+      sideProgress: { completed: completedTowardGate, needed: neededSide },
+      missingSpecific,
     };
   }
   return null;
@@ -279,7 +293,7 @@ function relevanceForMain(main) {
 function relevanceForSide(side, state) {
   if (!side || side.length === 0) return RELEVANCE_TIER.NONE;
   // Cisco side missions are progress-relevant until the next main gate is satisfied.
-  const completed = (state.completedSideMissions || []).length + (state.completedCiscoSideMissions || []).length;
+  const completed = getCompletedProgressSideMissions(state).size;
   const nextMain = getNextMainMission();
   const needed = nextMain ? nextMain.sideProgress?.needed || 0 : 0;
   const progressRelevant = nextMain && nextMain.quest?.gate && completed < needed;

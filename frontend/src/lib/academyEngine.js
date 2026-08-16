@@ -27,6 +27,7 @@
 import { ACADEMY_TOPICS, TOPIC_STATUS, resolvePrerequisiteRef, topicKey } from './academyTopics.js';
 import { ACADEMY_THRESHOLDS, ACTIVITY_SCORE_DELTAS, SCORE_MIN, SCORE_MAX, PLACEMENT_PASS_SCORE } from './academyThresholds.js';
 import { readAcademyProgress, writeAcademyProgress, updateTopicProgress, getTopicProgress } from './academyProgress.js';
+import { hasConversationMastery } from './conversationMastery.js';
 
 // Ranks used to enforce monotonic (never-downgrade) status progression once
 // a topic is unlocked (LOCKED/AVAILABLE are handled separately, since they
@@ -94,11 +95,15 @@ export function computeNextStatus(progress) {
 export function prerequisitesMet(topicDef, progressByKey) {
   return topicDef.prerequisites.every((ref) => {
     const { categoryId, topicId: tid } = resolvePrerequisiteRef(topicDef.categoryId, ref);
-    const prereqProgress = progressByKey[topicKey(categoryId, tid)];
+    const prereqKey = topicKey(categoryId, tid);
+    const prereqProgress = progressByKey[prereqKey];
     if (!prereqProgress) return false;
     if (rankOf(prereqProgress.status) >= rankOf(TOPIC_STATUS.LEARNED)) return true;
     if ((prereqProgress.lessonCompletions || 0) >= 1) return true;
-    return topicOverallProgress(prereqProgress) >= 15;
+    if (topicOverallProgress(prereqProgress) >= 15) return true;
+    // Conversation practice can also demonstrate enough competency to unlock
+    // the next topic, as long as the successes were independent (not via Sam).
+    return hasConversationMastery(prereqKey, { minCorrect: 3, minUniqueConcepts: 2 });
   });
 }
 
@@ -205,10 +210,10 @@ export function applySideMission(categoryId, topicId, amount = ACTIVITY_SCORE_DE
   return applyToTopic(categoryId, topicId, { retention: amount }, { repetition: true });
 }
 
-// Informal employee hallway conversation -> small retention bump, no repetition
+// Informal employee hallway conversation -> small practice bump, no repetition
 // event (those only come from deliberate side-mission practice).
-export function applyConversationPractice(categoryId, topicId, amount = 3) {
-  return applyToTopic(categoryId, topicId, { retention: amount }, { conversation: true });
+export function applyConversationPractice(categoryId, topicId, amount = ACTIVITY_SCORE_DELTAS.conversationPractice.practice) {
+  return applyToTopic(categoryId, topicId, { practice: amount }, { conversation: true });
 }
 
 // Quiz -> theoryScore OR retentionScore depending on the quiz's intent.

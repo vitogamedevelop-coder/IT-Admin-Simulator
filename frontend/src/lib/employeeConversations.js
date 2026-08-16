@@ -3,13 +3,17 @@ import { getTopicProgress, getFullTopic } from './academyProgress.js';
 import { topicOverallProgress, isTopicMastered, applyConversationPractice } from './academyEngine.js';
 import { randomConversationPartner } from './officeWorld.js';
 import { readAcademyMode, LEARNING_MODES } from './academyMode.js';
+import { OSI_LAYERS } from './academyLessons/osi.js';
+import { SKILL_DIMENSION, SKILL_SOURCE, recordSkillEvent } from './skillTree.js';
+import { recordConversationResult, resetConversationMastery } from './conversationMastery.js';
 
 // =============================================================================
 // NEXUS Mitarbeitergespräche – adaptive Wiederholung im Flur (Phase 1I / 1I.2).
 //
 // Eine Begegnung ist jetzt ein echtes Gespräch mit 1–5 bewerteten Fragen,
 // thematischen Übergängen, Character-Voices, Sam-Eingriffen nach Fehlern,
-// Frage-Cooldown und einer Abschlussauswertung mit Academy-Deep-Links.
+// Frage-Cooldown, verschiedenen Aufgabentypen und einer Abschlussauswertung
+// mit Academy-Deep-Links.
 // =============================================================================
 
 const SESSION_KEY = 'cyberlearn:employee-conversations-v2';
@@ -23,6 +27,10 @@ const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'];
 // artificially locked out of hallway conversations.
 const CORRECT_COOLDOWN_MS = 3 * 60 * 1000;
 const INCORRECT_COOLDOWN_MS = 10 * 1000;
+
+// Prevent the same concept (e.g. "osi.layer_order") from appearing back-to-back
+// across sessions, without hard-locking the pool.
+const CONCEPT_COOLDOWN_MS = 2 * 60 * 1000;
 
 function clampDifficulty(d) {
   return DIFFICULTY_ORDER[Math.max(0, Math.min(DIFFICULTY_ORDER.length - 1, DIFFICULTY_ORDER.indexOf(d)))] || 'medium';
@@ -103,8 +111,11 @@ function availableTopics() {
 
 function pickWeakestTopic(topics) {
   const nonMastered = topics.filter((t) => !t.mastered).sort((a, b) => a.overall - b.overall);
-  if (nonMastered.length) return nonMastered[0];
-  return topics.sort((a, b) => a.overall - b.overall)[0];
+  const pool = nonMastered.length ? nonMastered : topics.sort((a, b) => a.overall - b.overall);
+  // Randomize among the weakest candidates so restarts do not always pick the
+  // exact same topic first.
+  const top = pool.slice(0, Math.min(3, pool.length));
+  return top[Math.floor(Math.random() * top.length)];
 }
 
 function pickConversationLength() {
@@ -172,33 +183,151 @@ function pickSamStageDirection() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function shuffleArray(arr) {
+  const copy = arr.slice();
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function makeInstanceBase(topicKey, archetype) {
+  return {
+    instanceId: `${topicKey}::${archetype.id}::${Date.now()}::${Math.random().toString(36).slice(2, 7)}`,
+    archetypeId: archetype.id,
+    concept: archetype.concept,
+    type: archetype.type,
+    difficulty: archetype.difficulty,
+  };
+}
+
+function generateMcInstance(topicKey, archetype) {
+  const indexed = archetype.options.map((label, i) => ({ id: `opt-${i}`, label, originalIndex: i }));
+  const shuffled = shuffleArray(indexed);
+  const correctOptionId = shuffled.find((o) => o.originalIndex === archetype.correct).id;
+  return {
+    ...makeInstanceBase(topicKey, archetype),
+    text: archetype.text,
+    ttsText: archetype.text,
+    options: shuffled.map(({ id, label }) => ({ id, label })),
+    correctOptionId,
+    explanation: archetype.explanation,
+  };
+}
+
+function generateOsiOrderingInstance(topicKey, archetype) {
+  const direction = Math.random() < 0.5 ? 'top-down' : 'bottom-up';
+  const items = OSI_LAYERS.map((l) => ({ id: `osi-layer-${l.num}`, label: l.de }));
+  const correctOrderIds = direction === 'top-down'
+    ? items.slice().reverse().map((i) => i.id)
+    : items.map((i) => i.id);
+  const text = direction === 'top-down'
+    ? 'Wie lautet die Reihenfolge der OSI-Schichten von oben (Schicht 7) nach unten (Schicht 1)?'
+    : 'Wie lautet die Reihenfolge der OSI-Schichten von unten (Schicht 1) nach oben (Schicht 7)?';
+  return {
+    ...makeInstanceBase(topicKey, archetype),
+    text,
+    ttsText: text,
+    items: shuffleArray(items),
+    correctOrderIds,
+    explanation: 'Die OSI-Reihenfolge von oben nach unten ist: Anwendung, Darstellung, Sitzung, Transport, Vermittlung, Sicherung, Bitübertragung.',
+  };
+}
+
+function generateOsiMatchingInstance(topicKey, archetype) {
+  const leftItems = OSI_LAYERS.map((l) => ({ id: `osi-left-${l.num}`, label: `${l.num}. ${l.de}` }));
+  const rightItems = OSI_LAYERS.map((l) => ({ id: `osi-right-${l.num}`, label: l.examples.split(',')[0].trim() }));
+  const correctPairs = OSI_LAYERS.map((l) => ({ left: `osi-left-${l.num}`, right: `osi-right-${l.num}` }));
+  return {
+    ...makeInstanceBase(topicKey, archetype),
+    text: 'Ordne jeder OSI-Schicht ein typisches Merkmal zu.',
+    ttsText: 'Ordne jeder OSI-Schicht ein typisches Merkmal zu.',
+    leftItems,
+    rightItems: shuffleArray(rightItems),
+    correctPairs,
+    explanation: 'Jede OSI-Schicht hat charakteristische Aufgaben: Bitübertragung = physikalisches Signal, Sicherung = MAC/Frames, Vermittlung = IP/Routing, Transport = Ports/TCP/UDP, Sitzung = Dialogkontrolle, Darstellung = Format/Verschlüsselung, Anwendung = Dienste wie HTTP/DNS.',
+  };
+}
+
+export function buildInstance(topicKey, archetype) {
+  if (archetype.type === 'mc') return generateMcInstance(topicKey, archetype);
+  if (archetype.id === 'osi-ordering') return generateOsiOrderingInstance(topicKey, archetype);
+  if (archetype.id === 'osi-matching') return generateOsiMatchingInstance(topicKey, archetype);
+  if (archetype.generate) return archetype.generate(topicKey);
+  return null;
+}
+
+export function getArchetypes(topicData) {
+  if (topicData._archetypes) return topicData._archetypes;
+  const fromQuestions = (topicData.questions || []).map((q) => ({
+    id: q.id,
+    type: 'mc',
+    concept: q.concept || q.id,
+    difficulty: q.difficulty,
+    text: q.text,
+    options: q.options,
+    correct: q.correct,
+    explanation: q.explanation,
+  }));
+  const extra = (topicData.archetypes || []).map((a) => ({ ...a }));
+  topicData._archetypes = [...fromQuestions, ...extra];
+  return topicData._archetypes;
+}
+
+function historyKey(topicKey, archetypeId) {
+  return `${topicKey}/${archetypeId}`;
+}
+
 function pickQuestionForTopic(key, topicState, session, history) {
   const topicData = CONVERSATION_TOPICS[key];
-  if (!topicData || !topicData.questions.length) return null;
-  const now = Date.now();
-  const askedIds = new Set(session.questions.map((q) => q.questionId));
-  // Never repeat a question that is already part of the current session.
-  const usable = topicData.questions.filter((q) => !askedIds.has(q.id));
-  if (usable.length === 0) return null;
+  const archetypes = getArchetypes(topicData);
+  if (!archetypes.length) return null;
 
-  const cooled = usable.filter((q) => {
-    const h = history[q.id];
+  const now = Date.now();
+  const askedArchetypeIds = new Set((session.questions || []).map((q) => q.archetypeId));
+
+  const recentConcepts = new Set();
+  for (const q of (session.questions || [])) {
+    if (q.concept) recentConcepts.add(q.concept);
+  }
+  for (const h of Object.values(history)) {
+    if (now - h.askedAt < CONCEPT_COOLDOWN_MS && h.concept) {
+      recentConcepts.add(h.concept);
+    }
+  }
+
+  const usable = archetypes.filter((a) => {
+    if (askedArchetypeIds.has(a.id)) return false;
+    const hk = historyKey(key, a.id);
+    const h = history[hk];
     if (!h) return true;
     const cooldown = h.correct ? CORRECT_COOLDOWN_MS : INCORRECT_COOLDOWN_MS;
     return now - h.askedAt >= cooldown;
   });
 
-  // Prefer questions matching the current difficulty, otherwise any cooled one.
-  const pool = cooled.length
-    ? cooled
-    // Absolute fallback: if every usable question is still on cooldown, reuse
-    // the least recently asked one so the conversation never hard-locks.
-    : usable.slice().sort((a, b) => (history[a.id]?.askedAt || 0) - (history[b.id]?.askedAt || 0));
+  // If every archetype is on cooldown, ignore the time gate but still avoid
+  // questions already used in the current session.
+  const pool = usable.length ? usable : archetypes.filter((a) => !askedArchetypeIds.has(a.id));
+  if (!pool.length) return null;
 
-  const byDifficulty = pool.filter((q) => q.difficulty === topicState.currentDifficulty);
-  if (byDifficulty.length) return byDifficulty[Math.floor(Math.random() * byDifficulty.length)];
-  if (pool.length) return pool[Math.floor(Math.random() * pool.length)];
-  return null;
+  // Prefer concepts that have not appeared recently.
+  const freshConceptPool = pool.filter((a) => !recentConcepts.has(a.concept));
+  const conceptPool = freshConceptPool.length ? freshConceptPool : pool;
+
+  // Prefer the current adaptive difficulty.
+  const byDifficulty = conceptPool.filter((a) => a.difficulty === topicState.currentDifficulty);
+  const chosenPool = byDifficulty.length ? byDifficulty : conceptPool;
+
+  const chosen = chosenPool[Math.floor(Math.random() * chosenPool.length)];
+  return buildInstance(key, chosen);
+}
+
+function hasUsableQuestion(key, session) {
+  const topicData = CONVERSATION_TOPICS[key];
+  const archetypes = getArchetypes(topicData);
+  const askedArchetypeIds = new Set((session.questions || []).map((q) => q.archetypeId));
+  return archetypes.some((a) => !askedArchetypeIds.has(a.id));
 }
 
 function selectNextTopicKey(session, lastResult, topicsByKey) {
@@ -207,7 +336,7 @@ function selectNextTopicKey(session, lastResult, topicsByKey) {
 
   if (!lastResult || !lastResult.correct) {
     // After an error stay on the same topic if possible.
-    if (lastKey && pickQuestionForTopic(lastKey, ensureTopicState(session, lastKey), session, readHistory())) return lastKey;
+    if (lastKey && hasUsableQuestion(lastKey, session)) return lastKey;
   }
 
   // Try related topic.
@@ -215,14 +344,15 @@ function selectNextTopicKey(session, lastResult, topicsByKey) {
     const related = lastTopic.relatedTopics
       .map((k) => topicsByKey[k])
       .filter(Boolean)
-      .filter((t) => t.unlocked);
+      .filter((t) => t.unlocked)
+      .filter((t) => hasUsableQuestion(t.key, session));
     if (related.length) return related[Math.floor(Math.random() * related.length)].key;
   }
 
   // Fall back to any topic that still has a usable question.
   const usable = Object.values(topicsByKey)
     .filter((t) => t.unlocked)
-    .filter((t) => pickQuestionForTopic(t.key, ensureTopicState(session, t.key), session, readHistory()));
+    .filter((t) => hasUsableQuestion(t.key, session));
   if (usable.length) return usable[Math.floor(Math.random() * usable.length)].key;
 
   return null;
@@ -265,15 +395,33 @@ export function startEmployeeConversation() {
   return conversation;
 }
 
-export function evaluateEmployeeAnswer(conversation, selectedIndex) {
-  const { question, currentTopicKey, employee } = conversation;
-  const topicData = CONVERSATION_TOPICS[currentTopicKey];
-  const q = topicData.questions.find((x) => x.id === question.id);
-  if (!q) {
-    return { correct: false, explanation: 'Frage nicht gefunden.', employeeReaction: '', samStageDirection: '', samExplanation: '', scoreAwarded: false };
-  }
+function difficultyToNumber(d) {
+  if (d === 'easy') return 1;
+  if (d === 'hard') return 3;
+  return 2;
+}
 
-  const correct = selectedIndex === q.correct;
+function evaluateAnswer(question, answer) {
+  if (!answer) return false;
+  if (question.type === 'mc') return answer === question.correctOptionId;
+  if (question.type === 'ordering') {
+    if (!Array.isArray(answer) || answer.length !== question.correctOrderIds.length) return false;
+    return answer.every((id, i) => id === question.correctOrderIds[i]);
+  }
+  if (question.type === 'matching') {
+    const matches = answer || {};
+    return question.correctPairs.every((p) => matches[p.left] === p.right);
+  }
+  if (question.type === 'input') {
+    const normalized = String(answer).trim().toLowerCase();
+    return question.answers.some((a) => String(a).trim().toLowerCase() === normalized);
+  }
+  return false;
+}
+
+export function evaluateEmployeeAnswer(conversation, answer) {
+  const { question, currentTopicKey, employee } = conversation;
+  const correct = evaluateAnswer(question, answer);
   const session = readSession();
   const topicState = ensureTopicState(session, currentTopicKey);
   const history = readHistory();
@@ -289,25 +437,66 @@ export function evaluateEmployeeAnswer(conversation, selectedIndex) {
     const { categoryId, topicId } = topicIdsFromKey(currentTopicKey);
     applyConversationPractice(categoryId, topicId);
     scoreAwarded = true;
+
+    recordConversationResult(currentTopicKey, {
+      correct: true,
+      concept: question.concept,
+      samIntervention: false,
+      usedHint: false,
+    });
+
+    recordSkillEvent('fundamentals', topicId, question.concept || 'general', {
+      correct: true,
+      source: SKILL_SOURCE.CONVERSATION,
+      dimension: SKILL_DIMENSION.KNOWLEDGE,
+      difficulty: difficultyToNumber(question.difficulty),
+      usedHint: false,
+      responseTimeMs: null,
+    });
   } else {
     topicState.consecutiveWrong += 1;
     topicState.consecutiveCorrect = 0;
     topicState.currentDifficulty = easierDifficulty(topicState.currentDifficulty);
     // Sam intervenes on every wrong answer so the player immediately gets
-    // the explanation from the mentor, not just after repeated failures.
+    // the explanation from the mentor.
     samStageDirection = pickSamStageDirection();
-    samExplanation = q.explanation;
+    samExplanation = question.explanation;
+
+    recordConversationResult(currentTopicKey, {
+      correct: false,
+      concept: question.concept,
+      samIntervention: true,
+    });
+
+    const { topicId } = topicIdsFromKey(currentTopicKey);
+    recordSkillEvent('fundamentals', topicId, question.concept || 'general', {
+      correct: false,
+      source: SKILL_SOURCE.CONVERSATION,
+      dimension: SKILL_DIMENSION.KNOWLEDGE,
+      difficulty: difficultyToNumber(question.difficulty),
+      usedHint: false,
+      responseTimeMs: null,
+    });
   }
 
-  history[q.id] = { askedAt: Date.now(), correct, difficulty: q.difficulty, topicKey: currentTopicKey, conversationId: conversation.conversationId };
+  history[historyKey(currentTopicKey, question.archetypeId)] = {
+    askedAt: Date.now(),
+    correct,
+    difficulty: question.difficulty,
+    concept: question.concept,
+    topicKey: currentTopicKey,
+    conversationId: conversation.conversationId,
+  };
   writeHistory(history);
   writeSession(session);
 
   conversation.questions.push({
     topicKey: currentTopicKey,
-    questionId: q.id,
+    instanceId: question.instanceId,
+    archetypeId: question.archetypeId,
+    concept: question.concept,
     correct,
-    difficulty: q.difficulty,
+    difficulty: question.difficulty,
     touchedAt: Date.now(),
   });
   if (correct) conversation.correctCount += 1;
@@ -316,7 +505,7 @@ export function evaluateEmployeeAnswer(conversation, selectedIndex) {
 
   return {
     correct,
-    explanation: q.explanation,
+    explanation: question.explanation,
     employeeReaction: pickEmployeeReaction(employee, correct),
     samStageDirection,
     samExplanation,
@@ -380,6 +569,7 @@ export function getConversationSummary(conversation) {
 export function resetEmployeeConversations() {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(HISTORY_KEY);
+  resetConversationMastery();
 }
 
 // =============================================================================
@@ -430,6 +620,20 @@ export const CONVERSATION_TOPICS = {
       { id: 'osi-2', difficulty: 'easy', text: 'Welche Schicht ist für logische IP-Adressierung zuständig?', options: ['Sicherung', 'Vermittlung', 'Transport', 'Anwendung'], correct: 1, explanation: 'Schicht 3 (Vermittlung/Vermittlungsschicht) kümmert sich um Routing und IP-Adressierung.' },
       { id: 'osi-3', difficulty: 'medium', text: 'Wie heißt die oberste OSI-Schicht?', options: ['Darstellung', 'Sitzung', 'Anwendung', 'Netzwerk'], correct: 2, explanation: 'Schicht 7 ist die Anwendungsschicht, mit der der Nutzer interagiert (HTTP, FTP, SMTP usw.).' },
       { id: 'osi-4', difficulty: 'hard', text: 'Ein Kabelbruch betrifft primär …', options: ['Schicht 1', 'Schicht 2', 'Schicht 3', 'Schicht 7'], correct: 0, explanation: 'Schicht 1 (Bitübertragung) beschreibt physische Signale, Kabel und Stecker. Ein Kabelbruch ist ein Schicht-1-Problem.' },
+    ],
+    archetypes: [
+      {
+        id: 'osi-ordering',
+        type: 'ordering',
+        concept: 'osi.layer_order',
+        difficulty: 'medium',
+      },
+      {
+        id: 'osi-matching',
+        type: 'matching',
+        concept: 'osi.layer_functions',
+        difficulty: 'medium',
+      },
     ],
   },
   [topicKey('fundamentals', 'tcp-ip-model')]: {

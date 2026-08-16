@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle, Paperclip, Clock } from 'lucide-react';
-import { readEmails, markEmailRead } from '../lib/emails';
+import { readEmails, markEmailRead, archiveOldCompletedEmails } from '../lib/emails';
 import { questPath } from '../lib/questRouter';
 import { registerMission, updateMissionStatus, getMissionEntry, MissionStatus } from '../lib/missionLog';
 import { readGameState } from '../lib/gameState';
@@ -20,6 +20,19 @@ export default function EmailApp({ onClose }) {
   const [emails, setEmails] = useState(readEmails);
   const [selected, setSelected] = useState(null);
   const active = selected ? emails.find((e) => e.id === selected) : null;
+
+  // Keep the mail app sorted newest-first and hide very old completed mission
+  // mails so the inbox does not grow indefinitely. Progress data is preserved
+  // in the mission / game-state stores; archived mails are only UI state.
+  useEffect(() => {
+    archiveOldCompletedEmails(emailCompleted, 3);
+    setEmails(readEmails().sort((a, b) => (b.date || 0) - (a.date || 0)));
+  }, []);
+
+  const visibleEmails = useMemo(
+    () => emails.filter((e) => !e.archived).sort((a, b) => (b.date || 0) - (a.date || 0)),
+    [emails],
+  );
 
   function openEmail(id) {
     setSelected(id);
@@ -85,10 +98,10 @@ export default function EmailApp({ onClose }) {
     <div className="flex flex-col gap-3 h-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-[#00f0ff]"><Mail size={20} /><h2 className="font-bold">NEXUS Mail</h2></div>
-        <span className="text-xs text-[#8b949e]">{emails.filter((e) => !e.read).length} ungelesen</span>
+        <span className="text-xs text-[#8b949e]">{visibleEmails.filter((e) => !e.read).length} ungelesen</span>
       </div>
       <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-y-auto">
-        {emails.map((email) => {
+        {visibleEmails.map((email) => {
           const done = emailCompleted(email);
           return (
             <button key={email.id} onClick={() => openEmail(email.id)} className={`cyber-card p-3 text-left ${done ? 'opacity-60' : email.read ? 'opacity-80' : 'border-l-4 border-[#00f0ff]'}`}>

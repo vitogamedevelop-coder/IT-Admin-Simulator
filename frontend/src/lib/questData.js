@@ -33,6 +33,7 @@ export const quests = [
     boss: false,
     requires: ['cisco-main-001'],
     sideMissionsRequired: ['cisco-side-basic-001', 'cisco-side-basic-002', 'cisco-side-basic-003'],
+    sideMissionsRequiredCount: 2,
     resolution: 'VLAN 10 PERSONAL und VLAN 20 BUCHHALTUNG konfiguriert, ungenutzte Ports geparkt, Uplink als Trunk vorbereitet.',
     recommendedAcademyTopics: ['cisco-packet-tracer/vlan', 'cisco-packet-tracer/trunk'],
   },

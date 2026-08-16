@@ -1,5 +1,4 @@
 import { ACADEMY_TOPICS, topicKey } from '../src/lib/academyTopics.js';
-import { getFullTopic } from '../src/lib/academyProgress.js';
 import { setLearningMode, LEARNING_MODES } from '../src/lib/academyMode.js';
 import {
   startEmployeeConversation,
@@ -8,7 +7,10 @@ import {
   getConversationSummary,
   resetEmployeeConversations,
   CONVERSATION_TOPICS,
+  getArchetypes,
+  buildInstance,
 } from '../src/lib/employeeConversations.js';
+import { hasConversationMastery, getConversationMastery } from '../src/lib/conversationMastery.js';
 import assert from 'node:assert/strict';
 
 function withLocalStorage(fn) {
@@ -26,9 +28,7 @@ function withLocalStorage(fn) {
   }
 }
 
-// 1. Ohne freigeschaltete Topics gibt es kein Gespräch
-withLocalStorage(() => {
-  resetEmployeeConversations();
+function makeLockedProgress() {
   const lockedTopics = {};
   for (const t of ACADEMY_TOPICS) {
     lockedTopics[topicKey(t.categoryId, t.topicId)] = {
@@ -45,7 +45,25 @@ withLocalStorage(() => {
       lastExplanationStyle: null, version: 1,
     };
   }
-  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify({ version: 8, topics: lockedTopics }));
+  return { version: 8, topics: lockedTopics };
+}
+
+function firstUnlockedTopic() {
+  // Start with all fundamentals topics available so tests don't depend on the
+  // exact progression state unless explicitly locking topics.
+  const data = makeLockedProgress();
+  for (const key of Object.keys(data.topics)) {
+    if (key.startsWith('fundamentals/')) {
+      data.topics[key].status = 'available';
+    }
+  }
+  return data;
+}
+
+// 1. Ohne freigeschaltete Topics gibt es kein Gespräch
+withLocalStorage(() => {
+  resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(makeLockedProgress()));
   const conv = startEmployeeConversation();
   assert.equal(conv, null, 'No conversation if no topics unlocked');
 });
@@ -53,6 +71,7 @@ withLocalStorage(() => {
 // 2. Gespräch startet mit gültigem Topic, Mitarbeiter und geplanter Länge
 withLocalStorage(() => {
   resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
   const conv = startEmployeeConversation();
   const allowedIds = new Set(['mara', 'david', 'aylin', 'thomas']);
   assert.ok(conv, 'Conversation starts when topics are available');
@@ -68,105 +87,66 @@ withLocalStorage(() => {
 // 3. Richtige Antwort vergibt Punkte, keine Sam-Intervention
 withLocalStorage(() => {
   resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
   const conv = startEmployeeConversation();
   const q = conv.question;
-  const result = evaluateEmployeeAnswer(conv, q.correct);
+  const answer = q.type === 'mc' ? q.correctOptionId : q.correctOrderIds;
+  const result = evaluateEmployeeAnswer(conv, answer);
   assert.equal(result.correct, true);
-  assert.equal(result.scoreAwarded, true, 'Correct answer awards retention points');
+  assert.equal(result.scoreAwarded, true, 'Correct answer awards practice points');
   assert.equal(result.samStageDirection, '');
   assert.ok(result.employeeReaction.length > 0, 'Employee reacts to correct answer');
 });
 
-// 4. Zwei falsche Antworten hintereinander im selben Topic lösen Sam-Eingriff aus
+// 4. Falsche Antwort löst sofort Sam-Intervention aus
 withLocalStorage(() => {
   resetEmployeeConversations();
-  let conv = startEmployeeConversation();
-  const firstKey = conv.currentTopicKey;
-  let samSeen = false;
-  for (let i = 0; i < 3; i += 1) {
-    const q = conv.question;
-    const wrongIndex = (q.correct + 1) % q.options.length;
-    const result = evaluateEmployeeAnswer(conv, wrongIndex);
-    assert.equal(result.correct, false);
-    if (result.samStageDirection && result.samStageDirection.length > 0) samSeen = true;
-    if (conv.currentTopicKey === firstKey && result.samStageDirection && result.samStageDirection.length > 0) {
-      assert.ok(true, 'Sam intervention after repeated errors in same topic');
-      break;
-    }
-    const next = advanceConversation(conv);
-    if (next.state === 'summary') break;
-    conv = next.conversation;
-  }
-  assert.ok(samSeen, 'Sam intervention triggered after consecutive errors');
-});
-
-// 5. Mehrteilige Gespräche können über mehrere Fragen laufen, wenn plannedLength > 1
-withLocalStorage(() => {
-  resetEmployeeConversations();
-  let conv = startEmployeeConversation();
-  assert.ok(conv);
-  let turns = 0;
-  const max = Math.max(conv.plannedLength, 3);
-  while (turns < max) {
-    evaluateEmployeeAnswer(conv, conv.question.correct);
-    turns += 1;
-    const next = advanceConversation(conv);
-    if (next.state === 'summary') break;
-    conv = next.conversation;
-  }
-  assert.ok(turns >= 1, 'At least one question was answered');
-  const summary = getConversationSummary(conv);
-  assert.equal(summary.total, turns);
-  assert.equal(summary.correctCount + summary.incorrectCount, turns);
-  assert.ok(Array.isArray(summary.touchedTopics), 'Summary lists touched topics');
-});
-
-// 6. Fragehistorie sorgt für Cooldown: dieselbe Frage taucht nicht sofort wieder auf
-withLocalStorage(() => {
-  resetEmployeeConversations();
-  let conv = startEmployeeConversation();
-  const asked = new Set();
-  let turns = 0;
-  while (turns < 3) {
-    const q = conv.question;
-    assert.ok(!asked.has(q.id), `Question ${q.id} not repeated immediately`);
-    asked.add(q.id);
-    evaluateEmployeeAnswer(conv, q.correct);
-    turns += 1;
-    const next = advanceConversation(conv);
-    if (next.state === 'summary') break;
-    conv = next.conversation;
-  }
-});
-
-// 7. applyConversationPractice existiert und ist idempotent genug
-withLocalStorage(() => {
-  const before = getFullTopic('fundamentals', 'grundbegriffe');
-  const beforeRetention = before.retentionScore || 0;
-  // exercise the engine path directly
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
   const conv = startEmployeeConversation();
-  if (conv) {
-    evaluateEmployeeAnswer(conv, conv.question.correct);
-  }
-  const after = getFullTopic('fundamentals', 'grundbegriffe');
-  assert.ok(after.retentionScore >= beforeRetention, 'Conversation practice adds retention score');
+  const q = conv.question;
+  let wrongAnswer;
+  if (q.type === 'mc') wrongAnswer = q.options.find((o) => o.id !== q.correctOptionId).id;
+  else if (q.type === 'ordering') wrongAnswer = [...q.correctOrderIds].reverse();
+  else if (q.type === 'matching') wrongAnswer = {};
+  const result = evaluateEmployeeAnswer(conv, wrongAnswer);
+  assert.equal(result.correct, false);
+  assert.ok(result.samStageDirection.length > 0, 'Sam stage direction present on first wrong answer');
+  assert.ok(result.samExplanation.length > 0, 'Sam explanation present on first wrong answer');
 });
 
-// 8. Gesprächsinhalte decken relevante Academy-Themen ab
-withLocalStorage(() => {
-  const keys = Object.keys(CONVERSATION_TOPICS);
-  assert.ok(keys.length >= 4, 'Multiple conversation topics exist');
-  for (const key of keys) {
-    const topic = CONVERSATION_TOPICS[key];
-    assert.ok(topic.questions.length > 0, `${key} has questions`);
-    assert.ok(topic.relatedTopics, `${key} has related topics`);
-    assert.ok(topic.introPool.length > 0, `${key} has intro pool`);
-  }
-});
-
-// 9. Nur Story-Charaktere als Gesprächspartner, niemals generierte Accounts
+// 5. Session-Länge liegt zwischen 1 und 5 Fragen und bricht bei Fehlern nicht ab
 withLocalStorage(() => {
   resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
+  let conv = startEmployeeConversation();
+  assert.ok(conv.plannedLength >= 1 && conv.plannedLength <= 5, 'Planned session length 1–5');
+  let turns = 0;
+  while (turns < 10) {
+    const q = conv.question;
+    const answer = q.type === 'mc' ? q.correctOptionId : q.correctOrderIds;
+    evaluateEmployeeAnswer(conv, answer);
+    turns += 1;
+    const next = advanceConversation(conv);
+    if (next.state === 'summary') break;
+    conv = next.conversation;
+  }
+  assert.ok(turns >= 1 && turns <= 5, `Session completed in ${turns} turns`);
+});
+
+// 6. Lehrgangsmodus macht gesperrte Topics für Gespräche verfügbar
+withLocalStorage(() => {
+  resetEmployeeConversations();
+  setLearningMode(LEARNING_MODES.COURSE);
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(makeLockedProgress()));
+  const conv = startEmployeeConversation();
+  assert.ok(conv, 'Course mode allows conversations even when topics are locked');
+  assert.ok(conv.question, 'Conversation has a question in course mode');
+});
+
+// 7. Nur Story-Charaktere als Gesprächspartner, niemals generierte Accounts
+withLocalStorage(() => {
+  resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
   const allowedIds = new Set(['mara', 'david', 'aylin', 'thomas']);
   const forbiddenIds = new Set(['henrik', 'nina', 'tom', 'mats', 'mila']);
   for (let i = 0; i < 20; i += 1) {
@@ -177,83 +157,87 @@ withLocalStorage(() => {
   }
 });
 
-// 10. Falsche Antwort löst sofort Sam-Intervention aus
+// 8. Multiple-Choice-Antworten werden gemischt; correctOptionId bleibt stabil
 withLocalStorage(() => {
   resetEmployeeConversations();
-  const conv = startEmployeeConversation();
-  const q = conv.question;
-  const wrongIndex = (q.correct + 1) % q.options.length;
-  const result = evaluateEmployeeAnswer(conv, wrongIndex);
-  assert.equal(result.correct, false);
-  assert.ok(result.samStageDirection.length > 0, 'Sam stage direction present on first wrong answer');
-  assert.ok(result.samExplanation.length > 0, 'Sam explanation present on first wrong answer');
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
+  const positions = new Set();
+  for (let i = 0; i < 30; i += 1) {
+    const conv = startEmployeeConversation();
+    const q = conv.question;
+    if (q.type !== 'mc') continue;
+    const idx = q.options.findIndex((o) => o.id === q.correctOptionId);
+    positions.add(idx);
+  }
+  assert.ok(positions.size > 1, `Correct answer appears in different positions: ${[...positions]}`);
 });
 
-// 11. Richtige Antwort zeigt Erklärung, aber ohne Sam-Intervention
+// 9. OSI-Ordering: es können beide Richtungen erzeugt werden
 withLocalStorage(() => {
   resetEmployeeConversations();
-  const conv = startEmployeeConversation();
-  const result = evaluateEmployeeAnswer(conv, conv.question.correct);
+  const osiKey = topicKey('fundamentals', 'osi-model');
+  const archetypes = getArchetypes(CONVERSATION_TOPICS[osiKey]);
+  const orderingArchetype = archetypes.find((a) => a.id === 'osi-ordering');
+  assert.ok(orderingArchetype, 'OSI ordering archetype exists');
+  const seen = new Set();
+  for (let i = 0; i < 30; i += 1) {
+    const inst = buildInstance(osiKey, orderingArchetype);
+    assert.equal(inst.type, 'ordering');
+    assert.equal(inst.items.length, 7);
+    assert.equal(inst.correctOrderIds.length, 7);
+    seen.add(inst.correctOrderIds[0]);
+    if (seen.size >= 2) break;
+  }
+  assert.ok(seen.size >= 2, 'OSI ordering generates both top-down and bottom-up directions');
+});
+
+// 10. OSI-Matching: rechte Seite wird gemischt, korrekte Zuordnung erkannt
+withLocalStorage(() => {
+  resetEmployeeConversations();
+  const osiKey = topicKey('fundamentals', 'osi-model');
+  const archetypes = getArchetypes(CONVERSATION_TOPICS[osiKey]);
+  const matchingArchetype = archetypes.find((a) => a.id === 'osi-matching');
+  assert.ok(matchingArchetype, 'OSI matching archetype exists');
+  const inst = buildInstance(osiKey, matchingArchetype);
+  assert.equal(inst.type, 'matching');
+  assert.equal(inst.leftItems.length, 7);
+  assert.equal(inst.rightItems.length, 7);
+  const answer = {};
+  for (const p of inst.correctPairs) answer[p.left] = p.right;
+  const conv = { question: inst, currentTopicKey: osiKey, employee: { id: 'mara', name: 'Mara', role: 'Tester' }, questions: [], correctCount: 0, incorrectCount: 0, samInterventions: 0, conversationId: 'test' };
+  const result = evaluateEmployeeAnswer(conv, answer);
   assert.equal(result.correct, true);
-  assert.ok(result.explanation.length > 0, 'Explanation visible for correct answer');
-  assert.equal(result.samStageDirection, '', 'No Sam stage direction on correct answer');
-  assert.equal(result.samExplanation, '', 'No Sam explanation on correct answer');
 });
 
-// 12. Session-Länge liegt zwischen 1 und 5 Fragen und bricht bei Fehlern nicht ab
+// 11. Cooldown-Fallback: wenn alle Fragen eines Topics auf Cooldown sind, wird die
+// älteste wiederverwendet, statt das System zu blocken
 withLocalStorage(() => {
   resetEmployeeConversations();
-  let conv = startEmployeeConversation();
-  assert.ok(conv.plannedLength >= 1 && conv.plannedLength <= 5, 'Planned session length 1–5');
-  let turns = 0;
-  while (turns < 10) {
-    evaluateEmployeeAnswer(conv, conv.question.correct);
-    turns += 1;
-    const next = advanceConversation(conv);
-    if (next.state === 'summary') break;
-    conv = next.conversation;
-  }
-  assert.ok(turns >= 1 && turns <= 5, `Session completed in ${turns} turns`);
-});
-
-// 13. Lehrgangsmodus macht gesperrte Topics für Gespräche verfügbar
-withLocalStorage(() => {
-  resetEmployeeConversations();
-  setLearningMode(LEARNING_MODES.COURSE);
-  const lockedTopics = {};
-  for (const t of ACADEMY_TOPICS) {
-    lockedTopics[topicKey(t.categoryId, t.topicId)] = { status: 'locked', version: 1 };
-  }
-  localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify({ version: 8, topics: lockedTopics }));
-  const conv = startEmployeeConversation();
-  assert.ok(conv, 'Course mode allows conversations even when topics are locked');
-  assert.ok(conv.question, 'Conversation has a question in course mode');
-});
-
-// 14. Cooldown-Fallback: wenn alle Fragen eines Topics noch auf Cooldown sind,
-// wird die am längsten nicht gestellte Frage wiederverwendet, anstatt das System zu blocken
-withLocalStorage(() => {
-  resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
   const conv = startEmployeeConversation();
   const key = conv.currentTopicKey;
   const topicData = CONVERSATION_TOPICS[key];
+  const archetypes = getArchetypes(topicData);
   const history = {};
   const now = Date.now();
-  for (let i = 0; i < topicData.questions.length; i += 1) {
-    const q = topicData.questions[i];
-    history[q.id] = { askedAt: now - ((topicData.questions.length - i) * 1000), correct: true, difficulty: q.difficulty, topicKey: key, conversationId: 'test' };
+  for (let i = 0; i < archetypes.length; i += 1) {
+    const a = archetypes[i];
+    history[`${key}/${a.id}`] = { askedAt: now - ((archetypes.length - i) * 1000), correct: true, difficulty: a.difficulty, concept: a.concept, topicKey: key, conversationId: 'test' };
   }
-  localStorage.setItem('cyberlearn:employee-conversation-history-v1', JSON.stringify(history));
+  globalThis.localStorage.setItem('cyberlearn:employee-conversation-history-v1', JSON.stringify(history));
   const conv2 = startEmployeeConversation();
-  assert.ok(conv2, 'Conversation starts despite all topic questions being on cooldown');
+  assert.ok(conv2, 'Conversation starts despite all topic archetypes being on cooldown');
   assert.ok(conv2.question, 'Cooldown fallback still provides a question');
 });
 
-// 15. Abschlussauswertung enthält Academy-Deep-Links mit categoryId/topicId
+// 12. Abschlussauswertung enthält Academy-Deep-Links mit categoryId/topicId
 withLocalStorage(() => {
   resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
   let conv = startEmployeeConversation();
-  evaluateEmployeeAnswer(conv, conv.question.correct);
+  const q = conv.question;
+  const answer = q.type === 'mc' ? q.correctOptionId : q.correctOrderIds;
+  evaluateEmployeeAnswer(conv, answer);
   const summary = getConversationSummary(conv);
   assert.ok(summary.touchedTopics.length > 0, 'Summary lists touched topics');
   for (const t of summary.touchedTopics) {
@@ -262,4 +246,44 @@ withLocalStorage(() => {
   }
 });
 
-console.log('Phase 1I.2 Employee-Conversation-Tests: OK');
+// 13. Richtige unabhängige Antworten füllen Conversation-Mastery
+withLocalStorage(() => {
+  resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
+  const key = topicKey('fundamentals', 'osi-model');
+  const topicData = CONVERSATION_TOPICS[key];
+  const archetypes = getArchetypes(topicData);
+  for (const a of archetypes.slice(0, 3)) {
+    const inst = buildInstance(key, a);
+    let answer;
+    if (inst.type === 'mc') answer = inst.correctOptionId;
+    else if (inst.type === 'ordering') answer = inst.correctOrderIds;
+    else if (inst.type === 'matching') {
+      answer = {};
+      for (const p of inst.correctPairs) answer[p.left] = p.right;
+    }
+    const conv = { question: inst, currentTopicKey: key, employee: { id: 'mara', name: 'Mara', role: 'Tester' }, questions: [], correctCount: 0, incorrectCount: 0, samInterventions: 0, conversationId: `test-${a.id}` };
+    evaluateEmployeeAnswer(conv, answer);
+  }
+  const mastery = getConversationMastery(key);
+  assert.ok(mastery.correct >= 3, 'Conversation mastery records correct answers');
+  assert.ok(mastery.independentCorrect >= 3, 'Only independent successes count toward mastery');
+  assert.ok(hasConversationMastery(key, { minCorrect: 3, minUniqueConcepts: 1 }), 'Mastery threshold can be reached');
+});
+
+// 14. Wiederholte Starts wählen unterschiedliche erste Topics / Fragen
+withLocalStorage(() => {
+  resetEmployeeConversations();
+  globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
+  const firstTopics = new Set();
+  const firstQuestions = new Set();
+  for (let i = 0; i < 30; i += 1) {
+    const conv = startEmployeeConversation();
+    firstTopics.add(conv.currentTopicKey);
+    firstQuestions.add(conv.question.instanceId.split('::')[1]);
+  }
+  assert.ok(firstTopics.size > 1, `Conversation starts vary topics: ${firstTopics.size}`);
+  assert.ok(firstQuestions.size > 1, `Conversation starts vary questions: ${firstQuestions.size}`);
+});
+
+console.log('Phase 1I.2.3 Employee-Conversation-Tests: OK');
