@@ -5,7 +5,7 @@ import {
 } from './academyEngine.js';
 import { readGameState } from './gameState.js';
 import { quests, questById } from './questData.js';
-import { sortedInbox } from './sideMissionEngine.js';
+import { getVisibleInbox } from './sideMissionEngine.js';
 import { getTopicScoreDimensions } from './academyLessonData.js';
 import { readEmails } from './emails.js';
 import { readNotifications, pendingNotifications, notificationTypes } from './notificationSystem.js';
@@ -170,7 +170,7 @@ export function getNextMainMission() {
 
 export function getRecommendedSideMissions(limit = 2) {
   const state = readGameState();
-  const open = sortedInbox().filter((item) => !item.resolved);
+  const open = getVisibleInbox().filter((item) => !item.resolved);
   const ciscoSideCompleted = new Set(state.completedCiscoSideMissions || []);
 
   const ciscoSideMissions = [];
