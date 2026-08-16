@@ -79,7 +79,7 @@ export function buildDefaultDialog() {
   return {
     id: 'no-mission-smalltalk', personId: 'sam', mode: 'face-to-face',
     nodes: [
-      { id: 'start', text: 'Hey, gerade nichts Neues im Flur.', options: [
+      { id: 'start', text: 'Für den Moment haben wir die aktuellen Themen ziemlich gut abgeklopft. Wenn du gezielt weiterlernen willst, schau bei mir oder in der Academy vorbei.', options: [
         { label: 'Kannst du mir etwas beibringen?', nextId: 'academy' },
         { label: 'Reden wir kurz.', nextId: 'smalltalk' },
         { label: 'Ist schon gut, danke.', nextId: 'bye' },

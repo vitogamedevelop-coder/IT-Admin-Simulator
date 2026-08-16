@@ -2,6 +2,7 @@ import { ACADEMY_TOPICS, topicKey } from './academyTopics.js';
 import { getTopicProgress, getFullTopic } from './academyProgress.js';
 import { topicOverallProgress, isTopicMastered, applyConversationPractice } from './academyEngine.js';
 import { randomConversationPartner } from './officeWorld.js';
+import { readAcademyMode, LEARNING_MODES } from './academyMode.js';
 
 // =============================================================================
 // NEXUS Mitarbeitergespräche – adaptive Wiederholung im Flur (Phase 1I / 1I.2).
@@ -16,10 +17,12 @@ const HISTORY_KEY = 'cyberlearn:employee-conversation-history-v1';
 
 const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'];
 
-// Cooldown baseline: correct answers are suppressed longer so the player gets
-// new material; incorrect answers come back sooner for spaced repetition.
-const CORRECT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
-const INCORRECT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+// Cooldown baseline: correct answers are suppressed a bit longer so the player
+// gets new material; incorrect answers come back almost immediately for spaced
+// repetition. In absolute terms the values are short so a player is never
+// artificially locked out of hallway conversations.
+const CORRECT_COOLDOWN_MS = 3 * 60 * 1000;
+const INCORRECT_COOLDOWN_MS = 10 * 1000;
 
 function clampDifficulty(d) {
   return DIFFICULTY_ORDER[Math.max(0, Math.min(DIFFICULTY_ORDER.length - 1, DIFFICULTY_ORDER.indexOf(d)))] || 'medium';
@@ -72,17 +75,25 @@ function ensureTopicState(session, key) {
   return session.perTopic[key];
 }
 
+function isTopicUnlockedForConversations(topic) {
+  const progress = getTopicProgress(topic.categoryId, topic.topicId);
+  if (progress && progress.status !== 'locked') return true;
+  // In course/free-learning mode the player explicitly wants access to all
+  // fundamentals learning content, so conversations may also draw from it.
+  const mode = readAcademyMode().mode;
+  return mode === LEARNING_MODES.COURSE;
+}
+
 function availableTopics() {
   return ACADEMY_TOPICS
     .filter((t) => CONVERSATION_TOPICS[topicKey(t.categoryId, t.topicId)])
     .map((t) => {
       const key = topicKey(t.categoryId, t.topicId);
-      const progress = getTopicProgress(t.categoryId, t.topicId);
       const full = getFullTopic(t.categoryId, t.topicId);
       return {
         ...t,
         key,
-        unlocked: progress && progress.status !== 'locked',
+        unlocked: isTopicUnlockedForConversations(t),
         mastered: isTopicMastered(t.categoryId, t.topicId, false),
         overall: topicOverallProgress(full),
       };
@@ -166,17 +177,27 @@ function pickQuestionForTopic(key, topicState, session, history) {
   if (!topicData || !topicData.questions.length) return null;
   const now = Date.now();
   const askedIds = new Set(session.questions.map((q) => q.questionId));
-  const candidates = topicData.questions.filter((q) => {
-    if (askedIds.has(q.id)) return false;
+  // Never repeat a question that is already part of the current session.
+  const usable = topicData.questions.filter((q) => !askedIds.has(q.id));
+  if (usable.length === 0) return null;
+
+  const cooled = usable.filter((q) => {
     const h = history[q.id];
     if (!h) return true;
     const cooldown = h.correct ? CORRECT_COOLDOWN_MS : INCORRECT_COOLDOWN_MS;
     return now - h.askedAt >= cooldown;
   });
 
-  const byDifficulty = candidates.filter((q) => q.difficulty === topicState.currentDifficulty);
+  // Prefer questions matching the current difficulty, otherwise any cooled one.
+  const pool = cooled.length
+    ? cooled
+    // Absolute fallback: if every usable question is still on cooldown, reuse
+    // the least recently asked one so the conversation never hard-locks.
+    : usable.slice().sort((a, b) => (history[a.id]?.askedAt || 0) - (history[b.id]?.askedAt || 0));
+
+  const byDifficulty = pool.filter((q) => q.difficulty === topicState.currentDifficulty);
   if (byDifficulty.length) return byDifficulty[Math.floor(Math.random() * byDifficulty.length)];
-  if (candidates.length) return candidates[Math.floor(Math.random() * candidates.length)];
+  if (pool.length) return pool[Math.floor(Math.random() * pool.length)];
   return null;
 }
 
@@ -272,11 +293,10 @@ export function evaluateEmployeeAnswer(conversation, selectedIndex) {
     topicState.consecutiveWrong += 1;
     topicState.consecutiveCorrect = 0;
     topicState.currentDifficulty = easierDifficulty(topicState.currentDifficulty);
-    // Sam intervenes only after repeated errors in the same topic.
-    if (topicState.consecutiveWrong >= 2) {
-      samStageDirection = pickSamStageDirection();
-      samExplanation = q.explanation;
-    }
+    // Sam intervenes on every wrong answer so the player immediately gets
+    // the explanation from the mentor, not just after repeated failures.
+    samStageDirection = pickSamStageDirection();
+    samExplanation = q.explanation;
   }
 
   history[q.id] = { askedAt: Date.now(), correct, difficulty: q.difficulty, topicKey: currentTopicKey, conversationId: conversation.conversationId };
@@ -530,6 +550,81 @@ export const CONVERSATION_TOPICS = {
       { id: 'tp-2', difficulty: 'medium', text: 'Wie viele Pakete umfasst der TCP-Three-Way-Handshake?', options: ['2', '3', '4', '5'], correct: 1, explanation: 'SYN, SYN-ACK, ACK – insgesamt drei Pakete.' },
       { id: 'tp-3', difficulty: 'medium', text: 'Für welche Anwendung ist UDP typisch besser geeignet?', options: ['Datei-Download', 'E-Mail', 'VoIP/Video-Streaming', 'Webseitenaufruf'], correct: 2, explanation: 'UDP hat weniger Overhead und akzeptiert gelegentliche Paketverluste, was für Echtzeit-Anwendungen ideal ist.' },
       { id: 'tp-4', difficulty: 'hard', text: 'Was passiert, wenn ein TCP-Segment verloren geht?', options: ['Nichts', 'Der Sender wiederholt es nach Timeout', 'Der Empfänger ignoriert es', 'Das nächste Segment ersetzt es'], correct: 1, explanation: 'TCP erkennt fehlende ACKs und sendet das betroffene Segment erneut.' },
+    ],
+  },
+  [topicKey('fundamentals', 'switching')]: {
+    title: 'Switching',
+    relatedTopics: [topicKey('fundamentals', 'grundbegriffe'), topicKey('fundamentals', 'vlan-basics')],
+    introPool: [
+      'Mein Switch leitet manche Frames nicht weiter. Woran liegt das?',
+      'Wie unterscheidet ein Switch eigentlich Broadcast von Unicast?',
+    ],
+    samHelp: 'Ein Switch arbeitet auf Schicht 2 und leitet Frames anhand seiner MAC-Adresstabelle gezielt weiter. Er lernt MAC-Adressen aus eingehenden Frames. Jeder Port bildet eine eigene Collision Domain. Unbekannte Ziele werden gefloodet, Broadcasts werden an alle Ports verteilt.',
+    questions: [
+      { id: 'sw-1', difficulty: 'easy', text: 'Womit leitet ein Switch Frames primär weiter?', options: ['IP-Adresse', 'MAC-Adresse', 'Port-Nummer', 'Hostname'], correct: 1, explanation: 'Ein Switch baut eine MAC-Adresstabelle auf und leitet Frames anhand der Ziel-MAC weiter.' },
+      { id: 'sw-2', difficulty: 'easy', text: 'Auf welcher OSI-Schicht arbeitet ein typischer Switch?', options: ['Schicht 1', 'Schicht 2', 'Schicht 3', 'Schicht 4'], correct: 1, explanation: 'Ein Switch arbeitet auf der Sicherungsschicht (Schicht 2) mit MAC-Adressen.' },
+      { id: 'sw-3', difficulty: 'medium', text: 'Was passiert, wenn ein Switch die Ziel-MAC noch nicht kennt?', options: ['Er verwirft das Frame', 'Er leitet es an alle Ports außer dem Eingangsport weiter', 'Er fragt den Router', 'Er wartet auf eine ARP-Antwort'], correct: 1, explanation: 'Bei einer unbekannten Ziel-MAC flooded der Switch das Frame an alle Ports (außer dem Eingangsport).' },
+      { id: 'sw-4', difficulty: 'hard', text: 'Wie viele separate Kollisionsdomänen entstehen typischerweise bei einem 8-Port-Switch?', options: ['Eine', 'Acht', 'Sechzehn', 'Keine'], correct: 1, explanation: 'Jeder Port eines Switches bildet seine eigene Collision Domain, da Full-Duplex-Betrieb möglich ist.' },
+    ],
+  },
+  [topicKey('fundamentals', 'vlan-basics')]: {
+    title: 'VLAN-Grundlagen',
+    relatedTopics: [topicKey('fundamentals', 'switching'), topicKey('fundamentals', 'subnet-masks')],
+    introPool: [
+      'Wir überlegen, die Abteilungen per VLAN zu trennen. Was ist dabei wichtig?',
+      'Wieso reicht es nicht, einfach nur verschiedene IP-Netze zu verwenden?',
+    ],
+    samHelp: 'VLANs trennen ein physisches Netzwerk logisch in Broadcast-Domains. Access-Ports gehören zu genau einem VLAN, Trunk-Ports transportieren mehrere VLANs. VLANs erhöhen die Sicherheit und reduzieren Broadcast-Verkehr, ersetzen aber nicht IP-Subnetze; beides zusammen ist üblich.',
+    questions: [
+      { id: 'vlan-1', difficulty: 'easy', text: 'Wozu dienen VLANs?', options: ['Physische Verkabelung vereinfachen', 'Logische Trennung im selben Netzwerk', 'WLAN-Signal verstärken', 'IP-Adressen automatisch vergeben'], correct: 1, explanation: 'VLANs teilen ein physisches Netz in mehrere logische Broadcast-Domains ein.' },
+      { id: 'vlan-2', difficulty: 'easy', text: 'Welcher Port-Modus transportiert typischerweise mehrere VLANs?', options: ['Access', 'Trunk', 'Loopback', 'Console'], correct: 1, explanation: 'Ein Trunk-Port transportiert mehrere VLANs gleichzeitig, oft zwischen Switchen.' },
+      { id: 'vlan-3', difficulty: 'medium', text: 'Welcher Befehl weist einen Access-Port einem VLAN zu?', options: ['switchport mode trunk', 'switchport access vlan 10', 'vlan 10 name SALES', 'interface vlan 10'], correct: 1, explanation: 'Im Interface-Konfigurationsmodus setzt „switchport access vlan <id>" den Access-VLAN.' },
+      { id: 'vlan-4', difficulty: 'medium', text: 'Was passiert, wenn zwei Hosts im selben VLAN aber unterschiedlichen IP-Subnetzen sind?', options: ['Sie kommunizieren normal', 'Sie können nicht direkt kommunizieren', 'Der Switch verweigert die Verbindung', 'Das VLAN wird deaktiviert'], correct: 1, explanation: 'VLAN und IP-Subnetz müssen zusammenpassen; unterschiedliche Subnetze brauchen einen Router/L3-Switch.' },
+    ],
+  },
+  [topicKey('fundamentals', 'ports')]: {
+    title: 'Ports',
+    relatedTopics: [topicKey('fundamentals', 'tcp-ip-model'), topicKey('fundamentals', 'tcp-udp')],
+    introPool: [
+      'Mein Browser ruft eine Seite ab. Wie weiß der Server, welche Anwendung antworten soll?',
+      'Warum reicht eine IP-Adresse allein nicht für eine Verbindung aus?',
+    ],
+    samHelp: 'IP-Adressen identifizieren Hosts, Port-Nummern identifizieren Dienste auf einem Host. Bekannte Ports: HTTP 80, HTTPS 443, DNS 53, SSH 22, DHCP 67/68. TCP- und UDP-Header tragen jeweils Quell- und Zielport.',
+    questions: [
+      { id: 'port-1', difficulty: 'easy', text: 'Wozu dienen Port-Nummern?', options: ['MAC-Adressen vergeben', 'Dienste auf einem Host unterscheiden', 'Den Gateway festlegen', 'Subnetze bilden'], correct: 1, explanation: 'Port-Nummern ermöglichen es, mehrere Dienste auf einer IP-Adresse zu betreiben.' },
+      { id: 'port-2', difficulty: 'easy', text: 'Welcher Port wird typischerweise für HTTP verwendet?', options: ['21', '53', '80', '443'], correct: 2, explanation: 'HTTP verwendet standardmäßig TCP-Port 80; HTTPS verwendet 443.' },
+      { id: 'port-3', difficulty: 'medium', text: 'Welcher Dienst nutzt typischerweise UDP-Port 53?', options: ['HTTP', 'DNS', 'SMTP', 'SSH'], correct: 1, explanation: 'DNS-Anfragen werden oft über UDP-Port 53 gesendet (TCP für größere Antworten).' },
+      { id: 'port-4', difficulty: 'medium', text: 'Warum reicht eine IP-Adresse allein nicht für eine TCP-Verbindung?', options: ['Weil Ports optional sind', 'Weil auch Quell- und Zielport bekannt sein müssen', 'Weil MAC-Adressen fehlen', 'Weil DNS nicht funktioniert'], correct: 1, explanation: 'Eine TCP-Verbindung besteht aus Quell-IP:Port und Ziel-IP:Port; beides ist nötig.' },
+    ],
+  },
+  [topicKey('fundamentals', 'routing')]: {
+    title: 'Routing',
+    relatedTopics: [topicKey('fundamentals', 'ipv4'), topicKey('fundamentals', 'tcp-ip-model')],
+    introPool: [
+      'Warum antwortet ein Host in einem anderen Netz nicht auf meinen Ping?',
+      'Wie entscheidet ein Router, wohin ein Paket geschickt wird?',
+    ],
+    samHelp: 'Router verbinden verschiedene IP-Netze und entscheiden anhand ihrer Routing-Tabelle, wohin Pakete weitergeleitet werden. Der Default Gateway ist der Router für Ziele außerhalb des eigenen Subnetzes. Routing findet auf Schicht 3 statt.',
+    questions: [
+      { id: 'route-1', difficulty: 'easy', text: 'Welches Gerät verbindet typischerweise zwei IP-Netzwerke?', options: ['Switch', 'Router', 'Access Point', 'Hub'], correct: 1, explanation: 'Ein Router verbindet unterschiedliche Netzwerke und leitet Pakete zwischen ihnen weiter.' },
+      { id: 'route-2', difficulty: 'easy', text: 'Auf welcher OSI-Schicht arbeitet Routing?', options: ['Schicht 2', 'Schicht 3', 'Schicht 4', 'Schicht 7'], correct: 1, explanation: 'Routing arbeitet auf der Vermittlungsschicht (Schicht 3) mit IP-Adressen.' },
+      { id: 'route-3', difficulty: 'medium', text: 'Welche Information nutzt ein Router, um ein Paket weiterzuleiten?', options: ['MAC-Adresse des Senders', 'Ziel-IP-Adresse und Routing-Tabelle', 'VLAN-ID allein', 'Hostname des Empfängers'], correct: 1, explanation: 'Der Router prüft die Ziel-IP und sucht den besten Eintrag in seiner Routing-Tabelle.' },
+      { id: 'route-4', difficulty: 'medium', text: 'Was ist der Default Gateway?', options: ['Der schnellste Router im Internet', 'Der Router, den ein Host für fremde Netze verwendet', 'Das lokale Subnetz', 'Ein DNS-Server'], correct: 1, explanation: 'Der Default Gateway ist der Router, an den ein Host Pakete sendet, deren Ziel nicht im lokalen Subnetz liegt.' },
+    ],
+  },
+  [topicKey('fundamentals', 'kommunikation-uebertragung')]: {
+    title: 'Kommunikations- und Übertragungsarten',
+    relatedTopics: [topicKey('fundamentals', 'grundbegriffe'), topicKey('fundamentals', 'osi-model')],
+    introPool: [
+      'Wann spricht man von Broadcast, wann von Multicast?',
+      'Simplex, Halbduplex, Vollduplex – wo ist der Unterschied?',
+    ],
+    samHelp: 'Unicast = ein Sender, ein Empfänger. Broadcast = ein Sender, alle im Netz. Multicast = ein Sender, interessierte Gruppe. Simplex = nur eine Richtung, Halbduplex = abwechselnd beide Richtungen, Vollduplex = gleichzeitig senden und empfangen.',
+    questions: [
+      { id: 'comm-1', difficulty: 'easy', text: 'Was ist Unicast?', options: ['Ein Sender, alle Empfänger', 'Ein Sender, ein Empfänger', 'Ein Sender, eine Gruppe', 'Kein Empfänger'], correct: 1, explanation: 'Unicast beschreibt die Kommunikation zwischen genau einem Sender und einem Empfänger.' },
+      { id: 'comm-2', difficulty: 'easy', text: 'Welcher Übertragungsmodus erlaubt gleichzeitiges Senden und Empfangen?', options: ['Simplex', 'Halbduplex', 'Vollduplex', 'Unicast'], correct: 2, explanation: 'Vollduplex ermöglicht gleichzeitiges Senden und Empfangen, wie moderne Switched Ethernet-Links.' },
+      { id: 'comm-3', difficulty: 'medium', text: 'Welche Adressierungsart erreicht eine ausgewählte Gruppe von Empfängern?', options: ['Unicast', 'Broadcast', 'Multicast', 'Anycast'], correct: 2, explanation: 'Multicast sendet an eine bestimmte, angemeldete Gruppe von Empfängern.' },
+      { id: 'comm-4', difficulty: 'medium', text: 'In welchem Modus senden beide Seiten abwechselnd?', options: ['Simplex', 'Halbduplex', 'Vollduplex', 'Broadcast'], correct: 1, explanation: 'Halbduplex erlaubt beide Richtungen, aber nicht gleichzeitig – beispielsweise bei klassischen Hubs oder Walkie-Talkies.' },
     ],
   },
 };

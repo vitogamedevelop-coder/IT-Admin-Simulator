@@ -197,6 +197,16 @@ export default function EmployeeConversation({ conversation: initialConversation
               </div>
               <p className="text-sm text-[#c9d1d9] mt-1">{result.employeeReaction}</p>
 
+              {result.correct && (
+                <div className="mt-3 p-2.5 rounded-lg bg-[#00ff66]/5 border border-[#00ff66]/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <GraduationCap size={14} className="text-[#00ff66]" />
+                    <span className="text-xs font-bold text-[#00ff66]">Warum das stimmt</span>
+                  </div>
+                  <p className="text-sm text-[#c9d1d9]">{result.explanation}</p>
+                </div>
+              )}
+
               {!result.correct && (
                 <>
                   <p className="text-sm text-[#8b949e] mt-2 italic">{result.samStageDirection}</p>

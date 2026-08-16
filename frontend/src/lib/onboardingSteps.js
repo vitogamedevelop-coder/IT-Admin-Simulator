@@ -118,9 +118,9 @@ export const ONBOARDING_STEPS = [
     person: 'Sam Richter · Senior-Administrator', character: 'sam', icon: DoorOpen,
     title: '5. Flur',
     lines: [
-      'Im Flur findest du Kollegen und mein Büro.',
-      'Wenn du irgendwann etwas gezielt lernen möchtest, komm einfach vorbei.',
-      'Das Netzwerk läuft vielleicht nicht immer – aber der Kaffee muss laufen.',
+      'Im Flur triffst du immer wieder Kollegen mit Fragen aus dem Arbeitsalltag. Dabei merkst du schnell, was von der Academy wirklich hängen geblieben ist.',
+      'Wenn du dagegen ein bestimmtes Thema gezielt lernen oder wiederholen möchtest, komm direkt zu mir ins Büro.',
+      'Und falls du es strukturierter magst: die NEXUS Academy führt dich Thema für Thema durch die Grundlagen.',
       'Tippe auf die Tür zum Flur.',
     ],
     target: { type: 'hotspot', key: 'door', zone: 'right' },
