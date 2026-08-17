@@ -177,6 +177,7 @@ migrateTicketChannel();
 const SKILL_GROUP_UNLOCK = {
   basic_configuration: 'cisco-main-001',
   switching: 'cisco-main-002',
+  remote_administration: 'cisco-main-003',
   routing: 'cisco-main-004',
 };
 
@@ -365,6 +366,7 @@ function archetypeWeight(archetype, mastery) {
     case MISSION_ARCHETYPE.REPAIR: return 0.3 + mastery * 0.2;
     case MISSION_ARCHETYPE.AUDIT: return Math.max(0.2, mastery);
     case MISSION_ARCHETYPE.DIAGNOSE: return Math.max(0.15, mastery * 0.8);
+    case MISSION_ARCHETYPE.HARDEN: return Math.max(0.15, mastery * 0.6);
     default: return 0.25;
   }
 }
@@ -480,6 +482,9 @@ function centralParamFor(templateId, params) {
   if (templateId === 'cisco-trunk-uplink') return { hostname: params.hostname, port: params.uplinkPort, vlanIds: params.vlans?.map((v) => v.id) };
   if (templateId === 'cisco-trunk-allowed-vlan') return { hostname: params.hostname, port: params.uplinkPort, missingVlanId: params.missingVlanId };
   if (templateId === 'cisco-router-on-a-stick' || templateId === 'cisco-router-fault') return { hostname: params.hostname, vlanIds: params.vlans?.map((v) => v.id), faultId: params.faultId };
+  if (templateId === 'cisco-ssh-management-access') return { hostname: params.hostname, mgmtVlanId: params.mgmtVlanId };
+  if (templateId === 'cisco-ssh-enable' || templateId === 'cisco-ssh-vty-access') return { hostname: params.hostname, deviceType: params.deviceType };
+  if (templateId === 'cisco-ssh-diagnose') return { hostname: params.hostname, faultId: params.faultId };
   return { hostname: params.targetHostname || params.initialHostname };
 }
 

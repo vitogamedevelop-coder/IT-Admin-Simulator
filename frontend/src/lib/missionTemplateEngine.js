@@ -15,7 +15,7 @@
 
 import { createCiscoDevice, evaluateRouterOnAStick, createSubinterface } from './ciscoCliEngine.js';
 import { defineHintLadder } from './missionHintSystem.js';
-import { randomPersonalUsername } from './officeWorld.js';
+import { randomPersonalUsername, ACCOUNT_NAME_POOL } from './officeWorld.js';
 
 // ============================================================================
 // Archetypes (item 8)
@@ -32,6 +32,10 @@ export const MISSION_ARCHETYPE = {
   USER_REPORT: 'user_report',
   COWORKER_REQUEST: 'coworker_request',
   INCIDENT: 'incident',
+  // Proactive security hardening of an already-working configuration (e.g.
+  // upgrading a functional-but-weak RSA key size). Distinct from AUDIT
+  // (check + fix gaps) and REPAIR (something is actively broken).
+  HARDEN: 'harden',
 };
 
 // Delivery channels a template may use (item 21). The generator picks one
@@ -59,6 +63,7 @@ export const ARCHETYPE_CHANNEL_AFFINITY = {
   [MISSION_ARCHETYPE.USER_REPORT]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
   [MISSION_ARCHETYPE.COWORKER_REQUEST]: [MISSION_CHANNEL.EMAIL],
   [MISSION_ARCHETYPE.INCIDENT]: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
+  [MISSION_ARCHETYPE.HARDEN]: [MISSION_CHANNEL.EMAIL],
 };
 
 // ============================================================================
@@ -1129,6 +1134,543 @@ const TEMPLATE_ROUTER_FAULT = defineMissionTemplate({
   },
 });
 
+// ============================================================================
+// SSH / Remote Administration templates (Phase 1J.3 Etappe 3, Block 1.5)
+//
+// Split into four narrow, coherent sub-problems instead of one template that
+// always repeats the entire SSH setup:
+//   - cisco-ssh-management-access: management VLAN + SVI + default gateway
+//     on an L2 switch (a router never needs this - see below).
+//   - cisco-ssh-enable: domain-name + RSA key + "ip ssh version 2", on top
+//     of an ALREADY reachable management/routed IP.
+//   - cisco-ssh-vty-access: "login local" + "transport input ssh" + adding
+//     a specific new local user, on top of already-working SSH.
+//   - cisco-ssh-diagnose: SSH was fully working, exactly one realistic fault
+//     was introduced (wrong gateway, missing RSA, SSHv1, Telnet still
+//     allowed, missing login local, missing user) - find and fix it.
+//
+// cisco-ssh-enable and cisco-ssh-vty-access both support a `deviceType` of
+// 'switch' (management SVI, as built by cisco-ssh-management-access) or
+// 'router' (a routed interface that already has a real IP - no artificial
+// management VLAN is ever invented for a router that already has a usable
+// routed address, per the Block 1.5 curriculum note in AGENTS.md).
+// ============================================================================
+
+const SSH_MGMT_VLAN_POOL = [10, 50, 77, 99, 100, 172, 200, 250];
+const SSH_MGMT_VLAN_NAMES = ['MGMT', 'MANAGEMENT', 'ADMIN', 'IT', 'NETZADMIN'];
+const SSH_SWITCH_HOSTNAMES = ['SW-ADM-02', 'SW-ADM-03', 'SW-AST-04', 'SW-LAB-03', 'SW-HQ-05'];
+const SSH_ROUTED_NET_OCTETS = [11, 21, 31, 41, 51];
+const SSH_DOMAIN_POOL = ['nexus.local', 'ast.nexus.local', 'lab.nexus.local'];
+const SSH_TARGET_MODULUS = 1024;
+const SSH_MIN_MODULUS = 768;
+const SSH_WEAK_MODULUS = 768; // still >= the SSHv2 floor, but below the NEXUS-preferred size
+
+function sshManagementNetwork(vlanId) {
+  const base = `192.168.${vlanId}`;
+  return {
+    network: `${base}.0`, mask: '255.255.255.0', gateway: `${base}.1`, mgmtIp: `${base}.2`,
+  };
+}
+
+function sshRoutedNetwork(rng) {
+  const octet = pickFrom(rng, SSH_ROUTED_NET_OCTETS);
+  const base = `10.10.${octet}`;
+  return { network: `${base}.0`, mask: '255.255.255.0', routerIp: `${base}.1` };
+}
+
+function pickAccount(rng, exclude = []) {
+  const pool = ACCOUNT_NAME_POOL.filter((p) => p.username && !exclude.includes(p.username));
+  return pickFrom(rng, pool.length ? pool : ACCOUNT_NAME_POOL);
+}
+
+function buildSshSwitchDevice(hostname) {
+  const device = createCiscoDevice({ profile: 'catalyst_8fe_1ge', hostname });
+  device.runningConfig.noIpDomainLookup = true;
+  return device;
+}
+
+// ciscoCliEngine.js does not export its internal createInterface() helper,
+// so SVI interfaces built directly (without going through the CLI command
+// tree) are shaped explicitly here, mirroring every field a real interface
+// object has, so rendering/evaluation code never sees a partially-shaped
+// interface.
+function buildSviInterfaceObject(vlanId, { ipv4 = null, mask = null, administrativelyDown = true } = {}) {
+  const id = `Vlan${vlanId}`;
+  return {
+    id,
+    name: id,
+    type: 'svi',
+    parentId: null,
+    ipv4,
+    mask,
+    administrativelyDown,
+    operationalStatus: administrativelyDown ? 'disabled' : 'up',
+    description: '',
+    duplex: null,
+    speed: null,
+    switchportMode: null,
+    accessVlan: null,
+    trunkAllowedVlans: null,
+    nativeVlan: null,
+    encapsulationVlan: null,
+    encapsulationDot1q: null,
+  };
+}
+
+function buildSshRouterDevice(hostname, routerIp, mask) {
+  const device = createCiscoDevice({ profile: 'router_1ge', hostname });
+  device.runningConfig.noIpDomainLookup = true;
+  const iface = device.runningConfig.interfaces['GigabitEthernet0/0'];
+  iface.ipv4 = routerIp;
+  iface.mask = mask;
+  iface.operationalStatus = 'connected';
+  iface.administrativelyDown = false;
+  return device;
+}
+
+// Shared "device already has a usable management/routed IP" base, used by
+// cisco-ssh-enable and cisco-ssh-vty-access so a router never gets an
+// invented management VLAN.
+function resolveSshReachabilityParams(rng) {
+  const deviceType = pickFrom(rng, ['switch', 'router']);
+  if (deviceType === 'switch') {
+    const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
+    const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
+    const mgmtVlanName = pickFrom(rng, SSH_MGMT_VLAN_NAMES);
+    const net = sshManagementNetwork(mgmtVlanId);
+    return {
+      deviceType, hostname, mgmtVlanId, mgmtVlanName, ip: net.mgmtIp, mask: net.mask, gateway: net.gateway,
+    };
+  }
+  const hostname = pickFrom(rng, STAGE3_ROUTER_HOSTNAMES);
+  const net = sshRoutedNetwork(rng);
+  return {
+    deviceType, hostname, ip: net.routerIp, mask: net.mask, gateway: null,
+  };
+}
+
+function buildReachableSshDevice(params) {
+  if (params.deviceType === 'switch') {
+    const device = buildSshSwitchDevice(params.hostname);
+    device.runningConfig.vlans[params.mgmtVlanId] = { id: params.mgmtVlanId, name: params.mgmtVlanName };
+    device.runningConfig.interfaces[`Vlan${params.mgmtVlanId}`] = buildSviInterfaceObject(params.mgmtVlanId, {
+      ipv4: params.ip, mask: params.mask, administrativelyDown: false,
+    });
+    device.runningConfig.ipDefaultGateway = params.gateway;
+    return device;
+  }
+  return buildSshRouterDevice(params.hostname, params.ip, params.mask);
+}
+
+const SSH_MGMT_HINTS = {
+  'cisco.remote_administration.management_svi': defineHintLadder({
+    subskillPath: 'cisco.remote_administration.management_svi',
+    nudge: 'Ein reiner Layer-2-Switch braucht eine virtuelle Schnittstelle, um selbst eine IP-Adresse zu bekommen.',
+    focus: 'Erstelle die SVI für das Management-VLAN und weise ihr eine IP-Adresse zu.',
+    directive: 'interface vlan <id>\nip address <ip> <maske>\nno shutdown\nexit',
+    solution: { answer: 'interface vlan 172\nip address 192.168.172.2 255.255.255.0\nno shutdown\nexit', explanation: 'Die SVI gibt dem Switch eine erreichbare IP-Adresse im Management-VLAN.' },
+  }),
+};
+
+const TEMPLATE_SSH_MANAGEMENT_ACCESS = defineMissionTemplate({
+  id: 'cisco-ssh-management-access',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.vlan.create',
+    'cisco.remote_administration.management_svi',
+    'cisco.basic_configuration.default_gateway',
+  ],
+  unlockedBy: ['cisco-main-003'],
+  archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.COMPLETE, MISSION_ARCHETYPE.REPAIR],
+  contexts: ['neuer_verwaltungszugang', 'standort_fernwartung', 'sicherheitsaudit'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: DIFFICULTY_ORDER,
+  hintDefinitions: SSH_MGMT_HINTS,
+  resolveParameters(rng) {
+    const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
+    const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
+    const mgmtVlanName = pickFrom(rng, SSH_MGMT_VLAN_NAMES);
+    const net = sshManagementNetwork(mgmtVlanId);
+    return {
+      hostname, mgmtVlanId, mgmtVlanName, mgmtIp: net.mgmtIp, mgmtMask: net.mask, mgmtGateway: net.gateway,
+    };
+  },
+  buildDevice(params, archetype) {
+    const device = buildSshSwitchDevice(params.hostname);
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) {
+      // VLAN already created, but nobody got around to the SVI/gateway yet.
+      device.runningConfig.vlans[params.mgmtVlanId] = { id: params.mgmtVlanId, name: params.mgmtVlanName };
+    }
+    if (archetype === MISSION_ARCHETYPE.REPAIR) {
+      device.runningConfig.vlans[params.mgmtVlanId] = { id: params.mgmtVlanId, name: params.mgmtVlanName };
+      device.runningConfig.interfaces[`Vlan${params.mgmtVlanId}`] = buildSviInterfaceObject(params.mgmtVlanId, {
+        ipv4: params.mgmtIp, mask: params.mgmtMask, administrativelyDown: true,
+      });
+      // Gateway was never set either - a realistic "half-finished" state.
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const vlan = device.runningConfig.vlans?.[params.mgmtVlanId];
+    const mgmtVlan = !!vlan && vlan.name === params.mgmtVlanName;
+    const svi = device.runningConfig.interfaces?.[`Vlan${params.mgmtVlanId}`];
+    const sviAddress = !!svi && svi.ipv4 === params.mgmtIp && svi.mask === params.mgmtMask && !svi.administrativelyDown;
+    const defaultGateway = device.runningConfig.ipDefaultGateway === params.mgmtGateway;
+    const checks = [
+      { id: 'mgmt_vlan', label: `VLAN ${params.mgmtVlanId} / ${params.mgmtVlanName}`, skill: 'cisco.switching.vlan.create', ok: mgmtVlan },
+      { id: 'svi_address', label: `SVI Vlan${params.mgmtVlanId} mit IP ${params.mgmtIp}, aktiviert`, skill: 'cisco.remote_administration.management_svi', ok: sviAddress },
+      { id: 'default_gateway', label: `Default Gateway ${params.mgmtGateway}`, skill: 'cisco.basic_configuration.default_gateway', ok: defaultGateway },
+    ];
+    return { checks, allCorrect: checks.every((c) => c.ok) };
+  },
+  buildTitle(params, archetype) {
+    if (archetype === MISSION_ARCHETYPE.REPAIR) return `Verwaltungszugang auf ${params.hostname} nicht erreichbar`;
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) return `Verwaltungszugang auf ${params.hostname} fertigstellen`;
+    return `Verwaltungszugang für ${params.hostname} einrichten`;
+  },
+  buildBriefing(params, archetype) {
+    const base = `${params.hostname} soll über VLAN ${params.mgmtVlanId} / ${params.mgmtVlanName} erreichbar werden (IP ${params.mgmtIp}/${params.mgmtMask}, Gateway ${params.mgmtGateway}).`;
+    if (archetype === MISSION_ARCHETYPE.REPAIR) {
+      return `${base}\n\nDie SVI existiert bereits, ist aber nicht erreichbar - vermutlich fehlt etwas an der Aktivierung oder am Gateway. Finde und behebe den Fehler.`;
+    }
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) {
+      return `${base}\n\nDas VLAN ist schon angelegt, die SVI und das Gateway fehlen aber noch.`;
+    }
+    return `${base}\n\nLege das VLAN an, richte die SVI mit der IP-Adresse ein und setze das Default Gateway.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return {
+      skillGroup: 'remote_administration_access', archetype, context, hostname: params.hostname, mgmtVlanId: params.mgmtVlanId,
+    };
+  },
+});
+
+const TEMPLATE_SSH_ENABLE = defineMissionTemplate({
+  id: 'cisco-ssh-enable',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.basic_configuration.domain_name',
+    'cisco.remote_administration.hostname_domain_dependency',
+    'cisco.remote_administration.rsa_keys',
+    'cisco.remote_administration.ssh_version',
+  ],
+  unlockedBy: ['cisco-main-003'],
+  archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.COMPLETE, MISSION_ARCHETYPE.HARDEN],
+  contexts: ['neues_geraet', 'fernwartung_freischalten', 'sicherheitsrichtlinie'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL],
+  difficultyProfiles: DIFFICULTY_ORDER,
+  hintDefinitions: {
+    'cisco.remote_administration.rsa_keys': defineHintLadder({
+      subskillPath: 'cisco.remote_administration.rsa_keys',
+      nudge: 'SSH braucht einen RSA-Schlüssel zur Verschlüsselung der Verbindung.',
+      focus: 'Erzeuge (oder erneuere) den RSA-Schlüssel mit mindestens 1024 Bit.',
+      directive: 'crypto key generate rsa\n1024',
+      solution: { answer: 'crypto key generate rsa\n1024', explanation: '"crypto key generate rsa" fragt interaktiv nach der Schlüssellänge; 1024 Bit ist der NEXUS-Standard.' },
+    }),
+  },
+  resolveParameters(rng) {
+    const reachability = resolveSshReachabilityParams(rng);
+    const domainName = pickFrom(rng, SSH_DOMAIN_POOL);
+    const account = pickAccount(rng);
+    return {
+      ...reachability, domainName, username: account.username, userSecret: generateSecret(rng),
+    };
+  },
+  buildDevice(params, archetype) {
+    const device = buildReachableSshDevice(params);
+    device.runningConfig.users[params.username] = { secret: params.userSecret };
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) {
+      device.runningConfig.ipDomainName = params.domainName;
+      device.runningConfig.cryptoKey = { exists: true, modulus: SSH_TARGET_MODULUS };
+      // ssh version left unset - the last small step was forgotten.
+    }
+    if (archetype === MISSION_ARCHETYPE.HARDEN) {
+      device.runningConfig.ipDomainName = params.domainName;
+      device.runningConfig.cryptoKey = { exists: true, modulus: SSH_WEAK_MODULUS };
+      device.runningConfig.ipSshVersion = 2;
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const domainName = device.runningConfig.ipDomainName === params.domainName;
+    const rsaKey = !!device.runningConfig.cryptoKey?.exists && device.runningConfig.cryptoKey.modulus >= SSH_TARGET_MODULUS;
+    const sshVersion = device.runningConfig.ipSshVersion === 2;
+    const checks = [
+      { id: 'domain_name', label: `Domain-Name ${params.domainName}`, skill: 'cisco.basic_configuration.domain_name', ok: domainName },
+      { id: 'rsa_key', label: `RSA-Schlüssel (>= ${SSH_TARGET_MODULUS} Bit)`, skill: 'cisco.remote_administration.rsa_keys', ok: rsaKey },
+      { id: 'ssh_version', label: 'SSH Version 2', skill: 'cisco.remote_administration.ssh_version', ok: sshVersion },
+    ];
+    return { checks, allCorrect: checks.every((c) => c.ok) };
+  },
+  buildTitle(params, archetype) {
+    if (archetype === MISSION_ARCHETYPE.HARDEN) return `SSH-Schlüssel auf ${params.hostname} verstärken`;
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) return `SSH auf ${params.hostname} fertigstellen`;
+    return `SSH auf ${params.hostname} freischalten`;
+  },
+  buildBriefing(params, archetype) {
+    const reach = params.deviceType === 'switch'
+      ? `${params.hostname} ist über seine Management-IP bereits erreichbar.`
+      : `${params.hostname} hat bereits eine gültige, geroutete IP-Adresse - ein zusätzliches Management-VLAN ist hier nicht nötig.`;
+    if (archetype === MISSION_ARCHETYPE.HARDEN) {
+      return `${reach}\n\nSSH läuft bereits, aber der RSA-Schlüssel ist mit ${SSH_WEAK_MODULUS} Bit schwächer als der NEXUS-Standard. Erzeuge einen neuen Schlüssel mit mindestens ${SSH_TARGET_MODULUS} Bit.`;
+    }
+    if (archetype === MISSION_ARCHETYPE.COMPLETE) {
+      return `${reach}\n\nDomain-Name und RSA-Schlüssel sind schon gesetzt, aber SSH Version 2 wurde nicht erzwungen. Schließe die Konfiguration ab.`;
+    }
+    return `${reach}\n\nDamit SSH funktioniert, brauchst du einen Domain-Namen (${params.domainName}), einen RSA-Schlüssel (mindestens ${SSH_TARGET_MODULUS} Bit) und SSH Version 2.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return {
+      skillGroup: 'remote_administration_enable', archetype, context, hostname: params.hostname, deviceType: params.deviceType,
+    };
+  },
+});
+
+const TEMPLATE_SSH_VTY_ACCESS = defineMissionTemplate({
+  id: 'cisco-ssh-vty-access',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.remote_administration.vty_login_local',
+    'cisco.remote_administration.vty_transport_ssh',
+    'cisco.remote_administration.local_user',
+  ],
+  unlockedBy: ['cisco-main-003'],
+  archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.USER_REPORT, MISSION_ARCHETYPE.AUDIT],
+  contexts: ['neuer_mitarbeiter', 'sicherheitsaudit', 'zugriffsschutz'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: DIFFICULTY_ORDER,
+  hintDefinitions: {
+    'cisco.remote_administration.vty_transport_ssh': defineHintLadder({
+      subskillPath: 'cisco.remote_administration.vty_transport_ssh',
+      nudge: 'Standardmäßig erlauben die VTY-Leitungen auch unverschlüsseltes Telnet.',
+      focus: 'Beschränke die VTY-Leitungen auf SSH.',
+      directive: 'line vty 0 15\ntransport input ssh',
+      solution: { answer: 'line vty 0 15\ntransport input ssh\nexit', explanation: '"transport input ssh" lässt nur noch SSH zu und deaktiviert Telnet auf den VTY-Leitungen.' },
+    }),
+  },
+  resolveParameters(rng, archetype) {
+    const reachability = resolveSshReachabilityParams(rng);
+    const existing = pickAccount(rng);
+    const newAccount = pickAccount(rng, [existing.username]);
+    const requiredChecks = archetype === MISSION_ARCHETYPE.USER_REPORT
+      ? ['new_user']
+      : ['login_local', 'transport_ssh'];
+    // Deterministic (seed-driven) choice of which VTY check is already
+    // compliant in the AUDIT archetype - irrelevant for other archetypes.
+    const auditPreconfiguredCheck = pickFrom(rng, ['login_local', 'transport_ssh']);
+    return {
+      ...reachability,
+      domainName: pickFrom(rng, SSH_DOMAIN_POOL),
+      existingUsername: existing.username,
+      existingUserSecret: generateSecret(rng),
+      newUsername: newAccount.username,
+      newUserSecret: generateSecret(rng),
+      requiredChecks,
+      auditPreconfiguredCheck,
+    };
+  },
+  buildDevice(params, archetype) {
+    const device = buildReachableSshDevice(params);
+    device.runningConfig.ipDomainName = params.domainName;
+    device.runningConfig.cryptoKey = { exists: true, modulus: SSH_TARGET_MODULUS };
+    device.runningConfig.ipSshVersion = 2;
+    device.runningConfig.users[params.existingUsername] = { secret: params.existingUserSecret };
+    if (archetype === MISSION_ARCHETYPE.USER_REPORT) {
+      // Line is already hardened - the only missing piece is the new account.
+      device.runningConfig.lines.vty.loginLocal = true;
+      device.runningConfig.lines.vty.login = false;
+      device.runningConfig.lines.vty.transportInput = ['ssh'];
+    } else if (archetype === MISSION_ARCHETYPE.AUDIT) {
+      // Half-compliant, audit-style state: one of the two checks already
+      // correct, the other one still open - mirrors TEMPLATE_BASIC_CONFIG_HARDENING's audit pattern.
+      if (params.auditPreconfiguredCheck === 'login_local') {
+        device.runningConfig.lines.vty.loginLocal = true;
+      } else {
+        device.runningConfig.lines.vty.transportInput = ['ssh'];
+      }
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const loginLocal = !!device.runningConfig.lines?.vty?.loginLocal;
+    const transportSsh = Array.isArray(device.runningConfig.lines?.vty?.transportInput)
+      && device.runningConfig.lines.vty.transportInput.length > 0
+      && device.runningConfig.lines.vty.transportInput.every((t) => t === 'ssh');
+    const newUser = !!device.runningConfig.users?.[params.newUsername];
+    const all = {
+      login_local: { id: 'login_local', label: 'VTY login local', skill: 'cisco.remote_administration.vty_login_local', ok: loginLocal },
+      transport_ssh: { id: 'transport_ssh', label: 'VTY transport input ssh (kein Telnet)', skill: 'cisco.remote_administration.vty_transport_ssh', ok: transportSsh },
+      new_user: { id: 'new_user', label: `Benutzer ${params.newUsername} angelegt`, skill: 'cisco.remote_administration.local_user', ok: newUser },
+    };
+    const checks = params.requiredChecks.map((id) => all[id]);
+    return { checks, allCorrect: checks.every((c) => c.ok) };
+  },
+  buildTitle(params, archetype) {
+    if (archetype === MISSION_ARCHETYPE.USER_REPORT) return `SSH-Zugang für ${params.newUsername} auf ${params.hostname}`;
+    if (archetype === MISSION_ARCHETYPE.AUDIT) return `VTY-Sicherheits-Check ${params.hostname}`;
+    return `VTY-Leitungen auf ${params.hostname} absichern`;
+  },
+  buildBriefing(params, archetype) {
+    if (archetype === MISSION_ARCHETYPE.USER_REPORT) {
+      return `Ein neuer Kollege braucht Fernzugriff auf ${params.hostname}. SSH und die VTY-Absicherung laufen bereits - lege für ihn den Benutzer ${params.newUsername} an.`;
+    }
+    if (archetype === MISSION_ARCHETYPE.AUDIT) {
+      return `Prüfe auf ${params.hostname}, ob die VTY-Leitungen bereits vollständig auf "login local" und "transport input ssh" abgesichert sind. Ergänze, was fehlt.`;
+    }
+    return `SSH läuft auf ${params.hostname}, aber die VTY-Leitungen sind noch nicht abgesichert: kein "login local", Telnet ist weiterhin erlaubt. Behebe beides.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return {
+      skillGroup: 'remote_administration_vty', archetype, context, hostname: params.hostname, deviceType: params.deviceType,
+    };
+  },
+});
+
+const SSH_FAULTS = ['wrong_gateway', 'missing_login_local', 'missing_rsa', 'wrong_ssh_version', 'telnet_still_allowed', 'missing_user'];
+
+const TEMPLATE_SSH_DIAGNOSE = defineMissionTemplate({
+  id: 'cisco-ssh-diagnose',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.remote_administration.troubleshoot',
+    'cisco.remote_administration.verify',
+    'cisco.remote_administration.rsa_keys',
+    'cisco.remote_administration.ssh_version',
+    'cisco.remote_administration.vty_login_local',
+    'cisco.remote_administration.vty_transport_ssh',
+  ],
+  unlockedBy: ['cisco-main-003'],
+  archetypes: [MISSION_ARCHETYPE.DIAGNOSE, MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.INCIDENT],
+  contexts: ['kein_zugriff', 'zugriff_verweigert', 'plötzlich_offline'],
+  allowedChannels: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],
+  difficultyProfiles: DIFFICULTY_ORDER,
+  hintDefinitions: {
+    'cisco.remote_administration.troubleshoot': defineHintLadder({
+      subskillPath: 'cisco.remote_administration.troubleshoot',
+      nudge: 'SSH lief bereits - irgendetwas an der Kette VLAN/SVI/Gateway/Domain/RSA/SSH-Version/VTY wurde verändert.',
+      focus: 'Prüfe Schritt für Schritt: Erreichbarkeit (SVI/Gateway), dann Domain/RSA/SSH-Version, dann VTY.',
+      directive: 'show ip ssh\nshow ip interface brief\nshow running-config',
+      solution: { answer: 'Vergleiche Gateway, RSA-Schlüssel, SSH-Version, login local und transport input mit dem bekannten Sollzustand.', explanation: 'Ein einzelner falscher oder fehlender Wert reicht aus, um SSH unbrauchbar zu machen.' },
+    }),
+  },
+  resolveParameters(rng) {
+    const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
+    const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
+    const mgmtVlanName = pickFrom(rng, SSH_MGMT_VLAN_NAMES);
+    const net = sshManagementNetwork(mgmtVlanId);
+    const domainName = pickFrom(rng, SSH_DOMAIN_POOL);
+    const account = pickAccount(rng);
+    const faultId = pickFrom(rng, SSH_FAULTS);
+    return {
+      hostname,
+      mgmtVlanId,
+      mgmtVlanName,
+      mgmtIp: net.mgmtIp,
+      mgmtMask: net.mask,
+      mgmtGateway: net.gateway,
+      domainName,
+      username: account.username,
+      userSecret: generateSecret(rng),
+      faultId,
+    };
+  },
+  buildDevice(params) {
+    const device = buildSshSwitchDevice(params.hostname);
+    device.runningConfig.vlans[params.mgmtVlanId] = { id: params.mgmtVlanId, name: params.mgmtVlanName };
+    device.runningConfig.interfaces[`Vlan${params.mgmtVlanId}`] = buildSviInterfaceObject(params.mgmtVlanId, {
+      ipv4: params.mgmtIp, mask: params.mgmtMask, administrativelyDown: false,
+    });
+    device.runningConfig.ipDefaultGateway = params.mgmtGateway;
+    device.runningConfig.ipDomainName = params.domainName;
+    device.runningConfig.cryptoKey = { exists: true, modulus: SSH_TARGET_MODULUS };
+    device.runningConfig.ipSshVersion = 2;
+    device.runningConfig.users[params.username] = { secret: params.userSecret };
+    device.runningConfig.lines.vty.loginLocal = true;
+    device.runningConfig.lines.vty.login = false;
+    device.runningConfig.lines.vty.transportInput = ['ssh'];
+
+    switch (params.faultId) {
+      case 'wrong_gateway': {
+        // Management IP itself is correct - only the gateway is wrong.
+        device.runningConfig.ipDefaultGateway = `192.168.${params.mgmtVlanId}.254`;
+        break;
+      }
+      case 'missing_login_local': {
+        device.runningConfig.lines.vty.loginLocal = false;
+        break;
+      }
+      case 'missing_rsa': {
+        device.runningConfig.cryptoKey = { exists: false, modulus: null };
+        break;
+      }
+      case 'wrong_ssh_version': {
+        device.runningConfig.ipSshVersion = 1;
+        break;
+      }
+      case 'telnet_still_allowed': {
+        device.runningConfig.lines.vty.transportInput = ['telnet', 'ssh'];
+        break;
+      }
+      case 'missing_user': {
+        device.runningConfig.users = {};
+        break;
+      }
+      default:
+        break;
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const rc = device.runningConfig;
+    const mgmtVlan = rc.vlans?.[params.mgmtVlanId]?.name === params.mgmtVlanName;
+    const svi = rc.interfaces?.[`Vlan${params.mgmtVlanId}`];
+    const sviAddress = !!svi && svi.ipv4 === params.mgmtIp && svi.mask === params.mgmtMask && !svi.administrativelyDown;
+    const defaultGateway = rc.ipDefaultGateway === params.mgmtGateway;
+    const domainName = rc.ipDomainName === params.domainName;
+    const rsaKey = !!rc.cryptoKey?.exists && rc.cryptoKey.modulus >= SSH_MIN_MODULUS;
+    const sshVersion = rc.ipSshVersion === 2;
+    const loginLocal = !!rc.lines?.vty?.loginLocal;
+    const transportSsh = Array.isArray(rc.lines?.vty?.transportInput)
+      && rc.lines.vty.transportInput.length > 0
+      && rc.lines.vty.transportInput.every((t) => t === 'ssh');
+    const userExists = !!rc.users?.[params.username];
+    const checks = [
+      { id: 'mgmt_vlan', label: `VLAN ${params.mgmtVlanId} / ${params.mgmtVlanName}`, skill: 'cisco.switching.vlan.create', ok: mgmtVlan },
+      { id: 'svi_address', label: `SVI Vlan${params.mgmtVlanId} mit IP ${params.mgmtIp}, aktiviert`, skill: 'cisco.remote_administration.management_svi', ok: sviAddress },
+      { id: 'default_gateway', label: `Default Gateway ${params.mgmtGateway}`, skill: 'cisco.basic_configuration.default_gateway', ok: defaultGateway },
+      { id: 'domain_name', label: `Domain-Name ${params.domainName}`, skill: 'cisco.basic_configuration.domain_name', ok: domainName },
+      { id: 'rsa_key', label: `RSA-Schlüssel (>= ${SSH_MIN_MODULUS} Bit)`, skill: 'cisco.remote_administration.rsa_keys', ok: rsaKey },
+      { id: 'ssh_version', label: 'SSH Version 2', skill: 'cisco.remote_administration.ssh_version', ok: sshVersion },
+      { id: 'vty_login_local', label: 'VTY login local', skill: 'cisco.remote_administration.vty_login_local', ok: loginLocal },
+      { id: 'vty_transport_ssh', label: 'VTY transport input ssh (kein Telnet)', skill: 'cisco.remote_administration.vty_transport_ssh', ok: transportSsh },
+      { id: 'user_exists', label: `Benutzer ${params.username} vorhanden`, skill: 'cisco.remote_administration.local_user', ok: userExists },
+    ];
+    return { checks, allCorrect: checks.every((c) => c.ok) };
+  },
+  buildTitle(params, archetype) {
+    return archetype === MISSION_ARCHETYPE.INCIDENT ? `SSH-Ausfall auf ${params.hostname}` : `SSH-Fehler auf ${params.hostname}`;
+  },
+  buildBriefing(params, archetype, context, difficulty) {
+    const faultText = {
+      wrong_gateway: 'Die Management-IP ist korrekt, aber das Default Gateway zeigt offenbar ins Leere.',
+      missing_login_local: 'SSH ist erreichbar, aber die Anmeldung gegen die lokalen Benutzer ("login local") scheint zu fehlen.',
+      missing_rsa: 'Es fehlt offenbar ein gültiger RSA-Schlüssel.',
+      wrong_ssh_version: 'SSH scheint nicht auf Version 2 erzwungen zu sein.',
+      telnet_still_allowed: 'Die VTY-Leitungen scheinen noch unverschlüsseltes Telnet zuzulassen.',
+      missing_user: 'Der erwartete Benutzer scheint auf dem Gerät zu fehlen.',
+    }[params.faultId] || 'Eine Einstellung verhindert den SSH-Zugriff.';
+    if (difficulty === DIFFICULTY_PROFILE.EASY) {
+      return `Auf ${params.hostname} funktioniert die SSH-Fernwartung nicht mehr, obwohl sie vorher lief.\n\nHinweis: ${faultText} Finde und behebe den Fehler.`;
+    }
+    return `Auf ${params.hostname} klappt der SSH-Zugriff plötzlich nicht mehr, obwohl bisher alles funktioniert hat. Diagnostiziere die Ursache in der Kette VLAN/SVI/Gateway/Domain/RSA/SSH-Version/VTY und behebe sie.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return {
+      skillGroup: 'remote_administration_diagnose', archetype, context, hostname: params.hostname, faultId: params.faultId,
+    };
+  },
+});
+
 export const TEMPLATE_REGISTRY = {
   [TEMPLATE_BASIC_CONFIG_HARDENING.id]: TEMPLATE_BASIC_CONFIG_HARDENING,
   [TEMPLATE_VLAN_ACCESS_PORT.id]: TEMPLATE_VLAN_ACCESS_PORT,
@@ -1138,6 +1680,10 @@ export const TEMPLATE_REGISTRY = {
   [TEMPLATE_TRUNK_ALLOWED_VLAN.id]: TEMPLATE_TRUNK_ALLOWED_VLAN,
   [TEMPLATE_ROUTER_ON_A_STICK.id]: TEMPLATE_ROUTER_ON_A_STICK,
   [TEMPLATE_ROUTER_FAULT.id]: TEMPLATE_ROUTER_FAULT,
+  [TEMPLATE_SSH_MANAGEMENT_ACCESS.id]: TEMPLATE_SSH_MANAGEMENT_ACCESS,
+  [TEMPLATE_SSH_ENABLE.id]: TEMPLATE_SSH_ENABLE,
+  [TEMPLATE_SSH_VTY_ACCESS.id]: TEMPLATE_SSH_VTY_ACCESS,
+  [TEMPLATE_SSH_DIAGNOSE.id]: TEMPLATE_SSH_DIAGNOSE,
 };
 
 export function getTemplate(id) {
