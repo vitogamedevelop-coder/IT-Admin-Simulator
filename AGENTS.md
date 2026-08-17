@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **1.28.2**
+Aktuelle Version: **1.28.3**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
@@ -73,6 +73,46 @@ Aktuelle Version: **1.28.2**
   - **MINOR** (1.0.0 → 1.1.0): Neue Lektionen, neue Academy-Bereiche, größere Features, neue Systeme, neue Spielmechaniken
   - **MAJOR** (1.9.5 → 2.0.0): Vollständige Releases, große Architekturänderungen
 - Die Version wird in Einstellungen, Web-Version, APK und GitHub-Pages-Build angezeigt.
+
+## NEXUS Cisco Learning Roadmap (verbindlich)
+
+Die fachliche Progression folgt dem realen Cisco/Packet-Tracer-Lehrgang. Nicht jeder Block ist implementiert – die Roadmap dient als verbindliche Planungs- und Unlock-Grundlage.
+
+### BLOCK 1 – Grundkonfiguration
+Bereits abgedeckt:
+- `hostname`, `enable secret`, lokale Benutzer, `no ip domain-lookup`
+- `line console 0`, `password`/`login`/`login local`, `exec-timeout`
+- `service password-encryption`
+- `copy running-config startup-config` / `write` und Verifikation
+
+### BLOCK 1.5 – SSH / Remote Management
+Noch nicht implementiert. Einzuführen sobald Block 1 stabil ist:
+- Management-SVI auf L2-Switch, Default Gateway
+- `ip domain-name`, RSA-Keys, `crypto key generate rsa`
+- `ip ssh version 2`
+- VTY: `login local`, `transport input ssh`
+- Optional: Management-Zugriff per ACL einschränken (ACL nur als Management-Hardening, nicht als Voll-Ausführung)
+
+### BLOCK 2 – Layer 2 Switching
+Bereits abgedeckt / in Ausbau:
+- VLAN, VLAN-Name, Access-Ports, Trunk, `interface range`
+- Allowed VLANs, Parking-VLAN, `shutdown` ungenutzter Ports
+- STP-Grundlagen später ergänzen
+
+### BLOCK 3 – Layer 3 / Routing
+Bereits abgedeckt / in Ausbau:
+- Interface-IP, `no switchport`, `no shutdown`
+- Statische Routen, SVI, `ip routing`
+- Router-on-a-Stick, Subinterfaces, `encapsulation dot1q`
+- DHCP Relay erst nach L3-Kontext (`ip helper-address`)
+
+### Danach
+OSPF, ACLs, Paketfilter, NAT/PAT, komplexe kombinierte Szenarien.
+
+### Grundsatz
+- DHCP Relay nie als isolierter L2-Befehl lehren.
+- STP erst nach VLAN/Trunk-Grundlagen einführen.
+- `interface range` und Access-/Trunk-Konfiguration vor Layer-3-IP.
 
 ## Web-Version & GitHub Pages
 

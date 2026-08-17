@@ -32,7 +32,16 @@ export default function EmailApp({ onClose }) {
   }, []);
 
   const visibleEmails = useMemo(
-    () => emails.filter((e) => !e.archived).sort((a, b) => (b.date || 0) - (a.date || 0)),
+    () => {
+      const nonArchived = emails.filter((e) => !e.archived);
+      const open = nonArchived
+        .filter((e) => !emailCompleted(e))
+        .sort((a, b) => (b.deliveredAt || b.date || 0) - (a.deliveredAt || a.date || 0));
+      const completed = nonArchived
+        .filter((e) => emailCompleted(e))
+        .sort((a, b) => (b.deliveredAt || b.date || 0) - (a.deliveredAt || a.date || 0));
+      return [...open, ...completed];
+    },
     [emails],
   );
 

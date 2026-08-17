@@ -234,13 +234,12 @@ const BUCHHALTUNG_VLAN_ID = 20;
 const BUCHHALTUNG_VLAN_NAME = 'BUCHHALTUNG';
 const PARKING_VLAN_ID_002 = 999;
 const PARKING_VLAN_NAME_002 = 'UNUSED';
-const PERSONAL_PORTS_002 = [
-  'FastEthernet0/1', 'FastEthernet0/2', 'FastEthernet0/3', 'FastEthernet0/4',
+const PERSONAL_PORTS_002 = ['FastEthernet0/1'];
+const BUCHHALTUNG_PORTS_002 = ['FastEthernet0/2'];
+const UNUSED_PORTS_002 = [
+  'FastEthernet0/3', 'FastEthernet0/4', 'FastEthernet0/5', 'FastEthernet0/6',
+  'FastEthernet0/7', 'FastEthernet0/8',
 ];
-const BUCHHALTUNG_PORTS_002 = [
-  'FastEthernet0/5', 'FastEthernet0/6', 'FastEthernet0/7', 'FastEthernet0/8',
-];
-const UNUSED_PORTS_002 = Array.from({ length: 16 }, (_, i) => `FastEthernet0/${i + 9}`);
 const UPLINK_PORT_002 = 'GigabitEthernet0/1';
 
 const VERIFY_HINTS_002 = ['show vlan brief', 'show interfaces trunk', 'show interfaces status', 'switchport', 'show running-config'];
@@ -265,13 +264,13 @@ export function generateMission002Scenario(seed = Date.now()) {
       unusedPorts: UNUSED_PORTS_002,
       uplinkPort: UPLINK_PORT_002,
     },
-    briefing: `Moin,\n\nder Bürobereich wird gerade neu gepatcht.\n\nPersonal und Buchhaltung hängen künftig am selben Access-Switch, sollen aber logisch getrennt bleiben.\n\n${TARGET_HOSTNAME_002} ist bereits grundkonfiguriert.\n\nPortplan für ${TARGET_HOSTNAME_002}:\n\n- Fa0/1 - Fa0/4: Personal\n- Fa0/5 - Fa0/8: Buchhaltung\n- Fa0/9 - Fa0/24: ungenutzt / Parking-VLAN\n- Gi0/1: Uplink zum nächsten Netzwerkgerät\n- Gi0/2: reserviert / frei\n\nVorgaben:\n\nPersonal:\nVLAN ${PERSONAL_VLAN_ID} / ${PERSONAL_VLAN_NAME}\n\nBuchhaltung:\nVLAN ${BUCHHALTUNG_VLAN_ID} / ${BUCHHALTUNG_VLAN_NAME}\n\nUnser Parking-VLAN für ungenutzte Anschlüsse:\nVLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}\n\nOffene Anschlüsse sollen nicht aktiv bleiben. Bereite den Uplink so vor, dass mehrere VLANs übertragen werden können.\n\nPrüfe die Konfiguration vor dem Speichern kurz und speichere sie dann dauerhaft.\n\n– Sam`,
+    briefing: `Moin,\n\ndie Personal- und Buchhaltungsabteilung ziehen auf einen kleinen Etagen-Switch um. Beide Bereiche sollen logisch getrennt bleiben.\n\nAn ${TARGET_HOSTNAME_002} hängen derzeit:\n- ein Arbeitsplatz Personal an Fa0/1\n- ein Arbeitsplatz Buchhaltung an Fa0/2\n- Gi0/1 führt zum restlichen Netz\n\nDie übrigen FastEthernet-Anschlüsse werden aktuell nicht genutzt und sollen nicht aktiv herumliegen.\n\nVorgaben:\n\nPersonal:\nVLAN ${PERSONAL_VLAN_ID} / ${PERSONAL_VLAN_NAME}\n\nBuchhaltung:\nVLAN ${BUCHHALTUNG_VLAN_ID} / ${BUCHHALTUNG_VLAN_NAME}\n\nNEXUS Parking-VLAN für ungenutzte Anschlüsse:\nVLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}\n\nDer Uplink muss den Verkehr der produktiven VLANs weitergeben können.\n\nPrüfe die Konfiguration vor dem Speichern kurz und speichere sie dann dauerhaft.\n\n– Sam`,
   };
 }
 
 export function createMission002Device(scenario) {
   const device = createCiscoDevice({
-    profile: 'catalyst_24fe_2ge',
+    profile: 'catalyst_8fe_1ge',
     hostname: scenario.initialHostname || TARGET_HOSTNAME_002,
   });
 
@@ -309,11 +308,13 @@ export function createMission002Device(scenario) {
 }
 
 export const MISSION_002_REQUIREMENTS = [
-  { id: 'vlan_personal', label: `VLAN ${PERSONAL_VLAN_ID} ${PERSONAL_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
-  { id: 'vlan_buchhaltung', label: `VLAN ${BUCHHALTUNG_VLAN_ID} ${BUCHHALTUNG_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
-  { id: 'access_ports_configured', label: 'Arbeitsplatzports als Access Ports im richtigen VLAN', skill: 'cisco.layer2.access_ports' },
-  { id: 'unused_ports_parked', label: 'Ungenutzte Ports im Parking-VLAN und deaktiviert', skill: 'cisco.layer2.shutdown' },
-  { id: 'uplink_trunk', label: 'Uplink als Trunk vorbereitet', skill: 'cisco.layer2.trunking' },
+  { id: 'vlan_personal', label: `VLAN ${PERSONAL_VLAN_ID} / ${PERSONAL_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
+  { id: 'vlan_buchhaltung', label: `VLAN ${BUCHHALTUNG_VLAN_ID} / ${BUCHHALTUNG_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
+  { id: 'vlan_unused', label: `VLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}`, skill: 'cisco.layer2.vlan_creation' },
+  { id: 'personal_port', label: `Fa0/1 Access VLAN ${PERSONAL_VLAN_ID}`, skill: 'cisco.layer2.access_ports' },
+  { id: 'buchhaltung_port', label: `Fa0/2 Access VLAN ${BUCHHALTUNG_VLAN_ID}`, skill: 'cisco.layer2.access_ports' },
+  { id: 'unused_ports_parked', label: 'Fa0/3–Fa0/8 Parking-VLAN und deaktiviert', skill: 'cisco.layer2.shutdown' },
+  { id: 'uplink_trunk', label: 'Gi0/1 Trunk', skill: 'cisco.layer2.trunking' },
   { id: 'verified', label: 'Konfiguration geprüft', skill: 'cisco.basic_configuration.verify_running_config' },
   { id: 'saved', label: 'Konfiguration dauerhaft gespeichert', skill: 'cisco.basic_configuration.save_config' },
 ];
@@ -339,14 +340,34 @@ const HINT_LADDERS_002 = {
       explanation: 'Jede Abteilung, die logisch getrennt sein soll, bekommt ihr eigenes VLAN.',
     },
   }),
-  access_ports_configured: defineHintLadder({
-    subskillPath: 'cisco.layer2.access_ports',
-    nudge: 'Access-Ports gehören zu genau einem VLAN.',
-    focus: 'Ordne die Arbeitsplatzports beider Abteilungen ihrem jeweiligen VLAN zu.',
-    directive: 'Nutze "interface range" für die Personal- und die Buchhaltungsports und setze jeweils "switchport mode access" sowie "switchport access vlan <id>".',
+  vlan_unused: defineHintLadder({
+    subskillPath: 'cisco.layer2.vlan_creation',
+    nudge: 'Auch das Parking-VLAN braucht einen eindeutigen Namen, bevor du Ports hinein verschiebst.',
+    focus: `Lege das Parking-VLAN ${PARKING_VLAN_ID_002} an.`,
+    directive: `Verwende "vlan ${PARKING_VLAN_ID_002}" gefolgt von "name ${PARKING_VLAN_NAME_002}".`,
     solution: {
-      answer: `interface range fa0/1 - 4\nswitchport mode access\nswitchport access vlan ${PERSONAL_VLAN_ID}\nexit\ninterface range fa0/5 - 8\nswitchport mode access\nswitchport access vlan ${BUCHHALTUNG_VLAN_ID}\nexit`,
-      explanation: 'Im Interface-Range-Modus werden alle Befehle auf alle ausgewählten Ports angewendet.',
+      answer: `vlan ${PARKING_VLAN_ID_002}\nname ${PARKING_VLAN_NAME_002}\nexit`,
+      explanation: 'Das Parking-VLAN nimmt nicht genutzte Access-Ports auf.',
+    },
+  }),
+  personal_port: defineHintLadder({
+    subskillPath: 'cisco.layer2.access_ports',
+    nudge: 'Der Personal-Arbeitsplatz hängt an Fa0/1.',
+    focus: `Setze Fa0/1 auf Access-Modus und ordne ihn VLAN ${PERSONAL_VLAN_ID} zu.`,
+    directive: 'Verwende "interface fa0/1", "switchport mode access" und "switchport access vlan 10".',
+    solution: {
+      answer: `interface fa0/1\nswitchport mode access\nswitchport access vlan ${PERSONAL_VLAN_ID}\nexit`,
+      explanation: 'Ein Access-Port gehört genau einem VLAN an.',
+    },
+  }),
+  buchhaltung_port: defineHintLadder({
+    subskillPath: 'cisco.layer2.access_ports',
+    nudge: 'Der Buchhaltungs-Arbeitsplatz hängt an Fa0/2.',
+    focus: `Setze Fa0/2 auf Access-Modus und ordne ihn VLAN ${BUCHHALTUNG_VLAN_ID} zu.`,
+    directive: 'Verwende "interface fa0/2", "switchport mode access" und "switchport access vlan 20".',
+    solution: {
+      answer: `interface fa0/2\nswitchport mode access\nswitchport access vlan ${BUCHHALTUNG_VLAN_ID}\nexit`,
+      explanation: 'Jeder Arbeitsplatz landet im passenden Abteilungs-VLAN.',
     },
   }),
   unused_ports_parked: defineHintLadder({
@@ -355,7 +376,7 @@ const HINT_LADDERS_002 = {
     focus: `Finde heraus, welche Ports noch frei sind, und verschiebe sie in das Parking-VLAN ${PARKING_VLAN_ID_002}.`,
     directive: `Nutze "show interfaces status", um freie Ports zu erkennen. Setze sie per Interface-Range in VLAN ${PARKING_VLAN_ID_002} und fahre sie mit "shutdown" herunter.`,
     solution: {
-      answer: `vlan ${PARKING_VLAN_ID_002}\nname ${PARKING_VLAN_NAME_002}\nexit\ninterface range fa0/9 - 24\nswitchport mode access\nswitchport access vlan ${PARKING_VLAN_ID_002}\nshutdown\nexit`,
+      answer: `interface range fa0/3 - 8\nswitchport mode access\nswitchport access vlan ${PARKING_VLAN_ID_002}\nshutdown\nexit`,
       explanation: 'Ungenutzte Accessports gehören nach NEXUS-Standard in ein dediziertes Parking-VLAN und werden administrativ deaktiviert.',
     },
   }),
@@ -424,10 +445,14 @@ function _getMission002Progress(device, scenario, state = null) {
   const buchhaltungVlan = rc.vlans?.[p.buchhaltungVlanId];
   const vlanBuchhaltung = !!buchhaltungVlan && buchhaltungVlan.name === p.buchhaltungVlanName;
 
+  const unusedVlan = rc.vlans?.[p.parkingVlanId];
+  const vlanUnused = !!unusedVlan && unusedVlan.name === p.parkingVlanName;
+
   const personalInterfaces = p.personalPorts.map((id) => rc.interfaces[id]).filter(Boolean);
+  const personalPort = accessPortsOk(personalInterfaces, p.personalVlanId);
+
   const buchhaltungInterfaces = p.buchhaltungPorts.map((id) => rc.interfaces[id]).filter(Boolean);
-  const accessPortsConfigured = accessPortsOk(personalInterfaces, p.personalVlanId)
-    && accessPortsOk(buchhaltungInterfaces, p.buchhaltungVlanId);
+  const buchhaltungPort = accessPortsOk(buchhaltungInterfaces, p.buchhaltungVlanId);
 
   const unusedInterfaces = p.unusedPorts.map((id) => rc.interfaces[id]).filter(Boolean);
   const unusedPortsParked = parkedPortsOk(unusedInterfaces, p.parkingVlanId);
@@ -446,6 +471,7 @@ function _getMission002Progress(device, scenario, state = null) {
     const savedUplink = sc.interfaces[p.uplinkPort];
     saved = sc.vlans?.[p.personalVlanId]?.name === p.personalVlanName
       && sc.vlans?.[p.buchhaltungVlanId]?.name === p.buchhaltungVlanName
+      && sc.vlans?.[p.parkingVlanId]?.name === p.parkingVlanName
       && accessPortsOk(savedPersonal, p.personalVlanId)
       && accessPortsOk(savedBuchhaltung, p.buchhaltungVlanId)
       && parkedPortsOk(savedUnused, p.parkingVlanId)
@@ -455,7 +481,9 @@ function _getMission002Progress(device, scenario, state = null) {
   const checks = {
     vlan_personal: vlanPersonal,
     vlan_buchhaltung: vlanBuchhaltung,
-    access_ports_configured: accessPortsConfigured,
+    vlan_unused: vlanUnused,
+    personal_port: personalPort,
+    buchhaltung_port: buchhaltungPort,
     unused_ports_parked: unusedPortsParked,
     uplink_trunk: uplinkTrunk,
     verified,

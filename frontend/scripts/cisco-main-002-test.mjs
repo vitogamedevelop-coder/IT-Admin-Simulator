@@ -78,15 +78,15 @@ const FULL_SOLUTION = [
   'vlan 999',
   'name UNUSED',
   'exit',
-  'interface range fa0/1 - 4',
+  'interface fa0/1',
   'switchport mode access',
   'switchport access vlan 10',
   'exit',
-  'interface range fa0/5 - 8',
+  'interface fa0/2',
   'switchport mode access',
   'switchport access vlan 20',
   'exit',
-  'interface range fa0/9 - 24',
+  'interface range fa0/3 - 8',
   'switchport mode access',
   'switchport access vlan 999',
   'shutdown',
@@ -106,16 +106,16 @@ console.log('Mission 002 scenario and device');
   const state = startMainMission(MISSION_002_ID, 12345);
   test('mission id is cisco-main-002', () => assert(state.missionId === MISSION_002_ID));
   test('device hostname is Sw2', () => assert(state.device.hostname === 'Sw2'));
-  test('device has 26 interfaces', () => assert(Object.keys(state.device.runningConfig.interfaces).length === 26));
+  test('device has 9 interfaces (8 FE + 1 GE)', () => assert(Object.keys(state.device.runningConfig.interfaces).length === 9));
   test('FastEthernet0/1 exists', () => assert(!!state.device.runningConfig.interfaces['FastEthernet0/1']));
-  test('FastEthernet0/24 exists', () => assert(!!state.device.runningConfig.interfaces['FastEthernet0/24']));
-  test('GigabitEthernet0/2 exists', () => assert(!!state.device.runningConfig.interfaces['GigabitEthernet0/2']));
-  test('invalid FastEthernet0/25 does not exist', () => assert(!state.device.runningConfig.interfaces['FastEthernet0/25']));
-  test('invalid GigabitEthernet0/3 does not exist', () => assert(!state.device.runningConfig.interfaces['GigabitEthernet0/3']));
+  test('FastEthernet0/8 exists', () => assert(!!state.device.runningConfig.interfaces['FastEthernet0/8']));
+  test('GigabitEthernet0/1 exists', () => assert(!!state.device.runningConfig.interfaces['GigabitEthernet0/1']));
+  test('FastEthernet0/24 does not exist on small switch', () => assert(!state.device.runningConfig.interfaces['FastEthernet0/24']));
+  test('GigabitEthernet0/2 does not exist on small switch', () => assert(!state.device.runningConfig.interfaces['GigabitEthernet0/2']));
 
   const personal = state.device.runningConfig.interfaces['FastEthernet0/1'];
   test('personal port is connected but not yet shut down', () => assert(personal.operationalStatus === 'connected' && !personal.administrativelyDown));
-  const unused = state.device.runningConfig.interfaces['FastEthernet0/9'];
+  const unused = state.device.runningConfig.interfaces['FastEthernet0/3'];
   test('unused port starts open (not shutdown)', () => assert(!unused.administrativelyDown));
   const uplink = state.device.runningConfig.interfaces['GigabitEthernet0/1'];
   test('uplink starts connected', () => assert(uplink.operationalStatus === 'connected' && !uplink.administrativelyDown));
@@ -130,7 +130,7 @@ console.log('\nPort discovery before configuration');
   const status = executeMissionCommand(state, 'show interfaces status');
   test('show interfaces status reflects device profile', () => {
     assert(status.output.includes('Fa0/1'));
-    assert(status.output.includes('Fa0/24'));
+    assert(status.output.includes('Fa0/8'));
     assert(status.output.includes('Gi0/1'));
   });
   const running = executeMissionCommand(state, 'show running-config');
@@ -151,7 +151,7 @@ console.log('\nMission 002 success path (full solution)');
   const evaluation = evaluateMainMission(state);
   test('mission evaluates allCorrect', () => assert(evaluation.allCorrect === true, `checks: ${JSON.stringify(evaluation.checks)}`));
   test('mission state completed', () => assert(state.completed === true));
-  test('all seven requirements are ok', () => assert(evaluation.checks.every((c) => c.ok), JSON.stringify(evaluation.checks)));
+  test('all nine requirements are ok', () => assert(evaluation.checks.every((c) => c.ok), JSON.stringify(evaluation.checks)));
 }
 
 console.log('\nMission 002 success path (single-interface variant, no ranges)');
@@ -164,14 +164,13 @@ console.log('\nMission 002 success path (single-interface variant, no ranges)');
     'vlan 20', 'name BUCHHALTUNG', 'exit',
     'vlan 999', 'name UNUSED', 'exit',
     'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface fa0/2', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface fa0/3', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface fa0/4', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface fa0/5', 'switchport mode access', 'switchport access vlan 20', 'exit',
-    'interface fa0/6', 'switchport mode access', 'switchport access vlan 20', 'exit',
-    'interface fa0/7', 'switchport mode access', 'switchport access vlan 20', 'exit',
-    'interface fa0/8', 'switchport mode access', 'switchport access vlan 20', 'exit',
-    'interface range fa0/9 - 24', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/2', 'switchport mode access', 'switchport access vlan 20', 'exit',
+    'interface fa0/3', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/4', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/5', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/6', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/7', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/8', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
     'interface gi0/1', 'switchport mode trunk', 'exit',
     'end',
     'show vlan brief',
@@ -187,7 +186,7 @@ console.log('\nMission 002 failure cases');
   const state = startMainMission(MISSION_002_ID, 12346);
   runCommands(state.device, [
     'enable', 'configure terminal',
-    'interface range fa0/1 - 4', 'switchport mode access', 'switchport access vlan 10', 'exit',
+    'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
     'end', 'copy running-config startup-config',
   ]);
   const noVlan = evaluateMainMission(state);
@@ -200,8 +199,8 @@ console.log('\nMission 002 failure cases');
     'enable', 'configure terminal',
     'vlan 10', 'name WRONG', 'exit',
     'vlan 20', 'name BUCHHALTUNG', 'exit',
-    'interface range fa0/1 - 4', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface range fa0/5 - 8', 'switchport mode access', 'switchport access vlan 20', 'exit',
+    'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
+    'interface fa0/2', 'switchport mode access', 'switchport access vlan 20', 'exit',
     'end', 'copy running-config startup-config',
   ]);
   const wrongName = evaluateMainMission(state2);
@@ -222,13 +221,13 @@ console.log('\nMission 002 failure cases');
     'enable', 'configure terminal',
     'vlan 10', 'name PERSONAL', 'exit',
     'vlan 20', 'name BUCHHALTUNG', 'exit',
-    'interface range fa0/1 - 3', // only 3 of 4 personal ports
-    'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface range fa0/5 - 8', 'switchport mode access', 'switchport access vlan 20', 'exit',
+    // intentionally do not configure fa0/1
+    // 'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
+    'interface fa0/2', 'switchport mode access', 'switchport access vlan 20', 'exit',
     'end', 'copy running-config startup-config',
   ]);
   const missingPort = evaluateMainMission(state4);
-  test('one forgotten personal port fails access_ports_configured', () => assert(missingPort.checks.find((c) => c.id === 'access_ports_configured').ok === false));
+  test('personal port left unconfigured fails personal_port', () => assert(missingPort.checks.find((c) => c.id === 'personal_port').ok === false));
 
   storage.clear();
   const state5 = startMainMission(MISSION_002_ID, 12350);
@@ -237,8 +236,8 @@ console.log('\nMission 002 failure cases');
     'vlan 10', 'name PERSONAL', 'exit',
     'vlan 20', 'name BUCHHALTUNG', 'exit',
     'vlan 999', 'name UNUSED', 'exit',
-    'interface range fa0/1 - 4', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface range fa0/5 - 8', 'switchport mode access', 'switchport access vlan 20', 'exit',
+    'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
+    'interface fa0/2', 'switchport mode access', 'switchport access vlan 20', 'exit',
     // unused ports left completely unconfigured / still open in VLAN 1
     'interface gi0/1', 'switchport mode trunk', 'exit',
     'end', 'copy running-config startup-config',
@@ -253,9 +252,9 @@ console.log('\nMission 002 failure cases');
     'vlan 10', 'name PERSONAL', 'exit',
     'vlan 20', 'name BUCHHALTUNG', 'exit',
     'vlan 999', 'name UNUSED', 'exit',
-    'interface range fa0/1 - 4', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface range fa0/5 - 8', 'switchport mode access', 'switchport access vlan 20', 'exit',
-    'interface range fa0/9 - 24', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
+    'interface fa0/2', 'switchport mode access', 'switchport access vlan 20', 'exit',
+    'interface range fa0/3 - 8', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
     // uplink left untouched (no trunk)
     'end', 'copy running-config startup-config',
   ]);
@@ -269,9 +268,9 @@ console.log('\nMission 002 failure cases');
     'vlan 10', 'name PERSONAL', 'exit',
     'vlan 20', 'name BUCHHALTUNG', 'exit',
     'vlan 999', 'name UNUSED', 'exit',
-    'interface range fa0/1 - 4', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface range fa0/5 - 8', 'switchport mode access', 'switchport access vlan 20', 'exit',
-    'interface range fa0/9 - 24', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
+    'interface fa0/2', 'switchport mode access', 'switchport access vlan 20', 'exit',
+    'interface range fa0/3 - 8', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
     'interface gi0/1', 'shutdown', 'exit', // uplink accidentally shut down
     'end', 'copy running-config startup-config',
   ]);
@@ -285,9 +284,9 @@ console.log('\nMission 002 failure cases');
     'vlan 10', 'name PERSONAL', 'exit',
     'vlan 20', 'name BUCHHALTUNG', 'exit',
     'vlan 999', 'name UNUSED', 'exit',
-    'interface range fa0/1 - 4', 'switchport mode access', 'switchport access vlan 10', 'exit',
-    'interface range fa0/5 - 8', 'switchport mode access', 'switchport access vlan 20', 'exit',
-    'interface range fa0/9 - 24', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
+    'interface fa0/1', 'switchport mode access', 'switchport access vlan 10', 'exit',
+    'interface fa0/2', 'switchport mode access', 'switchport access vlan 20', 'exit',
+    'interface range fa0/3 - 8', 'switchport mode access', 'switchport access vlan 999', 'shutdown', 'exit',
     'interface gi0/1', 'switchport mode access', 'switchport access vlan 999', 'exit', // uplink accidentally parked
     'end', 'copy running-config startup-config',
   ]);

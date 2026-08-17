@@ -1,9 +1,16 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { GripVertical } from 'lucide-react';
 
 export default function ConversationOrdering({ question, disabled, onAnswer }) {
   const [items, setItems] = useState(question.items);
   const [dragging, setDragging] = useState(null); // { index, startY, height, listTop, pointerId }
+
+  useEffect(() => {
+    setItems(question.items);
+    setDragging(null);
+    setDragY(0);
+    setPlaceholder(null);
+  }, [question.instanceId, question.items]);
   const [dragY, setDragY] = useState(0);
   const [placeholder, setPlaceholder] = useState(null);
   const itemRefs = useRef({});

@@ -60,7 +60,7 @@ runInCleanStore((ctx) => {
   resetCounters(ctx);
 
   const visible = getVisibleInbox();
-  assert.strictEqual(visible.length, 5, 'getVisibleInbox should return all non-archived items');
+  assert.strictEqual(visible.length, 4, 'getVisibleInbox returns open items plus the 3 most recent completed');
   assert.strictEqual(gameStateWrites(ctx), 0, 'getVisibleInbox must NOT dispatch game-state event');
 
   // repeated calls remain stable and still do not write

@@ -10,6 +10,7 @@ import {
 import { createDialog } from './dialogSystem.js';
 import { colleagues } from './officeWorld.js';
 import { MISSION_001_ID, MISSION_002_ID } from './missionV2.js';
+import { getNextMainMission } from './objectives.js';
 import {
   SIDE_MISSION_001_ID,
   SIDE_MISSION_002_ID,
@@ -24,7 +25,7 @@ export const WORLD_EVENT_IDS = {
   SIDE_002_PHONE: 'side-002-phone',
   SIDE_003_SAM: 'side-003-sam',
   POST_SIDE_003_SAM: 'post-side-003-sam',
-  MAIN_002_MAIL: 'main-002-mail',
+  MAIN_002_MAIL: 'main-mission-unlocked:cisco-main-002',
   POST_MAIN_002_SAM: 'post-main-002-sam',
   SECURITY_MAIL: 'security-mail',
 };
@@ -162,9 +163,10 @@ const WORLD_EVENTS = [
   },
   {
     id: WORLD_EVENT_IDS.MAIN_002_MAIL,
-    trigger: (state) => state.completedCiscoSideMissions.includes(SIDE_MISSION_003_ID)
-      && !state.completedQuests.includes(MISSION_002_ID)
-      && !state.completedCiscoSideMissions.includes(SIDE_MISSION_004_ID),
+    trigger: (state) => {
+      const next = getNextMainMission(state);
+      return next?.quest?.id === MISSION_002_ID && next.available && !state.completedQuests.includes(MISSION_002_ID);
+    },
     delivery: 'email',
     data: {
       id: 'world-mail-main-002',
@@ -261,7 +263,7 @@ function notificationExists(id) {
 
 function dispatchEmail(event) {
   const { data, linkedMissionId } = event;
-  if (emailExists(data.id)) return false;
+  if (emailExists(data.id)) return true; // already sent; still counts as dispatched
   const now = Date.now();
   const email = {
     ...data,

@@ -801,7 +801,7 @@ export const BASE_COMMAND_TREE = {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       const vlan = device.runningConfig.vlans[device.cli.currentVlanId];
       if (!vlan) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
-      vlan.name = tokens.slice(1).join(' ');
+      vlan.name = tokens.slice(1).join(' ').toUpperCase();
       return { output: '', stateChanged: true };
     }, 'Set VLAN name', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<name>']),
     cmd('exit', (device) => {

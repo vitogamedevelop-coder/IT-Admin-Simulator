@@ -19,7 +19,7 @@ export default function Inbox() {
   const [sideMissions, setSideMissions] = useState([]);
   useEffect(() => {
     ensureInbox();
-    setSideMissions(getVisibleInbox().filter((item) => !item.resolved));
+    setSideMissions(getVisibleInbox());
   }, []);
   const state = readGameState();
   const mainQuests = availableQuests(state);

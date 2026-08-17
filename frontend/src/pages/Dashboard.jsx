@@ -24,7 +24,7 @@ export default function Dashboard() {
     seedInitialNotifications();
     tickScheduler();
     ensureInbox();
-    setInbox(getVisibleInbox().filter((item) => !item.resolved));
+    setInbox(getVisibleInbox());
   }, []);
 
   return (

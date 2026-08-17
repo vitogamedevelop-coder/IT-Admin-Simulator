@@ -144,11 +144,22 @@ function inboxDeliveredAt(item) {
   return item.deliveredAt || item.createdAt || 0;
 }
 
+function isInboxItemCompleted(item) {
+  // A side-mission is completed when it has been resolved.
+  return item.resolved === true;
+}
+
 export function getVisibleInbox() {
   const state = readGameState();
-  return [...(state.inbox || [])]
-    .filter((item) => !item.archived)
+  const all = [...(state.inbox || [])].filter((item) => !item.archived);
+  const open = all
+    .filter((item) => !isInboxItemCompleted(item))
     .sort((a, b) => inboxDeliveredAt(b) - inboxDeliveredAt(a));
+  const completed = all
+    .filter((item) => isInboxItemCompleted(item))
+    .sort((a, b) => inboxDeliveredAt(b) - inboxDeliveredAt(a))
+    .slice(0, 3);
+  return [...open, ...completed];
 }
 
 export function performInboxRetention() {

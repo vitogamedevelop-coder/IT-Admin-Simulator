@@ -15,6 +15,11 @@ function openAcademyTopic(categoryId, topicId) {
 
 function ConversationMc({ question, disabled, onAnswer }) {
   const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    setSelected(null);
+  }, [question.instanceId]);
+
   return (
     <div className="flex flex-col gap-2">
       {question.options.map((opt) => (
@@ -48,6 +53,13 @@ export default function EmployeeConversation({ conversation: initialConversation
   const [result, setResult] = useState(null);
   const [summary, setSummary] = useState(null);
   const resultRef = useRef(null);
+
+  useEffect(() => {
+    setConversation(initialConversation);
+    setSubmitted(false);
+    setResult(null);
+    setSummary(null);
+  }, [initialConversation]);
 
   const { employee, question, intro, transition } = conversation;
   const personPortrait = characterAsset(employee.id);
