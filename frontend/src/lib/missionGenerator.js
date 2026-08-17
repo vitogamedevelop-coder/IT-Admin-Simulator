@@ -466,6 +466,36 @@ export function validateMissionInstance(candidate, template, state) {
     }
   }
 
+  // Management network sanity (SSH/remote-administration templates, Phase
+  // 1J.3 Etappe 3 patch): the management IP and gateway must both be real,
+  // distinct host addresses inside the generated network - never network/
+  // broadcast addresses, and never equal to each other. This does NOT check
+  // any relationship to the VLAN ID: the VLAN ID and IP network are
+  // intentionally generated independently (see missionTemplateEngine.js's
+  // SSH_MGMT_NETWORK_POOL) so a generated instance is never allowed to
+  // imply "VLAN ID == part of the IP network".
+  const mgmtIp = candidate.params.mgmtIp || candidate.params.ip;
+  const mgmtMask = candidate.params.mgmtMask || candidate.params.mask;
+  const mgmtGateway = candidate.params.mgmtGateway || candidate.params.gateway;
+  if (mgmtIp && mgmtMask) {
+    const ipToOctets = (ip) => ip.split('.').map(Number);
+    const maskToOctets = ipToOctets(mgmtMask);
+    const networkOctets = ipToOctets(mgmtIp).map((o, i) => o & maskToOctets[i]);
+    const broadcastOctets = ipToOctets(mgmtIp).map((o, i) => o | (255 - maskToOctets[i]));
+    const isHostAddress = (ip) => {
+      const octets = ipToOctets(ip);
+      const inNetwork = octets.every((o, i) => (o & maskToOctets[i]) === networkOctets[i]);
+      const isNetworkAddr = octets.every((o, i) => o === networkOctets[i]);
+      const isBroadcastAddr = octets.every((o, i) => o === broadcastOctets[i]);
+      return inNetwork && !isNetworkAddr && !isBroadcastAddr;
+    };
+    if (!isHostAddress(mgmtIp)) reasons.push('mgmt_ip_not_a_valid_host_address');
+    if (mgmtGateway) {
+      if (!isHostAddress(mgmtGateway)) reasons.push('mgmt_gateway_not_a_valid_host_address');
+      if (mgmtGateway === mgmtIp) reasons.push('mgmt_gateway_equals_mgmt_ip');
+    }
+  }
+
   return { valid: reasons.length === 0, reasons };
 }
 

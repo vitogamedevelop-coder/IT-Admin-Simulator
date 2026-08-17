@@ -160,6 +160,122 @@ console.log('\nIP / gateway / subnet consistency');
   }
 }
 
+console.log('\nManagement VLAN ID and IP network are NOT systematically coupled');
+{
+  // If VLAN ID and IP network were coupled (e.g. "VLAN X always means
+  // 192.168.X.0/24"), every instance for a given VLAN ID would always show
+  // the same network, and vice versa. Sampling many instances must show
+  // real variation in both directions.
+  for (const id of ['cisco-ssh-management-access', 'cisco-ssh-diagnose']) {
+    const template = getTemplate(id);
+    const networksByVlan = new Map();
+    const vlansByNetwork = new Map();
+    let sawVlanIdAsThirdOctet = false;
+    for (let i = 0; i < 200; i += 1) {
+      const rng = seededRng(Date.now() + i * 97);
+      const archetype = template.archetypes[i % template.archetypes.length];
+      const params = template.resolveParameters(rng, archetype, template.contexts[0], 'medium');
+      const networkBase = params.mgmtIp.split('.').slice(0, 3).join('.');
+      if (!networksByVlan.has(params.mgmtVlanId)) networksByVlan.set(params.mgmtVlanId, new Set());
+      networksByVlan.get(params.mgmtVlanId).add(networkBase);
+      if (!vlansByNetwork.has(networkBase)) vlansByNetwork.set(networkBase, new Set());
+      vlansByNetwork.get(networkBase).add(params.mgmtVlanId);
+      const thirdOctet = Number(params.mgmtIp.split('.')[2]);
+      if (thirdOctet === params.mgmtVlanId) sawVlanIdAsThirdOctet = true;
+    }
+    test(`${id}: at least one VLAN ID is seen with more than one distinct IP network across many instances`, () => {
+      assert.ok(Array.from(networksByVlan.values()).some((nets) => nets.size > 1), `distribution: ${JSON.stringify(Object.fromEntries(Array.from(networksByVlan, ([k, v]) => [k, Array.from(v)])))}`);
+    });
+    test(`${id}: at least one IP network is seen with more than one distinct VLAN ID across many instances`, () => {
+      assert.ok(Array.from(vlansByNetwork.values()).some((vlans) => vlans.size > 1), `distribution: ${JSON.stringify(Object.fromEntries(Array.from(vlansByNetwork, ([k, v]) => [k, Array.from(v)])))}`);
+    });
+    test(`${id}: the IP network's third octet never mirrors the VLAN ID (no "VLAN X -> 192.168.X.0/24" pattern)`, () => assert.equal(sawVlanIdAsThirdOctet, false));
+  }
+}
+
+console.log('\nManagement network validator rules');
+{
+  test('mgmt IP within the generated network, gateway within the same network, distinct from the IP', () => {
+    const template = getTemplate('cisco-ssh-management-access');
+    for (let i = 0; i < 50; i += 1) {
+      const rng = seededRng(Date.now() + i * 251);
+      const params = template.resolveParameters(rng, MISSION_ARCHETYPE.BUILD, template.contexts[0], 'medium');
+      const { device } = template.buildDevice(params, MISSION_ARCHETYPE.BUILD);
+      const validation = validateMissionInstance({
+        params, device, difficulty: 'medium', channel: 'email', archetype: MISSION_ARCHETYPE.BUILD, skillIds: [], context: template.contexts[0], centralParam: {},
+      }, template, readGameState());
+      assert.ok(validation.valid, JSON.stringify(validation.reasons));
+    }
+  });
+  test('a management IP that is a network address is rejected', () => {
+    const template = getTemplate('cisco-ssh-management-access');
+    const rng = seededRng(1);
+    const params = template.resolveParameters(rng, MISSION_ARCHETYPE.BUILD, template.contexts[0], 'medium');
+    const base = params.mgmtIp.split('.').slice(0, 3).join('.');
+    const brokenParams = { ...params, mgmtIp: `${base}.0` };
+    const { device } = template.buildDevice(brokenParams, MISSION_ARCHETYPE.BUILD);
+    const validation = validateMissionInstance({
+      params: brokenParams, device, difficulty: 'medium', channel: 'email', archetype: MISSION_ARCHETYPE.BUILD, skillIds: [], context: template.contexts[0], centralParam: {},
+    }, template, readGameState());
+    assert.equal(validation.valid, false);
+    assert.ok(validation.reasons.includes('mgmt_ip_not_a_valid_host_address'));
+  });
+  test('a management IP that is a broadcast address is rejected', () => {
+    const template = getTemplate('cisco-ssh-management-access');
+    const rng = seededRng(1);
+    const params = template.resolveParameters(rng, MISSION_ARCHETYPE.BUILD, template.contexts[0], 'medium');
+    const base = params.mgmtIp.split('.').slice(0, 3).join('.');
+    const brokenParams = { ...params, mgmtIp: `${base}.255` };
+    const { device } = template.buildDevice(brokenParams, MISSION_ARCHETYPE.BUILD);
+    const validation = validateMissionInstance({
+      params: brokenParams, device, difficulty: 'medium', channel: 'email', archetype: MISSION_ARCHETYPE.BUILD, skillIds: [], context: template.contexts[0], centralParam: {},
+    }, template, readGameState());
+    assert.equal(validation.valid, false);
+    assert.ok(validation.reasons.includes('mgmt_ip_not_a_valid_host_address'));
+  });
+  test('a gateway equal to the management IP is rejected', () => {
+    const template = getTemplate('cisco-ssh-management-access');
+    const rng = seededRng(1);
+    const params = template.resolveParameters(rng, MISSION_ARCHETYPE.BUILD, template.contexts[0], 'medium');
+    const brokenParams = { ...params, mgmtGateway: params.mgmtIp };
+    const { device } = template.buildDevice(brokenParams, MISSION_ARCHETYPE.BUILD);
+    const validation = validateMissionInstance({
+      params: brokenParams, device, difficulty: 'medium', channel: 'email', archetype: MISSION_ARCHETYPE.BUILD, skillIds: [], context: template.contexts[0], centralParam: {},
+    }, template, readGameState());
+    assert.equal(validation.valid, false);
+    assert.ok(validation.reasons.includes('mgmt_gateway_equals_mgmt_ip'));
+  });
+  test('a gateway outside the management network is rejected', () => {
+    const template = getTemplate('cisco-ssh-management-access');
+    const rng = seededRng(1);
+    const params = template.resolveParameters(rng, MISSION_ARCHETYPE.BUILD, template.contexts[0], 'medium');
+    const brokenParams = { ...params, mgmtGateway: '203.0.113.1' };
+    const { device } = template.buildDevice(brokenParams, MISSION_ARCHETYPE.BUILD);
+    const validation = validateMissionInstance({
+      params: brokenParams, device, difficulty: 'medium', channel: 'email', archetype: MISSION_ARCHETYPE.BUILD, skillIds: [], context: template.contexts[0], centralParam: {},
+    }, template, readGameState());
+    assert.equal(validation.valid, false);
+    assert.ok(validation.reasons.includes('mgmt_gateway_not_a_valid_host_address'));
+  });
+}
+
+console.log('\nReload stays deterministic after the network-pool patch');
+{
+  resetAll();
+  completeThroughHm3();
+  let instance = null;
+  for (let i = 0; i < 40 && !instance; i += 1) {
+    const candidate = generateMissionInstance({ seed: Date.now() + i * 7919 });
+    if (candidate && ['cisco-ssh-management-access', 'cisco-ssh-diagnose'].includes(candidate.templateId)) instance = candidate;
+  }
+  test('a management-network SSH instance was generated for the reload check', () => assert.ok(instance));
+  if (instance) {
+    const first = getInstance(instance.instanceId);
+    const second = getInstance(instance.instanceId);
+    test('reloading returns an identical management network (no re-rolling)', () => assert.deepEqual(first, second));
+  }
+}
+
 console.log('\nGenerated accounts come from ACCOUNT_NAME_POOL, not story NPCs');
 {
   const template = getTemplate('cisco-ssh-vty-access');

@@ -1165,10 +1165,36 @@ const SSH_TARGET_MODULUS = 1024;
 const SSH_MIN_MODULUS = 768;
 const SSH_WEAK_MODULUS = 768; // still >= the SSHv2 floor, but below the NEXUS-preferred size
 
-function sshManagementNetwork(vlanId) {
-  const base = `192.168.${vlanId}`;
+// Deliberately DISJOINT from SSH_MGMT_VLAN_POOL: the management VLAN ID and
+// the IP network it carries must never look systematically coupled (e.g.
+// "VLAN 100 always means 192.168.100.0/24"), or players could wrongly infer
+// that a VLAN ID and an IP network are inherently the same thing. HM3 keeps
+// its own fixed story values (VLAN 172 / 192.168.172.0/24); only procedural
+// side missions draw from this independent network pool. A mix of RFC1918
+// ranges/octets is used on purpose so no arithmetic pattern with the VLAN
+// pool above is possible.
+const SSH_MGMT_NETWORK_POOL = [
+  { network: '10.20.40.0', mask: '255.255.255.0' },
+  { network: '192.168.80.0', mask: '255.255.255.0' },
+  { network: '10.70.5.0', mask: '255.255.255.0' },
+  { network: '192.168.44.0', mask: '255.255.255.0' },
+  { network: '10.30.90.0', mask: '255.255.255.0' },
+  { network: '192.168.233.0', mask: '255.255.255.0' },
+  { network: '10.90.12.0', mask: '255.255.255.0' },
+  { network: '192.168.15.0', mask: '255.255.255.0' },
+];
+
+function networkPrefix(networkAddress) {
+  return networkAddress.split('.').slice(0, 3).join('.');
+}
+
+// Picks a management network completely independently of any VLAN ID -
+// see the pool comment above for why this must stay decoupled.
+function sshManagementNetwork(rng) {
+  const chosen = pickFrom(rng, SSH_MGMT_NETWORK_POOL);
+  const prefix = networkPrefix(chosen.network);
   return {
-    network: `${base}.0`, mask: '255.255.255.0', gateway: `${base}.1`, mgmtIp: `${base}.2`,
+    network: chosen.network, mask: chosen.mask, gateway: `${prefix}.1`, mgmtIp: `${prefix}.2`,
   };
 }
 
@@ -1237,7 +1263,7 @@ function resolveSshReachabilityParams(rng) {
     const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
     const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
     const mgmtVlanName = pickFrom(rng, SSH_MGMT_VLAN_NAMES);
-    const net = sshManagementNetwork(mgmtVlanId);
+    const net = sshManagementNetwork(rng);
     return {
       deviceType, hostname, mgmtVlanId, mgmtVlanName, ip: net.mgmtIp, mask: net.mask, gateway: net.gateway,
     };
@@ -1290,7 +1316,7 @@ const TEMPLATE_SSH_MANAGEMENT_ACCESS = defineMissionTemplate({
     const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
     const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
     const mgmtVlanName = pickFrom(rng, SSH_MGMT_VLAN_NAMES);
-    const net = sshManagementNetwork(mgmtVlanId);
+    const net = sshManagementNetwork(rng);
     return {
       hostname, mgmtVlanId, mgmtVlanName, mgmtIp: net.mgmtIp, mgmtMask: net.mask, mgmtGateway: net.gateway,
     };
@@ -1557,7 +1583,7 @@ const TEMPLATE_SSH_DIAGNOSE = defineMissionTemplate({
     const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
     const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
     const mgmtVlanName = pickFrom(rng, SSH_MGMT_VLAN_NAMES);
-    const net = sshManagementNetwork(mgmtVlanId);
+    const net = sshManagementNetwork(rng);
     const domainName = pickFrom(rng, SSH_DOMAIN_POOL);
     const account = pickAccount(rng);
     const faultId = pickFrom(rng, SSH_FAULTS);
@@ -1591,8 +1617,10 @@ const TEMPLATE_SSH_DIAGNOSE = defineMissionTemplate({
 
     switch (params.faultId) {
       case 'wrong_gateway': {
-        // Management IP itself is correct - only the gateway is wrong.
-        device.runningConfig.ipDefaultGateway = `192.168.${params.mgmtVlanId}.254`;
+        // Management IP itself is correct - only the gateway is wrong. Stay
+        // within the same /24 (a wrong-but-plausible host address), derived
+        // from the actual (VLAN-independent) management network prefix.
+        device.runningConfig.ipDefaultGateway = `${networkPrefix(params.mgmtIp)}.254`;
         break;
       }
       case 'missing_login_local': {
