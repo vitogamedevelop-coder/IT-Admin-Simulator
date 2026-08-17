@@ -53,6 +53,21 @@ export const quests = [
     resolution: 'Management-VLAN 172/ADMIN mit SVI und IP eingerichtet, Default Gateway und Domain-Name gesetzt, RSA-Schlüssel erzeugt, SSH Version 2 erzwungen, VTY auf login local/transport input ssh beschränkt.',
     recommendedAcademyTopics: ['cisco-packet-tracer/ssh'],
   },
+  {
+    id: 'cisco-main-004',
+    chapter: 4,
+    department: 'Netzwerk',
+    title: 'Abteilungen im Austausch',
+    subtitle: 'Inter-VLAN Routing per Router-on-a-Stick',
+    briefing: 'Die VLANs funktionieren jeweils für sich, aber die Abteilungen erreichen sich gegenseitig nicht mehr. Hänge einen Router als Router-on-a-Stick an den Switch, richte für jedes VLAN ein 802.1Q-Subinterface ein und stelle so das kontrollierte Routing zwischen den Netzen her.',
+    minutes: 18,
+    difficulty: 4,
+    boss: false,
+    requires: ['cisco-main-003'],
+    sideMissionsRequiredCount: 0,
+    resolution: 'Router-on-a-Stick mit 802.1Q-Subinterfaces eingerichtet, Inter-VLAN Routing zwischen den Abteilungen hergestellt.',
+    recommendedAcademyTopics: ['cisco-packet-tracer/router-on-a-stick'],
+  },
 ];
 
 export function questById(id) {

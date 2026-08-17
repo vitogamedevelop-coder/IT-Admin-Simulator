@@ -9,7 +9,9 @@ import {
 } from './notificationSystem.js';
 import { createDialog } from './dialogSystem.js';
 import { colleagues } from './officeWorld.js';
-import { MISSION_001_ID, MISSION_002_ID, MISSION_003_ID } from './missionV2.js';
+import {
+  MISSION_001_ID, MISSION_002_ID, MISSION_003_ID, MISSION_004_ID,
+} from './missionV2.js';
 import { getNextMainMission } from './objectives.js';
 import {
   SIDE_MISSION_001_ID,
@@ -30,6 +32,8 @@ export const WORLD_EVENT_IDS = {
   SECURITY_MAIL: 'security-mail',
   POST_SIDE_004_SAM: 'post-side-004-sam',
   MAIN_003_MAIL: 'main-mission-unlocked:cisco-main-003',
+  POST_MAIN_003_SAM: 'post-main-003-sam',
+  MAIN_004_MAIL: 'main-mission-unlocked:cisco-main-004',
 };
 
 const WORLD_EVENTS = [
@@ -277,6 +281,56 @@ const WORLD_EVENTS = [
       priority: 'high',
     },
     linkedMissionId: MISSION_003_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.POST_MAIN_003_SAM,
+    trigger: (state) => state.completedQuests.includes(MISSION_003_ID)
+      && !state.completedQuests.includes(MISSION_004_ID),
+    delivery: 'dialog-sam',
+    data: {
+      personId: 'sam',
+      mode: 'face-to-face',
+      title: 'Ruhig am Bildschirm konfiguriert',
+      nodes: [
+        {
+          id: 'start',
+          text: 'Nicht schlecht - eben noch von deinem Platz aus auf SW-ADM-01 drauf, Änderung rein, fertig. Kein Weg mehr zum Technikraum.\n\nDas bringt uns direkt zum nächsten Punkt. Ich hab gerade eine Beschwerde aus der Buchhaltung bekommen: Die können auf ihre eigenen Server im PERSONAL-Netz nicht zugreifen, obwohl beide VLANs sauber konfiguriert sind.\n\nDas ist kein Fehler - das ist erwartetes Verhalten. Die VLANs trennen die Netze bewusst voneinander. Aber die Abteilungen sollen sich jetzt kontrolliert austauschen können.',
+          options: [
+            { label: 'Wie lösen wir das?', nextId: 'now' },
+            { label: 'Erzähl mir später mehr.', nextId: 'later' },
+          ],
+        },
+        {
+          id: 'now',
+          text: 'Wir hängen einen Router an den Switch und routen zwischen den VLANs - Router-on-a-Stick nennt sich das. Die Details stehen schon in deiner Mail.',
+          onComplete: { action: 'close' },
+        },
+        {
+          id: 'later',
+          text: 'Kein Problem. Die Mail mit dem Auftrag liegt bereit, sobald du Zeit findest.',
+          onComplete: { action: 'close' },
+        },
+      ],
+      entryNode: 'start',
+    },
+    linkedMissionId: MISSION_004_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.MAIN_004_MAIL,
+    trigger: (state) => {
+      const next = getNextMainMission(state);
+      return next?.quest?.id === MISSION_004_ID && next.available && !state.completedQuests.includes(MISSION_004_ID);
+    },
+    delivery: 'email',
+    data: {
+      id: 'world-mail-main-004',
+      from: { personId: 'sam', name: 'Sam Richter', role: 'Senior-Administrator' },
+      to: ['spieler@nexus.local'],
+      subject: 'Abteilungen brauchen Austausch: Inter-VLAN Routing',
+      body: 'Moin,\n\ngute Nachricht zuerst: SW-ADM-01 ist jetzt sauber per SSH fernwartbar, danke dafür.\n\nJetzt zum nächsten Punkt: Die Buchhaltung kommt nicht an ihre Ressourcen im PERSONAL-Netz. Beide VLANs sind für sich genommen korrekt konfiguriert - genau deshalb sind sie ja voneinander getrennt. Trotzdem sollen die Abteilungen jetzt kontrolliert miteinander reden können.\n\nDafür hängen wir einen Router als Router-on-a-Stick an den Switch:\n\n- Ein Trunk zwischen Switch und Router, der alle beteiligten VLANs transportiert.\n- Für jedes VLAN ein eigenes 802.1Q-Subinterface auf dem Router, mit der jeweiligen Gateway-IP.\n- Den Router aktivieren und die Konfiguration am Ende speichern.\n\nDie genauen VLANs und IP-Bereiche stehen im Auftrag selbst - schau einfach rein, sobald du bereit bist.\n\n– Sam',
+      priority: 'high',
+    },
+    linkedMissionId: MISSION_004_ID,
   },
 ];
 
