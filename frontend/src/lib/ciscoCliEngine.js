@@ -15,6 +15,10 @@ export const CLI_MODE = {
   VLAN_CONFIG: 'VLAN_CONFIG',
   LINE_CONSOLE_CONFIG: 'LINE_CONSOLE_CONFIG',
   LINE_VTY_CONFIG: 'LINE_VTY_CONFIG',
+  // Interactive follow-up prompt after "crypto key generate rsa" - the next
+  // line the player types is interpreted as the RSA modulus size, not a
+  // regular IOS command (matches the real/Packet-Tracer interactive flow).
+  CRYPTO_RSA_MODULUS_PROMPT: 'CRYPTO_RSA_MODULUS_PROMPT',
 };
 
 export const CLI_ERROR = {
@@ -132,16 +136,24 @@ export function createCiscoDevice(options = {}) {
     runningConfig: {
       hostname,
       noIpDomainLookup: false,
+      ipDomainName: null,
       enableSecret: null,
       users: {},
       interfaces: Object.fromEntries(interfaces.map((id) => [id, createInterface(id)])),
       vlans: defaultVlans(),
       lines: {
         console: { password: null, login: false, loginLocal: false, execTimeout: { minutes: 5, seconds: 0 } },
-        vty: { password: null, login: false, loginLocal: false, execTimeout: { minutes: 10, seconds: 0 }, range: [0, 15] },
+        vty: {
+          password: null, login: false, loginLocal: false, execTimeout: { minutes: 10, seconds: 0 }, range: [0, 15], transportInput: null,
+        },
       },
       ipDefaultGateway: defaultGateway,
       servicePasswordEncryption: false,
+      // Remote administration (Block 1.5 SSH): cryptoKey.exists tracks whether
+      // "crypto key generate rsa" has produced a key, ipSshVersion tracks
+      // "ip ssh version <n>".
+      cryptoKey: { exists: false, modulus: null },
+      ipSshVersion: null,
       banner: '',
     },
     startupConfig: null,
@@ -438,6 +450,23 @@ function buildInterfaceSelectionCommand() {
       device.cli.currentLine = null;
       return { output: '', modeChanged: true };
     }
+    // "interface vlan <id>" enters (creating if necessary) the switched
+    // virtual interface (SVI) used for management IPs on L2/L3 switches.
+    if (tokens[1].toLowerCase() === 'vlan') {
+      if (tokens.length < 3) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      const vlanId = parseInt(tokens[2], 10);
+      if (Number.isNaN(vlanId) || vlanId < 1 || vlanId > 4094) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+      const sviId = `Vlan${vlanId}`;
+      if (!device.runningConfig.interfaces[sviId]) {
+        device.runningConfig.interfaces[sviId] = createInterface(sviId, 'svi');
+      }
+      device.cli.mode = CLI_MODE.INTERFACE_CONFIG;
+      device.cli.currentInterface = sviId;
+      device.cli.currentInterfaceRange = null;
+      device.cli.currentVlanId = null;
+      device.cli.currentLine = null;
+      return { output: '', modeChanged: true, stateChanged: true };
+    }
     const target = ensureInterface(device, tokens[1]);
     if (!target) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
     device.cli.mode = CLI_MODE.INTERFACE_CONFIG;
@@ -446,7 +475,7 @@ function buildInterfaceSelectionCommand() {
     device.cli.currentVlanId = null;
     device.cli.currentLine = null;
     return { output: '', modeChanged: true };
-  }, 'Select an interface to configure', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.CONFIGURE }, () => [...Object.values(INTERFACE_TYPES).map((t) => `${t.canonical}0/0`), 'range']);
+  }, 'Select an interface to configure', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.CONFIGURE }, () => [...Object.values(INTERFACE_TYPES).map((t) => `${t.canonical}0/0`), 'range', 'vlan']);
 }
 
 export const BASE_COMMAND_TREE = {
@@ -485,6 +514,7 @@ export const BASE_COMMAND_TREE = {
                 cmd('brief', (device) => ({ output: renderIpInterfaceBrief(device), stateChanged: false }), 'IP interface status and configuration summary', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.VERIFY }),
               ],
             }),
+            cmd('ssh', (device) => ({ output: renderIpSsh(device), stateChanged: false }), 'Display SSH server connection status', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'verify', dimension: SKILL_DIMENSION.VERIFY }),
           ],
         }),
         node('vlan', {
@@ -564,7 +594,9 @@ export const BASE_COMMAND_TREE = {
       children: [
         cmd('domain-name', (device, tokens) => {
           const name = tokens.slice(2).join(' ');
-          return name ? { output: '', stateChanged: true } : { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+          if (!name) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+          device.runningConfig.ipDomainName = name;
+          return { output: '', stateChanged: true };
         }, 'Define default domain name', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'domain_name', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<name>']),
         cmd('default-gateway', (device, tokens) => {
           if (tokens.length < 3) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
@@ -572,6 +604,49 @@ export const BASE_COMMAND_TREE = {
           device.runningConfig.ipDefaultGateway = tokens[2];
           return { output: '', stateChanged: true };
         }, 'Specify default gateway', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'default_gateway', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<ip>']),
+        node('ssh', {
+          help: 'Configure SSH parameters',
+          children: [
+            cmd('version', (device, tokens) => {
+              if (tokens.length < 4) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+              const version = parseInt(tokens[3], 10);
+              if (version !== 1 && version !== 2) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+              device.runningConfig.ipSshVersion = version;
+              return { output: '', stateChanged: true };
+            }, 'Specify the SSH protocol version to be supported', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'ssh_version', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['1', '2']),
+          ],
+        }),
+      ],
+    }),
+    node('crypto', {
+      help: 'Encryption keys',
+      children: [
+        node('key', {
+          help: 'Long term key operations',
+          children: [
+            node('generate', {
+              help: 'Generate a key',
+              children: [
+                cmd('rsa', (device) => {
+                  const hostname = device.runningConfig.hostname;
+                  const domain = device.runningConfig.ipDomainName;
+                  const hasCustomHostname = !!hostname && !['Router', 'Switch'].includes(hostname);
+                  if (!hasCustomHostname || !domain) {
+                    return {
+                      output: '% Please define a hostname other than Router/Switch and a domain name (ip domain-name) before generating RSA keys.',
+                      stateChanged: false,
+                    };
+                  }
+                  device.cli.mode = CLI_MODE.CRYPTO_RSA_MODULUS_PROMPT;
+                  return {
+                    output: `The name for the keys will be: ${hostname}.${domain}\n\nChoose the size of the key modulus in the range of 360 to 2048 for your\nGeneral Purpose Keys. Choosing a key modulus greater than 512 may take\na few minutes.\n`,
+                    modeChanged: true,
+                  };
+                }, 'Generate RSA key pairs', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'rsa_keys', dimension: SKILL_DIMENSION.CONFIGURE }),
+              ],
+            }),
+          ],
+        }),
       ],
     }),
     node('service', {
@@ -976,6 +1051,24 @@ export const BASE_COMMAND_TREE = {
         }, 'Enable local username/password checking', { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'vty_login_local', dimension: SKILL_DIMENSION.CONFIGURE }),
       ],
     }),
+    node('transport', {
+      help: 'Define transport protocols for line',
+      children: [
+        node('input', {
+          help: 'Define which protocols to use to transport incoming connections',
+          complete: () => ['ssh', 'telnet', 'all', 'none'],
+          execute: (device, tokens) => {
+            const values = tokens.slice(2).map((t) => t.toLowerCase());
+            if (values.length === 0) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+            const valid = ['ssh', 'telnet', 'all', 'none'];
+            if (values.some((v) => !valid.includes(v))) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+            device.runningConfig.lines.vty.transportInput = values.includes('all') ? ['telnet', 'ssh'] : values.includes('none') ? [] : values;
+            return { output: '', stateChanged: true };
+          },
+          skill: { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'vty_transport_ssh', dimension: SKILL_DIMENSION.CONFIGURE },
+        }),
+      ],
+    }),
     node('no', {
       help: 'Negate a line configuration command',
       children: [
@@ -1005,6 +1098,26 @@ export const BASE_COMMAND_TREE = {
       device.cli.currentLine = null;
       return { output: '', modeChanged: true };
     }, 'End configuration mode and return to privileged EXEC'),
+  ],
+  [CLI_MODE.CRYPTO_RSA_MODULUS_PROMPT]: [
+    node('<modulus>', {
+      help: 'The size of the key modulus [512]',
+      complete: () => ['<360-2048>'],
+      execute: (device, tokens) => {
+        const modulus = parseInt(tokens[0], 10);
+        if (Number.isNaN(modulus) || modulus < 360 || modulus > 2048) {
+          return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+        }
+        device.runningConfig.cryptoKey = { exists: true, modulus };
+        device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
+        return {
+          output: `% The key modulus size is ${modulus} bits\n% Generating ${modulus} bit RSA keys, keys will be non-exportable...[OK]`,
+          stateChanged: true,
+          modeChanged: true,
+        };
+      },
+      skill: { domainId: 'cisco', skillId: 'remote_administration', subskillId: 'rsa_keys', dimension: SKILL_DIMENSION.CONFIGURE },
+    }),
   ],
 };
 
@@ -1079,6 +1192,8 @@ export function buildPrompt(device) {
     case CLI_MODE.LINE_CONSOLE_CONFIG:
     case CLI_MODE.LINE_VTY_CONFIG:
       return `${base}(config-line)#`;
+    case CLI_MODE.CRYPTO_RSA_MODULUS_PROMPT:
+      return 'How many bits in the modulus [512]:';
     default:
       return `${base}>`;
   }
@@ -1509,8 +1624,18 @@ export function renderRunningConfig(device) {
     lines.push('!');
   }
 
+  if (cfg.ipDomainName) {
+    lines.push(`ip domain-name ${cfg.ipDomainName}`);
+    lines.push('!');
+  }
+
   if (cfg.ipDefaultGateway) {
     lines.push(`ip default-gateway ${cfg.ipDefaultGateway}`);
+    lines.push('!');
+  }
+
+  if (cfg.ipSshVersion) {
+    lines.push(`ip ssh version ${cfg.ipSshVersion}`);
     lines.push('!');
   }
 
@@ -1529,6 +1654,11 @@ export function renderRunningConfig(device) {
       if (iface.encapsulationVlan != null) lines.push(` encapsulation dot1q ${iface.encapsulationVlan}`);
       if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
       lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
+    } else if (iface.type === 'svi') {
+      // Switched virtual interface (management SVI): no switchport lines,
+      // just an IP address and admin state, like a routed interface.
+      if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
+      lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
     } else {
       if (iface.switchportMode === 'access') lines.push(' switchport mode access');
       if (iface.accessVlan) lines.push(` switchport access vlan ${iface.accessVlan}`);
@@ -1543,8 +1673,10 @@ export function renderRunningConfig(device) {
   const allInterfaces = Object.values(cfg.interfaces);
   const physicalInterfaces = allInterfaces.filter((i) => i.type === 'physical');
   const subinterfaces = allInterfaces.filter((i) => i.type === 'subinterface');
+  const sviInterfaces = allInterfaces.filter((i) => i.type === 'svi').sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
   physicalInterfaces.forEach(renderInterfaceConfig);
   subinterfaces.forEach(renderInterfaceConfig);
+  sviInterfaces.forEach(renderInterfaceConfig);
 
   if (cfg.vlans) {
     Object.values(cfg.vlans)
@@ -1571,6 +1703,9 @@ export function renderRunningConfig(device) {
     }
     if (line.loginLocal) lines.push(' login local');
     else if (line.login) lines.push(' login');
+    if (lineType === 'vty' && line.transportInput) {
+      lines.push(line.transportInput.length === 0 ? ' transport input none' : ` transport input ${line.transportInput.join(' ')}`);
+    }
     lines.push('!');
   });
 
@@ -1601,6 +1736,19 @@ export function renderIpInterfaceBrief(device) {
     return `${name}${ip}${ok}${method}${status}${protocol}`;
   });
   return [header, ...rows].join('\n');
+}
+
+export function renderIpSsh(device) {
+  const cfg = device.runningConfig;
+  if (!cfg.cryptoKey?.exists || !cfg.ipSshVersion) {
+    return '%SSH has not been enabled (no valid RSA key / SSH version configured)';
+  }
+  const versionLine = cfg.ipSshVersion === 2 ? 'SSH Enabled - version 2.0' : `SSH Enabled - version ${cfg.ipSshVersion}.99`;
+  return [
+    versionLine,
+    `Authentication timeout: 120 secs; Authentication retries: 3`,
+    `Minimum expected Diffie Hellman key size: 1024 bits`,
+  ].join('\n');
 }
 
 export function renderVlanBrief(device) {

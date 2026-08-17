@@ -20,7 +20,9 @@ global.localStorage = storage;
 global.window = { dispatchEvent: () => {}, addEventListener: () => {}, removeEventListener: () => {} };
 
 const { readGameState, completeQuest } = await import(pathToFileURL(join(srcDir, 'lib/gameState.js')).href);
-const { MISSION_001_ID, MISSION_002_ID, MISSION_004_ID } = await import(pathToFileURL(join(srcDir, 'lib/missionV2.js')).href);
+const {
+  MISSION_001_ID, MISSION_002_ID, MISSION_003_ID, MISSION_004_ID,
+} = await import(pathToFileURL(join(srcDir, 'lib/missionV2.js')).href);
 const {
   generateMissionInstance, validateMissionInstance, selectSkillForGeneration,
   isSkillGroupUnlocked, generatableSkillPaths, getOpenInstances, readHistory,
@@ -58,6 +60,9 @@ function completeMain001() {
 }
 function completeMain002() {
   completeQuest({ id: MISSION_002_ID }, { xp: 10, reputation: {} });
+}
+function completeMain003() {
+  completeQuest({ id: MISSION_003_ID }, { xp: 10, reputation: {} });
 }
 function completeMain004() {
   completeQuest({ id: MISSION_004_ID }, { xp: 10, reputation: {} });
@@ -297,6 +302,7 @@ console.log('\nN) Content end: generator keeps running after the last main missi
   resetAll();
   completeMain001();
   completeMain002();
+  completeMain003();
   completeMain004();
   test('content end is reached once all hand-built main missions are completed', () => assert.equal(hasReachedContentEnd(), true));
   const message = maybeAnnounceContentEnd();
@@ -313,6 +319,7 @@ console.log('\nO) New main mission moves the content-end boundary automatically'
   resetAll();
   completeMain001();
   completeMain002();
+  completeMain003();
   completeMain004();
   test('content end reached with the current MAIN_MISSION_ORDER', () => assert.equal(hasReachedContentEnd(), true));
 

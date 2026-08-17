@@ -37,6 +37,22 @@ export const quests = [
     resolution: 'VLAN 10 PERSONAL und VLAN 20 BUCHHALTUNG konfiguriert, ungenutzte Ports geparkt, Uplink als Trunk vorbereitet.',
     recommendedAcademyTopics: ['cisco-packet-tracer/vlan', 'cisco-packet-tracer/trunk'],
   },
+  {
+    id: 'cisco-main-003',
+    chapter: 3,
+    department: 'Netzwerk',
+    title: 'Fernwartung per SSH',
+    subtitle: 'Management-VLAN, SVI und SSH auf SW-ADM-01',
+    briefing: 'SW-ADM-01 ist bisher nur lokal erreichbar. Richte ein Management-VLAN mit SVI und IP-Adresse ein, setze ein Default Gateway und einen Domain-Namen, erzeuge einen RSA-Schlüssel, erzwinge SSH Version 2 und beschränke die VTY-Leitungen auf "login local" und "transport input ssh".',
+    minutes: 15,
+    difficulty: 3,
+    boss: false,
+    requires: ['cisco-main-002'],
+    sideMissionsRequired: ['cisco-side-l2-001'],
+    sideMissionsRequiredCount: 1,
+    resolution: 'Management-VLAN 172/ADMIN mit SVI und IP eingerichtet, Default Gateway und Domain-Name gesetzt, RSA-Schlüssel erzeugt, SSH Version 2 erzwungen, VTY auf login local/transport input ssh beschränkt.',
+    recommendedAcademyTopics: ['cisco-packet-tracer/ssh'],
+  },
 ];
 
 export function questById(id) {

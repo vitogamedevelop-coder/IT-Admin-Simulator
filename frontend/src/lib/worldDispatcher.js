@@ -9,7 +9,7 @@ import {
 } from './notificationSystem.js';
 import { createDialog } from './dialogSystem.js';
 import { colleagues } from './officeWorld.js';
-import { MISSION_001_ID, MISSION_002_ID } from './missionV2.js';
+import { MISSION_001_ID, MISSION_002_ID, MISSION_003_ID } from './missionV2.js';
 import { getNextMainMission } from './objectives.js';
 import {
   SIDE_MISSION_001_ID,
@@ -28,6 +28,8 @@ export const WORLD_EVENT_IDS = {
   MAIN_002_MAIL: 'main-mission-unlocked:cisco-main-002',
   POST_MAIN_002_SAM: 'post-main-002-sam',
   SECURITY_MAIL: 'security-mail',
+  POST_SIDE_004_SAM: 'post-side-004-sam',
+  MAIN_003_MAIL: 'main-mission-unlocked:cisco-main-003',
 };
 
 const WORLD_EVENTS = [
@@ -225,6 +227,56 @@ const WORLD_EVENTS = [
       priority: 'high',
     },
     linkedMissionId: SIDE_MISSION_004_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.POST_SIDE_004_SAM,
+    trigger: (state) => state.completedCiscoSideMissions.includes(SIDE_MISSION_004_ID)
+      && !state.completedQuests.includes(MISSION_003_ID),
+    delivery: 'dialog-sam',
+    data: {
+      personId: 'sam',
+      mode: 'face-to-face',
+      title: 'Schluss mit dem Weg zum Technikraum',
+      nodes: [
+        {
+          id: 'start',
+          text: 'Sw2 läuft sauber. Jetzt zu etwas, das dir eine Menge Wege sparen wird.\n\nSW-ADM-01 kannst du bisher nur direkt am Gerät konfigurieren. Für jede kleine Änderung läufst du physisch zum Technikraum. Das ändern wir jetzt: Fernwartung per SSH.',
+          options: [
+            { label: 'Ich bin bereit.', nextId: 'now' },
+            { label: 'Erst später.', nextId: 'later' },
+          ],
+        },
+        {
+          id: 'now',
+          text: 'Gut, die Details stehen schon in deinem Postfach.',
+          onComplete: { action: 'close' },
+        },
+        {
+          id: 'later',
+          text: 'Kein Problem. Die Mail mit den Details liegt bereit, wenn du Zeit findest.',
+          onComplete: { action: 'close' },
+        },
+      ],
+      entryNode: 'start',
+    },
+    linkedMissionId: MISSION_003_ID,
+  },
+  {
+    id: WORLD_EVENT_IDS.MAIN_003_MAIL,
+    trigger: (state) => {
+      const next = getNextMainMission(state);
+      return next?.quest?.id === MISSION_003_ID && next.available && !state.completedQuests.includes(MISSION_003_ID);
+    },
+    delivery: 'email',
+    data: {
+      id: 'world-mail-main-003',
+      from: { personId: 'sam', name: 'Sam Richter', role: 'Senior-Administrator' },
+      to: ['spieler@nexus.local'],
+      subject: 'SW-ADM-01 fernwartbar machen (SSH)',
+      body: 'Moin,\n\nSW-ADM-01 verwaltest du bisher nur direkt am Gerät. Das soll sich ändern - Fernwartung per SSH.\n\nDa SW-ADM-01 ein reiner Layer-2-Switch ist, hat er von sich aus keine IP-Adresse. Du brauchst:\n\n1. Management-VLAN 172 / ADMIN\n2. Eine SVI (interface vlan 172) mit IP 192.168.172.2 / 255.255.255.0, aktiviert\n3. Default Gateway 192.168.172.1\n4. Domain-Name nexus.local (Voraussetzung für RSA-Schlüssel)\n5. RSA-Schlüssel (mindestens 768 Bit, 1024 Bit empfohlen)\n6. SSH Version 2\n7. VTY-Leitungen mit "login local" und "transport input ssh"\n\nPrüfe die Konfiguration und speichere sie danach dauerhaft.\n\n– Sam',
+      priority: 'high',
+    },
+    linkedMissionId: MISSION_003_ID,
   },
 ];
 

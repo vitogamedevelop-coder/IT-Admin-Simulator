@@ -9,9 +9,11 @@ import {
   HINT_LEVEL_LABELS, createHintState, getNextHint, consumeHint, revealSolution, defineHintLadder,
 } from './missionHintSystem.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
+import { getKnownCredentials } from './credentials.js';
 
 export const MISSION_001_ID = 'cisco-main-001';
 export const MISSION_002_ID = 'cisco-main-002';
+export const MISSION_003_ID = 'cisco-main-003';
 export const MISSION_004_ID = 'cisco-main-004';
 
 // Ordered list of every hand-built main mission that currently exists, in
@@ -19,7 +21,7 @@ export const MISSION_004_ID = 'cisco-main-004';
 // a new main mission is added - everything that depends on "what is the
 // current end of content" (Phase 1H content-end detection, the procedural
 // generator's unlock check) reads this list instead of hardcoding an ID.
-export const MAIN_MISSION_ORDER = [MISSION_001_ID, MISSION_002_ID, MISSION_004_ID];
+export const MAIN_MISSION_ORDER = [MISSION_001_ID, MISSION_002_ID, MISSION_003_ID, MISSION_004_ID];
 
 export function getHighestImplementedMainMissionId() {
   return MAIN_MISSION_ORDER[MAIN_MISSION_ORDER.length - 1] || null;
@@ -525,6 +527,280 @@ function _evaluateMission002State(device, scenario, state = null) {
 }
 
 // ============================================================================
+// Mission 003: Remote Administration / SSH (Block 1.5)
+// ============================================================================
+//
+// Fixed, non-randomized story mission (HM3): SW-ADM-01 is a Layer-2 admin
+// switch that is currently only reachable from the local console. The
+// player introduces the full Block-1.5 chain: management VLAN -> SVI ->
+// management IP -> default gateway -> domain-name -> RSA key -> SSH -> VTY
+// login local / transport input ssh. Hostname, enable secret and a local
+// user already exist (carried over from Block 1 / known credentials) so the
+// mission focuses purely on the new remote-administration skills.
+
+const TARGET_HOSTNAME_003 = 'SW-ADM-01';
+const MGMT_VLAN_ID_003 = 172;
+const MGMT_VLAN_NAME_003 = 'ADMIN';
+const MGMT_IP_003 = '192.168.172.2';
+const MGMT_MASK_003 = '255.255.255.0';
+const MGMT_GATEWAY_003 = '192.168.172.1';
+const MGMT_DOMAIN_003 = 'nexus.local';
+const MGMT_MIN_RSA_MODULUS_003 = 768;
+
+const VERIFY_HINTS_003 = ['show ip ssh', 'show running-config', 'show ip interface brief', 'show vlan brief'];
+
+export function generateMission003Scenario(seed = Date.now()) {
+  const known = getKnownCredentials();
+  return {
+    missionId: MISSION_003_ID,
+    title: 'Fernwartung per SSH',
+    seed,
+    deviceType: 'layer2_switch',
+    initialHostname: TARGET_HOSTNAME_003,
+    parameters: {
+      targetHostname: TARGET_HOSTNAME_003,
+      mgmtVlanId: MGMT_VLAN_ID_003,
+      mgmtVlanName: MGMT_VLAN_NAME_003,
+      mgmtIp: MGMT_IP_003,
+      mgmtMask: MGMT_MASK_003,
+      mgmtGateway: MGMT_GATEWAY_003,
+      domainName: MGMT_DOMAIN_003,
+      minRsaModulus: MGMT_MIN_RSA_MODULUS_003,
+      username: known.localAdminUsername || 'admin',
+      userSecret: known.localAdminPassword || 'nexus505',
+      enableSecret: known.enableSecret || 'nexus101',
+    },
+    briefing: `Moin,\n\n${TARGET_HOSTNAME_003} verwaltest du bisher nur, wenn du direkt am Gerät stehst - für jede kleine Änderung läuft jemand physisch zum Switch. Das soll sich ändern: Fernwartung per SSH.\n\n${TARGET_HOSTNAME_003} ist ein reiner Layer-2-Switch und hat von sich aus keine IP-Adresse. Damit SSH funktioniert, brauchst du:\n\n1. Ein Management-VLAN ${MGMT_VLAN_ID_003} / ${MGMT_VLAN_NAME_003}.\n2. Eine SVI (interface vlan ${MGMT_VLAN_ID_003}) mit der IP ${MGMT_IP_003} / ${MGMT_MASK_003}, aktiviert.\n3. Ein Default Gateway ${MGMT_GATEWAY_003}, damit Zugriffe aus anderen Netzen den Switch erreichen.\n4. Einen Domain-Namen (${MGMT_DOMAIN_003}) - ohne Hostname und Domain lassen sich keine RSA-Schlüssel erzeugen.\n5. Einen RSA-Schlüssel (mindestens ${MGMT_MIN_RSA_MODULUS_003} Bit, 1024 Bit empfohlen).\n6. SSH Version 2 (kein Telnet, keine SSHv1).\n7. Die VTY-Leitungen mit "login local" und "transport input ssh".\n\nPrüfe die Konfiguration und speichere sie danach dauerhaft.\n\n– Sam`,
+  };
+}
+
+export function createMission003Device(scenario) {
+  const params = scenario.parameters;
+  const device = createCiscoDevice({
+    profile: 'catalyst_8fe_1ge',
+    hostname: scenario.initialHostname || TARGET_HOSTNAME_003,
+  });
+
+  // Block 1 basics already exist - this mission is purely the Block 1.5 SSH
+  // extension, not a repeat of hostname/enable-secret/local-user.
+  device.runningConfig.enableSecret = params.enableSecret;
+  device.runningConfig.users[params.username] = { secret: params.userSecret };
+  device.runningConfig.noIpDomainLookup = true;
+
+  return device;
+}
+
+export const MISSION_003_REQUIREMENTS = [
+  { id: 'mgmt_vlan', label: `VLAN ${MGMT_VLAN_ID_003} / ${MGMT_VLAN_NAME_003}`, skill: 'cisco.layer2.vlan_creation' },
+  { id: 'svi_address', label: `SVI Vlan${MGMT_VLAN_ID_003} mit IP ${MGMT_IP_003}, aktiviert`, skill: 'cisco.remote_administration.management_svi' },
+  { id: 'default_gateway', label: `Default Gateway ${MGMT_GATEWAY_003}`, skill: 'cisco.basic_configuration.default_gateway' },
+  { id: 'domain_name', label: `Domain-Name ${MGMT_DOMAIN_003}`, skill: 'cisco.basic_configuration.domain_name' },
+  { id: 'rsa_key', label: `RSA-Schlüssel (>= ${MGMT_MIN_RSA_MODULUS_003} Bit)`, skill: 'cisco.remote_administration.rsa_keys' },
+  { id: 'ssh_version', label: 'SSH Version 2', skill: 'cisco.remote_administration.ssh_version' },
+  { id: 'vty_login_local', label: 'VTY login local', skill: 'cisco.remote_administration.vty_login_local' },
+  { id: 'vty_transport_ssh', label: 'VTY transport input ssh (kein Telnet)', skill: 'cisco.remote_administration.vty_transport_ssh' },
+  { id: 'verified', label: 'Konfiguration geprüft', skill: 'cisco.basic_configuration.verify_running_config' },
+  { id: 'saved', label: 'Konfiguration dauerhaft gespeichert', skill: 'cisco.basic_configuration.save_config' },
+];
+
+const HINT_LADDERS_003 = {
+  mgmt_vlan: defineHintLadder({
+    subskillPath: 'cisco.layer2.vlan_creation',
+    nudge: 'Für die Fernwartung braucht der Switch zuerst ein eigenes Management-VLAN.',
+    focus: `Lege VLAN ${MGMT_VLAN_ID_003} mit dem Namen ${MGMT_VLAN_NAME_003} an.`,
+    directive: `Verwende "vlan ${MGMT_VLAN_ID_003}" gefolgt von "name ${MGMT_VLAN_NAME_003}" im Global Configuration Mode.`,
+    solution: {
+      answer: `vlan ${MGMT_VLAN_ID_003}\nname ${MGMT_VLAN_NAME_003}\nexit`,
+      explanation: 'Ein Management-VLAN trennt den Verwaltungszugriff logisch von den Nutzdaten-VLANs.',
+    },
+  }),
+  svi_address: defineHintLadder({
+    subskillPath: 'cisco.remote_administration.management_svi',
+    nudge: 'Ein reiner Layer-2-Switch hat keine eigene IP-Adresse - die braucht er über eine virtuelle Schnittstelle.',
+    focus: `Erstelle die SVI für VLAN ${MGMT_VLAN_ID_003} und weise ihr eine IP-Adresse zu.`,
+    directive: `Verwende "interface vlan ${MGMT_VLAN_ID_003}", "ip address ${MGMT_IP_003} ${MGMT_MASK_003}" und "no shutdown".`,
+    solution: {
+      answer: `interface vlan ${MGMT_VLAN_ID_003}\nip address ${MGMT_IP_003} ${MGMT_MASK_003}\nno shutdown\nexit`,
+      explanation: 'Die SVI (Switched Virtual Interface) gibt dem Switch eine eigene, erreichbare IP-Adresse im Management-VLAN.',
+    },
+  }),
+  default_gateway: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.default_gateway',
+    nudge: 'Ohne Gateway erreicht der Switch nur Geräte im eigenen Netz.',
+    focus: 'Setze ein Default Gateway, damit Zugriffe aus anderen Netzen den Switch erreichen.',
+    directive: `Verwende "ip default-gateway ${MGMT_GATEWAY_003}" im Global Configuration Mode.`,
+    solution: {
+      answer: `ip default-gateway ${MGMT_GATEWAY_003}`,
+      explanation: 'Ein Layer-2-Switch routet nicht selbst - er braucht ein Default Gateway, um Antworten außerhalb seines Netzes zuzustellen.',
+    },
+  }),
+  domain_name: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.domain_name',
+    nudge: 'RSA-Schlüssel brauchen einen vollständigen Namen aus Hostname und Domain.',
+    focus: `Setze den Domain-Namen ${MGMT_DOMAIN_003}.`,
+    directive: `Verwende "ip domain-name ${MGMT_DOMAIN_003}" im Global Configuration Mode.`,
+    solution: {
+      answer: `ip domain-name ${MGMT_DOMAIN_003}`,
+      explanation: 'Ohne Hostname und Domain verweigert IOS die Erzeugung von RSA-Schlüsseln.',
+    },
+  }),
+  rsa_key: defineHintLadder({
+    subskillPath: 'cisco.remote_administration.rsa_keys',
+    nudge: 'SSH braucht einen RSA-Schlüssel zur Verschlüsselung der Verbindung.',
+    focus: 'Erzeuge den RSA-Schlüssel mit einem Modulus von mindestens 768 Bit (1024 Bit empfohlen).',
+    directive: 'Verwende "crypto key generate rsa" und gib anschließend "1024" als Modulus ein.',
+    solution: {
+      answer: 'crypto key generate rsa\n1024',
+      explanation: '"crypto key generate rsa" fragt interaktiv nach der Schlüssellänge; 1024 Bit ist die von NEXUS empfohlene Größe.',
+    },
+  }),
+  ssh_version: defineHintLadder({
+    subskillPath: 'cisco.remote_administration.ssh_version',
+    nudge: 'SSH Version 1 gilt als unsicher und wird nicht mehr eingesetzt.',
+    focus: 'Erzwinge SSH Version 2.',
+    directive: 'Verwende "ip ssh version 2" im Global Configuration Mode.',
+    solution: {
+      answer: 'ip ssh version 2',
+      explanation: '"ip ssh version 2" stellt sicher, dass ausschließlich das sicherere SSHv2 angeboten wird.',
+    },
+  }),
+  vty_login_local: defineHintLadder({
+    subskillPath: 'cisco.remote_administration.vty_login_local',
+    nudge: 'Ohne lokale Anmeldeprüfung lässt sich SSH nicht sinnvoll absichern.',
+    focus: 'Aktiviere die Prüfung gegen die lokale Benutzerdatenbank auf den VTY-Leitungen.',
+    directive: 'Verwende "line vty 0 15" gefolgt von "login local".',
+    solution: {
+      answer: 'line vty 0 15\nlogin local\nexit',
+      explanation: '"login local" prüft SSH-Anmeldungen gegen die mit "username" angelegten lokalen Benutzer.',
+    },
+  }),
+  vty_transport_ssh: defineHintLadder({
+    subskillPath: 'cisco.remote_administration.vty_transport_ssh',
+    nudge: 'Standardmäßig erlauben die VTY-Leitungen auch unverschlüsseltes Telnet.',
+    focus: 'Beschränke die VTY-Leitungen auf SSH.',
+    directive: 'Verwende "line vty 0 15" gefolgt von "transport input ssh".',
+    solution: {
+      answer: 'line vty 0 15\ntransport input ssh\nexit',
+      explanation: '"transport input ssh" lässt nur noch verschlüsselte SSH-Verbindungen zu und deaktiviert Telnet auf den VTY-Leitungen.',
+    },
+  }),
+  verified: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.verify_running_config',
+    nudge: 'Bevor du speicherst, solltest du prüfen, ob SSH wirklich aktiv ist.',
+    focus: 'Zeige den SSH-Status und die Konfiguration an.',
+    directive: 'Verwende "show ip ssh", "show ip interface brief" oder "show running-config".',
+    solution: {
+      answer: 'show ip ssh',
+      explanation: '"show ip ssh" zeigt, ob SSH aktiv ist und welche Version verwendet wird.',
+    },
+  }),
+  saved: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.save_config',
+    nudge: 'Ohne Speichern geht die Konfiguration beim nächsten Neustart verloren.',
+    focus: 'Sichere die Running-Config in der Startup-Config.',
+    directive: 'Verwende "copy running-config startup-config" oder "write".',
+    solution: {
+      answer: 'copy running-config startup-config',
+      explanation: '"copy running-config startup-config" (oder "write") kopiert die aktuelle Konfiguration in die Startup-Config.',
+    },
+  }),
+};
+
+function mission003Checks(runningConfig, params) {
+  const vlan = runningConfig.vlans?.[params.mgmtVlanId];
+  const mgmtVlan = !!vlan && vlan.name === params.mgmtVlanName;
+
+  const svi = runningConfig.interfaces?.[`Vlan${params.mgmtVlanId}`];
+  const sviAddress = !!svi && svi.ipv4 === params.mgmtIp && svi.mask === params.mgmtMask && !svi.administrativelyDown;
+
+  const defaultGateway = runningConfig.ipDefaultGateway === params.mgmtGateway;
+  const domainName = runningConfig.ipDomainName === params.domainName;
+  const rsaKey = !!runningConfig.cryptoKey?.exists && runningConfig.cryptoKey.modulus >= params.minRsaModulus;
+  const sshVersion = runningConfig.ipSshVersion === 2;
+  const vtyLoginLocal = !!runningConfig.lines?.vty?.loginLocal;
+  const vtyTransportSsh = Array.isArray(runningConfig.lines?.vty?.transportInput)
+    && runningConfig.lines.vty.transportInput.length > 0
+    && runningConfig.lines.vty.transportInput.every((t) => t === 'ssh');
+
+  return {
+    mgmt_vlan: mgmtVlan,
+    svi_address: sviAddress,
+    default_gateway: defaultGateway,
+    domain_name: domainName,
+    rsa_key: rsaKey,
+    ssh_version: sshVersion,
+    vty_login_local: vtyLoginLocal,
+    vty_transport_ssh: vtyTransportSsh,
+  };
+}
+
+function _getMission003Progress(device, scenario, state = null) {
+  const params = scenario.parameters;
+  const rc = device.runningConfig;
+
+  const checks = mission003Checks(rc, params);
+
+  const verified = (state?.showCommandsUsed || []).some((c) => VERIFY_HINTS_003.some((v) => c.includes(v)));
+
+  let saved = false;
+  if (device.startupConfig !== null) {
+    const savedChecks = mission003Checks(device.startupConfig, params);
+    saved = Object.values(savedChecks).every(Boolean);
+  }
+
+  const allChecks = { ...checks, verified, saved };
+
+  const completed = MISSION_003_REQUIREMENTS.filter((r) => allChecks[r.id]).length;
+  const total = MISSION_003_REQUIREMENTS.length;
+
+  return {
+    completed,
+    total,
+    checks: MISSION_003_REQUIREMENTS.map((r) => ({ ...r, ok: allChecks[r.id] })),
+    allCorrect: completed === total,
+  };
+}
+
+export function getMission003Progress(device, scenario) {
+  return _getMission003Progress(device, scenario);
+}
+
+export function mission003RequiredState(scenario) {
+  return scenario.parameters;
+}
+
+function _evaluateMission003State(device, scenario, state = null) {
+  const progress = _getMission003Progress(device, scenario, state);
+  const misconceptions = [];
+
+  if (progress.completed > 0) {
+    const verified = progress.checks.find((c) => c.id === 'verified')?.ok;
+    const saved = progress.checks.find((c) => c.id === 'saved')?.ok;
+    if (!verified && !saved) {
+      misconceptions.push('forgot_verify_and_save');
+    } else if (!verified) {
+      misconceptions.push('forgot_verify');
+    } else if (!saved) {
+      misconceptions.push('forgot_save');
+    }
+  }
+
+  return {
+    ...progress,
+    allCorrect: progress.allCorrect,
+    misconceptions,
+  };
+}
+
+export function evaluateMission003State(device, scenario) {
+  return _evaluateMission003State(device, scenario);
+}
+
+export function startMission003(seed = Date.now()) {
+  return startMainMission(MISSION_003_ID, seed);
+}
+
+// ============================================================================
 // Mission 004: Router-on-a-Stick / Inter-VLAN Routing
 // ============================================================================
 //
@@ -771,36 +1047,42 @@ export function evaluateMission004State(device, scenario) {
 const SCENARIO_GENERATORS = {
   [MISSION_001_ID]: generateMission001Scenario,
   [MISSION_002_ID]: generateMission002Scenario,
+  [MISSION_003_ID]: generateMission003Scenario,
   [MISSION_004_ID]: generateMission004Scenario,
 };
 
 const DEVICE_CREATORS = {
   [MISSION_001_ID]: createMission001Device,
   [MISSION_002_ID]: createMission002Device,
+  [MISSION_003_ID]: createMission003Device,
   [MISSION_004_ID]: createMission004Device,
 };
 
 const PROGRESS_GETTERS = {
   [MISSION_001_ID]: _getMission001Progress,
   [MISSION_002_ID]: _getMission002Progress,
+  [MISSION_003_ID]: _getMission003Progress,
   [MISSION_004_ID]: _getMission004Progress,
 };
 
 const EVALUATORS = {
   [MISSION_001_ID]: _evaluateMission001State,
   [MISSION_002_ID]: _evaluateMission002State,
+  [MISSION_003_ID]: _evaluateMission003State,
   [MISSION_004_ID]: _evaluateMission004State,
 };
 
 const REQUIREMENTS = {
   [MISSION_001_ID]: MISSION_001_REQUIREMENTS,
   [MISSION_002_ID]: MISSION_002_REQUIREMENTS,
+  [MISSION_003_ID]: MISSION_003_REQUIREMENTS,
   [MISSION_004_ID]: MISSION_004_REQUIREMENTS,
 };
 
 const HINT_LADDERS_BY_MISSION = {
   [MISSION_001_ID]: HINT_LADDERS_001,
   [MISSION_002_ID]: HINT_LADDERS_002,
+  [MISSION_003_ID]: HINT_LADDERS_003,
   [MISSION_004_ID]: HINT_LADDERS_004,
 };
 
