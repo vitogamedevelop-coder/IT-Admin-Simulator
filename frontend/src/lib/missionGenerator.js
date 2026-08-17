@@ -177,7 +177,7 @@ migrateTicketChannel();
 const SKILL_GROUP_UNLOCK = {
   basic_configuration: 'cisco-main-001',
   switching: 'cisco-main-002',
-  routing: 'cisco-main-003',
+  routing: 'cisco-main-004',
 };
 
 export function isSkillGroupUnlocked(skillId, state = readGameState()) {

@@ -12,14 +12,14 @@ import { registerMission, updateMissionStatus, MissionStatus } from './missionLo
 
 export const MISSION_001_ID = 'cisco-main-001';
 export const MISSION_002_ID = 'cisco-main-002';
-export const MISSION_003_ID = 'cisco-main-003';
+export const MISSION_004_ID = 'cisco-main-004';
 
 // Ordered list of every hand-built main mission that currently exists, in
 // curriculum order. This is the single place that needs to be extended when
 // a new main mission is added - everything that depends on "what is the
 // current end of content" (Phase 1H content-end detection, the procedural
 // generator's unlock check) reads this list instead of hardcoding an ID.
-export const MAIN_MISSION_ORDER = [MISSION_001_ID, MISSION_002_ID, MISSION_003_ID];
+export const MAIN_MISSION_ORDER = [MISSION_001_ID, MISSION_002_ID, MISSION_004_ID];
 
 export function getHighestImplementedMainMissionId() {
   return MAIN_MISSION_ORDER[MAIN_MISSION_ORDER.length - 1] || null;
@@ -525,7 +525,7 @@ function _evaluateMission002State(device, scenario, state = null) {
 }
 
 // ============================================================================
-// Mission 003: Router-on-a-Stick / Inter-VLAN Routing
+// Mission 004: Router-on-a-Stick / Inter-VLAN Routing
 // ============================================================================
 //
 // Follow-up to HM2: VLAN segmentation works, but departments can no longer
@@ -533,21 +533,21 @@ function _evaluateMission002State(device, scenario, state = null) {
 // subinterfaces to enable inter-VLAN routing.
 
 const DEPARTMENT_POOL = ['PERSONAL', 'TECHNIK', 'VERWALTUNG', 'LAGER', 'VERTIEB', 'PRODUKTION'];
-const VLAN_ID_POOL_003 = [10, 20, 30, 40, 50, 60];
-const SWITCH_HOSTNAMES_003 = ['Sw-HQ-01', 'Sw-HQ-02', 'Sw-AST-01'];
-const ROUTER_HOSTNAMES_003 = ['R-HQ-01', 'R-HQ-02', 'R-AST-01'];
-const ACCESS_PORTS_PER_VLAN_003 = 4;
-const UPLINK_PORT_003 = 'GigabitEthernet0/1';
-const ROUTER_PHYSICAL_PORT_003 = 'GigabitEthernet0/0';
+const VLAN_ID_POOL_004 = [10, 20, 30, 40, 50, 60];
+const SWITCH_HOSTNAMES_004 = ['Sw-HQ-01', 'Sw-HQ-02', 'Sw-AST-01'];
+const ROUTER_HOSTNAMES_004 = ['R-HQ-01', 'R-HQ-02', 'R-AST-01'];
+const ACCESS_PORTS_PER_VLAN_004 = 4;
+const UPLINK_PORT_004 = 'GigabitEthernet0/1';
+const ROUTER_PHYSICAL_PORT_004 = 'GigabitEthernet0/0';
 
-function generateMission003Scenario(seed = Date.now()) {
+function generateMission004Scenario(seed = Date.now()) {
   const rng = seededRng(seed);
   const pickFromArr = (arr) => arr[rng(0, arr.length - 1)];
-  const switchHostname = pickFromArr(SWITCH_HOSTNAMES_003);
-  const routerHostname = pickFromArr(ROUTER_HOSTNAMES_003);
+  const switchHostname = pickFromArr(SWITCH_HOSTNAMES_004);
+  const routerHostname = pickFromArr(ROUTER_HOSTNAMES_004);
   const vlanIds = [];
   while (vlanIds.length < 3) {
-    const candidate = pickFromArr(VLAN_ID_POOL_003);
+    const candidate = pickFromArr(VLAN_ID_POOL_004);
     if (!vlanIds.includes(candidate)) vlanIds.push(candidate);
   }
   const usedDepartments = [];
@@ -564,8 +564,8 @@ function generateMission003Scenario(seed = Date.now()) {
       network: `${base}.0`,
       mask: '255.255.255.0',
       gateway: `${base}.1`,
-      accessPorts: Array.from({ length: ACCESS_PORTS_PER_VLAN_003 }, (_, i) => {
-        const portIndex = vlanIds.indexOf(id) * ACCESS_PORTS_PER_VLAN_003 + i + 1;
+      accessPorts: Array.from({ length: ACCESS_PORTS_PER_VLAN_004 }, (_, i) => {
+        const portIndex = vlanIds.indexOf(id) * ACCESS_PORTS_PER_VLAN_004 + i + 1;
         return `FastEthernet0/${portIndex}`;
       }),
     };
@@ -575,7 +575,7 @@ function generateMission003Scenario(seed = Date.now()) {
   const accessList = vlans.map((v) => `${v.name}: ${v.accessPorts.map((p) => p.replace('FastEthernet', 'Fa')).join(', ')}`).join('\n');
 
   return {
-    missionId: MISSION_003_ID,
+    missionId: MISSION_004_ID,
     title: 'Inter-VLAN Routing',
     seed,
     deviceType: 'router_on_a_stick',
@@ -584,8 +584,8 @@ function generateMission003Scenario(seed = Date.now()) {
       switchHostname,
       routerHostname,
       vlans,
-      uplinkPort: UPLINK_PORT_003,
-      routerPhysicalPort: ROUTER_PHYSICAL_PORT_003,
+      uplinkPort: UPLINK_PORT_004,
+      routerPhysicalPort: ROUTER_PHYSICAL_PORT_004,
     },
     briefing: `Moin,
 
@@ -599,22 +599,22 @@ ${vlanList}
 Anschlüsse:
 ${accessList}
 
-Uplink Switch <-> Router: ${UPLINK_PORT_003.replace('GigabitEthernet', 'Gi')} (Trunk, alle obigen VLANs)
-Router-Interface für die Subinterfaces: ${ROUTER_PHYSICAL_PORT_003.replace('GigabitEthernet', 'Gi')}
+Uplink Switch <-> Router: ${UPLINK_PORT_004.replace('GigabitEthernet', 'Gi')} (Trunk, alle obigen VLANs)
+Router-Interface für die Subinterfaces: ${ROUTER_PHYSICAL_PORT_004.replace('GigabitEthernet', 'Gi')}
 
 Auftrag:
 1. Stelle sicher, dass alle VLANs mit korrektem Namen existieren.
 2. Die Arbeitsplatzports liegen in ihrem VLAN und sind aktiv.
 3. Der Uplink ist ein Trunk und erlaubt alle benötigten VLANs.
 4. Das Router-Physikinterface ist aktiv.
-5. Für jedes VLAN legst du ein Subinterface auf ${ROUTER_PHYSICAL_PORT_003.replace('GigabitEthernet', 'Gi')} an, taggst es mit 802.1Q und weist das passende Gateway zu.
+5. Für jedes VLAN legst du ein Subinterface auf ${ROUTER_PHYSICAL_PORT_004.replace('GigabitEthernet', 'Gi')} an, taggst es mit 802.1Q und weist das passende Gateway zu.
 6. Prüfe die Konfiguration und speichere sie.
 
 – Sam`,
   };
 }
 
-export function createMission003Device(scenario) {
+export function createMission004Device(scenario) {
   const device = createCiscoDevice({
     profile: 'router_on_a_stick',
     hostname: scenario.initialHostname,
@@ -650,7 +650,7 @@ export function createMission003Device(scenario) {
   return device;
 }
 
-export const MISSION_003_REQUIREMENTS = [
+export const MISSION_004_REQUIREMENTS = [
   { id: 'vlans', label: 'VLANs existieren mit korrekten Namen', skill: 'cisco.layer2.vlan_creation' },
   { id: 'access_ports', label: 'Access-Ports liegen in den richtigen VLANs', skill: 'cisco.layer2.access_ports' },
   { id: 'uplink_trunk', label: 'Switch-Uplink ist Trunk für alle VLANs', skill: 'cisco.layer2.trunking' },
@@ -659,9 +659,9 @@ export const MISSION_003_REQUIREMENTS = [
   { id: 'verified_and_saved', label: 'Konfiguration geprüft und gespeichert', skill: 'cisco.basic_configuration.save_config' },
 ];
 
-const VERIFY_HINTS_003 = ['show vlan brief', 'show interfaces trunk', 'show ip interface brief', 'show running-config'];
+const VERIFY_HINTS_004 = ['show vlan brief', 'show interfaces trunk', 'show ip interface brief', 'show running-config'];
 
-const HINT_LADDERS_003 = {
+const HINT_LADDERS_004 = {
   vlans: defineHintLadder({
     subskillPath: 'cisco.layer2.vlan_creation',
     nudge: 'Der Router braucht die VLANs, sonst können die Subinterfaces nicht taggen.',
@@ -706,10 +706,10 @@ const HINT_LADDERS_003 = {
   }),
 };
 
-function _getMission003Progress(device, scenario, state = null) {
+function _getMission004Progress(device, scenario, state = null) {
   const routing = evaluateRouterOnAStick(device, scenario);
 
-  const verified = (state?.showCommandsUsed || []).some((c) => VERIFY_HINTS_003.some((v) => c.includes(v)));
+  const verified = (state?.showCommandsUsed || []).some((c) => VERIFY_HINTS_004.some((v) => c.includes(v)));
 
   let saved = false;
   if (device.startupConfig !== null) {
@@ -726,27 +726,27 @@ function _getMission003Progress(device, scenario, state = null) {
     verified_and_saved: verified && saved,
   };
 
-  const completed = MISSION_003_REQUIREMENTS.filter((r) => checks[r.id]).length;
-  const total = MISSION_003_REQUIREMENTS.length;
+  const completed = MISSION_004_REQUIREMENTS.filter((r) => checks[r.id]).length;
+  const total = MISSION_004_REQUIREMENTS.length;
 
   return {
     completed,
     total,
-    checks: MISSION_003_REQUIREMENTS.map((r) => ({ ...r, ok: checks[r.id] })),
+    checks: MISSION_004_REQUIREMENTS.map((r) => ({ ...r, ok: checks[r.id] })),
     allCorrect: completed === total,
   };
 }
 
-export function getMission003Progress(device, scenario) {
-  return _getMission003Progress(device, scenario);
+export function getMission004Progress(device, scenario) {
+  return _getMission004Progress(device, scenario);
 }
 
-export function mission003RequiredState(scenario) {
+export function mission004RequiredState(scenario) {
   return scenario.parameters;
 }
 
-function _evaluateMission003State(device, scenario, state = null) {
-  const progress = _getMission003Progress(device, scenario, state);
+function _evaluateMission004State(device, scenario, state = null) {
+  const progress = _getMission004Progress(device, scenario, state);
   const misconceptions = [];
 
   if (!progress.checks.find((c) => c.id === 'verified_and_saved').ok && progress.completed > 0) {
@@ -760,8 +760,8 @@ function _evaluateMission003State(device, scenario, state = null) {
   };
 }
 
-export function evaluateMission003State(device, scenario) {
-  return _evaluateMission003State(device, scenario);
+export function evaluateMission004State(device, scenario) {
+  return _evaluateMission004State(device, scenario);
 }
 
 // ============================================================================
@@ -771,37 +771,37 @@ export function evaluateMission003State(device, scenario) {
 const SCENARIO_GENERATORS = {
   [MISSION_001_ID]: generateMission001Scenario,
   [MISSION_002_ID]: generateMission002Scenario,
-  [MISSION_003_ID]: generateMission003Scenario,
+  [MISSION_004_ID]: generateMission004Scenario,
 };
 
 const DEVICE_CREATORS = {
   [MISSION_001_ID]: createMission001Device,
   [MISSION_002_ID]: createMission002Device,
-  [MISSION_003_ID]: createMission003Device,
+  [MISSION_004_ID]: createMission004Device,
 };
 
 const PROGRESS_GETTERS = {
   [MISSION_001_ID]: _getMission001Progress,
   [MISSION_002_ID]: _getMission002Progress,
-  [MISSION_003_ID]: _getMission003Progress,
+  [MISSION_004_ID]: _getMission004Progress,
 };
 
 const EVALUATORS = {
   [MISSION_001_ID]: _evaluateMission001State,
   [MISSION_002_ID]: _evaluateMission002State,
-  [MISSION_003_ID]: _evaluateMission003State,
+  [MISSION_004_ID]: _evaluateMission004State,
 };
 
 const REQUIREMENTS = {
   [MISSION_001_ID]: MISSION_001_REQUIREMENTS,
   [MISSION_002_ID]: MISSION_002_REQUIREMENTS,
-  [MISSION_003_ID]: MISSION_003_REQUIREMENTS,
+  [MISSION_004_ID]: MISSION_004_REQUIREMENTS,
 };
 
 const HINT_LADDERS_BY_MISSION = {
   [MISSION_001_ID]: HINT_LADDERS_001,
   [MISSION_002_ID]: HINT_LADDERS_002,
-  [MISSION_003_ID]: HINT_LADDERS_003,
+  [MISSION_004_ID]: HINT_LADDERS_004,
 };
 
 // ============================================================================
@@ -1048,10 +1048,10 @@ export function mission001Feedback(state, evaluation) {
   return mainMissionFeedback(state, evaluation);
 }
 
-export function startMission003(seed = Date.now()) {
-  return startMainMission(MISSION_003_ID, seed);
+export function startMission004(seed = Date.now()) {
+  return startMainMission(MISSION_004_ID, seed);
 }
 
-export function evaluateMission003(state) {
+export function evaluateMission004(state) {
   return evaluateMainMission(state);
 }

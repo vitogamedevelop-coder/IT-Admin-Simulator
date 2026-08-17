@@ -20,7 +20,7 @@ global.localStorage = storage;
 global.window = { dispatchEvent: () => {}, addEventListener: () => {}, removeEventListener: () => {} };
 
 const { readGameState, completeQuest } = await import(pathToFileURL(join(srcDir, 'lib/gameState.js')).href);
-const { MISSION_001_ID, MISSION_002_ID } = await import(pathToFileURL(join(srcDir, 'lib/missionV2.js')).href);
+const { MISSION_001_ID, MISSION_002_ID, MISSION_004_ID } = await import(pathToFileURL(join(srcDir, 'lib/missionV2.js')).href);
 const {
   generateMissionInstance, validateMissionInstance, selectSkillForGeneration,
   isSkillGroupUnlocked, generatableSkillPaths, getOpenInstances, readHistory,
@@ -58,6 +58,9 @@ function completeMain001() {
 }
 function completeMain002() {
   completeQuest({ id: MISSION_002_ID }, { xp: 10, reputation: {} });
+}
+function completeMain004() {
+  completeQuest({ id: MISSION_004_ID }, { xp: 10, reputation: {} });
 }
 
 console.log('A) Locked skill: generator never uses a not-yet-unlocked skill (100 runs)');
@@ -294,7 +297,8 @@ console.log('\nN) Content end: generator keeps running after the last main missi
   resetAll();
   completeMain001();
   completeMain002();
-  test('content end is reached once both main missions are completed', () => assert.equal(hasReachedContentEnd(), true));
+  completeMain004();
+  test('content end is reached once all hand-built main missions are completed', () => assert.equal(hasReachedContentEnd(), true));
   const message = maybeAnnounceContentEnd();
   test('a one-time content-end message is returned', () => assert.ok(message && message.length > 0));
   const messageAgain = maybeAnnounceContentEnd();
@@ -309,14 +313,15 @@ console.log('\nO) New main mission moves the content-end boundary automatically'
   resetAll();
   completeMain001();
   completeMain002();
+  completeMain004();
   test('content end reached with the current MAIN_MISSION_ORDER', () => assert.equal(hasReachedContentEnd(), true));
 
   // Simulate a new main mission being added later, by checking that the
-  // detector is purely list-driven (not hardcoded to MISSION_002_ID): a
+  // detector is purely list-driven (not hardcoded to a specific ID): a
   // hypothetical longer list with an uncompleted extra mission must NOT
   // report content end.
   const extendedState = readGameState();
-  const hasReachedWithExtra = [...MAIN_MISSION_ORDER, 'cisco-main-003'].every((id) => extendedState.completedQuests.includes(id));
+  const hasReachedWithExtra = [...MAIN_MISSION_ORDER, 'cisco-main-999'].every((id) => extendedState.completedQuests.includes(id));
   test('a not-yet-completed future main mission would push the boundary out', () => assert.equal(hasReachedWithExtra, false));
 }
 
@@ -335,12 +340,24 @@ console.log('\nRuntime: a procedural mission can actually be played end-to-end')
   test('runtime state can be started', () => assert.ok(state && state.device));
 
   const p = instance.resolvedParameters;
+  const selected = new Set(p.selectedTaskIds);
+  const lineCommands = [];
+  if (selected.has('console_security')) lineCommands.push(`password ${p.consolePassword}`);
+  // "login local" alone also satisfies the plain "login" check (either mode
+  // counts), so only one of the two needs to be sent even if both were
+  // selected for this instance.
+  if (selected.has('login_local')) lineCommands.push('login local');
+  else if (selected.has('login')) lineCommands.push('login');
+  if (selected.has('exec_timeout')) lineCommands.push(`exec-timeout ${p.execTimeoutMinutes} ${p.execTimeoutSeconds}`);
+
   const commands = [
     'enable', 'configure terminal',
-    `hostname ${p.targetHostname}`,
-    `enable secret ${p.enableSecret}`,
-    `username ${p.username} secret ${p.userSecret}`,
-    'no ip domain-lookup',
+    ...(selected.has('hostname') ? [`hostname ${p.targetHostname}`] : []),
+    ...(selected.has('enable_secret') ? [`enable secret ${p.enableSecret}`] : []),
+    ...(selected.has('local_user') ? [`username ${p.username} secret ${p.userSecret}`] : []),
+    ...(selected.has('disable_dns_lookup') ? ['no ip domain-lookup'] : []),
+    ...(selected.has('service_password_encryption') ? ['service password-encryption'] : []),
+    ...(lineCommands.length > 0 ? ['line console 0', ...lineCommands, 'exit'] : []),
     'end',
     'copy running-config startup-config',
   ];

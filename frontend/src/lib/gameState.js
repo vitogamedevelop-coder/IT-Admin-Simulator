@@ -118,6 +118,19 @@ function migrateState(saved) {
     }
     migrated.deliveredMissionInstances = saved.deliveredMissionInstances || [];
   }
+  if (!saved.stateVersion || saved.stateVersion < 10) {
+    migrated.stateVersion = 10;
+    // Phase 1J.3: main mission 003 (Router-on-a-Stick / Inter-VLAN Routing)
+    // was renumbered to cisco-main-004 so the new HM3 (Block 1.5
+    // SSH/Remote Administration) can occupy cisco-main-003 in curriculum
+    // order. Remap any completed-quest and delivery records from old saves.
+    const remap = (id) => (id === 'cisco-main-003' ? 'cisco-main-004' : id);
+    migrated.completedQuests = (saved.completedQuests || []).map(remap);
+    migrated.deliveredMissionInstances = (migrated.deliveredMissionInstances || []).map(remap);
+    if (migrated.activeQuest && migrated.activeQuest.id === 'cisco-main-003') {
+      migrated.activeQuest = { ...migrated.activeQuest, id: 'cisco-main-004' };
+    }
+  }
   return migrated;
 }
 

@@ -725,10 +725,11 @@ const TEMPLATE_VLAN_MOVE = defineMissionTemplate({
     const [sourceVlanId, targetVlanId] = ids;
     const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
     const targetPort = `FastEthernet0/${rng(1, 24)}`;
+    const sourceVlanName = pickFrom(rng, STAGE2_DEPARTMENT_NAMES);
     return {
       sourceVlanId,
       targetVlanId,
-      sourceVlanName: pickFrom(rng, STAGE2_DEPARTMENT_NAMES),
+      sourceVlanName,
       targetVlanName: pickFrom(rng, STAGE2_DEPARTMENT_NAMES.filter((n) => n !== sourceVlanName)),
       hostname,
       targetPort,
@@ -756,7 +757,7 @@ const TEMPLATE_VLAN_MOVE = defineMissionTemplate({
   buildTitle(params, archetype) {
     return archetype === MISSION_ARCHETYPE.INCIDENT ? `Port ${params.targetPort.replace('FastEthernet', 'Fa')} offline` : `VLAN-Wechsel auf ${params.hostname}`;
   },
-  buildBriefing(params, _archetype, _context, _difficulty) {
+  buildBriefing(params, archetype, _context, _difficulty) {
     const port = params.targetPort.replace('FastEthernet', 'Fa');
     if (archetype === MISSION_ARCHETYPE.INCIDENT) {
       return `Notfall: Der Arbeitsplatz an ${port} auf ${params.hostname} meldet keinen Netzzugriff mehr. Der Port befindet sich aktuell in VLAN ${params.sourceVlanId} ${params.sourceVlanName}, soll aber VLAN ${params.targetVlanId} ${params.targetVlanName} gehören.`;
@@ -934,7 +935,7 @@ const TEMPLATE_ROUTER_ON_A_STICK = defineMissionTemplate({
     'cisco.routing.inter_vlan.encapsulation_dot1q',
     'cisco.routing.inter_vlan.gateway',
   ],
-  unlockedBy: ['cisco-main-003'],
+  unlockedBy: ['cisco-main-004'],
   archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.COMPLETE, MISSION_ARCHETYPE.REPAIR],
   contexts: ['neue_abteilung_router', 'standorterweiterung'],
   allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
@@ -1015,7 +1016,7 @@ const TEMPLATE_ROUTER_FAULT = defineMissionTemplate({
     'cisco.routing.inter_vlan.gateway',
     'cisco.routing.inter_vlan.troubleshoot',
   ],
-  unlockedBy: ['cisco-main-003'],
+  unlockedBy: ['cisco-main-004'],
   archetypes: [MISSION_ARCHETYPE.DIAGNOSE, MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.INCIDENT],
   contexts: ['kein_zugriff', 'falsches_netz', 'langsam'],
   allowedChannels: [MISSION_CHANNEL.PHONE, MISSION_CHANNEL.EMAIL],

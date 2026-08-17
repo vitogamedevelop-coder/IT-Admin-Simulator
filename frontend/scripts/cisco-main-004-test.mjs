@@ -1,4 +1,7 @@
-// Phase 1J: Main Mission 003 – Router-on-a-Stick / Inter-VLAN Routing.
+// Phase 1J: Main Mission 004 – Router-on-a-Stick / Inter-VLAN Routing.
+// Renumbered from cisco-main-003 to cisco-main-004 in Phase 1J.3 so the new
+// HM3 (Block 1.5 SSH/Remote Administration) can occupy cisco-main-003,
+// matching the curriculum order (SSH before inter-VLAN routing).
 
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -21,7 +24,7 @@ global.window = { dispatchEvent: () => {}, addEventListener: () => {}, removeEve
 
 const { pathToFileURL } = await import('node:url');
 const {
-  MISSION_003_ID, startMainMission, evaluateMainMission, executeMissionCommand,
+  MISSION_004_ID, startMainMission, evaluateMainMission, executeMissionCommand,
 } = await import(pathToFileURL(join(srcDir, 'lib/missionV2.js')).href);
 
 function assert(condition, message) {
@@ -70,11 +73,11 @@ function buildSolution(state) {
   return cmds;
 }
 
-console.log('Mission 003 scenario and device');
+console.log('Mission 004 scenario and device');
 {
   storage.clear();
-  const state = startMainMission(MISSION_003_ID, 12345);
-  test('mission id is cisco-main-003', () => assert(state.missionId === MISSION_003_ID));
+  const state = startMainMission(MISSION_004_ID, 12345);
+  test('mission id is cisco-main-004', () => assert(state.missionId === MISSION_004_ID));
   const p = state.scenario.parameters;
   test('three VLANs generated', () => assert(p.vlans.length === 3));
   test('VLAN IDs unique', () => assert(new Set(p.vlans.map((v) => v.id)).size === 3));
@@ -84,10 +87,10 @@ console.log('Mission 003 scenario and device');
   test('access ports are connected', () => assert(state.device.runningConfig.interfaces[p.vlans[0].accessPorts[0]].operationalStatus === 'connected'));
 }
 
-console.log('\nMission 003 success path');
+console.log('\nMission 004 success path');
 {
   storage.clear();
-  const state = startMainMission(MISSION_003_ID, 12345);
+  const state = startMainMission(MISSION_004_ID, 12345);
   const solution = buildSolution(state);
   for (const cmd of solution) {
     const result = executeMissionCommand(state, cmd);
@@ -99,10 +102,10 @@ console.log('\nMission 003 success path');
   test('all six requirements are ok', () => assert(evaluation.checks.every((c) => c.ok), JSON.stringify(evaluation.checks)));
 }
 
-console.log('\nMission 003 failure cases');
+console.log('\nMission 004 failure cases');
 {
   storage.clear();
-  const state = startMainMission(MISSION_003_ID, 12345);
+  const state = startMainMission(MISSION_004_ID, 12345);
   const p = state.scenario.parameters;
   // Set everything except router physical up
   for (const cmd of [
@@ -130,7 +133,7 @@ console.log('\nMission 003 failure cases');
   test('router_physical_up check fails', () => assert(noPhys.checks.find((c) => c.id === 'router_physical_up').ok === false));
 
   storage.clear();
-  const state2 = startMainMission(MISSION_003_ID, 12346);
+  const state2 = startMainMission(MISSION_004_ID, 12346);
   const p2 = state2.scenario.parameters;
   // Correct everything but set wrong encapsulation VLAN on one subinterface
   const solution2 = buildSolution(state2);
