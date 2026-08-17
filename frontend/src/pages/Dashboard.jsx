@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Activity, ArrowRight, BookMarked, BookOpen, BriefcaseBusiness, Building2, Clock, Inbox, Radio, ShieldAlert, Armchair, Upload } from 'lucide-react';
 import { gameSummary, getReturnSummary } from '../lib/gameState';
 import { availableQuests, recommendedQuest } from '../lib/questData';
-import { sortedInbox } from '../lib/sideMissionEngine';
+import { ensureInbox, getVisibleInbox } from '../lib/sideMissionEngine';
 import { companyAsset } from '../lib/rpgAssets';
 import { companyStage } from '../lib/officeWorld';
 import { seedInitialNotifications, tickScheduler } from '../lib/notificationSystem';
@@ -12,10 +12,10 @@ import { questPath } from '../lib/questRouter';
 export default function Dashboard() {
   const navigate = useNavigate();
   const [returnSummary, setReturnSummary] = useState(() => getReturnSummary());
+  const [inbox, setInbox] = useState([]);
   const { state, career } = useMemo(() => gameSummary(), []);
   const recommended = recommendedQuest(state);
   const available = availableQuests(state);
-  const inbox = useMemo(() => sortedInbox(), []);
   const online = Object.values(state.infrastructure).filter((item) => item.unlocked && item.status === 'online').length;
   const unlocked = Object.values(state.infrastructure).filter((item) => item.unlocked).length;
   const stage = companyStage(state.completedQuests.length);
@@ -23,6 +23,8 @@ export default function Dashboard() {
   useEffect(() => {
     seedInitialNotifications();
     tickScheduler();
+    ensureInbox();
+    setInbox(getVisibleInbox().filter((item) => !item.resolved));
   }, []);
 
   return (

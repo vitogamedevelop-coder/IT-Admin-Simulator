@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Mail, Monitor, Phone, ShieldAlert, Wrench } from 'lucide-react';
 import { readGameState } from '../lib/gameState';
 import { availableQuests } from '../lib/questData';
-import { changeMissionAvailable, sortedInbox } from '../lib/sideMissionEngine';
+import { changeMissionAvailable, ensureInbox, getVisibleInbox } from '../lib/sideMissionEngine';
 import ContextHint from '../components/ContextHint';
 import { characterAsset } from '../lib/rpgAssets';
 import { questPath } from '../lib/questRouter';
@@ -15,8 +16,12 @@ const priorityColor = { P1: 'text-[#ff3355] border-[#ff3355]', P2: 'text-[#ffcc0
 export default function Inbox() {
   const navigate = useNavigate();
   useAppBack();
+  const [sideMissions, setSideMissions] = useState([]);
+  useEffect(() => {
+    ensureInbox();
+    setSideMissions(getVisibleInbox().filter((item) => !item.resolved));
+  }, []);
   const state = readGameState();
-  const sideMissions = sortedInbox();
   const mainQuests = availableQuests(state);
   return <div className="flex flex-col gap-4 py-2">
     <BackBar label="Arbeitsplatz" />

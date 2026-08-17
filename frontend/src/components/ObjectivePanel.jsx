@@ -78,8 +78,9 @@ function clampPosition(pos, rect) {
 
 export default function ObjectivePanel({ overrideObjective = null }) {
   const navigate = useNavigate();
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [objectives, setObjectives] = useState(() => getCurrentPlayerObjectives());
 
   const panelRef = useRef(null);
   const handleRef = useRef(null);
@@ -227,7 +228,9 @@ export default function ObjectivePanel({ overrideObjective = null }) {
     localStorage.removeItem(POSITION_KEY);
   }
 
-  const objectives = getCurrentPlayerObjectives();
+  useEffect(() => {
+    setObjectives(getCurrentPlayerObjectives());
+  }, [tick]);
   const top = getTopObjective(objectives);
   const learningLabel = overrideObjective?.title || getObjectiveLabel(top);
 

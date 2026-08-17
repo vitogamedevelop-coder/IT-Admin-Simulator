@@ -48,17 +48,25 @@ function personalizedIntro(person) {
 function pruneInbox(state, keepResolved = 3) {
   const resolved = (state.inbox || []).filter((item) => item.resolved && !item.archived)
     .sort((a, b) => (b.resolvedAt || 0) - (a.resolvedAt || 0));
+  let changed = false;
   for (const item of resolved.slice(keepResolved)) {
-    item.archived = true;
+    if (!item.archived) {
+      item.archived = true;
+      changed = true;
+    }
   }
+  return changed;
 }
 
 export function ensureInbox() {
   const state = readGameState();
-  pruneInbox(state, 3);
+  const pruned = pruneInbox(state, 3);
   const today = new Date().toISOString().slice(0, 10);
   const unresolved = (state.inbox || []).filter((item) => !item.resolved && !item.archived);
-  if (state.lastEventDate === today) return unresolved;
+  if (state.lastEventDate === today) {
+    if (pruned) writeGameState(state);
+    return unresolved;
+  }
   const specializationTopics = { 'Netzwerk': ['DNS', 'DHCP', 'Netzwerk'], 'Windows/AD': ['Berechtigungen', 'Active Directory'], 'Linux': ['Linux'], 'Security': ['IT-Sicherheit', 'Backup'], 'Automatisierung': ['PowerShell', 'Automatisierung'], 'Datenbanken': ['Datenbanken', 'SQL'] };
   const preferred = specializationTopics[state.specialization] || [];
   const objectives = objectivesUnlocked(state.completedQuests).sort((a, b) => (dueScore(b) + (preferred.includes(b.topic) ? 1.2 : 0)) - (dueScore(a) + (preferred.includes(a.topic) ? 1.2 : 0)));
@@ -123,6 +131,7 @@ export function resolveSideMission(id, correct) {
     const academyRef = academyTopicForSideMission(mission.topic);
     if (academyRef) applySideMission(academyRef.categoryId, academyRef.topicId);
   }
+  pruneInbox(state, 3);
   return writeGameState(state);
 }
 
@@ -132,11 +141,17 @@ export function inboxMission(id) {
 
 export function getVisibleInbox() {
   const state = readGameState();
-  pruneInbox(state, 3);
-  writeGameState(state);
   return (state.inbox || [])
     .filter((item) => !item.archived)
     .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export function performInboxRetention() {
+  const state = readGameState();
+  if (pruneInbox(state, 3)) {
+    return writeGameState(state);
+  }
+  return state;
 }
 
 export function sortedInbox() {
