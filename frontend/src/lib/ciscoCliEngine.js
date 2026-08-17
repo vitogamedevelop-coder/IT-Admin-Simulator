@@ -191,6 +191,16 @@ function parseInterfaceId(input) {
       return `${canonical}${slot}`;
     }
   }
+  // Single-letter abbreviations: g0/1, f0/1, t0/1, e0/0, s0/0/0, l0
+  if (lower.length >= 1) {
+    const first = lower.charAt(0);
+    for (const [long, { canonical }] of Object.entries(INTERFACE_TYPES)) {
+      if (first === long.charAt(0)) {
+        const slot = input.slice(1).trim();
+        return `${canonical}${slot}`;
+      }
+    }
+  }
   return null;
 }
 
@@ -1030,23 +1040,25 @@ function resolveNode(nodes, keyword) {
 function walkCommandTree(device, tokens, rootNodes) {
   let nodes = rootNodes;
   let node = null;
+  const path = [];
   let i = 0;
   for (i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     const resolved = resolveNode(nodes, token);
     if (resolved.error) {
-      return { node, tokens: tokens.slice(i), error: resolved.error, partial: token, errorTokenIndex: i };
+      return { node, tokens: tokens.slice(i), path, error: resolved.error, partial: token, errorTokenIndex: i };
     }
     node = resolved.result;
+    path.push(node);
     if (!node.children || node.children.length === 0) {
-      return { node, tokens: tokens.slice(i + 1), error: null };
+      return { node, tokens: tokens.slice(i + 1), path, error: null };
     }
     nodes = node.children;
   }
   if (node && node.execute) {
-    return { node, tokens: [], error: null, errorTokenIndex: tokens.length };
+    return { node, tokens: [], path, error: null, errorTokenIndex: tokens.length };
   }
-  return { node, tokens: [], error: CLI_ERROR.INCOMPLETE_COMMAND, errorTokenIndex: tokens.length };
+  return { node, tokens: [], path, error: CLI_ERROR.INCOMPLETE_COMMAND, errorTokenIndex: tokens.length };
 }
 
 export function buildPrompt(device) {
@@ -1098,6 +1110,7 @@ function executeDoCommand(device, tokens) {
     output: result.output,
     error: result.error,
     stateChanged: result.stateChanged,
+    resolvedCommand: result.success && result.resolvedCommand ? `do ${result.resolvedCommand}` : undefined,
   };
 }
 
@@ -1153,6 +1166,7 @@ export function executeCommand(device, input, options = {}) {
     return {
       success: false,
       command: trimmed,
+      resolvedCommand: trimmed,
       output: formatError(CLI_ERROR.INCOMPLETE_COMMAND, trimmed),
       prompt: buildPrompt(device),
       modeBefore,
@@ -1162,9 +1176,13 @@ export function executeCommand(device, input, options = {}) {
     };
   }
 
+  const pathKeywords = walk.path.map((n) => n.keyword);
+  const baseResolved = [...pathKeywords, ...walk.tokens].join(' ').toLowerCase();
+
   const result = node.execute(device, tokens, walk.tokens);
   const modeAfter = device.cli.mode;
   const stateChanged = result.stateChanged || result.modeChanged || false;
+  const resolvedCommand = result.resolvedCommand || baseResolved;
 
   if (stateChanged && node.skill) {
     applySkillMetadata(device, node.skill);
@@ -1176,6 +1194,7 @@ export function executeCommand(device, input, options = {}) {
     return {
       success: false,
       command: tokens.join(' '),
+      resolvedCommand,
       output: formatError(result.error, trimmed, modeBefore, -1),
       prompt: buildPrompt(device),
       modeBefore,
@@ -1188,7 +1207,8 @@ export function executeCommand(device, input, options = {}) {
 
   return {
     success: true,
-    command: tokens.join(' '),
+    command: trimmed,
+    resolvedCommand,
     output: result.output,
     prompt: buildPrompt(device),
     modeBefore,

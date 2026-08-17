@@ -697,7 +697,7 @@ export function executeCiscoSideMissionCommand(state, input) {
   state.lastCommandAt = Date.now();
 
   if (result.success) {
-    const cmd = result.command?.toLowerCase() || '';
+    const cmd = result.resolvedCommand?.toLowerCase() || result.command?.toLowerCase() || '';
     const isVerify = ['show running-config', 'show startup-config', 'show version'].includes(cmd)
       || cmd.startsWith('show ')
       || cmd.startsWith('do show ');

@@ -86,12 +86,34 @@ Bereits abgedeckt:
 - `copy running-config startup-config` / `write` und Verifikation
 
 ### BLOCK 1.5 – SSH / Remote Management
-Noch nicht implementiert. Einzuführen sobald Block 1 stabil ist:
-- Management-SVI auf L2-Switch, Default Gateway
-- `ip domain-name`, RSA-Keys, `crypto key generate rsa`
-- `ip ssh version 2`
-- VTY: `login local`, `transport input ssh`
-- Optional: Management-Zugriff per ACL einschränken (ACL nur als Management-Hardening, nicht als Voll-Ausführung)
+Als bewusste Erweiterung der Grundkonfiguration, NICHT als isoliertes Thema. Ziel: aus der lokalen Konsole wird sichere Fernadministration.
+
+#### Lehrgangslogik
+- RSA-Schlüssel mindestens 768 Bit für SSHv2 (Cisco/Packet-Tracer-konform); bevorzugt 1024 Bit.
+- `crypto key generate rsa` gefolgt von Modulus 1024 ist die bevorzugte Lehrgangslösung.
+- `ip ssh version 2` zwingend erforderlich. SSHv1 wird nicht gelehrt.
+
+#### Router
+- Grundkonfiguration unmittelbar davor; SSH baut darauf auf.
+- Kein künstliches Management-VLAN erfinden, wenn eine geroutete Interface-IP existiert.
+- Ablauf: `crypto key generate rsa`, `ip ssh version 2`, `line vty 0 15`, `login local`, `transport input ssh`.
+
+#### Layer-2-Switch
+- Management-SVI notwendig, weil das Gerät selbst keine geroutete IP hat.
+- `vlan <ID>`, `name <NAME>`, `interface vlan <ID>`, `ip address <IP> <MASK>`, `no shutdown`.
+- `ip default-gateway <GATEWAY>` für Fernzugriff über andere Netze.
+- VLAN-ID und Name szenarioabhängig, kein globales VLAN 99. Kontrollierter Pool: 10, 50, 77, 99, 100, 172, 200, 250. Namen: MGMT, MANAGEMENT, ADMIN, IT, NETZADMIN.
+- Trunk-Kontext: Management-VLAN auf Trunk erlauben, nur wenn Trunk bereits eingeführt. Sonst Topologie wählen, die keinen neuen Trunk-Befehl verlangt.
+
+#### Layer-3-Switch
+- Auch SVI möglich, aber sauber trennen zwischen reinem Management-SVI und echtem Inter-VLAN-Routing.
+- Block 1.5 behandelt nur Management-Ansicht; Routing gehört Block 3.
+
+#### Gameplay / Story
+- HM3 zunächst L2-Switch-Einstieg, weil der Lernzusammenhang am vollständigsten ist (lokal → SVI → IP → Gateway → SSH).
+- Nach HM3 dürfen Nebenmissionen Router/L3-Switch-Variationen nutzen.
+- Generator variiert Management-VLAN; Aufgabenstellung gibt das VLAN vor.
+- Sam-Fragen sollen Lerntransfer fordern: Router braucht kein Management-VLAN; L2-Switch ohne IP reicht SSH nicht; VLAN 99 ist keine automatische Lösung.
 
 ### BLOCK 2 – Layer 2 Switching
 Bereits abgedeckt / in Ausbau:

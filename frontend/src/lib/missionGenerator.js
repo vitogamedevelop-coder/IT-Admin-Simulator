@@ -738,7 +738,7 @@ export function executeProceduralMissionCommand(state, input) {
   if (result.isHelp) return { ...result, state };
 
   if (result.success) {
-    const cmd = result.command?.toLowerCase() || '';
+    const cmd = result.resolvedCommand?.toLowerCase() || result.command?.toLowerCase() || '';
     if (cmd.startsWith('show ') || cmd.startsWith('do show ')) {
       state.showCommandsUsed.push(cmd);
     }
