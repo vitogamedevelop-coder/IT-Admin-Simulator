@@ -170,14 +170,103 @@ function generateUsername(rng) {
   return { type: 'admin', name: pickFrom(rng, ADMIN_ACCOUNTS) };
 }
 
+function shuffleArray(rng, arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = rng(0, i);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// ============================================================================
+// 1. Basic Switch Configuration Hardening (Phase 1J.1)
+//
+// Instead of always requiring the same five commands, the template draws a
+// random subset of already-unlocked basic-configuration skills on each
+// generated mission.  The subset always ends with the save-config check.
+// ============================================================================
+
+const BASIC_CONFIG_TASKS = [
+  {
+    id: 'hostname',
+    skill: 'cisco.basic_configuration.hostname',
+    label: (params) => `Hostname: ${params.targetHostname}`,
+    brief: (params) => `Hostname auf ${params.targetHostname}`,
+    preconfigure: (device, params) => { device.hostname = params.targetHostname; },
+    evaluate: (device, params) => device.hostname === params.targetHostname,
+  },
+  {
+    id: 'enable_secret',
+    skill: 'cisco.basic_configuration.enable_secret',
+    label: () => 'Enable Secret gesetzt',
+    brief: () => 'Enable Secret setzen',
+    evaluate: (device) => !!device.runningConfig.enableSecret,
+  },
+  {
+    id: 'local_user',
+    skill: 'cisco.basic_configuration.local_user',
+    label: (params) => `Lokaler Benutzer ${params.username}`,
+    brief: (params) => `Lokaler Benutzer ${params.username}`,
+    preconfigure: (device, params) => { device.runningConfig.users[params.username] = { secret: params.userSecret }; },
+    evaluate: (device, params) => !!(device.runningConfig.users[params.username]?.secret || device.runningConfig.users[params.username]?.password),
+  },
+  {
+    id: 'disable_dns_lookup',
+    skill: 'cisco.basic_configuration.disable_dns_lookup',
+    label: () => 'DNS-Lookup deaktiviert',
+    brief: () => 'DNS-Lookup deaktivieren (no ip domain-lookup)',
+    preconfigure: (device) => { device.runningConfig.noIpDomainLookup = true; },
+    evaluate: (device) => !!device.runningConfig.noIpDomainLookup,
+  },
+  {
+    id: 'console_security',
+    skill: 'cisco.basic_configuration.console_security',
+    label: () => 'Konsolenzugang per Passwort gesichert',
+    brief: () => 'Konsolen-Line mit Passwort sichern',
+    preconfigure: (device, params) => { device.runningConfig.lines.console.password = params.consolePassword; },
+    evaluate: (device) => !!device.runningConfig.lines.console.password || !!device.runningConfig.lines.console.secret,
+  },
+  {
+    id: 'login',
+    skill: 'cisco.basic_configuration.login',
+    label: () => 'Line-Login auf Konsole aktiviert',
+    brief: () => 'Line-Login auf der Konsole aktivieren (login)',
+    preconfigure: (device) => { device.runningConfig.lines.console.login = true; },
+    evaluate: (device) => device.runningConfig.lines.console.login || device.runningConfig.lines.console.loginLocal,
+  },
+  {
+    id: 'login_local',
+    skill: 'cisco.basic_configuration.login_local',
+    label: () => 'Login local auf Konsole aktiviert',
+    brief: () => 'Login local auf der Konsole aktivieren',
+    preconfigure: (device) => { device.runningConfig.lines.console.loginLocal = true; device.runningConfig.lines.console.login = false; },
+    evaluate: (device) => device.runningConfig.lines.console.loginLocal,
+  },
+  {
+    id: 'exec_timeout',
+    skill: 'cisco.basic_configuration.exec_timeout',
+    label: (params) => `EXEC-Timeout ${params.execTimeoutMinutes}:${String(params.execTimeoutSeconds).padStart(2, '0')}`,
+    brief: (params) => `EXEC-Timeout auf ${params.execTimeoutMinutes}:${String(params.execTimeoutSeconds).padStart(2, '0')}`,
+    preconfigure: (device, params) => { device.runningConfig.lines.console.execTimeout = { minutes: params.execTimeoutMinutes, seconds: params.execTimeoutSeconds }; },
+    evaluate: (device, params) => device.runningConfig.lines.console.execTimeout.minutes === params.execTimeoutMinutes
+      && device.runningConfig.lines.console.execTimeout.seconds === params.execTimeoutSeconds,
+  },
+  {
+    id: 'service_password_encryption',
+    skill: 'cisco.basic_configuration.service_password_encryption',
+    label: () => 'service password-encryption aktiviert',
+    brief: () => 'service password-encryption aktivieren',
+    preconfigure: (device) => { device.runningConfig.servicePasswordEncryption = true; },
+    evaluate: (device) => !!device.runningConfig.servicePasswordEncryption,
+  },
+];
+
 export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
   id: 'cisco-basic-config-hardening',
   domain: 'cisco',
   requiredSkills: [
-    'cisco.basic_configuration.hostname',
-    'cisco.basic_configuration.enable_secret',
-    'cisco.basic_configuration.local_user',
-    'cisco.basic_configuration.disable_dns_lookup',
+    ...BASIC_CONFIG_TASKS.map((t) => t.skill),
     'cisco.basic_configuration.save_config',
   ],
   unlockedBy: ['cisco-main-001'],
@@ -214,6 +303,41 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       directive: 'Verwende "no ip domain-lookup".',
       solution: { answer: 'no ip domain-lookup', explanation: '"no ip domain-lookup" verhindert unnötige DNS-Versuche.' },
     }),
+    'cisco.basic_configuration.console_security': defineHintLadder({
+      subskillPath: 'cisco.basic_configuration.console_security',
+      nudge: 'Der physische Konsolenzugang muss abgesichert werden.',
+      focus: 'Wechsle in die Konsolen-Line und setze ein Passwort.',
+      directive: 'Verwende "line console 0" und "password PASSWORT".',
+      solution: { answer: 'line console 0\npassword <passwort>', explanation: 'Das Konsolenpasswort wird in der Line-Konfiguration gesetzt.' },
+    }),
+    'cisco.basic_configuration.login': defineHintLadder({
+      subskillPath: 'cisco.basic_configuration.login',
+      nudge: 'Ein Passwort allein prüft niemanden, solange es nicht abgefragt wird.',
+      focus: 'Aktiviere die Passwortprüfung auf der Konsolen-Line.',
+      directive: 'Verwende "login" in "line console 0".',
+      solution: { answer: 'line console 0\nlogin', explanation: '"login" aktiviert die Prüfung des Line-Passworts beim Zugang.' },
+    }),
+    'cisco.basic_configuration.login_local': defineHintLadder({
+      subskillPath: 'cisco.basic_configuration.login_local',
+      nudge: 'Lokale Benutzer müssen auch wirklich geprüft werden.',
+      focus: 'Verwende lokale Benutzer statt eines Line-Passworts.',
+      directive: 'Verwende "login local" in "line console 0".',
+      solution: { answer: 'line console 0\nlogin local', explanation: '"login local" prüft gegen die lokal angelegten Benutzer.' },
+    }),
+    'cisco.basic_configuration.exec_timeout': defineHintLadder({
+      subskillPath: 'cisco.basic_configuration.exec_timeout',
+      nudge: 'Inaktive Konsolensitzungen sollten automatisch beendet werden.',
+      focus: 'Setze einen EXEC-Timeout auf der Konsolen-Line.',
+      directive: 'Verwende "exec-timeout MINUTEN SEKUNDEN" in "line console 0".',
+      solution: { answer: 'line console 0\nexec-timeout 2 0', explanation: '"exec-timeout" beendet inaktive Sitzungen nach der angegebenen Zeit.' },
+    }),
+    'cisco.basic_configuration.service_password_encryption': defineHintLadder({
+      subskillPath: 'cisco.basic_configuration.service_password_encryption',
+      nudge: 'Klartextpasswörter in der Konfiguration sind ein Sicherheitsrisiko.',
+      focus: 'Verschleiere bestimmte Passwörter in der Konfiguration.',
+      directive: 'Aktiviere "service password-encryption" im Global Configuration Mode.',
+      solution: { answer: 'service password-encryption', explanation: '"service password-encryption" verschlüsselt Passwörter in der gespeicherten Konfiguration.' },
+    }),
     'cisco.basic_configuration.save_config': defineHintLadder({
       subskillPath: 'cisco.basic_configuration.save_config',
       nudge: 'Ohne Speichern geht die Konfiguration beim Neustart verloren.',
@@ -227,6 +351,16 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
     const { type: usernameType, name: username } = generateUsername(rng);
     const enableSecret = generateSecret(rng);
     const userSecret = generateSecret(rng);
+    const consolePassword = generateSecret(rng);
+    const execTimeoutMinutes = rng(1, 5);
+    const execTimeoutSeconds = rng(0, 1) === 0 ? rng(1, 59) : 0;
+
+    // Pick a random subset of available basic-config tasks; keep one slot for
+    // the mandatory save-config check.
+    const count = rng(3, Math.max(3, BASIC_CONFIG_TASKS.length - 1));
+    const shuffled = shuffleArray(rng, BASIC_CONFIG_TASKS);
+    const selectedTasks = shuffled.slice(0, count);
+
     return {
       initialHostname: archetype === MISSION_ARCHETYPE.AUDIT ? targetHostname : 'Switch',
       targetHostname,
@@ -234,6 +368,10 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       username,
       enableSecret,
       userSecret,
+      consolePassword,
+      execTimeoutMinutes,
+      execTimeoutSeconds,
+      selectedTaskIds: selectedTasks.map((t) => t.id),
       context,
     };
   },
@@ -244,32 +382,39 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       interfaces: ['GigabitEthernet0/1'],
     });
     if (archetype === MISSION_ARCHETYPE.AUDIT) {
-      // Audit: partially compliant. Hostname and DNS lookup are already
-      // correct, but the enable secret / local user / save are still
-      // missing - the player must find and close the remaining gaps.
-      device.runningConfig.noIpDomainLookup = true;
+      // Audit: preconfigure roughly half of the selected tasks so the audit
+      // feels like a real check: some items are already compliant, the rest
+      // must be found and closed.
+      const selected = BASIC_CONFIG_TASKS.filter((t) => params.selectedTaskIds.includes(t.id));
+      const preconfigureCount = Math.max(1, Math.floor(selected.length / 2));
+      const shuffled = [...selected].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < preconfigureCount; i += 1) {
+        const task = shuffled[i];
+        if (task.preconfigure) task.preconfigure(device, params);
+      }
     }
     return { device };
   },
   evaluate(device, params) {
-    const rc = device.runningConfig;
-    const usernameType = params.usernameType || 'personal';
-    const userLabel = usernameType === 'personal' ? 'Benutzer' : 'Konto';
-    const checks = [
-      { id: 'hostname', label: `Hostname: ${params.targetHostname}`, ok: device.hostname === params.targetHostname },
-      { id: 'enable_secret', label: 'Enable Secret gesetzt', ok: !!rc.enableSecret },
-      { id: 'local_user', label: `${userLabel}: ${params.username}`, ok: !!(rc.users[params.username]?.secret || rc.users[params.username]?.password) },
-      { id: 'no_dns_lookup', label: 'DNS-Lookup deaktiviert', ok: !!rc.noIpDomainLookup },
-      {
-        id: 'save_config',
-        label: 'Konfiguration gespeichert',
-        ok: device.startupConfig !== null
-          && device.startupConfig.hostname === params.targetHostname
-          && !!device.startupConfig.enableSecret
-          && !!(device.startupConfig.users[params.username]?.secret || device.startupConfig.users[params.username]?.password)
-          && !!device.startupConfig.noIpDomainLookup,
-      },
-    ];
+    const selectedTasks = BASIC_CONFIG_TASKS.filter((t) => params.selectedTaskIds.includes(t.id));
+    const checks = selectedTasks.map((task) => ({
+      id: task.id,
+      label: task.label(params),
+      skill: task.skill,
+      ok: task.evaluate(device, params),
+    }));
+
+    // The saved config must contain every currently selected task in its
+    // evaluated state; otherwise the player could save an incomplete setup.
+    const savedOk = device.startupConfig !== null
+      && selectedTasks.every((task) => task.evaluate({ ...device, runningConfig: device.startupConfig }, params));
+    checks.push({
+      id: 'save_config',
+      label: 'Konfiguration gespeichert',
+      skill: 'cisco.basic_configuration.save_config',
+      ok: savedOk,
+    });
+
     return { checks, allCorrect: checks.every((c) => c.ok) };
   },
   buildTitle(params, archetype) {
@@ -283,15 +428,17 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       security_audit: 'Die Security-Abteilung bittet um einen kurzen Konfigurations-Check.',
     }[context] || 'Ein weiterer Switch braucht die NEXUS-Grundabsicherung.';
 
-    const usernameType = params.usernameType || 'personal';
-    const userLabel = usernameType === 'personal' ? 'lokaler Benutzer' : 'administratives Konto';
-    if (archetype === MISSION_ARCHETYPE.AUDIT) {
-      return `${contextText}\n\nPrüfe ${params.targetHostname} gegen den NEXUS-Standard:\n- Hostname: ${params.targetHostname}\n- enable secret gesetzt\n- ${userLabel}: ${params.username}\n- DNS-Lookup deaktiviert\n- Konfiguration gespeichert\n\nSchließe alle noch offenen Lücken.`;
-    }
-    return `${contextText}\n\nAuftrag für ${params.targetHostname}:\n- Hostname: ${params.targetHostname}\n- enable secret setzen\n- ${userLabel}: ${params.username}\n- DNS-Lookup deaktivieren\n- Konfiguration speichern`;
+    const selectedTasks = BASIC_CONFIG_TASKS.filter((t) => params.selectedTaskIds.includes(t.id));
+    const taskList = selectedTasks.map((t) => `- ${t.brief(params)}`).join('\n');
+    const auditPrefix = archetype === MISSION_ARCHETYPE.AUDIT
+      ? 'Einige Punkte sind bereits korrekt, andere müssen noch gefunden und geschlossen werden:\n\n'
+      : '';
+    return `${contextText}\n\nAuftrag für ${params.targetHostname}:\n${auditPrefix}${taskList}\n- Konfiguration speichern`;
   },
   antiRepetitionMetadata(params, archetype, context) {
-    return { skillGroup: 'basic_configuration', archetype, context, hostname: params.targetHostname };
+    return {
+      skillGroup: 'basic_configuration', archetype, context, hostname: params.targetHostname, selectedTaskIds: params.selectedTaskIds,
+    };
   },
 });
 

@@ -94,6 +94,7 @@ export function ensureInbox() {
       variant,
       countsTowardStoryGate: true,
       createdAt: Date.now() + index,
+      deliveredAt: Date.now() + index,
       resolved: false,
       archived: false,
     });
@@ -139,11 +140,15 @@ export function inboxMission(id) {
   return readGameState().inbox.find((item) => item.id === id);
 }
 
+function inboxDeliveredAt(item) {
+  return item.deliveredAt || item.createdAt || 0;
+}
+
 export function getVisibleInbox() {
   const state = readGameState();
-  return (state.inbox || [])
+  return [...(state.inbox || [])]
     .filter((item) => !item.archived)
-    .sort((a, b) => b.createdAt - a.createdAt);
+    .sort((a, b) => inboxDeliveredAt(b) - inboxDeliveredAt(a));
 }
 
 export function performInboxRetention() {

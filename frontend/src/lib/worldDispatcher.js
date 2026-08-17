@@ -262,9 +262,11 @@ function notificationExists(id) {
 function dispatchEmail(event) {
   const { data, linkedMissionId } = event;
   if (emailExists(data.id)) return false;
+  const now = Date.now();
   const email = {
     ...data,
-    date: Date.now(),
+    date: now,
+    deliveredAt: now,
     read: false,
     attachments: [],
     linkedMissionId,

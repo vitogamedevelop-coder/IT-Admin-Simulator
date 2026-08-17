@@ -221,7 +221,7 @@ export function completeCiscoSideMission(missionId, result) {
   if (!state.completedCiscoSideMissions) state.completedCiscoSideMissions = [];
   if (!state.completedCiscoSideMissions.includes(missionId)) state.completedCiscoSideMissions.push(missionId);
   if (!state.sideMissionHistory) state.sideMissionHistory = {};
-  state.sideMissionHistory[missionId] = { completedAt: Date.now(), countsTowardStoryGate: true };
+  state.sideMissionHistory[missionId] = { completedAt: Date.now(), countsTowardStoryGate: true, source: 'authored' };
   state.careerXp += result.xp || 20;
   Object.entries(result.reputation || {}).forEach(([key, amount]) => {
     state.reputation[key] = Math.max(0, Math.min(100, (state.reputation[key] || 50) + amount));

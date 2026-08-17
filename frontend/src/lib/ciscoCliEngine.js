@@ -410,6 +410,35 @@ function buildSwitchportNode() {
   });
 }
 
+// Reusable `interface` command that can be entered from GLOBAL_CONFIG,
+// INTERFACE_CONFIG, INTERFACE_RANGE_CONFIG and (for VLAN → interface transitions)
+// VLAN_CONFIG. It switches to a single interface or an interface range without
+// requiring an explicit `exit` first.
+function buildInterfaceSelectionCommand() {
+  return cmd('interface', (device, tokens) => {
+    if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+    if (tokens[1].toLowerCase() === 'range') {
+      if (tokens.length < 3) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+      const range = resolveInterfaceRange(device, tokens.slice(2));
+      if (range.error) return { output: '', error: range.error };
+      device.cli.mode = CLI_MODE.INTERFACE_RANGE_CONFIG;
+      device.cli.currentInterfaceRange = range.ids;
+      device.cli.currentInterface = null;
+      device.cli.currentVlanId = null;
+      device.cli.currentLine = null;
+      return { output: '', modeChanged: true };
+    }
+    const target = ensureInterface(device, tokens[1]);
+    if (!target) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+    device.cli.mode = CLI_MODE.INTERFACE_CONFIG;
+    device.cli.currentInterface = target.id;
+    device.cli.currentInterfaceRange = null;
+    device.cli.currentVlanId = null;
+    device.cli.currentLine = null;
+    return { output: '', modeChanged: true };
+  }, 'Select an interface to configure', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.CONFIGURE }, () => [...Object.values(INTERFACE_TYPES).map((t) => `${t.canonical}0/0`), 'range']);
+}
+
 export const BASE_COMMAND_TREE = {
   [CLI_MODE.USER_EXEC]: [
     cmd('enable', (device) => {
@@ -600,23 +629,7 @@ export const BASE_COMMAND_TREE = {
         }),
       ],
     }),
-    cmd('interface', (device, tokens) => {
-      if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
-      if (tokens[1].toLowerCase() === 'range') {
-        if (tokens.length < 3) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
-        const range = resolveInterfaceRange(device, tokens.slice(2));
-        if (range.error) return { output: '', error: range.error };
-        device.cli.mode = CLI_MODE.INTERFACE_RANGE_CONFIG;
-        device.cli.currentInterfaceRange = range.ids;
-        device.cli.currentInterface = null;
-        return { output: '', modeChanged: true };
-      }
-      const target = ensureInterface(device, tokens[1]);
-      if (!target) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
-      device.cli.mode = CLI_MODE.INTERFACE_CONFIG;
-      device.cli.currentInterface = target.id;
-      return { output: '', modeChanged: true };
-    }, 'Select an interface to configure', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.CONFIGURE }, () => [...Object.values(INTERFACE_TYPES).map((t) => `${t.canonical}0/0`), 'range']),
+    buildInterfaceSelectionCommand(),
     cmd('vlan', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       const id = parseInt(tokens[1], 10);
@@ -703,6 +716,7 @@ export const BASE_COMMAND_TREE = {
       return { output: '', stateChanged: true };
     }, 'Interface specific description', null, () => ['<text>']),
     buildSwitchportNode(),
+    buildInterfaceSelectionCommand(),
     node('encapsulation', {
       help: 'Set encapsulation type for a subinterface',
       children: [
@@ -757,6 +771,7 @@ export const BASE_COMMAND_TREE = {
       return { output: '', stateChanged: true };
     }, 'Interface specific description', null, () => ['<text>']),
     buildSwitchportNode(),
+    buildInterfaceSelectionCommand(),
     cmd('exit', (device) => {
       device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
       device.cli.currentInterfaceRange = null;
@@ -781,6 +796,7 @@ export const BASE_COMMAND_TREE = {
       device.cli.currentVlanId = id;
       return { output: '', modeChanged: true, stateChanged: true };
     }, 'Configure VLAN parameters from VLAN config mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'vlan_configuration', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<1-4094>']),
+    buildInterfaceSelectionCommand(),
     cmd('name', (device, tokens) => {
       if (tokens.length < 2) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
       const vlan = device.runningConfig.vlans[device.cli.currentVlanId];

@@ -43,12 +43,20 @@ export function archiveEmail(id) {
   return emails;
 }
 
+export function emailDeliveredAt(email) {
+  return email.deliveredAt || email.createdAt || email.date || 0;
+}
+
+export function sortEmailsByDelivery(emails) {
+  return [...emails].sort((a, b) => emailDeliveredAt(b) - emailDeliveredAt(a));
+}
+
 export function archiveOldCompletedEmails(isCompletedFn, keep = 3) {
   const emails = readEmails();
   const completed = emails
     .map((e, i) => ({ email: e, index: i }))
     .filter(({ email }) => isCompletedFn(email) && !email.archived)
-    .sort((a, b) => (b.email.date || 0) - (a.email.date || 0));
+    .sort((a, b) => emailDeliveredAt(b.email) - emailDeliveredAt(a.email));
   const toArchive = new Set(completed.slice(keep).map(({ email }) => email.id));
   if (toArchive.size === 0) return emails;
   const next = emails.map((e) => (toArchive.has(e.id) ? { ...e, archived: true } : e));

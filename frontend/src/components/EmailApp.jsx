@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle, Paperclip, Clock } from 'lucide-react';
-import { readEmails, markEmailRead, archiveOldCompletedEmails } from '../lib/emails';
+import {
+  readEmails, markEmailRead, archiveOldCompletedEmails, sortEmailsByDelivery,
+} from '../lib/emails';
 import { questPath } from '../lib/questRouter';
 import { registerMission, updateMissionStatus, getMissionEntry, MissionStatus } from '../lib/missionLog';
 import { readGameState } from '../lib/gameState';
@@ -26,7 +28,7 @@ export default function EmailApp({ onClose }) {
   // in the mission / game-state stores; archived mails are only UI state.
   useEffect(() => {
     archiveOldCompletedEmails(emailCompleted, 3);
-    setEmails(readEmails().sort((a, b) => (b.date || 0) - (a.date || 0)));
+    setEmails(sortEmailsByDelivery(readEmails()));
   }, []);
 
   const visibleEmails = useMemo(

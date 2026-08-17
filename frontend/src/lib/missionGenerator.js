@@ -13,7 +13,7 @@ import {
   getSubskill, recordSkillEvent, readSkillEvents, listAllSubskills,
   SKILL_DIMENSION, SKILL_SOURCE, COMPETENCY_STATE,
 } from './skillTree.js';
-import { readGameState, hasMissionDelivery, recordMissionDelivery } from './gameState.js';
+import { readGameState, writeGameState, hasMissionDelivery, recordMissionDelivery } from './gameState.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
 import { readEmails, writeEmails } from './emails.js';
 import {
@@ -579,6 +579,7 @@ export function deliverMissionInstance(instance) {
   const persona = CHANNEL_PERSONA[instance.channel] || CHANNEL_PERSONA[MISSION_CHANNEL.EMAIL];
 
   if (instance.channel === MISSION_CHANNEL.EMAIL) {
+    const now = Date.now();
     const email = {
       id: `procedural-mail-${instance.instanceId}`,
       from: { personId: persona.personId, name: persona.name, role: persona.role },
@@ -586,7 +587,8 @@ export function deliverMissionInstance(instance) {
       subject: instance.title,
       body: instance.briefing,
       priority: 'normal',
-      date: Date.now(),
+      date: now,
+      deliveredAt: now,
       read: false,
       attachments: [],
       linkedMissionId,
@@ -784,6 +786,22 @@ export function evaluateProceduralMission(state) {
       instanceRef.status = 'completed';
       saveInstance(instanceRef);
     }
+
+    // Count procedural side missions toward the main-mission story gate just
+    // like authored side missions. De-duplicate by instanceId.
+    const gameState = readGameState();
+    if (!gameState.sideMissionHistory) gameState.sideMissionHistory = {};
+    const missionId = proceduralMissionId(state.instanceId);
+    if (!gameState.sideMissionHistory[missionId]) {
+      gameState.sideMissionHistory[missionId] = {
+        completedAt: Date.now(),
+        countsTowardStoryGate: true,
+        source: 'procedural',
+      };
+      gameState.completedSideMissions = [...new Set([...(gameState.completedSideMissions || []), missionId])];
+      writeGameState(gameState);
+    }
+
     notifyMissionCompleted();
   }
 

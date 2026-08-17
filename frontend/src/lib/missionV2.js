@@ -265,7 +265,7 @@ export function generateMission002Scenario(seed = Date.now()) {
       unusedPorts: UNUSED_PORTS_002,
       uplinkPort: UPLINK_PORT_002,
     },
-    briefing: `Moin,\n\nder Bürobereich wird gerade neu gepatcht.\n\nPersonal und Buchhaltung hängen künftig am selben Access-Switch, sollen aber logisch getrennt bleiben.\n\n${TARGET_HOSTNAME_002} ist bereits grundkonfiguriert.\n\nRichte bitte die beiden Bereiche ein und bereite den Uplink vor.\n\nVorgaben:\n\nPersonal:\nVLAN ${PERSONAL_VLAN_ID}\n\nBuchhaltung:\nVLAN ${BUCHHALTUNG_VLAN_ID}\n\nUnser Parking-VLAN für ungenutzte Anschlüsse:\nVLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}\n\nPrüf vorher kurz, welche Ports auf ${TARGET_HOSTNAME_002} vorhanden und bereits belegt sind. Offene Anschlüsse sollen nicht aktiv bleiben.\n\n– Sam`,
+    briefing: `Moin,\n\nder Bürobereich wird gerade neu gepatcht.\n\nPersonal und Buchhaltung hängen künftig am selben Access-Switch, sollen aber logisch getrennt bleiben.\n\n${TARGET_HOSTNAME_002} ist bereits grundkonfiguriert.\n\nPortplan für ${TARGET_HOSTNAME_002}:\n\n- Fa0/1 - Fa0/4: Personal\n- Fa0/5 - Fa0/8: Buchhaltung\n- Fa0/9 - Fa0/24: ungenutzt / Parking-VLAN\n- Gi0/1: Uplink zum nächsten Netzwerkgerät\n- Gi0/2: reserviert / frei\n\nVorgaben:\n\nPersonal:\nVLAN ${PERSONAL_VLAN_ID} / ${PERSONAL_VLAN_NAME}\n\nBuchhaltung:\nVLAN ${BUCHHALTUNG_VLAN_ID} / ${BUCHHALTUNG_VLAN_NAME}\n\nUnser Parking-VLAN für ungenutzte Anschlüsse:\nVLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}\n\nOffene Anschlüsse sollen nicht aktiv bleiben. Bereite den Uplink so vor, dass mehrere VLANs übertragen werden können.\n\nPrüfe die Konfiguration vor dem Speichern kurz und speichere sie dann dauerhaft.\n\n– Sam`,
   };
 }
 
@@ -314,7 +314,8 @@ export const MISSION_002_REQUIREMENTS = [
   { id: 'access_ports_configured', label: 'Arbeitsplatzports als Access Ports im richtigen VLAN', skill: 'cisco.layer2.access_ports' },
   { id: 'unused_ports_parked', label: 'Ungenutzte Ports im Parking-VLAN und deaktiviert', skill: 'cisco.layer2.shutdown' },
   { id: 'uplink_trunk', label: 'Uplink als Trunk vorbereitet', skill: 'cisco.layer2.trunking' },
-  { id: 'verified_and_saved', label: 'Konfiguration geprüft und dauerhaft gespeichert', skill: 'cisco.basic_configuration.save_config' },
+  { id: 'verified', label: 'Konfiguration geprüft', skill: 'cisco.basic_configuration.verify_running_config' },
+  { id: 'saved', label: 'Konfiguration dauerhaft gespeichert', skill: 'cisco.basic_configuration.save_config' },
 ];
 
 const HINT_LADDERS_002 = {
@@ -368,14 +369,24 @@ const HINT_LADDERS_002 = {
       explanation: 'Ein Trunk-Port transportiert mehrere VLANs gleichzeitig und wird für Switch-zu-Switch- bzw. Switch-zu-Infrastruktur-Verbindungen verwendet.',
     },
   }),
-  verified_and_saved: defineHintLadder({
-    subskillPath: 'cisco.basic_configuration.save_config',
-    nudge: 'Ohne Prüfen und Speichern ist die Arbeit nicht abgeschlossen.',
-    focus: 'Kontrolliere VLANs, Ports und den Uplink, bevor du die Konfiguration sicherst.',
-    directive: '"show vlan brief" oder "show interfaces trunk" zur Kontrolle, danach "copy running-config startup-config" (oder "write") zum Speichern.',
+  verified: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.verify_running_config',
+    nudge: 'Bevor du speicherst, solltest du prüfen, ob die Konfiguration deinen Vorgaben entspricht.',
+    focus: 'Zeige VLANs, Interfaces und den Trunk an, um den Zustand zu verifizieren.',
+    directive: 'Verwende "show vlan brief", "show interfaces trunk", "show interfaces status" oder "show running-config".',
     solution: {
-      answer: 'show vlan brief\ncopy running-config startup-config',
-      explanation: '"show vlan brief"/"show interfaces trunk" zeigen den aktuellen Zustand. "copy running-config startup-config" (oder "write") sichert ihn dauerhaft.',
+      answer: 'show vlan brief',
+      explanation: '"show vlan brief" zeigt alle VLANs und die ihnen zugeordneten Access-Ports.',
+    },
+  }),
+  saved: defineHintLadder({
+    subskillPath: 'cisco.basic_configuration.save_config',
+    nudge: 'Ohne Speichern geht die Konfiguration beim nächsten Neustart verloren.',
+    focus: 'Sichere die Running-Config in der Startup-Config.',
+    directive: 'Verwende "copy running-config startup-config" oder "write" (auch mit "do" aus Konfigurationsmodi).',
+    solution: {
+      answer: 'copy running-config startup-config',
+      explanation: '"copy running-config startup-config" (oder "write") kopiert die aktuelle Konfiguration in die Startup-Config.',
     },
   }),
 };
@@ -447,7 +458,8 @@ function _getMission002Progress(device, scenario, state = null) {
     access_ports_configured: accessPortsConfigured,
     unused_ports_parked: unusedPortsParked,
     uplink_trunk: uplinkTrunk,
-    verified_and_saved: verified && saved,
+    verified,
+    saved,
   };
 
   const completed = MISSION_002_REQUIREMENTS.filter((r) => checks[r.id]).length;
@@ -465,8 +477,16 @@ function _evaluateMission002State(device, scenario, state = null) {
   const progress = _getMission002Progress(device, scenario, state);
   const misconceptions = [];
 
-  if (!progress.checks.find((c) => c.id === 'verified_and_saved').ok && progress.completed > 0) {
-    misconceptions.push('forgot_save_config');
+  if (progress.completed > 0) {
+    const verified = progress.checks.find((c) => c.id === 'verified')?.ok;
+    const saved = progress.checks.find((c) => c.id === 'saved')?.ok;
+    if (!verified && !saved) {
+      misconceptions.push('forgot_verify_and_save');
+    } else if (!verified) {
+      misconceptions.push('forgot_verify');
+    } else if (!saved) {
+      misconceptions.push('forgot_save');
+    }
   }
 
   return {

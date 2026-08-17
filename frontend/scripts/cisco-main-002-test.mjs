@@ -151,7 +151,7 @@ console.log('\nMission 002 success path (full solution)');
   const evaluation = evaluateMainMission(state);
   test('mission evaluates allCorrect', () => assert(evaluation.allCorrect === true, `checks: ${JSON.stringify(evaluation.checks)}`));
   test('mission state completed', () => assert(state.completed === true));
-  test('all six requirements are ok', () => assert(evaluation.checks.every((c) => c.ok), JSON.stringify(evaluation.checks)));
+  test('all seven requirements are ok', () => assert(evaluation.checks.every((c) => c.ok), JSON.stringify(evaluation.checks)));
 }
 
 console.log('\nMission 002 success path (single-interface variant, no ranges)');
@@ -210,10 +210,11 @@ console.log('\nMission 002 failure cases');
 
   storage.clear();
   const state3 = startMainMission(MISSION_002_ID, 12348);
-  runCommands(state3.device, FULL_SOLUTION.slice(0, FULL_SOLUTION.length - 1)); // everything except the final save
+  runMissionCommands(state3, FULL_SOLUTION.slice(0, FULL_SOLUTION.length - 1)); // everything except the final save
   const notSaved = evaluateMainMission(state3);
   test('not saved fails', () => assert(notSaved.allCorrect === false));
-  test('verified_and_saved check fails when not saved', () => assert(notSaved.checks.find((c) => c.id === 'verified_and_saved').ok === false));
+  test('verified check passes when show commands were used', () => assert(notSaved.checks.find((c) => c.id === 'verified').ok === true));
+  test('saved check fails when not saved', () => assert(notSaved.checks.find((c) => c.id === 'saved').ok === false));
 
   storage.clear();
   const state4 = startMainMission(MISSION_002_ID, 12349);
