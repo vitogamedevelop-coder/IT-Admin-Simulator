@@ -29,9 +29,26 @@ import { sshKnowledgeItems } from './items/ssh.js';
 export { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from './types.js';
 export { createRng } from './random.js';
 export { validateQuestionInstance, validateQuestionInstances, validateKnowledgeRegistry, validateKnowledgeItem } from './validators.js';
-export { generateQuestion, generateRandomQuestion, listApplicableTemplates, TEMPLATES } from './questionGenerator.js';
+export { generateQuestion, generateRandomQuestion, generateBalancedQuestion, listApplicableTemplates, TEMPLATES } from './questionGenerator.js';
 export { checkAmbiguity, isAmbiguous, KNOWN_AMBIGUITIES } from './ambiguityChecker.js';
 export { generateCalculationData, getSupportedCalculationFamilies } from './calculationGenerators.js';
+export {
+  createSemanticHistory,
+  pushHistoryRecord,
+  clearSessionHistory,
+  clearLongTermHistory,
+  readLongTermHistory,
+  writeLongTermHistory,
+  recordAsk,
+  getRecent,
+  getLongTermRecent,
+} from './semanticHistory.js';
+export {
+  selectCandidate,
+  createBalancerState,
+  pickWeakestTopicKeys,
+  DEFAULT_WEIGHTS,
+} from './semanticBalancer.js';
 
 const PILOT_ITEMS = [
   ...osiKnowledgeItems,

@@ -12,6 +12,7 @@
 import { createRng } from './random.js';
 import { getKnowledgeItem, getAllKnowledgeItems } from './index.js';
 import { TEMPLATES, findTemplatesForItem } from './templates.js';
+import { selectCandidate, createBalancerState } from './semanticBalancer.js';
 
 export class QuestionGenerationError extends Error {
   constructor(message, knowledgeItemId, templateId) {
@@ -96,6 +97,51 @@ export function generateRandomQuestion(options = {}) {
   const item = candidates[Math.floor(rng.next() * candidates.length)];
   const itemDifficulty = difficulty || item.difficulty;
   return generateQuestion(item.id, null, { seed, contextType, archetype, difficulty: itemDifficulty });
+}
+
+/**
+ * Generate a question using the semantic balancer to pick the next
+ * Knowledge Item. The balancer decides WHAT to ask; the Question Generator
+ * decides HOW the concrete instance looks.
+ *
+ * @param {object} state – balancer state (history, progressByTopic, lastResult, difficultyProfile).
+ * @param {object} options
+ * @param {string} options.seed – deterministic selection seed.
+ * @param {string} options.contextType – 'direct_question' | 'coworker_question'.
+ * @param {string|null} options.archetype – restrict to a specific question archetype.
+ * @param {string|null} options.difficulty – override item difficulty for parametric generation.
+ * @param {Array|null} options.candidates – optional candidate list; defaults to unlocked knowledge items.
+ * @param {object} options.balancerWeights – optional weight overrides.
+ * @returns {object} Question Instance
+ */
+export function generateBalancedQuestion(state, options = {}) {
+  const {
+    seed = '0',
+    contextType = 'direct_question',
+    archetype = null,
+    difficulty = null,
+    candidates = null,
+    balancerWeights = null,
+  } = options;
+
+  let candidateList = candidates || getAllKnowledgeItems();
+  // Always ensure candidates actually have applicable templates.
+  candidateList = candidateList.filter((item) => findTemplatesForItem(item, archetype).length > 0);
+  if (candidateList.length === 0) {
+    throw new QuestionGenerationError('No candidate Knowledge Items for balanced selection');
+  }
+
+  const balancerState = createBalancerState(state);
+  const selected = selectCandidate(candidateList, balancerState, {
+    seed,
+    weights: balancerWeights,
+  });
+  if (!selected) {
+    throw new QuestionGenerationError('Semantic balancer returned no candidate');
+  }
+
+  const itemDifficulty = difficulty || selected.difficulty;
+  return generateQuestion(selected.id, null, { seed, contextType, archetype, difficulty: itemDifficulty });
 }
 
 /**
