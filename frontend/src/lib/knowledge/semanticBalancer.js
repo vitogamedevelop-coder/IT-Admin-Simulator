@@ -48,6 +48,7 @@ export const DEFAULT_WEIGHTS = {
   correctAnswerClusterCooldown: 0.7,
   wrongAnswerItemRetryBoost: 20.0,
   wrongAnswerClusterRetryBoost: 1.3,
+  roleMatchMultiplier: 1.15,
 };
 
 function defaultProgress() {
@@ -78,6 +79,7 @@ function semanticSignature(candidate) {
     templateId: candidate.templateId || null,
     calculationFamily: data.calculationFamily || null,
     calculationTarget: data.target || null,
+    roleHints: candidate.roleHints || data.roleHints || null,
     prefixBucket: null, // populated after question generation if needed
     // For later question-instance level balancing we also keep raw params key:
     paramKey: data.calculationFamily || data.target || null,
@@ -155,6 +157,13 @@ function computeWeight(candidate, state, cfg) {
 
   const bucketCount = countRecent(session, (r) => r.prefixBucket, sig.prefixBucket, cfg.sessionLookback);
   weight *= Math.pow(cfg.prefixBucketRepeatPenalty, bucketCount);
+
+  // Role preference modifier.
+  const currentRole = state.currentRole || candidate.rolePreference;
+  const roleHints = sig.roleHints;
+  if (currentRole && Array.isArray(roleHints) && roleHints.includes(currentRole)) {
+    weight *= cfg.roleMatchMultiplier;
+  }
 
   // Right/wrong handling based on last result.
   const lastResult = state.lastResult || null;

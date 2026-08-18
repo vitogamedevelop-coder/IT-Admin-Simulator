@@ -6,6 +6,16 @@ import { readAcademyMode, LEARNING_MODES } from './academyMode.js';
 import { OSI_LAYERS } from './academyLessons/osi.js';
 import { SKILL_DIMENSION, SKILL_SOURCE, recordSkillEvent } from './skillTree.js';
 import { recordConversationResult, resetConversationMastery } from './conversationMastery.js';
+import {
+  getAllKnowledgeItems,
+  generateQuestion,
+  createSemanticHistory,
+  pushHistoryRecord,
+  readLongTermHistory,
+  writeLongTermHistory,
+  selectCandidate,
+  createBalancerState,
+} from './knowledge/index.js';
 
 // =============================================================================
 // NEXUS Mitarbeitergespräche – adaptive Wiederholung im Flur (Phase 1I / 1I.2).
@@ -31,6 +41,72 @@ const INCORRECT_COOLDOWN_MS = 10 * 1000;
 // Prevent the same concept (e.g. "osi.layer_order") from appearing back-to-back
 // across sessions, without hard-locking the pool.
 const CONCEPT_COOLDOWN_MS = 2 * 60 * 1000;
+
+// =============================================================================
+// Knowledge Layer pilot integration (Phase 5)
+// =============================================================================
+
+const PILOT_KNOWLEDGE_TOPICS = new Set([
+  topicKey('fundamentals', 'osi-model'),
+  topicKey('fundamentals', 'binary-system'),
+  topicKey('fundamentals', 'ipv4'),
+  topicKey('fundamentals', 'subnet-masks'),
+  topicKey('fundamentals', 'subnetting'),
+  topicKey('fundamentals', 'switching'),
+  topicKey('fundamentals', 'vlan-basics'),
+  topicKey('cisco-packet-tracer', 'ssh'),
+]);
+
+const EXCLUDED_KNOWLEDGE_ITEMS = new Set([
+  'osi.toTcpIp',       // intentionally has no template yet (ambiguity)
+  'ssh.configProcedure', // rigid 10-step ordering – disabled until dependency graph
+]);
+
+function isKnowledgePilotTopic(topicKeyName) {
+  return PILOT_KNOWLEDGE_TOPICS.has(topicKeyName);
+}
+
+function knowledgeItemsForTopic(topicKeyName) {
+  return getAllKnowledgeItems().filter((item) => {
+    if (item.topicKey !== topicKeyName) return false;
+    if (EXCLUDED_KNOWLEDGE_ITEMS.has(item.id)) return false;
+    return true;
+  });
+}
+
+function mapEmployeeRoleToHint(employee) {
+  if (!employee || !employee.role) return null;
+  const role = employee.role.toLowerCase();
+  if (role.includes('netzwerk') || role.includes('technik') || role.includes('admin')) return 'technical';
+  if (role.includes('helpdesk') || role.includes('support') || role.includes('service')) return 'support';
+  if (role.includes('sicherheit') || role.includes('security')) return 'security';
+  if (role.includes('leitung') || role.includes('management') || role.includes('chef')) return 'management';
+  return null;
+}
+
+function buildKnowledgeCandidates(topicKeyName) {
+  return knowledgeItemsForTopic(topicKeyName).map((item) => ({
+    kind: 'knowledge',
+    id: item.id,
+    topicKey: topicKeyName,
+    conceptCluster: item.conceptCluster,
+    questionArchetype: item.type,
+    difficulty: item.difficulty,
+    roleHints: item.roleHints || null,
+    item,
+  }));
+}
+
+function buildProgressByTopic(topicsByKey) {
+  const progress = {};
+  for (const topic of Object.values(topicsByKey || {})) {
+    progress[topic.key] = {
+      overall: Number.isFinite(topic.overall) ? topic.overall : 0,
+      mastered: !!topic.mastered,
+    };
+  }
+  return progress;
+}
 
 function clampDifficulty(d) {
   return DIFFICULTY_ORDER[Math.max(0, Math.min(DIFFICULTY_ORDER.length - 1, DIFFICULTY_ORDER.indexOf(d)))] || 'medium';
@@ -109,11 +185,28 @@ function availableTopics() {
     .filter((t) => t.unlocked);
 }
 
-function pickWeakestTopic(topics) {
+function pickWeakestTopic(topics, semanticHistory, employee) {
+  const progressByTopic = buildProgressByTopic(Object.fromEntries(topics.map((t) => [t.key, t])));
+  const candidates = topics.map((t) => ({
+    id: t.key,
+    topicKey: t.key,
+    conceptCluster: t.key,
+    questionArchetype: 'topic',
+    difficulty: 'medium',
+    roleHints: null,
+  }));
+  const state = createBalancerState({
+    history: semanticHistory || createSemanticHistory(),
+    progressByTopic,
+    lastResult: null,
+    difficultyProfile: 'medium',
+    currentRole: mapEmployeeRoleToHint(employee),
+  });
+  const selected = selectCandidate(candidates, state, { seed: `topic-${Date.now()}` });
+  if (selected) return topics.find((t) => t.key === selected.topicKey) || topics[0];
+  // Fallback to old deterministic weakest-topic behaviour if balancer returns nothing.
   const nonMastered = topics.filter((t) => !t.mastered).sort((a, b) => a.overall - b.overall);
   const pool = nonMastered.length ? nonMastered : topics.sort((a, b) => a.overall - b.overall);
-  // Randomize among the weakest candidates so restarts do not always pick the
-  // exact same topic first.
   const top = pool.slice(0, Math.min(3, pool.length));
   return top[Math.floor(Math.random() * top.length)];
 }
@@ -279,7 +372,56 @@ function historyKey(topicKey, archetypeId) {
   return `${topicKey}/${archetypeId}`;
 }
 
-function pickQuestionForTopic(key, topicState, session, history) {
+function generateSeed(conversation, questionIndex) {
+  return `${conversation?.conversationId || 'conv'}-${questionIndex ?? 0}`;
+}
+
+function normalizeConversationDifficulty(d) {
+  if (d === 'easy' || d === 'medium' || d === 'hard') return d;
+  return 'medium';
+}
+
+function generateQuestionFromCandidate(candidate, seed, contextType, difficulty) {
+  if (candidate.kind === 'knowledge') {
+    const item = candidate.item;
+    return generateQuestion(item.id, null, {
+      seed,
+      contextType,
+      difficulty,
+    });
+  }
+  // Legacy fallback.
+  return buildInstance(candidate.topicKey, candidate.archetype);
+}
+
+function pickQuestionForTopic(key, topicState, session, history, options = {}) {
+  const { conversation = null, questionIndex = 0, employee = null, topicsByKey = null } = options;
+
+  // If the topic is a Knowledge Layer pilot, use the semantic balancer to pick
+  // a concrete knowledge item; otherwise fall back to the legacy archetype pool.
+  if (isKnowledgePilotTopic(key)) {
+    const candidates = buildKnowledgeCandidates(key);
+    if (!candidates.length) return null;
+
+    const semanticHistory = conversation?.semanticHistory || createSemanticHistory();
+    const state = createBalancerState({
+      history: semanticHistory,
+      progressByTopic: buildProgressByTopic(topicsByKey),
+      lastResult: conversation?.lastResult || null,
+      difficultyProfile: normalizeConversationDifficulty(topicState?.currentDifficulty),
+      currentRole: mapEmployeeRoleToHint(employee),
+    });
+
+    const selected = selectCandidate(candidates, state, { seed: generateSeed(conversation, questionIndex) });
+    if (!selected) return null;
+    return generateQuestionFromCandidate(
+      selected,
+      generateSeed(conversation, questionIndex),
+      'coworker_question',
+      normalizeConversationDifficulty(topicState?.currentDifficulty),
+    );
+  }
+
   const topicData = CONVERSATION_TOPICS[key];
   const archetypes = getArchetypes(topicData);
   if (!archetypes.length) return null;
@@ -363,16 +505,28 @@ export function startEmployeeConversation() {
   if (!topics.length) return null;
 
   const topicsByKey = Object.fromEntries(topics.map((t) => [t.key, t]));
-  const firstTopic = pickWeakestTopic(topics);
   const employee = pickEmployee();
+  const semanticHistory = createSemanticHistory({ longTerm: readLongTermHistory().longTerm });
+  const firstTopic = pickWeakestTopic(topics, semanticHistory, employee);
   const session = readSession();
   const topicState = ensureTopicState(session, firstTopic.key);
   const history = readHistory();
-  const question = pickQuestionForTopic(firstTopic.key, topicState, { questions: [] }, history);
+  const conversationSeed = {
+    conversationId: `conv-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    employee,
+    semanticHistory,
+    lastResult: null,
+  };
+  const question = pickQuestionForTopic(firstTopic.key, topicState, { questions: [] }, history, {
+    conversation: conversationSeed,
+    questionIndex: 0,
+    employee,
+    topicsByKey,
+  });
   if (!question) return null;
 
   const conversation = {
-    conversationId: `conv-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    conversationId: conversationSeed.conversationId,
     employeeId: employee.id,
     employee,
     startedAt: Date.now(),
@@ -389,6 +543,8 @@ export function startEmployeeConversation() {
     intro: pickIntro(CONVERSATION_TOPICS[firstTopic.key], employee),
     transition: null,
     topicsByKey,
+    semanticHistory,
+    lastResult: null,
   };
 
   writeSession(session);
@@ -488,6 +644,23 @@ export function evaluateEmployeeAnswer(conversation, answer) {
     conversationId: conversation.conversationId,
   };
   writeHistory(history);
+
+  // Phase 5: record in semantic history for cross-topic balancing.
+  const questionWithTopic = { ...question, topicKey: currentTopicKey };
+  conversation.semanticHistory = pushHistoryRecord(
+    conversation.semanticHistory || createSemanticHistory(),
+    questionWithTopic,
+    { correct },
+  );
+  conversation.lastResult = {
+    knowledgeItemId: question.knowledgeItemId || null,
+    topicKey: currentTopicKey,
+    conceptCluster: question.conceptCluster || null,
+    questionArchetype: question.questionArchetype || question.type,
+    templateId: question.context?.templateId || null,
+    correct,
+  };
+  writeLongTermHistory(conversation.semanticHistory);
   writeSession(session);
 
   conversation.questions.push({
@@ -533,7 +706,12 @@ export function advanceConversation(conversation) {
   }
 
   const topicState = ensureTopicState(session, nextTopicKey);
-  const nextQuestion = pickQuestionForTopic(nextTopicKey, topicState, conversation, history);
+  const nextQuestion = pickQuestionForTopic(nextTopicKey, topicState, conversation, history, {
+    conversation,
+    questionIndex: nextIndex,
+    employee: conversation.employee,
+    topicsByKey: conversation.topicsByKey,
+  });
   if (!nextQuestion) {
     conversation.questionIndex = nextIndex;
     conversation.completed = true;
@@ -646,7 +824,7 @@ export const CONVERSATION_TOPICS = {
     samHelp: 'Das TCP/IP-Modell hat 4 Schichten: Netzzugang, Internet, Transport, Anwendung. Es ist praxisnäher als OSI. HTTP, FTP, DNS etc. laufen auf der Anwendungsschicht, TCP/UDP auf Transport, IP auf Internet.',
     questions: [
       { id: 'tcpip-1', difficulty: 'easy', text: 'Wie viele Schichten hat das TCP/IP-Modell?', options: ['4', '5', '6', '7'], correct: 0, explanation: 'TCP/IP besteht aus vier Schichten: Netzzugang, Internet, Transport und Anwendung.' },
-      { id: 'tcpip-2', difficulty: 'medium', text: 'Welche Schicht entspricht in etwa OSI Schicht 3?', options: ['Netzzugang', 'Internet', 'Transport', 'Anwendung'], correct: 1, explanation: 'Die Internet-Schicht des TCP/IP-Modells entspricht ungefähr der OSI-Vermittlungsschicht (Schicht 3) und kümmert sich um IP/Routing.' },
+      { id: 'tcpip-2', difficulty: 'medium', text: 'Welche Schicht des TCP/IP-Modells entspricht ungefähr der OSI-Vermittlungsschicht (Layer 3)?', options: ['Netzzugang', 'Internet', 'Transport', 'Anwendung'], correct: 1, explanation: 'Die Internet-Schicht des TCP/IP-Modells entspricht ungefähr der OSI-Vermittlungsschicht (Schicht 3) und kümmert sich um IP/Routing.' },
       { id: 'tcpip-3', difficulty: 'medium', text: 'Auf welcher TCP/IP-Schicht arbeitet HTTP?', options: ['Internet', 'Transport', 'Anwendung', 'Netzzugang'], correct: 2, explanation: 'HTTP ist ein Anwendungsprotokoll und liegt daher auf der obersten TCP/IP-Schicht (Anwendung).' },
       { id: 'tcpip-4', difficulty: 'hard', text: 'Welches Protokoll ist verbindungslos und eher schnell?', options: ['TCP', 'UDP', 'HTTP', 'FTP'], correct: 1, explanation: 'UDP (User Datagram Protocol) ist verbindungslos und hat weniger Overhead als TCP, dafür aber keine Garantie für Reihenfolge oder Zustellung.' },
     ],
