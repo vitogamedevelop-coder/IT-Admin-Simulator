@@ -31,10 +31,11 @@ export class QuestionGenerationError extends Error {
  * @param {string} options.seed – deterministic seed.
  * @param {string} options.contextType – 'direct_question' | 'coworker_question'.
  * @param {string|null} options.archetype – restrict to a specific question archetype.
+ * @param {string|null} options.difficulty – override item difficulty for parametric generation.
  * @returns {object} Question Instance
  */
 export function generateQuestion(knowledgeItemId, templateId = null, options = {}) {
-  const { seed = '0', contextType = 'direct_question', archetype = null } = options;
+  const { seed = '0', contextType = 'direct_question', archetype = null, difficulty = null } = options;
   const item = getKnowledgeItem(knowledgeItemId);
   if (!item) {
     throw new QuestionGenerationError(`Unknown Knowledge Item: ${knowledgeItemId}`, knowledgeItemId, templateId);
@@ -62,12 +63,15 @@ export function generateQuestion(knowledgeItemId, templateId = null, options = {
     }
   }
 
-  const rng = createRng(`${knowledgeItemId}|${templateId || '*'}|${contextType}|${seed}`);
+  const effectiveDifficulty = difficulty || item.difficulty;
+  // ContextType intentionally NOT part of the RNG seed: it may change the
+  // wording, but must not change the generated parameters or the math answer.
+  const rng = createRng(`${knowledgeItemId}|${templateId || '*'}|${effectiveDifficulty}|${seed}`);
   const template = candidates.length === 1
     ? candidates[0]
     : candidates[Math.floor(rng.next() * candidates.length)];
 
-  const instance = template.generate(item, allItemsById, rng, { contextType, seed });
+  const instance = template.generate(item, allItemsById, rng, { contextType, seed, difficulty: effectiveDifficulty });
   if (!instance || typeof instance !== 'object') {
     throw new QuestionGenerationError(`Template ${template.id} returned no instance`, knowledgeItemId, template.id);
   }
@@ -79,7 +83,7 @@ export function generateQuestion(knowledgeItemId, templateId = null, options = {
  * Useful for mass tests.
  */
 export function generateRandomQuestion(options = {}) {
-  const { seed = 'random', filter = () => true, contextType = 'direct_question', archetype = null } = options;
+  const { seed = 'random', filter = () => true, contextType = 'direct_question', archetype = null, difficulty = null } = options;
   const rng = createRng(String(seed));
   const allItems = getAllKnowledgeItems();
   // Only consider items that actually have applicable templates.
@@ -90,7 +94,8 @@ export function generateRandomQuestion(options = {}) {
     throw new QuestionGenerationError('No Knowledge Items match the given filter and have applicable templates');
   }
   const item = candidates[Math.floor(rng.next() * candidates.length)];
-  return generateQuestion(item.id, null, { seed, contextType, archetype });
+  const itemDifficulty = difficulty || item.difficulty;
+  return generateQuestion(item.id, null, { seed, contextType, archetype, difficulty: itemDifficulty });
 }
 
 /**

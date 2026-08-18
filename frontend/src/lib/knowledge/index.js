@@ -31,6 +31,7 @@ export { createRng } from './random.js';
 export { validateQuestionInstance, validateQuestionInstances, validateKnowledgeRegistry, validateKnowledgeItem } from './validators.js';
 export { generateQuestion, generateRandomQuestion, listApplicableTemplates, TEMPLATES } from './questionGenerator.js';
 export { checkAmbiguity, isAmbiguous, KNOWN_AMBIGUITIES } from './ambiguityChecker.js';
+export { generateCalculationData, getSupportedCalculationFamilies } from './calculationGenerators.js';
 
 const PILOT_ITEMS = [
   ...osiKnowledgeItems,

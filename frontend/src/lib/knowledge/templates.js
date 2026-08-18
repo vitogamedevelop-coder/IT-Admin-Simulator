@@ -17,16 +17,7 @@ import {
   siblingDistractors,
   buildMcOptions,
 } from './distractors.js';
-import {
-  decimalToBinaryOctet,
-  prefixToSubnetMask,
-  calculateNetworkId,
-  calculateBroadcast,
-  calculateFirstHost,
-  calculateLastHost,
-  calculateUsableHosts,
-  calculateJumpSize,
-} from '../networking/ipv4Math.js';
+import { generateCalculationData } from './calculationGenerators.js';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -61,13 +52,18 @@ function baseInstance({ templateId, item, archetype, seed, prompt, contextType, 
   };
 }
 
-function buildMcInstance({ templateId, item, archetype, seed, prompt, correctValue, distractorValues, explanation, contextType, speechLeadIn, roleHints, rng }) {
+function buildMcInstance({ templateId, item, archetype, seed, prompt, correctValue, distractorValues, explanation, contextType, speechLeadIn, roleHints, rng, calculationParams = null, answerFormat = null, extraSemanticTags = [] }) {
   const { options, correctOptionId } = buildMcOptions(String(correctValue), distractorValues, rng, 'opt');
   const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints });
   instance.options = options;
   instance.correctOptionId = correctOptionId;
   instance.correctAnswer = { optionId: correctOptionId, label: String(correctValue) };
   instance.explanation = explanation || item.data.description || prompt;
+  if (calculationParams) instance.calculationParams = calculationParams;
+  if (answerFormat) instance.answerFormat = answerFormat;
+  if (extraSemanticTags.length > 0) {
+    instance.semanticTags = Array.from(new Set([...instance.semanticTags, ...extraSemanticTags]));
+  }
   // Conversation-compatible legacy fields.
   instance.type = 'mc';
   instance.text = prompt;
@@ -269,12 +265,6 @@ function osiOrderingTemplates() {
 // Binary templates
 // ---------------------------------------------------------------------------
 
-const binaryLeads = [
-  'Ich rechne gerade an einer Subnetzmaske.',
-  'Kannst du mir kurz die Binär-Rechnung bestätigen?',
-  'Ich brauche für die Dokumentation die Dezimalzahl.',
-];
-
 function binaryTemplates() {
   return [
     {
@@ -310,28 +300,24 @@ function binaryTemplates() {
       archetype: QUESTION_ARCHETYPES.CALCULATION,
       matches: (item) => item.id === 'binary.decimalToBinary',
       supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const decimal = rng.nextInt(0, 255);
-        const binary = decimalToBinaryOctet(decimal);
-        const directPrompt = `Wie lautet die 8-Bit-Binärzahl für ${decimal}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, binaryLeads, rng)
-          : directPrompt;
-        const distractors = [decimalToBinaryOctet(Math.max(0, decimal - 1)), decimalToBinaryOctet(Math.min(255, decimal + 1))];
-        if (decimal >= 64) distractors.push(decimalToBinaryOctet(decimal - 64));
-        if (decimal < 192) distractors.push(decimalToBinaryOctet(decimal + 64));
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null } = {}) => {
+        const calc = generateCalculationData(item, rng, { difficulty, contextType });
         return buildMcInstance({
           templateId: 'binary.decimalToBinary',
           item,
           archetype: QUESTION_ARCHETYPES.CALCULATION,
           seed,
-          prompt,
-          correctValue: binary,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== binary).slice(0, 3),
+          prompt: calc.prompt,
+          correctValue: calc.correctAnswer,
+          distractorValues: calc.distractors,
+          explanation: calc.explanation,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          calculationParams: calc.params,
+          answerFormat: calc.answerFormat,
+          extraSemanticTags: calc.semanticTags,
         });
       },
     },
@@ -340,28 +326,24 @@ function binaryTemplates() {
       archetype: QUESTION_ARCHETYPES.CALCULATION,
       matches: (item) => item.id === 'binary.binaryToDecimal',
       supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const decimal = rng.nextInt(0, 255);
-        const binary = decimalToBinaryOctet(decimal);
-        const directPrompt = `Wie lautet die Dezimalzahl für ${binary}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, binaryLeads, rng)
-          : directPrompt;
-        const distractors = [Math.max(0, decimal - 1), Math.min(255, decimal + 1)];
-        if (decimal >= 64) distractors.push(decimal - 64);
-        if (decimal < 192) distractors.push(decimal + 64);
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null } = {}) => {
+        const calc = generateCalculationData(item, rng, { difficulty, contextType });
         return buildMcInstance({
           templateId: 'binary.binaryToDecimal',
           item,
           archetype: QUESTION_ARCHETYPES.CALCULATION,
           seed,
-          prompt,
-          correctValue: decimal,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== decimal).slice(0, 3),
+          prompt: calc.prompt,
+          correctValue: calc.correctAnswer,
+          distractorValues: calc.distractors,
+          explanation: calc.explanation,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          calculationParams: calc.params,
+          answerFormat: calc.answerFormat,
+          extraSemanticTags: calc.semanticTags,
         });
       },
     },
@@ -557,281 +539,52 @@ function ipv4Templates() {
 }
 
 // ---------------------------------------------------------------------------
-// Subnetting templates
+// Subnetting / IPv4 calculation templates
 // ---------------------------------------------------------------------------
 
-const subnettingLeads = [
-  'Ich rechne gerade ein Subnetz durch.',
-  'Kannst du mir kurz die Berechnung bestätigen?',
-  'Für die Dokumentation brauche ich die korrekte Adresse:',
-];
+function makeCalculationTemplate(id, itemId, allowedQuestionTypes) {
+  return {
+    id,
+    archetype: QUESTION_ARCHETYPES.CALCULATION,
+    matches: (item) => item.id === itemId,
+    supportedQuestionTypes: allowedQuestionTypes,
+    generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null } = {}) => {
+      const calc = generateCalculationData(item, rng, { difficulty, contextType });
+      return buildMcInstance({
+        templateId: id,
+        item,
+        archetype: QUESTION_ARCHETYPES.CALCULATION,
+        seed,
+        prompt: calc.prompt,
+        correctValue: calc.correctAnswer,
+        distractorValues: calc.distractors,
+        explanation: calc.explanation,
+        contextType,
+        speechLeadIn: null,
+        roleHints: ['technical'],
+        rng,
+        calculationParams: calc.params,
+        answerFormat: calc.answerFormat,
+        extraSemanticTags: calc.semanticTags,
+      });
+    },
+  };
+}
+
+const SUBNETTING_QT = [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO];
+const PREFIX_TO_MASK_QT = [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SELECT_BEST];
+const MASK_TO_PREFIX_QT = [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST];
 
 function subnettingTemplates() {
   return [
-    {
-      id: 'subnetting.prefixToMask',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetMasks.prefixToMask',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(16, 30);
-        const mask = prefixToSubnetMask(prefix).decimal;
-        const directPrompt = `Welche Subnetzmaske gehört zu /${prefix}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [
-          prefixToSubnetMask(Math.max(8, prefix - 2)).decimal,
-          prefixToSubnetMask(Math.min(30, prefix + 2)).decimal,
-          prefixToSubnetMask(rng.nextInt(16, 30)).decimal,
-        ];
-        return buildMcInstance({
-          templateId: 'subnetting.prefixToMask',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: mask,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== mask).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
-    {
-      id: 'subnetting.networkId',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetting.networkId',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(24, 30);
-        const host = rng.nextInt(1, 254);
-        const third = rng.nextInt(1, 254);
-        const ip = `192.168.${third}.${host}`;
-        const network = calculateNetworkId(ip, prefix);
-        const directPrompt = `Wie lautet die Netz-ID von ${ip}/${prefix}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [
-          calculateBroadcast(ip, prefix),
-          `192.168.${third}.${Math.max(0, host - 1)}`,
-          `192.168.${third}.${host}`,
-        ];
-        return buildMcInstance({
-          templateId: 'subnetting.networkId',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: network,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== network).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
-    {
-      id: 'subnetting.usableHosts',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetting.usableHosts',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(24, 30);
-        const usable = calculateUsableHosts(prefix);
-        const directPrompt = `Wie viele nutzbare Host-Adressen hat ein /${prefix}-Subnetz?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [
-          calculateUsableHosts(Math.max(24, prefix - 1)),
-          calculateUsableHosts(Math.min(30, prefix + 1)),
-          usable + 2,
-        ];
-        return buildMcInstance({
-          templateId: 'subnetting.usableHosts',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: usable,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== usable).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
-    {
-      id: 'subnetting.maskToPrefix',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetMasks.maskToPrefix',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(16, 30);
-        const mask = prefixToSubnetMask(prefix).decimal;
-        const directPrompt = `Welcher Präfix gehört zur Subnetzmaske ${mask}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [prefix - 2, prefix + 2, prefix + 1].filter((p) => p >= 8 && p <= 30);
-        return buildMcInstance({
-          templateId: 'subnetting.maskToPrefix',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: prefix,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== prefix).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
-    {
-      id: 'subnetting.broadcast',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetting.broadcast',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(24, 30);
-        const host = rng.nextInt(1, 254);
-        const third = rng.nextInt(1, 254);
-        const ip = `192.168.${third}.${host}`;
-        const broadcast = calculateBroadcast(ip, prefix);
-        const directPrompt = `Wie lautet die Broadcast-Adresse von ${ip}/${prefix}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [
-          calculateNetworkId(ip, prefix),
-          `192.168.${third}.${255}`,
-          `192.168.${third}.${host}`,
-        ];
-        return buildMcInstance({
-          templateId: 'subnetting.broadcast',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: broadcast,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== broadcast).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
-    {
-      id: 'subnetting.firstHost',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetting.firstHost',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(24, 30);
-        const host = rng.nextInt(1, 254);
-        const third = rng.nextInt(1, 254);
-        const ip = `192.168.${third}.${host}`;
-        const first = calculateFirstHost(ip, prefix);
-        const directPrompt = `Wie lautet die erste nutzbare Hostadresse im Subnetz von ${ip}/${prefix}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [
-          calculateNetworkId(ip, prefix),
-          calculateBroadcast(ip, prefix),
-          calculateLastHost(ip, prefix),
-        ];
-        return buildMcInstance({
-          templateId: 'subnetting.firstHost',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: first,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== first).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
-    {
-      id: 'subnetting.lastHost',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetting.lastHost',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(24, 30);
-        const host = rng.nextInt(1, 254);
-        const third = rng.nextInt(1, 254);
-        const ip = `192.168.${third}.${host}`;
-        const last = calculateLastHost(ip, prefix);
-        const directPrompt = `Wie lautet die letzte nutzbare Hostadresse im Subnetz von ${ip}/${prefix}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [
-          calculateNetworkId(ip, prefix),
-          calculateBroadcast(ip, prefix),
-          calculateFirstHost(ip, prefix),
-        ];
-        return buildMcInstance({
-          templateId: 'subnetting.lastHost',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: last,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== last).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
-    {
-      id: 'subnetting.jumpSize',
-      archetype: QUESTION_ARCHETYPES.CALCULATION,
-      matches: (item) => item.id === 'subnetting.jumpSize',
-      supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const prefix = rng.nextInt(24, 30);
-        const jump = calculateJumpSize(prefix);
-        const directPrompt = `Wie groß ist die Sprungweite im relevanten Oktett bei /${prefix}?`;
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, subnettingLeads, rng)
-          : directPrompt;
-        const distractors = [
-          calculateJumpSize(Math.max(24, prefix - 1)),
-          calculateJumpSize(Math.min(30, prefix + 1)),
-          jump + 2,
-        ];
-        return buildMcInstance({
-          templateId: 'subnetting.jumpSize',
-          item,
-          archetype: QUESTION_ARCHETYPES.CALCULATION,
-          seed,
-          prompt,
-          correctValue: jump,
-          distractorValues: Array.from(new Set(distractors)).filter((d) => d !== jump).slice(0, 3),
-          contextType,
-          speechLeadIn: null,
-          roleHints: ['technical'],
-          rng,
-        });
-      },
-    },
+    makeCalculationTemplate('subnetting.prefixToMask', 'subnetMasks.prefixToMask', PREFIX_TO_MASK_QT),
+    makeCalculationTemplate('subnetting.maskToPrefix', 'subnetMasks.maskToPrefix', MASK_TO_PREFIX_QT),
+    makeCalculationTemplate('subnetting.networkId', 'subnetting.networkId', SUBNETTING_QT),
+    makeCalculationTemplate('subnetting.broadcast', 'subnetting.broadcast', SUBNETTING_QT),
+    makeCalculationTemplate('subnetting.firstHost', 'subnetting.firstHost', SUBNETTING_QT),
+    makeCalculationTemplate('subnetting.lastHost', 'subnetting.lastHost', SUBNETTING_QT),
+    makeCalculationTemplate('subnetting.usableHosts', 'subnetting.usableHosts', SUBNETTING_QT),
+    makeCalculationTemplate('subnetting.jumpSize', 'subnetting.jumpSize', SUBNETTING_QT),
   ];
 }
 

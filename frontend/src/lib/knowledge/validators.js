@@ -54,7 +54,7 @@ const REQUIRED_FIELDS_PER_TYPE = {
   [KNOWLEDGE_TYPES.MAPPING]: ['description'],
   [KNOWLEDGE_TYPES.ORDER]: ['description'],
   [KNOWLEDGE_TYPES.COMPARE]: ['description', 'items'],
-  [KNOWLEDGE_TYPES.CALCULATION]: ['description', 'calculator'],
+  [KNOWLEDGE_TYPES.CALCULATION]: ['description', 'calculationFamily'],
   [KNOWLEDGE_TYPES.RANGE]: ['description'],
   [KNOWLEDGE_TYPES.PROCEDURE]: ['description', 'steps'],
   [KNOWLEDGE_TYPES.TROUBLESHOOT]: ['description'],
@@ -305,6 +305,21 @@ export function validateQuestionInstance(instance) {
       if (correctCount !== 1) {
         add('correctOptionId', 'Exactly one option must be marked as correct');
       }
+    }
+  }
+
+  // Answer format sanity (optional field used by calculation/input questions)
+  if (instance.answerFormat) {
+    const allowedTypes = ['binary', 'number', 'ipv4-address', 'ipv4-mask', 'prefix', 'text'];
+    if (!allowedTypes.includes(instance.answerFormat.type)) {
+      add('answerFormat.type', `Unknown answer format type "${instance.answerFormat.type}"`);
+    }
+  }
+
+  // Calculation params sanity (optional)
+  if (instance.calculationParams) {
+    if (typeof instance.calculationParams !== 'object') {
+      add('calculationParams', 'calculationParams must be an object');
     }
   }
 

@@ -137,10 +137,10 @@ assertEqual(calculateJumpSize(testPrefix), 64, 'jumpSize /26');
 // Subnetting calculation items reference existing ipv4Math functions.
 for (const item of subnettingItems) {
   if (item.type === KNOWLEDGE_TYPES.CALCULATION) {
-    assertTrue(item.data.calculator, `${item.id} must declare a calculator`);
+    assertTrue(item.data.calculationFamily, `${item.id} must declare a calculationFamily`);
     assertTrue(
-      ['calculateNetworkId', 'calculateBroadcast', 'calculateFirstHost', 'calculateLastHost', 'calculateUsableHosts', 'calculateJumpSize'].includes(item.data.calculator),
-      `${item.id} calculator must reference an existing ipv4Math function`
+      ['subnetting', 'prefixToMask', 'maskToPrefix'].includes(item.data.calculationFamily),
+      `${item.id} calculationFamily must reference a supported calculation family`
     );
   }
 }

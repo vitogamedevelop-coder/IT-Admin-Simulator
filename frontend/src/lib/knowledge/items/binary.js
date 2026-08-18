@@ -38,10 +38,13 @@ export const binaryKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Wandle eine Dezimalzahl zwischen 0 und 255 in einen 8-Bit-Binärstring um.',
-      minValue: 0,
-      maxValue: 255,
-      // Refer to ipv4Math.js; do not duplicate the conversion logic here.
-      calculator: 'decimalToBinaryOctet',
+      calculationFamily: 'decimalToBinary',
+      difficultyRanges: {
+        easy: { min: 0, max: 63 },
+        medium: { min: 0, max: 255 },
+        hard: { min: 128, max: 255 },
+      },
+      distractorStrategy: 'decimalToBinary',
     },
     siblings: [],
   },
@@ -56,9 +59,13 @@ export const binaryKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Wandle einen 8-Bit-Binärstring in eine Dezimalzahl um.',
-      minBits: 8,
-      maxBits: 8,
-      calculator: 'binaryOctetToDecimal',
+      calculationFamily: 'binaryToDecimal',
+      difficultyRanges: {
+        easy: { min: 0, max: 63 },
+        medium: { min: 0, max: 255 },
+        hard: { min: 128, max: 255 },
+      },
+      distractorStrategy: 'binaryToDecimal',
     },
     siblings: [],
   },

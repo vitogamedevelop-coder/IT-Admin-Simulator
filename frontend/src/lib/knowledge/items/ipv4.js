@@ -120,8 +120,13 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Bestimme die Subnetzmaske zu einem gegebenen Präfix.',
-      calculator: 'prefixToSubnetMask',
-      outputField: 'decimal',
+      calculationFamily: 'prefixToMask',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26 },
+        medium: { prefixMin: 16, prefixMax: 30 },
+        hard: { prefixMin: 8, prefixMax: 30 },
+      },
+      distractorStrategy: 'prefixToMask',
     },
     siblings: [],
   },
@@ -136,7 +141,13 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Bestimme den Präfix zu einer gegebenen Subnetzmaske.',
-      calculator: 'subnetMaskToPrefix',
+      calculationFamily: 'maskToPrefix',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26 },
+        medium: { prefixMin: 16, prefixMax: 30 },
+        hard: { prefixMin: 8, prefixMax: 30 },
+      },
+      distractorStrategy: 'maskToPrefix',
     },
     siblings: [],
   },
@@ -155,7 +166,14 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Netz-ID aus IP und Präfix.',
-      calculator: 'calculateNetworkId',
+      calculationFamily: 'subnetting',
+      target: 'networkId',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26, allowOctetChange: false, privateOnly: true },
+        medium: { prefixMin: 16, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+        hard: { prefixMin: 8, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+      },
+      distractorStrategy: 'subnettingNetworkId',
     },
     siblings: [
       'subnetting.broadcast',
@@ -176,7 +194,14 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Broadcast-Adresse aus IP und Präfix.',
-      calculator: 'calculateBroadcast',
+      calculationFamily: 'subnetting',
+      target: 'broadcast',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26, allowOctetChange: false, privateOnly: true },
+        medium: { prefixMin: 16, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+        hard: { prefixMin: 8, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+      },
+      distractorStrategy: 'subnettingBroadcast',
     },
     siblings: [
       'subnetting.networkId',
@@ -197,7 +222,14 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die erste nutzbare Hostadresse aus IP und Präfix.',
-      calculator: 'calculateFirstHost',
+      calculationFamily: 'subnetting',
+      target: 'firstHost',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26, allowOctetChange: false, privateOnly: true },
+        medium: { prefixMin: 16, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+        hard: { prefixMin: 8, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+      },
+      distractorStrategy: 'subnettingFirstHost',
     },
     siblings: [
       'subnetting.networkId',
@@ -218,7 +250,14 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die letzte nutzbare Hostadresse aus IP und Präfix.',
-      calculator: 'calculateLastHost',
+      calculationFamily: 'subnetting',
+      target: 'lastHost',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26, allowOctetChange: false, privateOnly: true },
+        medium: { prefixMin: 16, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+        hard: { prefixMin: 8, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+      },
+      distractorStrategy: 'subnettingLastHost',
     },
     siblings: [
       'subnetting.networkId',
@@ -239,7 +278,14 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Anzahl nutzbarer Hostadressen aus dem Präfix.',
-      calculator: 'calculateUsableHosts',
+      calculationFamily: 'subnetting',
+      target: 'usableHosts',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26, allowOctetChange: false, privateOnly: true },
+        medium: { prefixMin: 16, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+        hard: { prefixMin: 8, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+      },
+      distractorStrategy: 'subnettingUsableHosts',
     },
     siblings: [
       'subnetting.networkId',
@@ -260,7 +306,14 @@ export const ipv4SubnettingKnowledgeItems = [
     allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Sprungweite im relevanten Oktett aus dem Präfix.',
-      calculator: 'calculateJumpSize',
+      calculationFamily: 'subnetting',
+      target: 'jumpSize',
+      difficultyRanges: {
+        easy: { prefixMin: 24, prefixMax: 26, allowOctetChange: false, privateOnly: true },
+        medium: { prefixMin: 16, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+        hard: { prefixMin: 8, prefixMax: 30, allowOctetChange: true, privateOnly: true },
+      },
+      distractorStrategy: 'subnettingJumpSize',
     },
     siblings: [
       'subnetting.networkId',
