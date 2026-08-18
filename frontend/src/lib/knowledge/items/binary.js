@@ -35,7 +35,7 @@ export const binaryKnowledgeItems = [
     conceptCluster: 'binary.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Wandle eine Dezimalzahl zwischen 0 und 255 in einen 8-Bit-Binärstring um.',
       minValue: 0,
@@ -53,7 +53,7 @@ export const binaryKnowledgeItems = [
     conceptCluster: 'binary.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Wandle einen 8-Bit-Binärstring in eine Dezimalzahl um.',
       minBits: 8,

@@ -21,6 +21,7 @@ export const KNOWLEDGE_TYPES = {
 export const QUESTION_ARCHETYPES = {
   RECALL: 'recall',
   MAPPING: 'mapping',
+  MATCHING: 'matching',
   ORDERING: 'ordering',
   SELECT_BEST: 'select-best',
   INPUT: 'input',

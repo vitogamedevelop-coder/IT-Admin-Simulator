@@ -7,6 +7,7 @@
 
 import { ACADEMY_TOPICS, topicKey } from '../academyTopics.js';
 import { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from './types.js';
+import { isAmbiguous } from './ambiguityChecker.js';
 
 const VALID_KNOWLEDGE_TYPES = Object.values(KNOWLEDGE_TYPES);
 const VALID_ARCHETYPES = Object.values(QUESTION_ARCHETYPES);
@@ -211,4 +212,128 @@ export function validateKnowledgeRegistry(items) {
 export async function validateBuiltinRegistry(getAllItemsFn) {
   const items = await getAllItemsFn();
   return validateKnowledgeRegistry(items);
+}
+
+// =============================================================================
+// Question Instance validation
+// =============================================================================
+
+const REQUIRED_INSTANCE_FIELDS = [
+  'instanceId',
+  'topicKey',
+  'knowledgeItemId',
+  'conceptCluster',
+  'questionArchetype',
+  'difficulty',
+  'prompt',
+  'sourceTopicKey',
+  'explanation',
+];
+
+/**
+ * Validates a generated Question Instance.
+ * Returns an array of error objects (empty if valid).
+ */
+export function validateQuestionInstance(instance) {
+  const errors = [];
+  const add = (field, message) => errors.push({ instanceId: instance.instanceId || null, field, message });
+
+  if (!instance || typeof instance !== 'object') {
+    add(null, 'Question Instance is not an object');
+    return errors;
+  }
+
+  for (const field of REQUIRED_INSTANCE_FIELDS) {
+    if (!(field in instance) || instance[field] === undefined || instance[field] === null) {
+      add(field, `Required field "${field}" is missing or empty`);
+    }
+  }
+
+  if (instance.questionArchetype && !VALID_ARCHETYPES.includes(instance.questionArchetype)) {
+    add('questionArchetype', `Invalid archetype "${instance.questionArchetype}"`);
+  }
+
+  if (instance.difficulty && !VALID_DIFFICULTIES.includes(instance.difficulty)) {
+    add('difficulty', `Invalid difficulty "${instance.difficulty}"`);
+  }
+
+  // Archetype-specific validation
+  if (instance.questionArchetype === QUESTION_ARCHETYPES.ORDERING) {
+    if (!Array.isArray(instance.items) || instance.items.length === 0) {
+      add('items', 'Ordering question must have items');
+    }
+    if (!Array.isArray(instance.correctOrderIds) || instance.correctOrderIds.length !== instance.items?.length) {
+      add('correctOrderIds', 'Ordering question must have correctOrderIds matching items length');
+    }
+  }
+
+  if (instance.questionArchetype === QUESTION_ARCHETYPES.MATCHING) {
+    if (!instance.pairs || !Array.isArray(instance.pairs.left) || !Array.isArray(instance.pairs.right)) {
+      add('pairs', 'Matching question must have pairs.left and pairs.right arrays');
+    }
+    if (!Array.isArray(instance.correctPairs) || instance.correctPairs.length === 0) {
+      add('correctPairs', 'Matching question must have non-empty correctPairs');
+    }
+  }
+
+  // MC-compatible archetypes
+  const mcArchetypes = [
+    QUESTION_ARCHETYPES.RECALL,
+    QUESTION_ARCHETYPES.MAPPING,
+    QUESTION_ARCHETYPES.SELECT_BEST,
+    QUESTION_ARCHETYPES.COMPARE,
+    QUESTION_ARCHETYPES.SCENARIO,
+    QUESTION_ARCHETYPES.TROUBLESHOOT,
+    QUESTION_ARCHETYPES.CALCULATION,
+    QUESTION_ARCHETYPES.INPUT,
+  ];
+
+  if (mcArchetypes.includes(instance.questionArchetype)) {
+    if (!Array.isArray(instance.options) || instance.options.length < 2) {
+      add('options', 'MC-compatible question must have at least two options');
+    } else {
+      const labels = instance.options.map((o) => String(o.label).trim().toLowerCase());
+      const uniqueLabels = new Set(labels);
+      if (uniqueLabels.size !== labels.length) {
+        add('options', 'Duplicate option labels detected');
+      }
+      const hasCorrect = instance.options.some((o) => o.id === instance.correctOptionId);
+      if (!hasCorrect) {
+        add('correctOptionId', 'correctOptionId must reference one of the options');
+      }
+      const correctCount = instance.options.filter((o) => o.id === instance.correctOptionId).length;
+      if (correctCount !== 1) {
+        add('correctOptionId', 'Exactly one option must be marked as correct');
+      }
+    }
+  }
+
+  // Ambiguity checks
+  if (isAmbiguous(instance)) {
+    add('prompt', 'Question prompt is flagged as ambiguous');
+  }
+
+  return errors;
+}
+
+/**
+ * Validates a batch of Question Instances.
+ * Returns { ok: boolean, errors: [...], stats: {...} }
+ */
+export function validateQuestionInstances(instances) {
+  const errors = [];
+  const seenIds = new Set();
+  const stats = { total: instances.length, byArchetype: {} };
+
+  instances.forEach((instance) => {
+    if (seenIds.has(instance.instanceId)) {
+      errors.push({ instanceId: instance.instanceId, field: 'instanceId', message: `Duplicate instanceId "${instance.instanceId}"` });
+    }
+    seenIds.add(instance.instanceId);
+
+    stats.byArchetype[instance.questionArchetype] = (stats.byArchetype[instance.questionArchetype] || 0) + 1;
+    errors.push(...validateQuestionInstance(instance));
+  });
+
+  return { ok: errors.length === 0, errors, stats };
 }

@@ -27,6 +27,10 @@ import { sshKnowledgeItems } from './items/ssh.js';
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
 export { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from './types.js';
+export { createRng } from './random.js';
+export { validateQuestionInstance, validateQuestionInstances, validateKnowledgeRegistry, validateKnowledgeItem } from './validators.js';
+export { generateQuestion, generateRandomQuestion, listApplicableTemplates, TEMPLATES } from './questionGenerator.js';
+export { checkAmbiguity, isAmbiguous, KNOWN_AMBIGUITIES } from './ambiguityChecker.js';
 
 const PILOT_ITEMS = [
   ...osiKnowledgeItems,

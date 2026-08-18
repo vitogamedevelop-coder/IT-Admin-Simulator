@@ -118,7 +118,7 @@ export const switchingVlanKnowledgeItems = [
     conceptCluster: 'vlan.reasons',
     type: KNOWLEDGE_TYPES.PROPERTY,
     difficulty: DIFFICULTY.EASY,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       benefits: [
         { name: 'Sicherheit', description: 'Abteilungen logisch trennen, auch am selben Switch' },

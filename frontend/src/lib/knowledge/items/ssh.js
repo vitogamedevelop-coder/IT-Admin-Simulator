@@ -173,7 +173,7 @@ export const sshKnowledgeItems = [
     conceptCluster: 'ssh.verification',
     type: KNOWLEDGE_TYPES.MAPPING,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SELECT_BEST],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       mapping: [
         { command: 'show ip ssh', purpose: 'Zeigt aktive SSH-Version und Verbindungsstatus' },

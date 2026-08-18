@@ -117,7 +117,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.mask',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SELECT_BEST],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Bestimme die Subnetzmaske zu einem gegebenen Präfix.',
       calculator: 'prefixToSubnetMask',
@@ -133,7 +133,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.mask',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
     data: {
       description: 'Bestimme den Präfix zu einer gegebenen Subnetzmaske.',
       calculator: 'subnetMaskToPrefix',
@@ -152,7 +152,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Netz-ID aus IP und Präfix.',
       calculator: 'calculateNetworkId',
@@ -173,7 +173,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Broadcast-Adresse aus IP und Präfix.',
       calculator: 'calculateBroadcast',
@@ -194,7 +194,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die erste nutzbare Hostadresse aus IP und Präfix.',
       calculator: 'calculateFirstHost',
@@ -215,7 +215,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die letzte nutzbare Hostadresse aus IP und Präfix.',
       calculator: 'calculateLastHost',
@@ -236,7 +236,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Anzahl nutzbarer Hostadressen aus dem Präfix.',
       calculator: 'calculateUsableHosts',
@@ -257,7 +257,7 @@ export const ipv4SubnettingKnowledgeItems = [
     conceptCluster: 'subnetting.calculation',
     type: KNOWLEDGE_TYPES.CALCULATION,
     difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     data: {
       description: 'Berechne die Sprungweite im relevanten Oktett aus dem Präfix.',
       calculator: 'calculateJumpSize',
