@@ -49,24 +49,18 @@ const CONCEPT_COOLDOWN_MS = 2 * 60 * 1000;
 // Knowledge Layer pilot integration (Phase 5)
 // =============================================================================
 
-const PILOT_KNOWLEDGE_TOPICS = new Set([
-  topicKey('fundamentals', 'osi-model'),
-  topicKey('fundamentals', 'binary-system'),
-  topicKey('fundamentals', 'ipv4'),
-  topicKey('fundamentals', 'subnet-masks'),
-  topicKey('fundamentals', 'subnetting'),
-  topicKey('fundamentals', 'switching'),
-  topicKey('fundamentals', 'vlan-basics'),
-  topicKey('cisco-packet-tracer', 'ssh'),
-]);
-
 const EXCLUDED_KNOWLEDGE_ITEMS = new Set([
   'osi.toTcpIp',       // intentionally has no template yet (ambiguity)
   'ssh.configProcedure', // rigid 10-step ordering – disabled until dependency graph
 ]);
 
-function isKnowledgePilotTopic(topicKeyName) {
-  return PILOT_KNOWLEDGE_TOPICS.has(topicKeyName);
+/**
+ * Returns true when the Knowledge Layer has at least one non-excluded item for
+ * the given topic. Replaces the hard-coded PILOT_KNOWLEDGE_TOPICS allowlist so
+ * new topics become available automatically once their knowledge items exist.
+ */
+function hasKnowledgeCoverage(topicKeyName) {
+  return knowledgeItemsForTopic(topicKeyName).length > 0;
 }
 
 function knowledgeItemsForTopic(topicKeyName) {
@@ -401,9 +395,10 @@ function generateQuestionFromCandidate(candidate, seed, contextType, difficulty)
 function pickQuestionForTopic(key, topicState, session, history, options = {}) {
   const { conversation = null, questionIndex = 0, employee = null, topicsByKey = null } = options;
 
-  // If the topic is a Knowledge Layer pilot, use the semantic balancer to pick
-  // a concrete knowledge item; otherwise fall back to the legacy archetype pool.
-  if (isKnowledgePilotTopic(key)) {
+  // If the topic is covered by the Knowledge Layer, use the semantic balancer
+  // to pick a concrete knowledge item; otherwise fall back to the legacy
+  // archetype pool.
+  if (hasKnowledgeCoverage(key)) {
     const candidates = buildKnowledgeCandidates(key);
     if (!candidates.length) return null;
 
@@ -1086,5 +1081,55 @@ export const CONVERSATION_TOPICS = {
       { id: 'ssh-conv-6', difficulty: 'hard', text: 'Router, L2-Switch und Multilayer-Switch werden alle per SSH verwaltet. Was ist der EINE tatsächliche Unterschied zwischen den drei Geräten in der SSH-Konfiguration?', options: ['Nur der Router braucht einen RSA-Schlüssel', 'Nichts unterscheidet sich, alle drei sind identisch konfiguriert', 'Nur die Art, wie die IP-Erreichbarkeit hergestellt wird (physisches Interface vs. Management-SVI) - Hostname, Domain, Benutzer, RSA-Key, SSHv2 und VTY-Absicherung sind bei allen dreien identisch', 'Multilayer-Switches benötigen kein "login local"'], correct: 2, explanation: 'Die eigentliche SSH-Absicherung (Hostname/Domain für den Schlüsselnamen, enable secret, lokaler Benutzer, RSA-Key, SSHv2, VTY-Zugriff) ist bei allen drei Gerätetypen gleich. Unterschiedlich ist ausschließlich, wie das Gerät überhaupt eine erreichbare IP-Adresse bekommt.' },
       { id: 'ssh-conv-7', difficulty: 'hard', text: 'Ein Kollege hat "transport input ssh" vergessen und fragt, welches konkrete Sicherheitsrisiko dadurch entsteht, obwohl SSH selbst korrekt konfiguriert ist. Was antwortest du?', options: ['Keins, SSH ist ja trotzdem verfügbar', 'Ohne diesen Befehl bleibt auf denselben VTY-Leitungen weiterhin unverschlüsseltes Telnet erlaubt - ein Angreifer könnte sich also trotz vorhandenem SSH per Telnet im Klartext anmelden', 'Der RSA-Schlüssel wird dadurch ungültig', 'Der lokale Benutzer wird automatisch gelöscht'], correct: 1, explanation: '"transport input ssh" schränkt die erlaubten Protokolle auf den VTY-Leitungen ein. Ohne diesen Befehl bleibt Telnet zusätzlich zu SSH erlaubt - SSH allein zu konfigurieren schließt die unsichere Telnet-Tür nicht automatisch.' },
     ],
+  },
+  [topicKey('fundamentals', 'vlsm')]: {
+    title: 'VLSM',
+    relatedTopics: [topicKey('fundamentals', 'subnetting'), topicKey('fundamentals', 'supernetting')],
+    introPool: [
+      'Wir müssen ein Netz in unterschiedlich große Subnetze aufteilen. Wie geht das nochmal?',
+      'VLSM – wann spare ich damit wirklich Adressen?',
+    ],
+    samHelp: 'VLSM erlaubt unterschiedlich große Subnetze innerhalb desselben Netzes. Planung: größte Subnetze zuerst, kleinstmöglicher passender Präfix, Blöcke lückenlos aneinanderreihen.',
+    questions: [],
+  },
+  [topicKey('fundamentals', 'supernetting')]: {
+    title: 'Supernetting',
+    relatedTopics: [topicKey('fundamentals', 'vlsm'), topicKey('fundamentals', 'routing')],
+    introPool: [
+      'Wann fasse ich mehrere kleine Netze zu einer Route zusammen?',
+      'Supernetting – was ist dabei fachlich wichtig?',
+    ],
+    samHelp: 'Supernetting fasst benachbarte Netze zu einer größeren Route zusammen, um Routing-Tabellen zu verkleinern. Voraussetzungen: lückenlos nebeneinander, gleiche Größe, Blockgrenzen.',
+    questions: [],
+  },
+  [topicKey('cisco-packet-tracer', 'grundlagen')]: {
+    title: 'Cisco IOS-Grundlagen',
+    relatedTopics: [topicKey('cisco-packet-tracer', 'router-basics'), topicKey('fundamentals', 'routing')],
+    introPool: [
+      'Wie ist der Cisco IOS-Bootvorgang nochmal sortiert?',
+      'Was ist der Unterschied zwischen running-config und startup-config?',
+    ],
+    samHelp: 'Cisco IOS ist das Betriebssystem auf Cisco-Geräten. Boot: POST, Bootstrap, IOS laden, Konfiguration laden. Speicher: ROM (Bootstrap), Flash (IOS), NVRAM (startup-config), RAM (running-config). Konfigurationsmodi: User EXEC, Privileged EXEC, Global Config, Interface Config.',
+    questions: [],
+  },
+  [topicKey('cisco-packet-tracer', 'router-basics')]: {
+    title: 'Router-Grundlagen',
+    relatedTopics: [topicKey('cisco-packet-tracer', 'static-routing'), topicKey('fundamentals', 'routing')],
+    introPool: [
+      'Wie entscheidet ein Router, wohin ein Paket geschickt wird?',
+      'Was ist die Longest Prefix Match?',
+    ],
+    samHelp: 'Ein Router verbindet Netze und leitet Pakete anhand der Ziel-IP und der Routing-Tabelle weiter. Die Routing-Tabelle enthält Zielnetz, Next Hop, Ausgangsschnittstelle und Metrik. Bei mehreren passenden Einträgen gewinnt die längste Präfixmaske.',
+    questions: [],
+  },
+  [topicKey('cisco-packet-tracer', 'static-routing')]: {
+    title: 'Statisches Routing',
+    relatedTopics: [topicKey('cisco-packet-tracer', 'router-basics'), topicKey('fundamentals', 'routing')],
+    introPool: [
+      'Wann setzt man eine statische Route statt eines dynamischen Protokolls ein?',
+      'Was braucht eine statische Route mindestens?',
+    ],
+    samHelp: 'Statische Routen werden manuell eingetragen. Sie brauchen Zielnetz, Subnetzmaske und Next Hop (oder Ausgangsschnittstelle). Die Default Route 0.0.0.0/0 greift, wenn keine spezifischere Route passt.',
+    questions: [],
   },
 };

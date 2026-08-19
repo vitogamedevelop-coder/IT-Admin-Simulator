@@ -23,6 +23,8 @@ import { binaryKnowledgeItems } from './items/binary.js';
 import { ipv4SubnettingKnowledgeItems } from './items/ipv4.js';
 import { switchingVlanKnowledgeItems } from './items/switchingVlan.js';
 import { sshKnowledgeItems } from './items/ssh.js';
+import { NETWORK_BASICS_ITEMS } from './items/networkBasics.js';
+import { CISCO_THEORY_ITEMS } from './items/ciscoTheory.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
@@ -74,6 +76,8 @@ const PILOT_ITEMS = [
   ...ipv4SubnettingKnowledgeItems,
   ...switchingVlanKnowledgeItems,
   ...sshKnowledgeItems,
+  ...NETWORK_BASICS_ITEMS,
+  ...CISCO_THEORY_ITEMS,
 ];
 
 const REGISTRY = new Map(PILOT_ITEMS.map((item) => [item.id, item]));

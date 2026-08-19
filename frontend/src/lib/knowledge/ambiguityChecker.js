@@ -57,13 +57,14 @@ export const KNOWN_AMBIGUITIES = [
   },
   {
     id: 'vlan-port-without-access-trunk',
-    description: 'VLAN port questions must mention whether Access or Trunk is meant.',
+    description: 'VLAN port questions must make clear whether Access or Trunk is meant.',
     detect: (instance) => {
       if (!instance.conceptCluster || !instance.conceptCluster.startsWith('vlan')) return false;
       const prompt = String(instance.prompt).toLowerCase();
-      const asksPort = /welcher\s+port|an\s+welchem\s+port|port\s+gehört/.test(prompt);
+      const asksPort = /welcher\s+port|an\s+welchem\s+port|port\s+gehört|porttyp/.test(prompt);
       const accessTrunk = /\b(access|trunk)\b/.test(prompt);
-      return asksPort && !accessTrunk;
+      const contextClear = /\b(endgerät|mehrere vlans|genau ein vlan|switch|router)\b/.test(prompt);
+      return asksPort && !accessTrunk && !contextClear;
     },
   },
   {

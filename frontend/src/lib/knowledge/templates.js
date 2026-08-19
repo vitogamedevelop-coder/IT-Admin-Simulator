@@ -822,9 +822,21 @@ function switchingVlanTemplates() {
           { label: 'Ohne VLANs teilen sich alle angeschlossenen Geräte eine gemeinsame Broadcast-Domäne.', correct: true, source: 'broadcastDomain' },
         ];
         const fact = rng.pick(facts);
-        const directPrompt = `Welche Aussage über ${fact.source === 'collisionDomain' ? 'Kollisionsdomänen' : 'Broadcast-Domänen'} ist korrekt?`;
+        const isCollision = fact.source === 'collisionDomain';
+        const directPrompt = isCollision
+          ? 'Was gilt bei einem Switch für Kollisionsdomänen pro Port?'
+          : 'Wann endet eine Broadcast-Domäne in einem normalen (nicht VLAN-segmentierten) Switch-Netz?';
+        const leads = isCollision
+          ? [
+            'Ich verwechsle Kollisions- und Broadcast-Domänen ständig.',
+            'Beim Kabeltausch diskutierten wir gerade: teilt ein Switch damit auch Kollisionsdomänen?',
+          ]
+          : [
+            'Ich trenne hier gerade zwei Bereiche logisch.',
+            'Wir planen ein flaches Netz ohne VLANs.',
+          ];
         const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, ['Ich verwechsle Kollisions- und Broadcast-Domänen.', 'Kurze Frage zu Domänen:'], rng)
+          ? withCoworkerLead(directPrompt, leads, rng)
           : directPrompt;
         const distractors = [
           'Ein Switch teilt Broadcast-Domänen pro Port.',
@@ -853,7 +865,7 @@ function switchingVlanTemplates() {
           knowledgeFacet: 'switching.domains.kinds',
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
-          conversationLeads: ['Ich verwechsle Kollisions- und Broadcast-Domänen.', 'Kurze Frage zu Domänen:'],
+          conversationLeads: leads,
           wrongOptionExplanations,
         });
       },
@@ -978,7 +990,10 @@ function switchingVlanTemplates() {
       supportedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const portType = rng.pick(item.data.items);
-        const directPrompt = `Welche Aussage beschreibt einen ${portType.name}?`;
+        const isAccess = portType.name === 'Access-Port';
+        const directPrompt = isAccess
+          ? 'An welchem Porttyp hängt typischerweise ein Endgerät und transportiert er genau ein VLAN?'
+          : 'Welcher Porttyp transportiert mehrere VLANs, typischerweise zwischen Switchen oder zu einem Router?';
         const prompt = contextType === 'coworker_question'
           ? withCoworkerLead(directPrompt, vlanLeads, rng)
           : directPrompt;
@@ -1567,6 +1582,292 @@ function sshTemplates() {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 7 generic templates (network basics & Cisco theory)
+// ---------------------------------------------------------------------------
+
+const PHASE7_PREFIXES = new Set([
+  'grundbegriffe',
+  'topologien',
+  'kommunikation',
+  'tcpudp',
+  'dns',
+  'dhcp',
+  'routing',
+  'vlsm',
+  'supernetting',
+  'cisco',
+]);
+
+function isPhase7Item(item) {
+  const first = item.conceptCluster.split('.')[0];
+  return PHASE7_PREFIXES.has(first);
+}
+
+function phase7DefinitionTemplates() {
+  return [
+    {
+      id: 'phase7.definition.recall',
+      archetype: QUESTION_ARCHETYPES.RECALL,
+      matches: (item) => item.type === KNOWLEDGE_TYPES.DEFINITION && isPhase7Item(item),
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const term = item.data.term || item.data.subject || 'diesen Begriff';
+        const directPrompt = `Was ist ${term}?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
+          : directPrompt;
+        const correctValue = item.data.definition || item.data.description;
+        const distractors = siblingDistractors(
+          item,
+          allItemsById,
+          3,
+          (sib) => sib.data?.definition || sib.data?.description,
+          rng,
+        );
+        const wrongOptionExplanations = {};
+        const siblings = Object.values(allItemsById).filter((sib) => (item.siblings || []).includes(sib.id));
+        for (const sib of siblings) {
+          const label = sib.data?.definition || sib.data?.description;
+          if (label) {
+            const sibTerm = sib.data?.term || sib.data?.subject || 'einen anderen Begriff';
+            wrongOptionExplanations[label] = `Das beschreibt ${sibTerm}, nicht ${term}.`;
+          }
+        }
+        return buildMcInstance({
+          templateId: 'phase7.definition.recall',
+          item,
+          archetype: QUESTION_ARCHETYPES.RECALL,
+          seed,
+          prompt,
+          correctValue,
+          distractorValues: distractors,
+          explanation: item.data.definition || item.data.description,
+          contextType,
+          roleHints: item.roleHints || ['technical'],
+          rng,
+          learningObjective: item.conceptCluster,
+          knowledgeFacet: `${item.conceptCluster}.definition`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: NEUTRAL_LEADS,
+          wrongOptionExplanations,
+        });
+      },
+    },
+  ];
+}
+
+function phase7PropertyTemplates() {
+  return [
+    {
+      id: 'phase7.property.selectBest',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.type === KNOWLEDGE_TYPES.PROPERTY && isPhase7Item(item),
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const subject = item.data.subject || item.data.name || item.data.term || 'dieses Thema';
+        const directPrompt = `Was trifft auf ${subject} zu?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
+          : directPrompt;
+        const correctValue = item.data.description;
+        const distractors = siblingDistractors(
+          item,
+          allItemsById,
+          3,
+          (sib) => sib.data?.description || sib.data?.definition,
+          rng,
+        );
+        const wrongOptionExplanations = {};
+        const siblings = Object.values(allItemsById).filter((sib) => (item.siblings || []).includes(sib.id));
+        for (const sib of siblings) {
+          const label = sib.data?.description || sib.data?.definition;
+          if (label) {
+            const sibSubject = sib.data?.subject || sib.data?.name || sib.data?.term || 'einen anderen Begriff';
+            wrongOptionExplanations[label] = `Das trifft eher auf ${sibSubject} zu, nicht auf ${subject}.`;
+          }
+        }
+        return buildMcInstance({
+          templateId: 'phase7.property.selectBest',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          roleHints: item.roleHints || ['technical'],
+          rng,
+          learningObjective: item.conceptCluster,
+          knowledgeFacet: `${item.conceptCluster}.property`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: NEUTRAL_LEADS,
+          wrongOptionExplanations,
+        });
+      },
+    },
+  ];
+}
+
+function phase7CompareTemplates() {
+  return [
+    {
+      id: 'phase7.compare.identify',
+      archetype: QUESTION_ARCHETYPES.COMPARE,
+      matches: (item) => item.type === KNOWLEDGE_TYPES.COMPARE
+        && isPhase7Item(item)
+        && Array.isArray(item.data.items)
+        && item.data.items.length >= 2,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const compareOn = item.data.compareOn;
+        const selected = rng.pick(item.data.items);
+        const detail = (compareOn && selected[compareOn] != null)
+          ? selected[compareOn]
+          : selected.description
+            || selected.tagline
+            || selected.reach
+            || selected.scope
+            || selected.resilience
+            || selected.connection
+            || selected.config
+            || selected.purpose
+            || selected.volatility
+            || selected.reliability
+            || selected.order
+            || selected.overhead
+            || selected.speed
+            || selected.useCases
+            || selected.example;
+        const directPrompt = `Welcher Begriff passt zu dieser Beschreibung? „${detail}“`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
+          : directPrompt;
+        const correctValue = selected.name;
+        const distractors = item.data.items
+          .filter((i) => i.name !== selected.name)
+          .map((i) => i.name);
+        const wrongOptionExplanations = {};
+        for (const i of item.data.items) {
+          if (i.name !== selected.name) {
+            wrongOptionExplanations[i.name] = `${i.name} passt nicht – diese Beschreibung gehört zu ${selected.name}.`;
+          }
+        }
+        return buildMcInstance({
+          templateId: 'phase7.compare.identify',
+          item,
+          archetype: QUESTION_ARCHETYPES.COMPARE,
+          seed,
+          prompt,
+          correctValue,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          roleHints: item.roleHints || ['technical'],
+          rng,
+          learningObjective: item.conceptCluster,
+          knowledgeFacet: `${item.conceptCluster}.compare`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: NEUTRAL_LEADS,
+          wrongOptionExplanations,
+        });
+      },
+    },
+  ];
+}
+
+function phase7OrderTemplates() {
+  return [
+    {
+      id: 'phase7.order.steps',
+      archetype: QUESTION_ARCHETYPES.ORDERING,
+      matches: (item) => item.type === KNOWLEDGE_TYPES.ORDER
+        && isPhase7Item(item)
+        && Array.isArray(item.data.steps)
+        && item.data.steps.length >= 2,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING],
+      generate: (item, _allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = 'Bringe die Schritte in die richtige Reihenfolge.';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
+          : directPrompt;
+        const items = item.data.steps.map((step, idx) => ({
+          id: step.id || `step-${idx}`,
+          label: step.label || step,
+        }));
+        const correctOrderIds = items.map((s) => s.id);
+        return buildOrderingInstance({
+          templateId: 'phase7.order.steps',
+          item,
+          archetype: QUESTION_ARCHETYPES.ORDERING,
+          seed,
+          prompt,
+          items,
+          correctOrderIds,
+          explanation: item.data.description,
+          contextType,
+          roleHints: item.roleHints || ['technical'],
+          rng,
+          learningObjective: item.conceptCluster,
+          knowledgeFacet: `${item.conceptCluster}.order`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: NEUTRAL_LEADS,
+        });
+      },
+    },
+  ];
+}
+
+function phase7MappingTemplates() {
+  return [
+    {
+      id: 'phase7.mapping.pairs',
+      archetype: QUESTION_ARCHETYPES.MATCHING,
+      matches: (item) => item.type === KNOWLEDGE_TYPES.MAPPING
+        && isPhase7Item(item)
+        && Array.isArray(item.data.pairs)
+        && item.data.pairs.length >= 2,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.MAPPING],
+      generate: (item, _allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = 'Ordne die Begriffe den passenden Beschreibungen zu.';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
+          : directPrompt;
+        const pairs = item.data.pairs.map((p, idx) => ({
+          leftId: `l-${idx}`,
+          leftLabel: p.key || p.left,
+          rightId: `r-${idx}`,
+          rightLabel: p.value || p.right,
+        }));
+        const correctPairs = pairs.map((p) => ({ leftId: p.leftId, rightId: p.rightId }));
+        return buildMatchingInstance({
+          templateId: 'phase7.mapping.pairs',
+          item,
+          archetype: QUESTION_ARCHETYPES.MATCHING,
+          seed,
+          prompt,
+          pairs,
+          correctPairs,
+          explanation: item.data.description,
+          contextType,
+          roleHints: item.roleHints || ['technical'],
+          rng,
+          learningObjective: item.conceptCluster,
+          knowledgeFacet: `${item.conceptCluster}.mapping`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: NEUTRAL_LEADS,
+        });
+      },
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -1578,6 +1879,11 @@ export const TEMPLATES = [
   ...subnettingTemplates(),
   ...switchingVlanTemplates(),
   ...sshTemplates(),
+  ...phase7DefinitionTemplates(),
+  ...phase7PropertyTemplates(),
+  ...phase7CompareTemplates(),
+  ...phase7OrderTemplates(),
+  ...phase7MappingTemplates(),
 ];
 
 export function findTemplatesForItem(item, archetype = null) {

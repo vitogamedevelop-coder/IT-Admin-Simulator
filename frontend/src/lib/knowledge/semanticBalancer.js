@@ -336,6 +336,18 @@ export function selectCandidate(candidates, state, options = {}) {
   const rules = antiSpamRules(state.history);
   pool = applyAntiSpamFilters(pool, rules, Math.min(3, candidates.length));
 
+  // Strong fallback: never pick the exact same knowledge item as the previous
+  // question when alternatives exist. This prevents cross-session streaks in
+  // mass tests and keeps the conversation from repeating the same item back-to-back.
+  const allRecords = [...(state.history?.longTerm || []), ...(state.history?.session || [])];
+  const lastRecord = allRecords[allRecords.length - 1] || null;
+  if (lastRecord?.knowledgeItemId && pool.length > 1) {
+    const withoutLast = pool.filter((w) => w.sig.knowledgeItemId !== lastRecord.knowledgeItemId);
+    if (withoutLast.length > 0) {
+      pool = withoutLast;
+    }
+  }
+
   // Fallback: if hard rules emptied everything, relax completely and keep weights.
   if (!pool.length) {
     pool = candidates.map((c) => computeWeight(c, state, cfg));

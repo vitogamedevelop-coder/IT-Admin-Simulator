@@ -144,12 +144,30 @@ console.log('Legacy topic still uses legacy questions');
     resetState();
     unlockAllFundamentals();
     conv = startEmployeeConversation();
+    if (conv.currentTopicKey === topicKey('fundamentals', 'ports')) break;
+  }
+  assertTrue(!!conv, 'conversation started');
+  if (conv.currentTopicKey === topicKey('fundamentals', 'ports')) {
+    assertFalse(isKnowledgeQuestion(conv.question), 'ports question should be legacy');
+    assertTrue(!!conv.question.explanation, 'legacy question has explanation');
+  }
+}
+
+console.log('Migrated topic uses knowledge questions');
+{
+  resetState();
+  unlockAllFundamentals();
+  let conv = null;
+  for (let i = 0; i < 50; i += 1) {
+    resetState();
+    unlockAllFundamentals();
+    conv = startEmployeeConversation();
     if (conv.currentTopicKey === topicKey('fundamentals', 'dhcp')) break;
   }
   assertTrue(!!conv, 'conversation started');
   if (conv.currentTopicKey === topicKey('fundamentals', 'dhcp')) {
-    assertFalse(isKnowledgeQuestion(conv.question), 'dhcp question should be legacy');
-    assertTrue(!!conv.question.explanation, 'legacy question has explanation');
+    assertTrue(isKnowledgeQuestion(conv.question), 'dhcp question should come from knowledge layer');
+    assertTrue(!!conv.question.explanation, 'knowledge question has explanation');
   }
 }
 
