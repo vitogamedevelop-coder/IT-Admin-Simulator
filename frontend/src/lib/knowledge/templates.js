@@ -82,7 +82,7 @@ function baseInstance({ templateId, item, archetype, seed, prompt, contextType, 
   };
 }
 
-function buildMcInstance({ templateId, item, archetype, seed, prompt, correctValue, distractorValues, explanation, contextType, speechLeadIn, roleHints, rng, calculationParams = null, answerFormat = null, extraSemanticTags = [], learningObjective = null, knowledgeFacet = null, promptStyle = PROMPT_STYLES.SELF_CONTAINED, contextDependency = CONTEXT_DEPENDENCIES.NEUTRAL, conversationLeads = null }) {
+function buildMcInstance({ templateId, item, archetype, seed, prompt, correctValue, distractorValues, explanation, contextType, speechLeadIn, roleHints, rng, calculationParams = null, answerFormat = null, extraSemanticTags = [], learningObjective = null, knowledgeFacet = null, promptStyle = PROMPT_STYLES.SELF_CONTAINED, contextDependency = CONTEXT_DEPENDENCIES.NEUTRAL, conversationLeads = null, wrongOptionExplanations = null }) {
   const { options, correctOptionId } = buildMcOptions(String(correctValue), distractorValues, rng, 'opt');
   const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency });
   instance.options = options;
@@ -93,6 +93,15 @@ function buildMcInstance({ templateId, item, archetype, seed, prompt, correctVal
   instance.ttsText = instance.conversationText;
   if (calculationParams) instance.calculationParams = calculationParams;
   if (answerFormat) instance.answerFormat = answerFormat;
+  if (wrongOptionExplanations) {
+    // Templates usually know explanations by label; map them to the generated
+    // option IDs so the conversation engine can look them up by answer id.
+    instance.wrongOptionExplanations = {};
+    for (const opt of options) {
+      const expl = wrongOptionExplanations[opt.label];
+      if (expl) instance.wrongOptionExplanations[opt.id] = expl;
+    }
+  }
   if (extraSemanticTags.length > 0) {
     instance.semanticTags = Array.from(new Set([...instance.semanticTags, ...extraSemanticTags]));
   }
@@ -174,6 +183,11 @@ function osiLayerTemplates() {
           : directPrompt;
         const name = layer(item).name;
         const distractors = siblingDistractors(item, allItemsById, 3, (sib) => sib.data.name, rng);
+        const siblings = Object.values(allItemsById).filter((sib) => sib.conceptCluster === item.conceptCluster && sib.id !== item.id);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.data.name] = `${sib.data.name} ist OSI-Schicht ${sib.data.layer}. Schicht ${layer(item).layer} heißt dagegen ${name}.`;
+        }
         return buildMcInstance({
           templateId: 'osi.layer.numberToName',
           item,
@@ -182,6 +196,7 @@ function osiLayerTemplates() {
           prompt,
           correctValue: name,
           distractorValues: distractors,
+          explanation: `${name} ist OSI-Schicht ${layer(item).layer}.`,
           contextType,
           speechLeadIn: contextType === 'coworker_question' ? prompt.split('.')[0] + '.' : null,
           roleHints: ['technical'],
@@ -191,6 +206,7 @@ function osiLayerTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: osiLayerLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -206,6 +222,11 @@ function osiLayerTemplates() {
           : directPrompt;
         const num = layer(item).layer;
         const distractors = siblingDistractors(item, allItemsById, 3, (sib) => String(sib.data.layer), rng);
+        const siblings = Object.values(allItemsById).filter((sib) => sib.conceptCluster === item.conceptCluster && sib.id !== item.id);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[String(sib.data.layer)] = `Schicht ${sib.data.layer} ist die ${sib.data.name}. Die gesuchte Schicht "${layer(item).name}" hat dagegen die Nummer ${num}.`;
+        }
         return buildMcInstance({
           templateId: 'osi.layer.nameToNumber',
           item,
@@ -214,6 +235,7 @@ function osiLayerTemplates() {
           prompt,
           correctValue: num,
           distractorValues: distractors,
+          explanation: `${layer(item).name} ist OSI-Schicht ${num}.`,
           contextType,
           speechLeadIn: contextType === 'coworker_question' ? prompt.split('.')[0] + '.' : null,
           roleHints: ['technical'],
@@ -223,6 +245,7 @@ function osiLayerTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: osiLayerLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -234,13 +257,16 @@ function osiLayerTemplates() {
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const task = layer(item).responsibility;
         const directPrompt = `Auf welcher OSI-Schicht ist man zuständig für: "${task}"?`;
-        // Bare prompt: the composer will prepend a single neutral lead, avoiding
-        // double actor embedding like "Ein Kollege fragt: Ein Kollege fragt ...".
         const prompt = contextType === 'coworker_question'
           ? withCoworkerLead(directPrompt, osiLayerLeads, rng)
           : directPrompt;
         const name = layer(item).name;
         const distractors = siblingDistractors(item, allItemsById, 3, (sib) => sib.data.name, rng);
+        const siblings = Object.values(allItemsById).filter((sib) => sib.conceptCluster === item.conceptCluster && sib.id !== item.id);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.data.name] = `Die ${sib.data.name} ist zuständig für ${sib.data.responsibility}. Für ${task} ist dagegen die ${name} zuständig.`;
+        }
         return buildMcInstance({
           templateId: 'osi.layer.taskToLayer',
           item,
@@ -249,6 +275,7 @@ function osiLayerTemplates() {
           prompt,
           correctValue: name,
           distractorValues: distractors,
+          explanation: `Für ${task} ist die ${name} zuständig.`,
           contextType,
           speechLeadIn: contextType === 'coworker_question' ? prompt.split('.')[0] + '.' : null,
           roleHints: ['helpdesk'],
@@ -258,6 +285,7 @@ function osiLayerTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: osiLayerLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -268,8 +296,6 @@ function osiLayerTemplates() {
       supportedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.SELECT_BEST],
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const fault = rng.pick(layer(item).typicalFaults);
-        // Bare prompt: no outer actor.  The single lead in conversation mode
-        // owns the scenario, preventing "Ein Techniker meldet: Ein Techniker stellt fest ...".
         const directPrompt = `Bei "${fault}" – auf welcher OSI-Schicht beginnst du die Diagnose?`;
         const scenarioLeads = [
           'Ein Techniker meldet einen Fehler.',
@@ -281,6 +307,12 @@ function osiLayerTemplates() {
           : directPrompt;
         const name = layer(item).name;
         const distractors = siblingDistractors(item, allItemsById, 3, (sib) => sib.data.name, rng);
+        const siblings = Object.values(allItemsById).filter((sib) => sib.conceptCluster === item.conceptCluster && sib.id !== item.id);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          const sibFaults = sib.data.typicalFaults.slice(0, 2).join(', ');
+          wrongOptionExplanations[sib.data.name] = `Die ${sib.data.name} behandelt eher ${sibFaults || 'andere Probleme'}. Bei "${fault}" beginnst du dagegen bei der ${name}.`;
+        }
         return buildMcInstance({
           templateId: 'osi.layer.faultToLayer',
           item,
@@ -289,6 +321,7 @@ function osiLayerTemplates() {
           prompt,
           correctValue: name,
           distractorValues: distractors,
+          explanation: `Bei "${fault}" beginnst du die Diagnose auf der ${name}.`,
           contextType,
           speechLeadIn: null,
           roleHints: ['helpdesk', 'technical'],
@@ -298,6 +331,7 @@ function osiLayerTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: scenarioLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -460,6 +494,11 @@ function binaryTemplates() {
           : directPrompt;
         const correct = `Von ${item.data.min} bis ${item.data.max}.`;
         const distractors = ['Von 0 bis 256.', 'Von 1 bis 256.', 'Von 0 bis 128.'];
+        const wrongOptionExplanations = {
+          'Von 0 bis 256.': 'Mit 8 Bit lassen sich 256 verschiedene Werte darstellen, aber die Zählung beginnt bei 0, daher ist die obere Grenze 255.',
+          'Von 1 bis 256.': 'Ein Oktett kann den Wert 0 annehmen und maximal 255, nicht 256.',
+          'Von 0 bis 128.': '0 bis 128 sind nur 129 Werte; 8 Bit können 256 verschiedene Werte darstellen.',
+        };
         return buildMcInstance({
           templateId: 'binary.octetRange',
           item,
@@ -478,6 +517,7 @@ function binaryTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: binaryLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -531,9 +571,9 @@ function ipv4Templates() {
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const ranges = item.data.ranges;
         const correctEntry = rng.pick([...ranges]);
-        const directPrompt = 'Welche der folgenden Adressen liegt in einem privaten IPv4-Bereich?';
+        const directPrompt = 'Welche dieser IPv4-Adressen liegt in einem privaten Bereich?';
         const prompt = contextType === 'coworker_question'
-          ? 'Ein Kollege fragt, ob diese Adresse wirklich nur intern geroutet werden darf. ' + directPrompt
+          ? 'Ein Kollege fragt, ob diese Adresse wirklich nur intern geroutet werden darf. Welche davon wäre im privaten IPv4-Bereich?'
           : directPrompt;
         // Build plausible options: one from the correct range, others public/loopback.
         const correctIp = pickFromRange(correctEntry.network, rng);
@@ -544,6 +584,13 @@ function ipv4Templates() {
           '127.0.0.1',
           '169.254.1.5',
         ];
+        const wrongOptionExplanations = {
+          '8.8.8.8': '8.8.8.8 ist ein öffentlicher Google-DNS-Server, kein privater Bereich.',
+          '1.1.1.1': '1.1.1.1 ist ein öffentlicher Cloudflare-DNS-Server, kein privater Bereich.',
+          '9.9.9.9': '9.9.9.9 ist ein öffentlicher Quad9-DNS-Server, kein privater Bereich.',
+          '127.0.0.1': '127.0.0.1 ist Loopback und für lokale Diagnose gedacht, nicht für private Netzwerke.',
+          '169.254.1.5': '169.254.x.x ist APIPA/Link-Local, nicht einer der privaten Bereiche.',
+        };
         return buildMcInstance({
           templateId: 'ipv4.privateRanges',
           item,
@@ -552,6 +599,7 @@ function ipv4Templates() {
           prompt,
           correctValue: correctIp,
           distractorValues: rng.shuffle(distractorIps).slice(0, 3),
+          explanation: `${correctEntry.network} gehört zu den privaten IPv4-Bereichen.`,
           contextType,
           speechLeadIn: null,
           roleHints: ['helpdesk'],
@@ -561,6 +609,7 @@ function ipv4Templates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
           conversationLeads: [],
+          wrongOptionExplanations,
         });
       },
     },
@@ -574,6 +623,11 @@ function ipv4Templates() {
         const prompt = contextType === 'coworker_question'
           ? 'Ein Test soll prüfen, ob der eigene TCP/IP-Stack funktioniert. ' + directPrompt
           : directPrompt;
+        const wrongOptionExplanations = {
+          '0.0.0.0': '0.0.0.0 ist die Default-Route, keine Loopback-Adresse.',
+          '255.255.255.255': '255.255.255.255 ist eine Limited-Broadcast-Adresse, kein Loopback.',
+          '192.168.0.1': '192.168.0.1 ist eine typische private Router-IP, kein Loopback.',
+        };
         return buildMcInstance({
           templateId: 'ipv4.loopback',
           item,
@@ -582,6 +636,7 @@ function ipv4Templates() {
           prompt,
           correctValue: item.data.typical,
           distractorValues: ['0.0.0.0', '255.255.255.255', '192.168.0.1'],
+          explanation: `Die Loopback-Adresse ${item.data.typical} testet den eigenen TCP/IP-Stack.`,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
@@ -591,6 +646,7 @@ function ipv4Templates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
           conversationLeads: [],
+          wrongOptionExplanations,
         });
       },
     },
@@ -610,6 +666,11 @@ function ipv4Templates() {
           'Das Gateway ist nicht konfiguriert.',
           'Der Switch-Port ist deaktiviert.',
         ];
+        const wrongOptionExplanations = {
+          'Der Client hat eine gültige öffentliche IP erhalten.': '169.254.x.x ist kein öffentlicher Bereich, sondern Link-Local/APIPA.',
+          'Das Gateway ist nicht konfiguriert.': 'Fehlendes Gateway würde andere Symptome zeigen; 169.254.x.x entsteht durch fehlenden DHCP.',
+          'Der Switch-Port ist deaktiviert.': 'Bei deaktiviertem Port würde gar keine IP-Anzeige erfolgen, nicht APIPA.',
+        };
         return buildMcInstance({
           templateId: 'ipv4.apipa',
           item,
@@ -618,7 +679,7 @@ function ipv4Templates() {
           prompt,
           correctValue: correct,
           distractorValues: distractors,
-          explanation: item.data.meaning,
+          explanation: correct,
           contextType,
           speechLeadIn: null,
           roleHints: ['helpdesk'],
@@ -628,6 +689,7 @@ function ipv4Templates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
           conversationLeads: [],
+          wrongOptionExplanations,
         });
       },
     },
@@ -647,6 +709,11 @@ function ipv4Templates() {
           'Welches Subnetz als erstes vergeben wird.',
           'Die Anzahl der verfügbaren Ports auf dem Server.',
         ];
+        const wrongOptionExplanations = {
+          'Wie viele Hosts im Netz maximal aktiv sein dürfen.': 'Die Hostanzahl ergibt sich aus den Hostbits, also 32 minus Präfix. Der Präfix selbst gibt die Netzbits an.',
+          'Welches Subnetz als erstes vergeben wird.': 'Der Präfix legt die Größe fest, nicht die Reihenfolge oder Nummerierung der Subnetze.',
+          'Die Anzahl der verfügbaren Ports auf dem Server.': 'Ports auf einem Server haben nichts mit dem CIDR-Präfix zu tun.',
+        };
         return buildMcInstance({
           templateId: 'ipv4.cidrPrefix',
           item,
@@ -665,6 +732,7 @@ function ipv4Templates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Kurze Abfrage zum Präfix:', 'Ich prüfe gerade die IP-Notation.'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -763,6 +831,11 @@ function switchingVlanTemplates() {
           'Hubs bilden eigene Kollisionsdomänen pro Port.',
           'Router leiten Broadcasts im selben Netz weiter.',
         ];
+        const wrongOptionExplanations = {
+          'Ein Switch teilt Broadcast-Domänen pro Port.': 'Nein – ein Switch teilt Kollisionsdomänen pro Port, aber Broadcasts gehen an alle Ports innerhalb desselben VLANs.',
+          'Hubs bilden eigene Kollisionsdomänen pro Port.': 'Nein – Hubs kennen keine eigenen Kollisionsdomänen pro Port, das macht erst ein Switch.',
+          'Router leiten Broadcasts im selben Netz weiter.': 'Nein – Router begrenzen Broadcast-Domänen und leiten Broadcasts normalerweise nicht weiter.',
+        };
         return buildMcInstance({
           templateId: 'switching.domains',
           item,
@@ -771,7 +844,7 @@ function switchingVlanTemplates() {
           prompt,
           correctValue: fact.label,
           distractorValues: rng.shuffle(distractors).slice(0, 3),
-          explanation: item.data.description,
+          explanation: fact.label,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
@@ -781,6 +854,7 @@ function switchingVlanTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Ich verwechsle Kollisions- und Broadcast-Domänen.', 'Kurze Frage zu Domänen:'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -829,9 +903,12 @@ function switchingVlanTemplates() {
           ? withCoworkerLead(directPrompt, ['Ich verwechsle Hub, Switch und Router.', 'Kurze Abfrage:'], rng)
           : directPrompt;
         const correctLabel = correctDevice.behavior;
-        const distractors = item.data.items
-          .filter((d) => d.name !== correctDevice.name)
-          .map((d) => d.behavior);
+        const siblings = item.data.items.filter((d) => d.name !== correctDevice.name);
+        const distractors = siblings.map((d) => d.behavior);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.behavior] = `Das beschreibt eher ein ${sib.name}. Ein ${correctDevice.name} ${correctDevice.behavior.toLowerCase()}.`;
+        }
         return buildMcInstance({
           templateId: 'switching.deviceCompare',
           item,
@@ -840,6 +917,7 @@ function switchingVlanTemplates() {
           prompt,
           correctValue: correctLabel,
           distractorValues: distractors,
+          explanation: `Ein ${correctDevice.name} ${correctDevice.behavior.toLowerCase()}.`,
           contextType,
           speechLeadIn: null,
           roleHints: ['helpdesk'],
@@ -849,6 +927,7 @@ function switchingVlanTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Ich verwechsle Hub, Switch und Router.', 'Kurze Abfrage:'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -864,9 +943,12 @@ function switchingVlanTemplates() {
           ? withCoworkerLead(directPrompt, ['Kannst du mir kurz helfen?', 'Switch-Verhalten:'], rng)
           : directPrompt;
         const correct = caseEntry.action;
-        const distractors = item.data.cases
-          .filter((c) => c.action !== correct)
-          .map((c) => c.action);
+        const siblingCases = item.data.cases.filter((c) => c.action !== correct);
+        const distractors = siblingCases.map((c) => c.action);
+        const wrongOptionExplanations = {};
+        for (const sib of siblingCases) {
+          wrongOptionExplanations[sib.action] = `Das würde eher passen, wenn ${sib.condition}. Hier ist aber ${caseEntry.condition}.`;
+        }
         return buildMcInstance({
           templateId: 'switching.forwardFloodFilter',
           item,
@@ -875,6 +957,7 @@ function switchingVlanTemplates() {
           prompt,
           correctValue: correct,
           distractorValues: distractors,
+          explanation: `Wenn ${caseEntry.condition}, ${caseEntry.action}.`,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
@@ -884,6 +967,7 @@ function switchingVlanTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Kannst du mir kurz helfen?', 'Switch-Verhalten:'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -899,9 +983,12 @@ function switchingVlanTemplates() {
           ? withCoworkerLead(directPrompt, vlanLeads, rng)
           : directPrompt;
         const correct = `${portType.endpoint}: ${portType.carries}`;
-        const distractors = item.data.items
-          .filter((p) => p.name !== portType.name)
-          .map((p) => `${p.endpoint}: ${p.carries}`);
+        const siblings = item.data.items.filter((p) => p.name !== portType.name);
+        const distractors = siblings.map((p) => `${p.endpoint}: ${p.carries}`);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[`${sib.endpoint}: ${sib.carries}`] = `Das beschreibt einen ${sib.name}. Ein ${portType.name} ist dagegen für ${portType.endpoint} gedacht.`;
+        }
         return buildMcInstance({
           templateId: 'vlan.accessVsTrunk',
           item,
@@ -910,6 +997,7 @@ function switchingVlanTemplates() {
           prompt,
           correctValue: correct,
           distractorValues: distractors,
+          explanation: `Ein ${portType.name} ist für ${correct.toLowerCase()}.`,
           contextType,
           speechLeadIn: null,
           roleHints: ['helpdesk'],
@@ -919,6 +1007,7 @@ function switchingVlanTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: vlanLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -977,6 +1066,11 @@ function switchingVlanTemplates() {
           'Ein VLAN ist eine spezielle Router-Schnittstelle für das Internet.',
           'Ein VLAN ersetzt die MAC-Adresstabelle eines Switches.',
         ];
+        const wrongOptionExplanations = {
+          'Ein VLAN verbindet physisch getrennte Switches zu einem einzigen Broadcast-Bereich.': 'Nein – VLANs trennen Broadcast-Domänen, selbst wenn die Geräte am selben Switch hängen.',
+          'Ein VLAN ist eine spezielle Router-Schnittstelle für das Internet.': 'Nein – VLANs arbeiten auf Layer 2 und sind keine Router-Schnittstellen.',
+          'Ein VLAN ersetzt die MAC-Adresstabelle eines Switches.': 'Nein – der Switch behält seine MAC-Tabelle, VLANs ergänzen nur die logische Trennung.',
+        };
         return buildMcInstance({
           templateId: 'vlan.definition',
           item,
@@ -995,6 +1089,7 @@ function switchingVlanTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: vlanLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -1014,6 +1109,11 @@ function switchingVlanTemplates() {
           'Durch die Ziel-IP-Adresse.',
           'Durch die Portnummer des Endgeräts.',
         ];
+        const wrongOptionExplanations = {
+          'Durch die Quell-MAC-Adresse.': 'Die MAC-Adresse hilft dem Switch beim Forwarding, nicht der VLAN-Zuordnung auf einem Trunk.',
+          'Durch die Ziel-IP-Adresse.': 'IP-Adressen werden erst auf Layer 3 ausgewertet, nicht für VLAN-Tags.',
+          'Durch die Portnummer des Endgeräts.': 'Die physische Portnummer hat nichts mit dem VLAN-Tag im Frame zu tun.',
+        };
         return buildMcInstance({
           templateId: 'vlan.tagging',
           item,
@@ -1032,6 +1132,7 @@ function switchingVlanTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Wir planen gerade Trunk-Verbindungen.', 'Kurze Abfrage zu VLANs:'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -1051,6 +1152,11 @@ function switchingVlanTemplates() {
           'Fehlende Stromversorgung von Switches.',
           'Zu wenige physische Netzwerkkabel.',
         ];
+        const wrongOptionExplanations = {
+          'Zu langsame Internetverbindungen im LAN.': 'VLANs beeinflussen die Internetgeschwindigkeit nicht direkt, sondern die logische Segmentierung.',
+          'Fehlende Stromversorgung von Switches.': 'Stromversorgung ist ein Hardware-Problem, das VLANs nicht lösen.',
+          'Zu wenige physische Netzwerkkabel.': 'VLANs reduzieren sogar oft die Kabelanzahl, weil ein Link mehrere VLANs tragen kann.',
+        };
         return buildMcInstance({
           templateId: 'vlan.problemSolved',
           item,
@@ -1069,6 +1175,7 @@ function switchingVlanTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: vlanLeads,
+          wrongOptionExplanations,
         });
       },
     },
@@ -1101,6 +1208,10 @@ function sshTemplates() {
         const correct = proto.encrypted
           ? 'SSH verschlüsselt die gesamte Verbindung inklusive Zugangsdaten.'
           : 'Telnet überträgt Daten und Zugangsdaten im Klartext.';
+        const wrongOptionExplanations = {
+          'SSH überträgt alles im Klartext.': 'Nein – SSH verschlüsselt Daten und Zugangsdaten. Klartextübertragung ist Telnet.',
+          'Telnet verschlüsselt die Verbindung.': 'Nein – Telnet überträgt alles unverschlüsselt. SSH ist das Protokoll mit Verschlüsselung.',
+        };
         const distractors = item.data.items
           .filter((p) => p.name !== proto.name)
           .map((p) => (p.encrypted
@@ -1114,6 +1225,7 @@ function sshTemplates() {
           prompt,
           correctValue: correct,
           distractorValues: distractors,
+          explanation: correct,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
@@ -1123,6 +1235,7 @@ function sshTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Wir prüfen gerade die Remote-Zugänge.', 'Sicherheitsfrage:'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -1175,6 +1288,11 @@ function sshTemplates() {
           'RSA funktioniert nur mit IP-Adressen.',
           'Der Befehl funktioniert auch ohne Hostname und Domain.',
         ];
+        const wrongOptionExplanations = {
+          'RSA-Schlüssel brauchen zufällige Namen.': 'Der Name ist nicht zufällig – Hostname und Domain Name bilden den FQDN, der im RSA-Schlüssel hinterlegt wird.',
+          'RSA funktioniert nur mit IP-Adressen.': 'RSA-Schlüssel selbst haben nichts mit einer IP zu tun; sie brauchen einen FQDN.',
+          'Der Befehl funktioniert auch ohne Hostname und Domain.': 'Ohne Hostname und Domain Name kann der Router keinen FQDN erzeugen, der Befehl schlägt fehl.',
+        };
         return buildMcInstance({
           templateId: 'ssh.rsaKeyRequirements',
           item,
@@ -1183,6 +1301,7 @@ function sshTemplates() {
           prompt,
           correctValue: correct,
           distractorValues: distractors,
+          explanation: correct,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
@@ -1192,6 +1311,7 @@ function sshTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['SSH-Fehlersuche:', sshLeads[1]],
+          wrongOptionExplanations,
         });
       },
     },
@@ -1211,6 +1331,11 @@ function sshTemplates() {
           'Weil ein L2-Switch sonst nicht bootet.',
           'Es gibt keinen Unterschied zu einem Access-Port.',
         ];
+        const wrongOptionExplanations = {
+          'Weil VLAN 99 automatisch das Management-VLAN ist.': 'VLAN 99 ist nur eine Konvention, keine Pflicht. Das Problem ist, dass ein reiner L2-Switch keine geroutete IP besitzt.',
+          'Weil ein L2-Switch sonst nicht bootet.': 'Booten funktioniert auch ohne Management-SVI; sie wird für die IP-Erreichbarkeit benötigt.',
+          'Es gibt keinen Unterschied zu einem Access-Port.': 'Doch – ein Access-Port dient Endgeräten; die SVI ist die logische IP-Schnittstelle des Switches selbst.',
+        };
         return buildMcInstance({
           templateId: 'ssh.managementSvi',
           item,
@@ -1219,6 +1344,7 @@ function sshTemplates() {
           prompt,
           correctValue: correct,
           distractorValues: distractors,
+          explanation: correct,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
@@ -1228,6 +1354,7 @@ function sshTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Wir konfigurieren einen L2-Switch per SSH.', sshLeads[0]],
+          wrongOptionExplanations,
         });
       },
     },
@@ -1247,6 +1374,11 @@ function sshTemplates() {
           'Er erlaubt sowohl SSHv1 als auch SSHv2.',
           'Er schaltet Telnet auf Port 22 um.',
         ];
+        const wrongOptionExplanations = {
+          'Er aktiviert SSH Version 1.': 'Nein – "ip ssh version 2" verbietet SSHv1. SSHv1 muss vorher schon aktiviert gewesen sein.',
+          'Er erlaubt sowohl SSHv1 als auch SSHv2.': 'Nein – gerade Version 2 erzwingt, dass Version 1 abgelehnt wird.',
+          'Er schaltet Telnet auf Port 22 um.': 'Nein – Telnet bleibt ein eigenes Protokoll; Port 22 gehört SSH.',
+        };
         return buildMcInstance({
           templateId: 'ssh.version',
           item,
@@ -1265,6 +1397,7 @@ function sshTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Wir härten gerade den SSH-Zugang.', 'Sicherheitsfrage:'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -1284,6 +1417,11 @@ function sshTemplates() {
           'password cisco und login',
           'username admin privilege 15',
         ];
+        const wrongOptionExplanations = {
+          'login und transport input telnet': '"login" ohne "local" nutzt das Line-Passwort, nicht die lokale Benutzerdatenbank; "transport input telnet" erlaubt zudem unsicheres Telnet.',
+          'password cisco und login': 'Das setzt ein Line-Passwort, aber wir wollen die lokale Benutzerdatenbank und ausschließlich SSH.',
+          'username admin privilege 15': 'Der Benutzer wird global angelegt, aber auf den VTY-Lines muss noch "login local" und "transport input ssh" stehen.',
+        };
         return buildMcInstance({
           templateId: 'ssh.vtyConfig',
           item,
@@ -1302,6 +1440,7 @@ function sshTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Wir konfigurieren die VTY-Lines.', sshLeads[0]],
+          wrongOptionExplanations,
         });
       },
     },
@@ -1317,9 +1456,12 @@ function sshTemplates() {
           ? withCoworkerLead(directPrompt, ['Wir vergleichen Router, L2-Switch und MLS.', 'SSH-Planung:'], rng)
           : directPrompt;
         const correct = device.ipReachability;
-        const distractors = item.data.items
-          .filter((d) => d.name !== device.name)
-          .map((d) => d.ipReachability);
+        const siblings = item.data.items.filter((d) => d.name !== device.name);
+        const distractors = siblings.map((d) => d.ipReachability);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.ipReachability] = `Das trifft eher auf einen ${sib.name}. Ein ${device.name} ${device.ipReachability.toLowerCase()}.`;
+        }
         return buildMcInstance({
           templateId: 'ssh.ipReachabilityTypes',
           item,
@@ -1338,6 +1480,7 @@ function sshTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: ['Wir vergleichen Router, L2-Switch und MLS.', 'SSH-Planung:'],
+          wrongOptionExplanations,
         });
       },
     },
@@ -1353,9 +1496,12 @@ function sshTemplates() {
           ? withCoworkerLead(directPrompt, ['Ich bekomme beim SSH-Verbindungsaufbau eine Fehlermeldung.', 'SSH-Fehlersuche:'], rng)
           : directPrompt;
         const correct = symptomEntry.cause;
-        const distractors = item.data.symptoms
-          .filter((s) => s.cause !== correct)
-          .map((s) => s.cause);
+        const siblings = item.data.symptoms.filter((s) => s.cause !== correct);
+        const distractors = siblings.map((s) => s.cause);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.cause] = `Bei "${sib.symptom}" wäre das passend. Hier ist aber "${symptomEntry.symptom}" zu sehen.`;
+        }
         return buildMcInstance({
           templateId: 'ssh.troubleshooting',
           item,
@@ -1364,7 +1510,7 @@ function sshTemplates() {
           prompt,
           correctValue: correct,
           distractorValues: distractors,
-          explanation: item.data.description,
+          explanation: `Symptom "${symptomEntry.symptom}" deutet meist auf: ${correct}.`,
           contextType,
           speechLeadIn: null,
           roleHints: ['technical'],
@@ -1374,6 +1520,7 @@ function sshTemplates() {
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
           conversationLeads: [],
+          wrongOptionExplanations,
         });
       },
     },

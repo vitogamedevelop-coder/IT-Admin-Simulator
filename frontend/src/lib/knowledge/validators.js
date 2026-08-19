@@ -314,6 +314,26 @@ export function validateQuestionInstance(instance) {
       if (correctCount !== 1) {
         add('correctOptionId', 'Exactly one option must be marked as correct');
       }
+
+      // Phase 6: avoid mixing numeric and non-numeric options (giveaway risk).
+      const numericLabels = labels.filter((l) => /^\d+([.,]\d+)?$/.test(l));
+      if (numericLabels.length > 0 && numericLabels.length < labels.length) {
+        add('options', 'Mixed numeric/non-numeric option labels may give away the answer');
+      }
+
+      // Phase 6: full-sentence options should have similar lengths to avoid a giveaway.
+      const sentenceLabels = instance.options.filter((o) => {
+        const t = String(o.label).trim();
+        return /[.!?]$/.test(t) && t.split(/\s+/).length >= 3;
+      });
+      if (sentenceLabels.length > 0 && sentenceLabels.length === labels.length) {
+        const lengths = labels.map((l) => l.split(/\s+/).length);
+        const avg = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+        const maxDev = Math.max(...lengths.map((l) => Math.abs(l - avg)));
+        if (maxDev > 8) {
+          add('options', `Full-sentence option lengths vary too much (max deviation ${maxDev.toFixed(1)} words)`);
+        }
+      }
     }
   }
 

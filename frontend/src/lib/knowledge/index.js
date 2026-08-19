@@ -59,6 +59,7 @@ export {
   getFacetMasteryMap,
   getFacetCooldownInfo,
   gapSinceFacet,
+  setFacetMasteryOverride,
 } from './facetMastery.js';
 export {
   selectCandidate,

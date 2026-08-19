@@ -562,6 +562,19 @@ function difficultyToNumber(d) {
   return 2;
 }
 
+/**
+ * Build a Sam explanation that addresses the actual wrong answer when possible.
+ * Falls back to the question's base explanation if no answer-aware explanation
+ * is available.
+ */
+function buildAnswerAwareExplanation(question, answer) {
+  if (question.type === 'mc' && answer && question.wrongOptionExplanations) {
+    const specific = question.wrongOptionExplanations[answer];
+    if (specific) return specific;
+  }
+  return question.explanation;
+}
+
 function evaluateAnswer(question, answer) {
   if (!answer) return false;
   if (question.type === 'mc') return answer === question.correctOptionId;
@@ -625,7 +638,7 @@ export function evaluateEmployeeAnswer(conversation, answer) {
     // Sam intervenes on every wrong answer so the player immediately gets
     // the explanation from the mentor.
     samStageDirection = pickSamStageDirection();
-    samExplanation = question.explanation;
+    samExplanation = buildAnswerAwareExplanation(question, answer);
 
     recordConversationResult(currentTopicKey, {
       correct: false,

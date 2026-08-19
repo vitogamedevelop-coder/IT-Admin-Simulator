@@ -13,6 +13,7 @@ import { createRng } from './random.js';
 import { getKnowledgeItem, getAllKnowledgeItems } from './index.js';
 import { TEMPLATES, findTemplatesForItem } from './templates.js';
 import { selectCandidate, createBalancerState } from './semanticBalancer.js';
+import { getFacetCooldownInfo, gapSinceFacet } from './facetMastery.js';
 
 export class QuestionGenerationError extends Error {
   constructor(message, knowledgeItemId, templateId) {
@@ -99,12 +100,55 @@ export function generateRandomQuestion(options = {}) {
   return generateQuestion(item.id, null, { seed, contextType, archetype, difficulty: itemDifficulty });
 }
 
+function probeTemplateFacet(template, item, allItemsById, archetype, difficulty) {
+  try {
+    const rng = createRng(`${item.id}|${template.id}|facet-probe|${archetype || '*'}|${difficulty || '*'}`);
+    const instance = template.generate(item, allItemsById, rng, { contextType: 'direct_question', seed: 'facet-probe', difficulty });
+    return instance.knowledgeFacet || null;
+  } catch {
+    return null;
+  }
+}
+
+function weightedPickTemplate(templatesWithFacets, state, rng) {
+  if (templatesWithFacets.length === 0) return null;
+  if (templatesWithFacets.length === 1) return templatesWithFacets[0].template;
+
+  const records = [...(state.history?.longTerm || []), ...(state.history?.session || [])];
+  const weighted = templatesWithFacets.map(({ template, facet }) => {
+    let weight = 1.0;
+    if (facet) {
+      const info = getFacetCooldownInfo(facet);
+      if (info.score <= 0) {
+        weight *= Math.max(0.5, 1 + info.priorityBoost);
+      } else {
+        weight *= Math.max(0.1, 1 - info.score * 0.12);
+      }
+      const gap = gapSinceFacet(records, facet);
+      if (gap >= info.maxGap) weight *= 1.5;
+      else if (gap === Infinity) weight *= 1.1;
+    }
+    return { template, weight };
+  });
+
+  const total = weighted.reduce((s, w) => s + w.weight, 0);
+  let roll = rng.next() * total;
+  for (const w of weighted) {
+    if (roll < w.weight) return w.template;
+    roll -= w.weight;
+  }
+  return weighted[weighted.length - 1].template;
+}
+
 /**
  * Generate a question using the semantic balancer to pick the next
  * Knowledge Item. The balancer decides WHAT to ask; the Question Generator
  * decides HOW the concrete instance looks.
  *
- * @param {object} state – balancer state (history, progressByTopic, lastResult, difficultyProfile).
+ * Phase 6: after an item is chosen, the template is selected based on the
+ * facet mastery state so weak facets are more likely to be practiced.
+ *
+ * @param {object} state – balancer state (history, progressByTopic, lastResult, difficultyProfile, facetMasteryMap).
  * @param {object} options
  * @param {string} options.seed – deterministic selection seed.
  * @param {string} options.contextType – 'direct_question' | 'coworker_question'.
@@ -141,7 +185,19 @@ export function generateBalancedQuestion(state, options = {}) {
   }
 
   const itemDifficulty = difficulty || selected.difficulty;
-  return generateQuestion(selected.id, null, { seed, contextType, archetype, difficulty: itemDifficulty });
+  const templates = findTemplatesForItem(selected, archetype);
+  const allItemsById = Object.fromEntries(getAllKnowledgeItems().map((i) => [i.id, i]));
+  const templateRng = createRng(`${seed}|template-pick|${selected.id}`);
+  const templatesWithFacets = templates.map((t) => ({
+    template: t,
+    facet: probeTemplateFacet(t, selected, allItemsById, archetype, itemDifficulty),
+  }));
+  const template = weightedPickTemplate(templatesWithFacets, state, templateRng);
+  if (!template) {
+    throw new QuestionGenerationError(`No template could be chosen for item ${selected.id}`);
+  }
+
+  return generateQuestion(selected.id, template.id, { seed, contextType, archetype, difficulty: itemDifficulty });
 }
 
 /**

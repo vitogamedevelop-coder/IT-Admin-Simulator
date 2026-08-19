@@ -17,8 +17,18 @@ import { FACET_MASTERY } from './types.js';
 const STORAGE_KEY = 'cyberlearn:facet-mastery-v1';
 
 let memoryCache = null;
+let overrideStore = null;
+
+/**
+ * Allows tests and simulations to inject a fully in-memory facet mastery store
+ * without touching localStorage. Passing null clears the override.
+ */
+export function setFacetMasteryOverride(map) {
+  overrideStore = map && typeof map === 'object' ? { ...map } : null;
+}
 
 function readStore() {
+  if (overrideStore) return overrideStore;
   if (memoryCache) return memoryCache;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -32,6 +42,10 @@ function readStore() {
 
 function writeStore(store) {
   memoryCache = store;
+  if (overrideStore) {
+    overrideStore = { ...store };
+    return;
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   } catch {
