@@ -26,7 +26,13 @@ import { sshKnowledgeItems } from './items/ssh.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
-export { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from './types.js';
+export {
+  KNOWLEDGE_TYPES,
+  QUESTION_ARCHETYPES,
+  DIFFICULTY,
+  PROMPT_STYLES,
+  CONTEXT_DEPENDENCIES,
+} from './types.js';
 export { createRng } from './random.js';
 export { validateQuestionInstance, validateQuestionInstances, validateKnowledgeRegistry, validateKnowledgeItem } from './validators.js';
 export { generateQuestion, generateRandomQuestion, generateBalancedQuestion, listApplicableTemplates, TEMPLATES } from './questionGenerator.js';
@@ -43,6 +49,17 @@ export {
   getRecent,
   getLongTermRecent,
 } from './semanticHistory.js';
+export {
+  getFacetMasteryScore,
+  updateFacetMasteryScore,
+  recordFacetCorrect,
+  recordFacetWrong,
+  resetFacetMastery,
+  getAllFacetMasteryScores,
+  getFacetMasteryMap,
+  getFacetCooldownInfo,
+  gapSinceFacet,
+} from './facetMastery.js';
 export {
   selectCandidate,
   createBalancerState,

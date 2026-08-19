@@ -12,7 +12,12 @@
 //   - Natural-language variants are optional metadata, not the faktual core.
 // =============================================================================
 
-import { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES } from './types.js';
+import {
+  KNOWLEDGE_TYPES,
+  QUESTION_ARCHETYPES,
+  PROMPT_STYLES,
+  CONTEXT_DEPENDENCIES,
+} from './types.js';
 import {
   siblingDistractors,
   buildMcOptions,
@@ -23,6 +28,14 @@ import { generateCalculationData } from './calculationGenerators.js';
 // Shared helpers
 // ---------------------------------------------------------------------------
 
+const NEUTRAL_LEADS = [
+  'Kannst du mir kurz bei etwas helfen?',
+  'Ich bin mir bei einer Sache gerade nicht sicher.',
+  'Kannst du das kurz gegenprüfen?',
+  'Kurze Abfrage:',
+  'Ich wollte das gerade nochmal sicher wissen:',
+];
+
 function chooseLead(leads, rng) {
   if (!leads || leads.length === 0) return '';
   return leads[Math.floor(rng.next() * leads.length)];
@@ -32,15 +45,32 @@ function makeInstanceId(templateId, itemId, seed) {
   return `${templateId}.${itemId}.${seed}`;
 }
 
-function baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints }) {
+/**
+ * Build the full natural-language utterance for a conversation.
+ * - bare prompt           -> prepend a compatible lead
+ * - self-contained prompt -> render as-is (the template already owns the full utterance)
+ * - direct/academy mode    -> return the bare prompt
+ */
+function buildConversationText({ prompt, promptStyle, contextType, conversationLeads, rng }) {
+  if (contextType !== 'coworker_question') return prompt;
+  if (promptStyle === PROMPT_STYLES.SELF_CONTAINED) return prompt;
+  const lead = chooseLead(conversationLeads || NEUTRAL_LEADS, rng);
+  return lead ? `${lead} ${prompt}` : prompt;
+}
+
+function baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency }) {
   return {
     instanceId: makeInstanceId(templateId, item.id, seed),
     topicKey: item.topicKey,
     knowledgeItemId: item.id,
     conceptCluster: item.conceptCluster,
+    learningObjective: learningObjective || item.conceptCluster || null,
+    knowledgeFacet: knowledgeFacet || `${item.conceptCluster}.${templateId}` || null,
     questionArchetype: archetype,
     difficulty: item.difficulty,
     prompt,
+    promptStyle: promptStyle || PROMPT_STYLES.SELF_CONTAINED,
+    contextDependency: contextDependency || CONTEXT_DEPENDENCIES.NEUTRAL,
     sourceTopicKey: item.sourceTopicKey,
     semanticTags: [item.conceptCluster.split('.')[0], item.conceptCluster, archetype],
     context: {
@@ -52,13 +82,15 @@ function baseInstance({ templateId, item, archetype, seed, prompt, contextType, 
   };
 }
 
-function buildMcInstance({ templateId, item, archetype, seed, prompt, correctValue, distractorValues, explanation, contextType, speechLeadIn, roleHints, rng, calculationParams = null, answerFormat = null, extraSemanticTags = [] }) {
+function buildMcInstance({ templateId, item, archetype, seed, prompt, correctValue, distractorValues, explanation, contextType, speechLeadIn, roleHints, rng, calculationParams = null, answerFormat = null, extraSemanticTags = [], learningObjective = null, knowledgeFacet = null, promptStyle = PROMPT_STYLES.SELF_CONTAINED, contextDependency = CONTEXT_DEPENDENCIES.NEUTRAL, conversationLeads = null }) {
   const { options, correctOptionId } = buildMcOptions(String(correctValue), distractorValues, rng, 'opt');
-  const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints });
+  const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency });
   instance.options = options;
   instance.correctOptionId = correctOptionId;
   instance.correctAnswer = { optionId: correctOptionId, label: String(correctValue) };
   instance.explanation = explanation || item.data.description || prompt;
+  instance.conversationText = buildConversationText({ prompt, promptStyle, contextType, conversationLeads, rng });
+  instance.ttsText = instance.conversationText;
   if (calculationParams) instance.calculationParams = calculationParams;
   if (answerFormat) instance.answerFormat = answerFormat;
   if (extraSemanticTags.length > 0) {
@@ -71,30 +103,42 @@ function buildMcInstance({ templateId, item, archetype, seed, prompt, correctVal
   return instance;
 }
 
-function buildOrderingInstance({ templateId, item, archetype, seed, prompt, items, correctOrderIds, explanation, contextType, speechLeadIn, roleHints, rng }) {
-  const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints });
+function buildOrderingInstance({ templateId, item, archetype, seed, prompt, items, correctOrderIds, explanation, contextType, speechLeadIn, roleHints, rng, learningObjective = null, knowledgeFacet = null, promptStyle = PROMPT_STYLES.SELF_CONTAINED, contextDependency = CONTEXT_DEPENDENCIES.NEUTRAL, conversationLeads = null }) {
+  const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency });
   instance.items = rng.shuffle([...items]);
   instance.correctOrderIds = correctOrderIds;
   instance.correctAnswer = { orderIds: correctOrderIds };
   instance.explanation = explanation;
+  instance.conversationText = buildConversationText({ prompt, promptStyle, contextType, conversationLeads, rng });
+  instance.ttsText = instance.conversationText;
   instance.type = 'ordering';
   instance.text = prompt;
   return instance;
 }
 
-function buildMatchingInstance({ templateId, item, archetype, seed, prompt, pairs, correctPairs, explanation, contextType, speechLeadIn, roleHints, rng }) {
-  const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints });
+function buildMatchingInstance({ templateId, item, archetype, seed, prompt, pairs, correctPairs, explanation, contextType, speechLeadIn, roleHints, rng, learningObjective = null, knowledgeFacet = null, promptStyle = PROMPT_STYLES.SELF_CONTAINED, contextDependency = CONTEXT_DEPENDENCIES.NEUTRAL, conversationLeads = null }) {
+  const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency });
   const left = rng.shuffle([...pairs.map((p) => ({ id: p.leftId, label: p.leftLabel }))]);
   const right = rng.shuffle([...pairs.map((p) => ({ id: p.rightId, label: p.rightLabel }))]);
   instance.pairs = { left, right };
+  // Provide the same data under the legacy leftItems/rightItems keys so that
+  // conversation components and older evaluators keep working.
+  instance.leftItems = left;
+  instance.rightItems = right;
   instance.correctPairs = correctPairs;
   instance.correctAnswer = { pairs: correctPairs };
   instance.explanation = explanation;
+  instance.conversationText = buildConversationText({ prompt, promptStyle, contextType, conversationLeads, rng });
+  instance.ttsText = instance.conversationText;
   instance.type = 'matching';
   instance.text = prompt;
   return instance;
 }
 
+/**
+ * Legacy helper: prepends a lead to a prompt.  Prefer using buildConversationText
+ * with explicit promptStyle/conversationLeads to avoid double actor embedding.
+ */
 function withCoworkerLead(prompt, leads, rng) {
   const lead = chooseLead(leads, rng);
   return lead ? `${lead} ${prompt}` : prompt;
@@ -110,6 +154,10 @@ const osiLayerLeads = [
   'Ich lerne gerade für die Prüfung und bin unsicher:',
   'Ich habe gelesen, dass die OSI-Schichten wichtig sind.',
 ];
+
+function osiLayerObjective(item, aspect) {
+  return `osi.layer${item.data.layer}.${aspect}`;
+}
 
 function osiLayerTemplates() {
   const layer = (item) => item.data;
@@ -138,6 +186,11 @@ function osiLayerTemplates() {
           speechLeadIn: contextType === 'coworker_question' ? prompt.split('.')[0] + '.' : null,
           roleHints: ['technical'],
           rng,
+          learningObjective: `osi.layer${layer(item).layer}`,
+          knowledgeFacet: osiLayerObjective(item, 'name'),
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: osiLayerLeads,
         });
       },
     },
@@ -165,6 +218,11 @@ function osiLayerTemplates() {
           speechLeadIn: contextType === 'coworker_question' ? prompt.split('.')[0] + '.' : null,
           roleHints: ['technical'],
           rng,
+          learningObjective: `osi.layer${layer(item).layer}`,
+          knowledgeFacet: osiLayerObjective(item, 'name'),
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: osiLayerLeads,
         });
       },
     },
@@ -176,8 +234,10 @@ function osiLayerTemplates() {
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const task = layer(item).responsibility;
         const directPrompt = `Auf welcher OSI-Schicht ist man zuständig für: "${task}"?`;
+        // Bare prompt: the composer will prepend a single neutral lead, avoiding
+        // double actor embedding like "Ein Kollege fragt: Ein Kollege fragt ...".
         const prompt = contextType === 'coworker_question'
-          ? `Ein Kollege fragt: "Wenn ich '${task}' höre, auf welcher OSI-Schicht bin ich dann?"`
+          ? withCoworkerLead(directPrompt, osiLayerLeads, rng)
           : directPrompt;
         const name = layer(item).name;
         const distractors = siblingDistractors(item, allItemsById, 3, (sib) => sib.data.name, rng);
@@ -190,9 +250,14 @@ function osiLayerTemplates() {
           correctValue: name,
           distractorValues: distractors,
           contextType,
-          speechLeadIn: contextType === 'coworker_question' ? 'Ein Kollege fragt:' : null,
+          speechLeadIn: contextType === 'coworker_question' ? prompt.split('.')[0] + '.' : null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: `osi.layer${layer(item).layer}`,
+          knowledgeFacet: osiLayerObjective(item, 'function'),
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: osiLayerLeads,
         });
       },
     },
@@ -203,9 +268,16 @@ function osiLayerTemplates() {
       supportedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.SELECT_BEST],
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const fault = rng.pick(layer(item).typicalFaults);
-        const directPrompt = `Ein Techniker stellt fest: "${fault}". Auf welcher OSI-Schicht beginnst du die Diagnose?`;
+        // Bare prompt: no outer actor.  The single lead in conversation mode
+        // owns the scenario, preventing "Ein Techniker meldet: Ein Techniker stellt fest ...".
+        const directPrompt = `Bei "${fault}" – auf welcher OSI-Schicht beginnst du die Diagnose?`;
+        const scenarioLeads = [
+          'Ein Techniker meldet einen Fehler.',
+          'Fehlersuche:',
+          'Ein Kollege berichtet:',
+        ];
         const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, ['Kabelproblem:', 'Ein Techniker meldet:', 'Fehlersuche:'], rng)
+          ? withCoworkerLead(directPrompt, scenarioLeads, rng)
           : directPrompt;
         const name = layer(item).name;
         const distractors = siblingDistractors(item, allItemsById, 3, (sib) => sib.data.name, rng);
@@ -221,6 +293,11 @@ function osiLayerTemplates() {
           speechLeadIn: null,
           roleHints: ['helpdesk', 'technical'],
           rng,
+          learningObjective: `osi.layer${layer(item).layer}`,
+          knowledgeFacet: osiLayerObjective(item, 'troubleshooting'),
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: scenarioLeads,
         });
       },
     },
@@ -255,6 +332,11 @@ function osiOrderingTemplates() {
           speechLeadIn: contextType === 'coworker_question' ? 'Ich verwechsle ständig die Kapselungsrichtung.' : null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'osi.encapsulation',
+          knowledgeFacet: 'osi.encapsulation.senderOrder',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Ich verwechsle ständig die Kapselungsrichtung.'],
         });
       },
     },
@@ -264,6 +346,12 @@ function osiOrderingTemplates() {
 // ---------------------------------------------------------------------------
 // Binary templates
 // ---------------------------------------------------------------------------
+
+const binaryLeads = [
+  'Ich rechne gerade an Oktett-Werten.',
+  'Kurze Abfrage zum Binär:',
+  'Ich brauche für die Dokumentation die Binärdarstellung.',
+];
 
 function binaryTemplates() {
   return [
@@ -292,6 +380,11 @@ function binaryTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'binary.values',
+          knowledgeFacet: 'binary.values.order',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Ich habe die Bitwerte durcheinandergebracht.', 'Kurze Abfrage:'],
         });
       },
     },
@@ -318,6 +411,10 @@ function binaryTemplates() {
           calculationParams: calc.params,
           answerFormat: calc.answerFormat,
           extraSemanticTags: calc.semanticTags,
+          learningObjective: 'binary.decimalToBinary',
+          knowledgeFacet: 'binary.decimalToBinary.calculation',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.PARAMETRIC,
         });
       },
     },
@@ -344,6 +441,10 @@ function binaryTemplates() {
           calculationParams: calc.params,
           answerFormat: calc.answerFormat,
           extraSemanticTags: calc.semanticTags,
+          learningObjective: 'binary.binaryToDecimal',
+          knowledgeFacet: 'binary.binaryToDecimal.calculation',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.PARAMETRIC,
         });
       },
     },
@@ -355,7 +456,7 @@ function binaryTemplates() {
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const directPrompt = 'Welchen Wertebereich kann ein Oktett (8 Bit) darstellen?';
         const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, ['Kurze Abfrage zum Binär:', 'Ich rechne gerade Oktette.'], rng)
+          ? withCoworkerLead(directPrompt, binaryLeads, rng)
           : directPrompt;
         const correct = `Von ${item.data.min} bis ${item.data.max}.`;
         const distractors = ['Von 0 bis 256.', 'Von 1 bis 256.', 'Von 0 bis 128.'];
@@ -372,6 +473,11 @@ function binaryTemplates() {
           speechLeadIn: null,
           roleHints: ['general'],
           rng,
+          learningObjective: 'binary.range',
+          knowledgeFacet: 'binary.range.octet',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: binaryLeads,
         });
       },
     },
@@ -381,6 +487,8 @@ function binaryTemplates() {
 // ---------------------------------------------------------------------------
 // IPv4 templates
 // ---------------------------------------------------------------------------
+
+const ipv4Leads = ['Schnelle Abfrage:', 'Stimmt das so?', 'Kurze Abfrage:'];
 
 function ipv4Templates() {
   return [
@@ -392,7 +500,7 @@ function ipv4Templates() {
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const directPrompt = 'Wie viele Bit hat eine IPv4-Adresse insgesamt?';
         const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, ['Schnelle Abfrage:', 'Stimmt das so?'], rng)
+          ? withCoworkerLead(directPrompt, ipv4Leads, rng)
           : directPrompt;
         const correct = item.data.totalBits;
         return buildMcInstance({
@@ -407,6 +515,11 @@ function ipv4Templates() {
           speechLeadIn: null,
           roleHints: ['general'],
           rng,
+          learningObjective: 'ipv4.structure',
+          knowledgeFacet: 'ipv4.structure.bits',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ipv4Leads,
         });
       },
     },
@@ -443,6 +556,11 @@ function ipv4Templates() {
           speechLeadIn: null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: 'ipv4.ranges',
+          knowledgeFacet: 'ipv4.ranges.private',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
         });
       },
     },
@@ -468,6 +586,11 @@ function ipv4Templates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ipv4.special',
+          knowledgeFacet: 'ipv4.special.loopback',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
         });
       },
     },
@@ -500,6 +623,11 @@ function ipv4Templates() {
           speechLeadIn: null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: 'ipv4.special',
+          knowledgeFacet: 'ipv4.special.apipa',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
         });
       },
     },
@@ -532,6 +660,11 @@ function ipv4Templates() {
           speechLeadIn: null,
           roleHints: ['general'],
           rng,
+          learningObjective: 'ipv4.cidr',
+          knowledgeFacet: 'ipv4.cidr.prefixMeaning',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Kurze Abfrage zum Präfix:', 'Ich prüfe gerade die IP-Notation.'],
         });
       },
     },
@@ -550,6 +683,12 @@ function makeCalculationTemplate(id, itemId, allowedQuestionTypes) {
     supportedQuestionTypes: allowedQuestionTypes,
     generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null } = {}) => {
       const calc = generateCalculationData(item, rng, { difficulty, contextType });
+      const family = item.data.calculationFamily;
+      const target = item.data.target || 'mask';
+      const learningObjective = family === 'subnetting' ? 'subnetting.calculation' : `binary.${family}`;
+      const knowledgeFacet = family === 'subnetting'
+        ? `subnetting.calculation.${target}`
+        : `binary.${family}.calculation`;
       return buildMcInstance({
         templateId: id,
         item,
@@ -566,6 +705,10 @@ function makeCalculationTemplate(id, itemId, allowedQuestionTypes) {
         calculationParams: calc.params,
         answerFormat: calc.answerFormat,
         extraSemanticTags: calc.semanticTags,
+        learningObjective,
+        knowledgeFacet,
+        promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+        contextDependency: CONTEXT_DEPENDENCIES.PARAMETRIC,
       });
     },
   };
@@ -633,6 +776,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'switching.domains',
+          knowledgeFacet: 'switching.domains.kinds',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Ich verwechsle Kollisions- und Broadcast-Domänen.', 'Kurze Frage zu Domänen:'],
         });
       },
     },
@@ -661,6 +809,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'switching.macLearning',
+          knowledgeFacet: 'switching.macLearning.order',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wie lernt ein Switch eigentlich MAC-Adressen?', 'Kurze Abfrage:'],
         });
       },
     },
@@ -691,6 +844,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: 'switching.devices',
+          knowledgeFacet: 'switching.devices.compare',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Ich verwechsle Hub, Switch und Router.', 'Kurze Abfrage:'],
         });
       },
     },
@@ -721,6 +879,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'switching.actions',
+          knowledgeFacet: 'switching.actions.behavior',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Kannst du mir kurz helfen?', 'Switch-Verhalten:'],
         });
       },
     },
@@ -751,6 +914,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: 'vlan.ports',
+          knowledgeFacet: 'vlan.ports.compare',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: vlanLeads,
         });
       },
     },
@@ -785,6 +953,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: 'vlan.reasons',
+          knowledgeFacet: 'vlan.reasons.benefits',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wir prüfen gerade die VLAN-Argumente.', vlanLeads[1]],
         });
       },
     },
@@ -817,6 +990,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: 'vlan.concept',
+          knowledgeFacet: 'vlan.concept.definition',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: vlanLeads,
         });
       },
     },
@@ -849,6 +1027,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'vlan.ports',
+          knowledgeFacet: 'vlan.ports.tagging',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wir planen gerade Trunk-Verbindungen.', 'Kurze Abfrage zu VLANs:'],
         });
       },
     },
@@ -881,6 +1064,11 @@ function switchingVlanTemplates() {
           speechLeadIn: null,
           roleHints: ['helpdesk'],
           rng,
+          learningObjective: 'vlan.reasons',
+          knowledgeFacet: 'vlan.reasons.problem',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: vlanLeads,
         });
       },
     },
@@ -930,6 +1118,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.protocol',
+          knowledgeFacet: 'ssh.protocol.encryptionCompare',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wir prüfen gerade die Remote-Zugänge.', 'Sicherheitsfrage:'],
         });
       },
     },
@@ -958,6 +1151,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.procedure',
+          knowledgeFacet: 'ssh.procedure.order',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: sshLeads,
         });
       },
     },
@@ -989,6 +1187,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.rsa',
+          knowledgeFacet: 'ssh.rsa.requirements',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['SSH-Fehlersuche:', sshLeads[1]],
         });
       },
     },
@@ -1020,6 +1223,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.svi',
+          knowledgeFacet: 'ssh.svi.reason',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wir konfigurieren einen L2-Switch per SSH.', sshLeads[0]],
         });
       },
     },
@@ -1052,6 +1260,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.version',
+          knowledgeFacet: 'ssh.version.v2',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wir härten gerade den SSH-Zugang.', 'Sicherheitsfrage:'],
         });
       },
     },
@@ -1084,6 +1297,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.vty',
+          knowledgeFacet: 'ssh.vty.commands',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wir konfigurieren die VTY-Lines.', sshLeads[0]],
         });
       },
     },
@@ -1115,6 +1333,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.reachability',
+          knowledgeFacet: 'ssh.reachability.devices',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Wir vergleichen Router, L2-Switch und MLS.', 'SSH-Planung:'],
         });
       },
     },
@@ -1146,6 +1369,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.troubleshooting',
+          knowledgeFacet: 'ssh.troubleshooting.symptoms',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
         });
       },
     },
@@ -1180,6 +1408,11 @@ function sshTemplates() {
           speechLeadIn: null,
           roleHints: ['technical'],
           rng,
+          learningObjective: 'ssh.verification',
+          knowledgeFacet: 'ssh.verification.commands',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Nach der SSH-Konfiguration wollen wir verifizieren.', sshLeads[2]],
         });
       },
     },

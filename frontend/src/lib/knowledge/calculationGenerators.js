@@ -265,44 +265,86 @@ function chooseLead(leads, rng) {
   return rng.pick(leads);
 }
 
+const VALID_MASK_OCTETS = new Set([0, 128, 192, 224, 240, 248, 252, 254, 255]);
+
+function isMaskOctet(value) {
+  return VALID_MASK_OCTETS.has(Number(value));
+}
+
 function withContext(prompt, contextType, leads, rng) {
   if (contextType !== 'coworker_question' || leads.length === 0) return prompt;
   const lead = chooseLead(leads, rng);
   return `${lead} ${prompt}`;
 }
 
+// scenarioConstraints decide which lead pools are valid for generated parameters.
+// key: family id
+const SCENARIO_CONSTRAINTS = {
+  decimalToBinary: {
+    compatibleScenarios: (params) => (isMaskOctet(params.decimal) ? ['mask', 'byte'] : ['byte']),
+  },
+  binaryToDecimal: {
+    compatibleScenarios: (params) => (isMaskOctet(params.decimal) ? ['mask', 'byte'] : ['byte']),
+  },
+  prefixToMask: {
+    compatibleScenarios: () => ['mask'],
+  },
+  maskToPrefix: {
+    compatibleScenarios: () => ['mask'],
+  },
+  subnetting: {
+    compatibleScenarios: () => ['subnetting'],
+  },
+};
+
 const PROMPTS = {
   decimalToBinary: {
     direct: (params) => `Wie lautet die 8-Bit-Binärzahl für ${params.decimal}?`,
-    leads: [
-      'Ich rechne gerade an einer Subnetzmaske.',
-      'Kannst du mir kurz die Binär-Rechnung bestätigen?',
-      'Ich brauche für die Dokumentation die Binärdarstellung.',
-    ],
+    scenarios: {
+      mask: [
+        'Ich dokumentiere gerade die Subnetzmaske und brauche die Binärdarstellung eines Oktetts.',
+        'Für die Subnetzmasken-Dokumentation fehlt mir noch die Binärform.',
+      ],
+      byte: [
+        'Kannst du mir kurz die Binär-Rechnung bestätigen?',
+        'Ich brauche für die Dokumentation die Binärdarstellung.',
+        'Ich übe gerade die Umrechnung von Dezimal- in Binärwerte.',
+      ],
+    },
   },
   binaryToDecimal: {
     direct: (params) => `Wie lautet die Dezimalzahl für ${params.binary}?`,
-    leads: [
-      'Ich rechne gerade an einer Subnetzmaske.',
-      'Kannst du mir kurz die Dezimalzahl bestätigen?',
-      'Ich brauche für die Dokumentation die Dezimalzahl.',
-    ],
+    scenarios: {
+      mask: [
+        'Ich lese gerade eine Subnetzmaske als Binärwert ab.',
+        'Für die Subnetzmaske brauche ich die Dezimaldarstellung.',
+      ],
+      byte: [
+        'Kannst du mir kurz die Dezimalzahl bestätigen?',
+        'Ich brauche für die Dokumentation die Dezimalzahl.',
+        'Ich übe gerade die Umrechnung von Binär- in Dezimalwerte.',
+      ],
+    },
   },
   prefixToMask: {
     direct: (params) => `Welche Subnetzmaske gehört zu /${params.prefix}?`,
-    leads: [
-      'Ich dokumentiere gerade die Subnetzmaske.',
-      'Kurze Abfrage zur Subnetzmaske:',
-      'Für die Konfiguration brauche ich die korrekte Maske:',
-    ],
+    scenarios: {
+      mask: [
+        'Ich dokumentiere gerade die Subnetzmaske.',
+        'Kurze Abfrage zur Subnetzmaske:',
+        'Für die Konfiguration brauche ich die korrekte Maske:',
+      ],
+    },
   },
   maskToPrefix: {
     direct: (params) => `Welcher Präfix gehört zur Subnetzmaske ${params.mask}?`,
-    leads: [
-      'Ich dokumentiere gerade den Präfix.',
-      'Kurze Abfrage zum CIDR-Präfix:',
-      'Für die Konfiguration brauche ich den korrekten Präfix:',
-    ],
+    scenarios: {
+      mask: [
+        'Ich dokumentiere gerade den Präfix.',
+        'Kurze Abfrage zum CIDR-Präfix:',
+        'Für die Konfiguration brauche ich den korrekten Präfix:',
+      ],
+    },
   },
   subnetting: {
     direct: (params, target) => {
@@ -316,19 +358,26 @@ const PROMPTS = {
         default: return `Berechne ${target} für ${formatIpPrefix(params)}.`;
       }
     },
-    leads: [
-      'Ich dokumentiere gerade das Netz der neuen Außenstelle.',
-      'Ich rechne gerade ein Subnetz durch.',
-      'Für den DHCP-Bereich brauche ich die Grenze des Subnetzes.',
-      'Kannst du mir kurz die Berechnung bestätigen?',
-    ],
+    scenarios: {
+      subnetting: [
+        'Ich dokumentiere gerade das Netz der neuen Außenstelle.',
+        'Ich rechne gerade ein Subnetz durch.',
+        'Für den DHCP-Bereich brauche ich die Grenze des Subnetzes.',
+        'Kannst du mir kurz die Berechnung bestätigen?',
+      ],
+    },
   },
 };
 
 function buildPrompt(family, params, item, contextType, rng) {
   const config = PROMPTS[family] || PROMPTS.subnetting;
   const direct = config.direct(params, item.data.target);
-  return withContext(direct, contextType, config.leads || [], rng);
+  const constraint = SCENARIO_CONSTRAINTS[family];
+  if (!constraint || contextType !== 'coworker_question') return direct;
+  const scenarios = constraint.compatibleScenarios(params);
+  // Only use leads that are semantically valid for the generated parameters.
+  const leadPool = scenarios.flatMap((s) => config.scenarios[s] || []);
+  return withContext(direct, contextType, leadPool, rng);
 }
 
 function buildExplanation(family, params, correctAnswer, item) {

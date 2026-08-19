@@ -34,6 +34,8 @@ export function buildHistoryRecord(questionInstance) {
     knowledgeItemId: inst.knowledgeItemId || null,
     topicKey: inst.topicKey || null,
     conceptCluster: inst.conceptCluster || null,
+    learningObjective: inst.learningObjective || null,
+    knowledgeFacet: inst.knowledgeFacet || null,
     questionArchetype: inst.questionArchetype || null,
     templateId: inst.context?.templateId || inst.templateId || null,
     calculationFamily: params.calculationFamily || null,

@@ -6,7 +6,13 @@
 // =============================================================================
 
 import { ACADEMY_TOPICS, topicKey } from '../academyTopics.js';
-import { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from './types.js';
+import {
+  KNOWLEDGE_TYPES,
+  QUESTION_ARCHETYPES,
+  DIFFICULTY,
+  PROMPT_STYLES,
+  CONTEXT_DEPENDENCIES,
+} from './types.js';
 import { isAmbiguous } from './ambiguityChecker.js';
 
 const VALID_KNOWLEDGE_TYPES = Object.values(KNOWLEDGE_TYPES);
@@ -230,6 +236,9 @@ const REQUIRED_INSTANCE_FIELDS = [
   'explanation',
 ];
 
+const VALID_PROMPT_STYLES = Object.values(PROMPT_STYLES);
+const VALID_CONTEXT_DEPENDENCIES = Object.values(CONTEXT_DEPENDENCIES);
+
 /**
  * Validates a generated Question Instance.
  * Returns an array of error objects (empty if valid).
@@ -323,9 +332,52 @@ export function validateQuestionInstance(instance) {
     }
   }
 
+  // Conversation metadata
+  if (instance.promptStyle && !VALID_PROMPT_STYLES.includes(instance.promptStyle)) {
+    add('promptStyle', `Invalid promptStyle "${instance.promptStyle}"`);
+  }
+  if (instance.contextDependency && !VALID_CONTEXT_DEPENDENCIES.includes(instance.contextDependency)) {
+    add('contextDependency', `Invalid contextDependency "${instance.contextDependency}"`);
+  }
+  if (instance.contextDependency === CONTEXT_DEPENDENCIES.SCENARIO && !instance.conversationText) {
+    add('conversationText', 'Scenario-style questions must provide a conversationText');
+  }
+
+  // Single-owner language check: avoid stacked actor phrases.
+  if (instance.conversationText) {
+    const actorPhrases = ['Ein Techniker meldet', 'Ein Techniker stellt fest', 'Ein Kollege fragt', 'Ein Kollege berichtet'];
+    const found = actorPhrases.filter((phrase) => instance.conversationText.includes(phrase));
+    if (found.length > 1) {
+      add('conversationText', `Multiple actor phrases detected: ${found.join(', ')}`);
+    }
+  }
+
   // Ambiguity checks
   if (isAmbiguous(instance)) {
     add('prompt', 'Question prompt is flagged as ambiguous');
+  }
+
+  return errors;
+}
+
+/**
+ * Validates a generated Question Instance specifically for conversation rendering.
+ * Checks semantic coherence between prompt, conversationText, and context metadata.
+ */
+export function validateConversationInstance(instance) {
+  const errors = validateQuestionInstance(instance);
+  const add = (field, message) => errors.push({ instanceId: instance.instanceId || null, field, message });
+
+  if (instance.contextDependency === CONTEXT_DEPENDENCIES.PARAMETRIC && instance.calculationParams) {
+    const params = instance.calculationParams;
+    const text = instance.conversationText || instance.prompt || '';
+    // Binary calculation context must not claim a non-mask value is a subnet mask octet.
+    if (params.decimal !== undefined && text.includes('Subnetzmaske')) {
+      const maskOctets = [0, 128, 192, 224, 240, 248, 252, 254, 255];
+      if (!maskOctets.includes(params.decimal)) {
+        add('conversationText', `Value ${params.decimal} is not a valid subnet mask octet, but the scenario claims a subnet mask context`);
+      }
+    }
   }
 
   return errors;

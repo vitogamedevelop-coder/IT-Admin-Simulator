@@ -78,7 +78,9 @@ function answerForQuestion(question) {
   if (question.type === 'ordering') return question.correctOrderIds;
   if (question.type === 'matching') {
     const result = {};
-    for (const pair of question.correctPairs) result[pair.left] = pair.right;
+    for (const pair of question.correctPairs) {
+      result[pair.leftId ?? pair.left] = pair.rightId ?? pair.right;
+    }
     return result;
   }
   if (question.type === 'input') return question.answers?.[0] || '';

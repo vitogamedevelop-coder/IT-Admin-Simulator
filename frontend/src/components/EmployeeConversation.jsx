@@ -65,9 +65,9 @@ export default function EmployeeConversation({ conversation: initialConversation
   const personPortrait = characterAsset(employee.id);
 
   useEffect(() => {
-    const text = transition ? `${transition} „${question.text}“` : `„${intro}“ Und zwar: „${question.text}“`;
-    speakAs(`${employee.name}: ${text}`, { speakerId: employee.id, speechText: text });
-  }, [employee, intro, transition, question.instanceId, question.text]);
+    const conversationText = question.conversationText || (transition ? `${transition} „${question.text}“` : `„${intro}“ Und zwar: „${question.text}“`);
+    speakAs(`${employee.name}: ${conversationText}`, { speakerId: employee.id, speechText: conversationText });
+  }, [employee, intro, transition, question.instanceId, question.text, question.conversationText]);
 
   useEffect(() => {
     if (submitted && resultRef.current) {
@@ -183,13 +183,21 @@ export default function EmployeeConversation({ conversation: initialConversation
               <span className="text-xs font-bold text-[#00f0ff]">{employee.name}</span>
               <span className="text-[10px] text-[#8b949e]">{employee.role}</span>
             </div>
-            {transition && (
+            {transition && !question.conversationText && (
               <p className="text-sm text-[#8b949e] mt-1 italic">{transition}</p>
             )}
-            <p className="text-sm text-[#c9d1d9] mt-1 whitespace-pre-line">{intro}</p>
-            <p className="text-sm text-[#c9d1d9] mt-2">
-              <span className="text-[#00f0ff]/80">„{question.text}“</span>
-            </p>
+            {question.conversationText ? (
+              <p className="text-sm text-[#c9d1d9] mt-1 whitespace-pre-line">
+                <span className="text-[#00f0ff]/80">„{question.conversationText}“</span>
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-[#c9d1d9] mt-1 whitespace-pre-line">{intro}</p>
+                <p className="text-sm text-[#c9d1d9] mt-2">
+                  <span className="text-[#00f0ff]/80">„{question.text}“</span>
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

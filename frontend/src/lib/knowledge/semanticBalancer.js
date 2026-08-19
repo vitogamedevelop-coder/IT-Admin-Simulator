@@ -16,6 +16,7 @@
 // =============================================================================
 
 import { createRng } from './random.js';
+import { getFacetCooldownInfo, gapSinceFacet } from './facetMastery.js';
 
 // ---------------------------------------------------------------------------
 // Tunable weights – central, data-driven configuration.
@@ -35,13 +36,20 @@ export const DEFAULT_WEIGHTS = {
   itemRepeatPenalty: 0.08,
   archetypeRepeatPenalty: 0.55,
   templateRepeatPenalty: 0.25,
+  learningObjectiveRepeatPenalty: 0.35,
+  knowledgeFacetRepeatPenalty: 0.2,
   calcFamilyRepeatPenalty: 0.5,
   calcTargetRepeatPenalty: 0.55,
   prefixBucketRepeatPenalty: 0.6,
 
   // Window sizes for recent history considered "similar"
-  sessionLookback: 10,
-  longTermLookback: 50,
+  sessionLookback: 15,
+  longTermLookback: 80,
+
+  // Adaptive facet-mastery cooldown
+  facetMasteryBoostScale: 1.0,     // multiplier for the score-derived priority boost
+  facetMinGapHardRule: true,       // exclude a facet until its adaptive min gap is reached
+  facetMaxGapBoost: 1.5,           // weight boost when a facet has not appeared for MAX_GAP
 
   // Right / wrong answer handling
   correctAnswerItemCooldown: 0.15,
@@ -75,6 +83,8 @@ function semanticSignature(candidate) {
     knowledgeItemId: candidate.id || candidate.knowledgeItemId || null,
     topicKey: candidate.topicKey || null,
     conceptCluster: candidate.conceptCluster || null,
+    learningObjective: candidate.learningObjective || null,
+    knowledgeFacet: candidate.knowledgeFacet || null,
     questionArchetype: candidate.type || candidate.questionArchetype || null,
     templateId: candidate.templateId || null,
     calculationFamily: data.calculationFamily || null,
@@ -149,6 +159,12 @@ function computeWeight(candidate, state, cfg) {
   const templateCount = countRecent(session, (r) => r.templateId, sig.templateId, cfg.sessionLookback);
   weight *= Math.pow(cfg.templateRepeatPenalty, templateCount);
 
+  const objectiveCount = countRecent(session, (r) => r.learningObjective, sig.learningObjective, cfg.sessionLookback);
+  weight *= Math.pow(cfg.learningObjectiveRepeatPenalty, objectiveCount);
+
+  const facetCount = countRecent(session, (r) => r.knowledgeFacet, sig.knowledgeFacet, cfg.sessionLookback);
+  weight *= Math.pow(cfg.knowledgeFacetRepeatPenalty, facetCount);
+
   const familyCount = countRecent(session, (r) => r.calculationFamily, sig.calculationFamily, cfg.sessionLookback);
   weight *= Math.pow(cfg.calcFamilyRepeatPenalty, familyCount);
 
@@ -157,6 +173,21 @@ function computeWeight(candidate, state, cfg) {
 
   const bucketCount = countRecent(session, (r) => r.prefixBucket, sig.prefixBucket, cfg.sessionLookback);
   weight *= Math.pow(cfg.prefixBucketRepeatPenalty, bucketCount);
+
+  // Facet-mastery adaptive cooldown.
+  const allRecords = [...(state.history?.longTerm || []), ...(state.history?.session || [])];
+  const facetInfo = getFacetCooldownInfo(sig.knowledgeFacet);
+  const facetGap = gapSinceFacet(allRecords, sig.knowledgeFacet);
+  if (facetInfo.score <= 0) {
+    // Weak facets get a priority boost but never bypass the hard min-gap rule.
+    weight *= Math.max(0.5, 1 + facetInfo.priorityBoost * cfg.facetMasteryBoostScale);
+  } else {
+    // Mastered facets are suppressed unless they have been absent for a long time.
+    weight *= Math.max(0.1, 1 - (facetInfo.score * 0.12));
+    if (facetGap >= facetInfo.maxGap) {
+      weight *= cfg.facetMaxGapBoost;
+    }
+  }
 
   // Role preference modifier.
   const currentRole = state.currentRole || candidate.rolePreference;
@@ -198,6 +229,7 @@ function antiSpamRules(history) {
   const session = history?.session || [];
   const last = session[session.length - 1] || null;
   const lastThree = session.slice(-3);
+  const allRecords = [...(history?.longTerm || []), ...session];
 
   return [
     buildRule('no-same-item-consecutive', (item) => {
@@ -218,6 +250,18 @@ function antiSpamRules(history) {
       const clusters = lastThree.map((r) => r.conceptCluster);
       return clusters.some((k) => k !== item.conceptCluster);
     }),
+    buildRule('no-three-same-learning-objective', (item) => {
+      if (!item.learningObjective) return true;
+      if (lastThree.length < 3) return true;
+      const objectives = lastThree.map((r) => r.learningObjective).filter(Boolean);
+      return objectives.length < 3 || objectives.some((o) => o !== item.learningObjective);
+    }),
+    buildRule('no-three-same-facet', (item) => {
+      if (!item.knowledgeFacet) return true;
+      if (lastThree.length < 3) return true;
+      const facets = lastThree.map((r) => r.knowledgeFacet).filter(Boolean);
+      return facets.length < 3 || facets.some((f) => f !== item.knowledgeFacet);
+    }),
     buildRule('no-three-same-archetype', (item) => {
       if (lastThree.length < 3) return true;
       const archetypes = lastThree.map((r) => r.questionArchetype);
@@ -234,6 +278,12 @@ function antiSpamRules(history) {
       if (lastThree.length < 3) return true;
       const buckets = lastThree.map((r) => r.prefixBucket).filter(Boolean);
       return buckets.length < 3 || buckets.some((b) => b !== item.prefixBucket);
+    }),
+    buildRule('facet-min-gap', (item) => {
+      if (!item.knowledgeFacet) return true;
+      const info = getFacetCooldownInfo(item.knowledgeFacet);
+      const gap = gapSinceFacet(allRecords, item.knowledgeFacet);
+      return gap >= info.minGap;
     }),
   ];
 }
@@ -294,12 +344,14 @@ export function selectCandidate(candidates, state, options = {}) {
   return weightedSample(pool, rng);
 }
 
-export function createBalancerState({ history, progressByTopic, lastResult, difficultyProfile } = {}) {
+export function createBalancerState({ history, progressByTopic, lastResult, difficultyProfile, facetMasteryMap = null, currentRole = null } = {}) {
   return {
     history: history || { session: [], longTerm: [] },
     progressByTopic: progressByTopic || {},
     lastResult: lastResult || null,
     difficultyProfile: normalizeDifficulty(difficultyProfile),
+    facetMasteryMap: facetMasteryMap || {},
+    currentRole: currentRole || null,
   };
 }
 

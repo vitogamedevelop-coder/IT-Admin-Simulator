@@ -15,6 +15,9 @@ import {
   writeLongTermHistory,
   selectCandidate,
   createBalancerState,
+  recordFacetCorrect,
+  recordFacetWrong,
+  getAllFacetMasteryScores,
 } from './knowledge/index.js';
 
 // =============================================================================
@@ -201,6 +204,7 @@ function pickWeakestTopic(topics, semanticHistory, employee) {
     lastResult: null,
     difficultyProfile: 'medium',
     currentRole: mapEmployeeRoleToHint(employee),
+    facetMasteryMap: getAllFacetMasteryScores(),
   });
   const selected = selectCandidate(candidates, state, { seed: `topic-${Date.now()}` });
   if (selected) return topics.find((t) => t.key === selected.topicKey) || topics[0];
@@ -410,6 +414,7 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
       lastResult: conversation?.lastResult || null,
       difficultyProfile: normalizeConversationDifficulty(topicState?.currentDifficulty),
       currentRole: mapEmployeeRoleToHint(employee),
+      facetMasteryMap: getAllFacetMasteryScores(),
     });
 
     const selected = selectCandidate(candidates, state, { seed: generateSeed(conversation, questionIndex) });
@@ -566,7 +571,11 @@ function evaluateAnswer(question, answer) {
   }
   if (question.type === 'matching') {
     const matches = answer || {};
-    return question.correctPairs.every((p) => matches[p.left] === p.right);
+    return question.correctPairs.every((p) => {
+      const leftKey = p.leftId ?? p.left;
+      const rightKey = p.rightId ?? p.right;
+      return matches[leftKey] === rightKey;
+    });
   }
   if (question.type === 'input') {
     const normalized = String(answer).trim().toLowerCase();
@@ -652,10 +661,19 @@ export function evaluateEmployeeAnswer(conversation, answer) {
     questionWithTopic,
     { correct },
   );
+
+  // Phase 5.1: update per-facet mastery for adaptive cooldown.
+  if (question.knowledgeFacet) {
+    if (correct) recordFacetCorrect(question.knowledgeFacet);
+    else recordFacetWrong(question.knowledgeFacet);
+  }
+
   conversation.lastResult = {
     knowledgeItemId: question.knowledgeItemId || null,
     topicKey: currentTopicKey,
     conceptCluster: question.conceptCluster || null,
+    learningObjective: question.learningObjective || null,
+    knowledgeFacet: question.knowledgeFacet || null,
     questionArchetype: question.questionArchetype || question.type,
     templateId: question.context?.templateId || null,
     correct,
