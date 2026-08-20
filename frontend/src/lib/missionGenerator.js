@@ -51,7 +51,9 @@ export function instanceIdFromMissionId(id) {
 
 export function readInstances() {
   try {
-    return JSON.parse(localStorage.getItem(INSTANCES_KEY)) || {};
+    const raw = JSON.parse(localStorage.getItem(INSTANCES_KEY)) || {};
+    Object.values(raw).forEach((instance) => normalizeMissionInstance(instance));
+    return raw;
   } catch {
     return {};
   }
@@ -61,8 +63,55 @@ export function writeInstances(instances) {
   localStorage.setItem(INSTANCES_KEY, JSON.stringify(instances));
 }
 
+function normalizeMissionInstance(instance) {
+  if (!instance || !instance.templateId || !instance.seed) return instance;
+  const template = getTemplate(instance.templateId);
+  if (!template || typeof template.resolveParameters !== 'function') return instance;
+
+  try {
+    const rng = seededRng(instance.seed);
+    const freshParams = template.resolveParameters(
+      rng,
+      instance.archetype,
+      instance.context || 'generic',
+      instance.difficulty || DIFFICULTY_PROFILE.MEDIUM,
+    );
+    const merged = { ...instance.resolvedParameters };
+    const required = template.requiredResolvedParams || [];
+    const missingBefore = required.filter((key) => merged[key] === undefined);
+    let changed = false;
+
+    for (const [key, value] of Object.entries(freshParams)) {
+      if (merged[key] === undefined) {
+        merged[key] = value;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      instance.resolvedParameters = merged;
+    }
+
+    // If any required parameter had to be restored, the stored title/briefing
+    // may be stale. Regenerate them safely when the template provides the
+    // necessary builders and context.
+    if (missingBefore.length > 0 && typeof template.buildTitle === 'function') {
+      instance.title = template.buildTitle(merged, instance.archetype, instance.context);
+    }
+    if (missingBefore.length > 0 && typeof template.buildBriefing === 'function') {
+      instance.briefing = template.buildBriefing(merged, instance.archetype, instance.context, instance.difficulty);
+    }
+  } catch {
+    // Leave the instance untouched if regeneration fails; the validator will
+    // catch the problem before the UI evaluates it.
+  }
+
+  return instance;
+}
+
 export function getInstance(instanceId) {
-  return readInstances()[instanceId] || null;
+  const instance = readInstances()[instanceId] || null;
+  return instance ? normalizeMissionInstance(instance) : null;
 }
 
 function saveInstance(instance) {
@@ -448,6 +497,20 @@ export function validateMissionInstance(candidate, template, state) {
   }
   if (hasOpenDuplicate(candidate)) {
     reasons.push('active_duplicate');
+  }
+
+  // Required resolved parameters must be present and well-typed. A missing
+  // required field (e.g. selectedTaskIds on cisco-basic-config-hardening)
+  // means the instance is either corrupted or from an older schema and could
+  // crash the evaluator.
+  const requiredParams = template.requiredResolvedParams || [];
+  for (const key of requiredParams) {
+    if (candidate.params[key] === undefined || candidate.params[key] === null) {
+      reasons.push(`missing_required_param:${key}`);
+    }
+  }
+  if (template.id === 'cisco-basic-config-hardening' && (!Array.isArray(candidate.params.selectedTaskIds) || candidate.params.selectedTaskIds.length === 0)) {
+    reasons.push('selectedTaskIds_invalid');
   }
 
   // Device-state sanity (Cisco-specific, item 15): every referenced

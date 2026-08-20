@@ -123,6 +123,7 @@ export function defineMissionTemplate(def) {
     difficultyProfiles: def.difficultyProfiles || DIFFICULTY_ORDER,
     hintDefinitions: def.hintDefinitions || {},
     validationRules: def.validationRules || [],
+    requiredResolvedParams: def.requiredResolvedParams || [],
     antiRepetitionMetadata: def.antiRepetitionMetadata || (() => ({})),
     // Behaviour, supplied by the concrete template:
     resolveParameters: def.resolveParameters, // (rng, archetype, context, difficulty) => params
@@ -351,6 +352,17 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       solution: { answer: 'copy running-config startup-config', explanation: '"copy running-config startup-config" (oder "write") sichert die Konfiguration dauerhaft.' },
     }),
   },
+  requiredResolvedParams: [
+    'targetHostname',
+    'usernameType',
+    'username',
+    'enableSecret',
+    'userSecret',
+    'consolePassword',
+    'execTimeoutMinutes',
+    'execTimeoutSeconds',
+    'selectedTaskIds',
+  ],
   resolveParameters(rng, archetype, context) {
     const targetHostname = generateHostname(rng, context);
     const { type: usernameType, name: username } = generateUsername(rng);
@@ -503,6 +515,7 @@ export const TEMPLATE_VLAN_ACCESS_PORT = defineMissionTemplate({
       solution: { answer: 'interface <if>\nswitchport mode access\nswitchport access vlan <id>\nexit', explanation: 'Im Interface-Modus werden Access-Mode und VLAN gesetzt.' },
     }),
   },
+  requiredResolvedParams: ['hostname', 'vlanId', 'vlanName', 'decoyVlanId', 'targetPort', 'targetPorts', 'employee', 'context'],
   resolveParameters(rng, archetype, context) {
     const vlanId = pickFrom(rng, VLAN_ID_POOL);
     const decoyVlanId = pickFrom(rng, DECOY_VLAN_ID_POOL.filter((id) => id !== vlanId));
@@ -624,6 +637,7 @@ const TEMPLATE_VLAN_ACCESS_RANGE = defineMissionTemplate({
       solution: { answer: 'interface range fa0/x - y\nswitchport mode access\nswitchport access vlan <id>\nno shutdown\nexit', explanation: 'Im Interface-Range-Modus werden alle Befehle auf die gewählten Ports angewendet.' },
     }),
   },
+  requiredResolvedParams: ['vlanId', 'vlanName', 'decoyVlanId', 'hostname', 'targetPorts'],
   resolveParameters(rng, _archetype) {
     const vlanId = pickFrom(rng, STAGE2_VLAN_ID_POOL);
     const decoyVlanId = pickFrom(rng, STAGE2_VLAN_ID_POOL.filter((id) => id !== vlanId));
@@ -721,6 +735,7 @@ const TEMPLATE_VLAN_MOVE = defineMissionTemplate({
       solution: { answer: 'interface <if>\nswitchport access vlan <ziel-vlan>\nexit', explanation: 'Mit "switchport access vlan" wechselt der Port das VLAN.' },
     }),
   },
+  requiredResolvedParams: ['sourceVlanId', 'targetVlanId', 'sourceVlanName', 'targetVlanName', 'hostname', 'targetPort', 'targetPorts'],
   resolveParameters(rng) {
     const ids = [];
     while (ids.length < 2) {
@@ -796,6 +811,7 @@ const TEMPLATE_TRUNK_UPLINK = defineMissionTemplate({
       solution: { answer: 'interface gi0/1\nswitchport mode trunk\nswitchport trunk allowed vlan 10,20\nno shutdown\nexit', explanation: 'Ein Trunk transportiert mehrere VLANs über einen Port.' },
     }),
   },
+  requiredResolvedParams: ['hostname', 'uplinkPort', 'vlans'],
   resolveParameters(rng) {
     const vlanCount = rng(2, 3);
     const vlanIds = [];
@@ -864,6 +880,7 @@ const TEMPLATE_TRUNK_ALLOWED_VLAN = defineMissionTemplate({
       solution: { answer: 'interface gi0/1\nswitchport trunk allowed vlan 10,20,30\nexit', explanation: 'Nur in der Trunk-Allowed-Liste enthaltene VLANs werden über den Uplink transportiert.' },
     }),
   },
+  requiredResolvedParams: ['hostname', 'uplinkPort', 'vlans', 'missingVlanId', 'allowedVlanIds'],
   resolveParameters(rng) {
     const vlanIds = [];
     while (vlanIds.length < 3) {
@@ -961,6 +978,7 @@ const TEMPLATE_ROUTER_ON_A_STICK = defineMissionTemplate({
       solution: { answer: 'interface gi0/1\nswitchport mode trunk\nswitchport trunk allowed vlan 10,20\nno shutdown\nexit', explanation: 'Der Trunk transportiert die getaggten VLANs zwischen Switch und Router.' },
     }),
   },
+  requiredResolvedParams: ['hostname', 'routerHostname', 'vlans', 'uplinkPort', 'routerPhysicalPort'],
   resolveParameters(rng, _archetype) {
     const vlanCount = rng(1, 2);
     const vlans = buildVlanListForRouter(rng, vlanCount);
@@ -1035,6 +1053,7 @@ const TEMPLATE_ROUTER_FAULT = defineMissionTemplate({
       solution: { answer: 'Vergleiche Subinterfaces, Encapsulation-VLAN, Gateway-IP und Trunk-Allowed-Liste mit dem Auftrag.', explanation: 'Ein einzelner falscher Wert an einer dieser Stellen unterbricht die Kommunikation für das betroffene VLAN.' },
     }),
   },
+  requiredResolvedParams: ['hostname', 'routerHostname', 'vlans', 'uplinkPort', 'routerPhysicalPort', 'faultId'],
   resolveParameters(rng) {
     const vlans = buildVlanListForRouter(rng, 2);
     const faultId = pickFrom(rng, ROUTER_FAULTS);
@@ -1312,6 +1331,7 @@ const TEMPLATE_SSH_MANAGEMENT_ACCESS = defineMissionTemplate({
   allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
   difficultyProfiles: DIFFICULTY_ORDER,
   hintDefinitions: SSH_MGMT_HINTS,
+  requiredResolvedParams: ['hostname', 'mgmtVlanId', 'mgmtVlanName', 'mgmtIp', 'mgmtMask', 'mgmtGateway'],
   resolveParameters(rng) {
     const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
     const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
@@ -1394,6 +1414,7 @@ const TEMPLATE_SSH_ENABLE = defineMissionTemplate({
       solution: { answer: 'crypto key generate rsa\n1024', explanation: '"crypto key generate rsa" fragt interaktiv nach der Schlüssellänge; 1024 Bit ist der NEXUS-Standard.' },
     }),
   },
+  requiredResolvedParams: ['deviceType', 'hostname', 'mgmtVlanId', 'mgmtVlanName', 'ip', 'mask', 'gateway', 'domainName', 'username', 'userSecret'],
   resolveParameters(rng) {
     const reachability = resolveSshReachabilityParams(rng);
     const domainName = pickFrom(rng, SSH_DOMAIN_POOL);
@@ -1474,6 +1495,7 @@ const TEMPLATE_SSH_VTY_ACCESS = defineMissionTemplate({
       solution: { answer: 'line vty 0 15\ntransport input ssh\nexit', explanation: '"transport input ssh" lässt nur noch SSH zu und deaktiviert Telnet auf den VTY-Leitungen.' },
     }),
   },
+  requiredResolvedParams: ['deviceType', 'hostname', 'mgmtVlanId', 'mgmtVlanName', 'ip', 'mask', 'gateway', 'domainName', 'existingUsername', 'existingUserSecret', 'newUsername', 'newUserSecret', 'requiredChecks', 'auditPreconfiguredCheck'],
   resolveParameters(rng, archetype) {
     const reachability = resolveSshReachabilityParams(rng);
     const existing = pickAccount(rng);
@@ -1579,6 +1601,7 @@ const TEMPLATE_SSH_DIAGNOSE = defineMissionTemplate({
       solution: { answer: 'Vergleiche Gateway, RSA-Schlüssel, SSH-Version, login local und transport input mit dem bekannten Sollzustand.', explanation: 'Ein einzelner falscher oder fehlender Wert reicht aus, um SSH unbrauchbar zu machen.' },
     }),
   },
+  requiredResolvedParams: ['hostname', 'mgmtVlanId', 'mgmtVlanName', 'mgmtIp', 'mgmtMask', 'mgmtGateway', 'domainName', 'username', 'userSecret', 'faultId'],
   resolveParameters(rng) {
     const hostname = pickFrom(rng, SSH_SWITCH_HOSTNAMES);
     const mgmtVlanId = pickFrom(rng, SSH_MGMT_VLAN_POOL);
