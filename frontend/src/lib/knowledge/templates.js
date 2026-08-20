@@ -1602,6 +1602,7 @@ const PHASE7_PREFIXES = new Set([
   'vlsm',
   'supernetting',
   'cisco',
+  'security',
 ]);
 
 function isPhase7Item(item) {

@@ -32,6 +32,18 @@ import { buildCiscoStpLesson, CISCO_STP_TOPIC_KEY } from './academyLessons/cisco
 import { buildCiscoSshLesson, CISCO_SSH_TOPIC_KEY } from './academyLessons/ciscoSsh.js';
 import { buildCiscoDhcpLesson, CISCO_DHCP_TOPIC_KEY } from './academyLessons/ciscoDhcp.js';
 import { buildCiscoBasicDeviceConfigurationLesson, CISCO_BASIC_DEVICE_CONFIGURATION_TOPIC_KEY } from './academyLessons/ciscoBasicDeviceConfiguration.js';
+import {
+  buildInformationSecurityFundamentalsLesson,
+  buildInformationSecurityLegalDataLesson,
+  buildInformationSecurityIncidentsLesson,
+  buildInformationSecurityThreatsMalwareLesson,
+  buildInformationSecurityTechnicalMeasuresLesson,
+  SECURITY_FUNDAMENTALS_TOPIC_KEY,
+  SECURITY_LEGAL_DATA_TOPIC_KEY,
+  SECURITY_INCIDENTS_TOPIC_KEY,
+  SECURITY_THREATS_MALWARE_TOPIC_KEY,
+  SECURITY_TECHNICAL_MEASURES_TOPIC_KEY,
+} from './academyLessons/informationSecurity.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -307,6 +319,11 @@ export const LESSONS = {
   [CISCO_SSH_TOPIC_KEY]: buildCiscoSshLesson(),
   [CISCO_DHCP_TOPIC_KEY]: buildCiscoDhcpLesson(),
   [CISCO_BASIC_DEVICE_CONFIGURATION_TOPIC_KEY]: buildCiscoBasicDeviceConfigurationLesson(),
+  [SECURITY_FUNDAMENTALS_TOPIC_KEY]: buildInformationSecurityFundamentalsLesson(),
+  [SECURITY_LEGAL_DATA_TOPIC_KEY]: buildInformationSecurityLegalDataLesson(),
+  [SECURITY_INCIDENTS_TOPIC_KEY]: buildInformationSecurityIncidentsLesson(),
+  [SECURITY_THREATS_MALWARE_TOPIC_KEY]: buildInformationSecurityThreatsMalwareLesson(),
+  [SECURITY_TECHNICAL_MEASURES_TOPIC_KEY]: buildInformationSecurityTechnicalMeasuresLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)
