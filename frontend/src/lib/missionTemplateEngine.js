@@ -192,6 +192,44 @@ function shuffleArray(rng, arr) {
   return copy;
 }
 
+// Select a random subset of tasks and then enforce fachliche dependencies:
+// - 'login' requires a configured console line password (console_security).
+// - 'login_local' requires a configured local user.
+// - 'login' and 'login_local' are mutually exclusive on a single line.
+function selectDependencyAwareTasks(rng, pool, targetCount) {
+  const shuffled = shuffleArray(rng, pool);
+  const selected = new Set(shuffled.slice(0, targetCount).map((t) => t.id));
+
+  // Pull in required dependencies until the set is stable.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const id of Array.from(selected)) {
+      const task = pool.find((t) => t.id === id);
+      if (task?.requires) {
+        for (const req of task.requires) {
+          if (!selected.has(req)) {
+            selected.add(req);
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  // Resolve the mutual exclusion between login and login_local.
+  if (selected.has('login') && selected.has('login_local')) {
+    if (rng(0, 1) === 0) {
+      selected.delete('login_local');
+    } else {
+      selected.delete('login');
+    }
+  }
+
+  // Preserve the original pool order for stable briefing/evaluation ordering.
+  return pool.filter((t) => selected.has(t.id));
+}
+
 // ============================================================================
 // 1. Basic Switch Configuration Hardening (Phase 1J.1)
 //
@@ -200,7 +238,7 @@ function shuffleArray(rng, arr) {
 // generated mission.  The subset always ends with the save-config check.
 // ============================================================================
 
-const BASIC_CONFIG_TASKS = [
+export const BASIC_CONFIG_TASKS = [
   {
     id: 'hostname',
     skill: 'cisco.basic_configuration.hostname',
@@ -245,16 +283,20 @@ const BASIC_CONFIG_TASKS = [
     skill: 'cisco.basic_configuration.login',
     label: () => 'Line-Login auf Konsole aktiviert',
     brief: () => 'Line-Login auf der Konsole aktivieren (login)',
+    requires: ['console_security'],
+    conflicts: ['login_local'],
     preconfigure: (device) => { device.runningConfig.lines.console.login = true; },
-    evaluate: (device) => device.runningConfig.lines.console.login || device.runningConfig.lines.console.loginLocal,
+    evaluate: (device) => device.runningConfig.lines.console.login && !device.runningConfig.lines.console.loginLocal,
   },
   {
     id: 'login_local',
     skill: 'cisco.basic_configuration.login_local',
     label: () => 'Login local auf Konsole aktiviert',
     brief: () => 'Login local auf der Konsole aktivieren',
+    requires: ['local_user'],
+    conflicts: ['login'],
     preconfigure: (device) => { device.runningConfig.lines.console.loginLocal = true; device.runningConfig.lines.console.login = false; },
-    evaluate: (device) => device.runningConfig.lines.console.loginLocal,
+    evaluate: (device) => device.runningConfig.lines.console.loginLocal && !device.runningConfig.lines.console.login,
   },
   {
     id: 'exec_timeout',
@@ -380,10 +422,11 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
     const execTimeoutSeconds = rng(0, 1) === 0 ? rng(1, 59) : 0;
 
     // Pick a random subset of available basic-config tasks; keep one slot for
-    // the mandatory save-config check.
+    // the mandatory save-config check. Dependencies are enforced so that
+    // 'login' always comes with a line password and 'login_local' with a
+    // local user, and the two login variants are never required together.
     const count = rng(3, Math.max(3, BASIC_CONFIG_TASKS.length - 1));
-    const shuffled = shuffleArray(rng, BASIC_CONFIG_TASKS);
-    const selectedTasks = shuffled.slice(0, count);
+    const selectedTasks = selectDependencyAwareTasks(rng, BASIC_CONFIG_TASKS, count);
 
     return {
       initialHostname: archetype === MISSION_ARCHETYPE.AUDIT ? targetHostname : 'Switch',

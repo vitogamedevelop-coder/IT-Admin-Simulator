@@ -197,6 +197,11 @@ const HOTSPOTS = {
   serverDoor: { zone: 'server', x: 0.855, y: 0.07,  w: 0.145, h: 0.86, label: 'Tür zum Serverraum', app: 'infrastructure' },
 };
 
+// Visible monitor screen area on Panorama2.png - used to place the notification
+// indicator at the bottom-right corner of the display, not at the top-right
+// of the large workstation hotspot (which made it look like a wall LED).
+const MONITOR_SCREEN = { x: 0.375, y: 0.275, w: 0.245, h: 0.305 };
+
 // Projects a normalized hotspot rect (0-1 relative to PANORAMA_NATURAL) onto
 // the currently rendered panorama container, replicating the exact
 // background-size/background-position formula used for the visible image:
@@ -793,6 +798,12 @@ export default function Workspace() {
   const panX = ZONE_PAN_X[zone];
   const zoneHotspots = Object.entries(HOTSPOTS).filter(([, h]) => h.zone === zone);
 
+  // Monitor notification indicator: shown only when the monitor is actually
+  // visible (landscape shows all zones; portrait only in the center zone) and
+  // there is a real unread/pending communication event.
+  const hasMonitorBadge = (badgeCounts.email > 0 || badgeCounts.phone > 0) && (isLandscape || zone === 'center');
+  const monitorScreenRect = projectHotspot(MONITOR_SCREEN, isLandscape, containerSize, isLandscape ? 50 : ZONE_PAN_X.center);
+
   // Zoom transform for monitor enter/exit animation
   const isZooming = zoomPhase === 'zooming-in' || zoomPhase === 'zooming-out';
   // Zoom targets the monitor screen center on Panorama2.png (approx 50% X, 40% Y)
@@ -859,10 +870,10 @@ export default function Workspace() {
             <Hotspot key={key} id={key} index={i + 1}
               style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
               edgeSide={edgeSideOf(rect)} label={h.label} coords={h} pressed={activeHotspotKey === key}
-              onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode}
-              badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0)} />
+              onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode} />
           );
         })}
+        <MonitorBadge rect={monitorScreenRect} active={hasMonitorBadge} />
       </div>
       <ObjectivePanel />
       {hintModal}
@@ -887,10 +898,10 @@ export default function Workspace() {
               <Hotspot key={key} id={key} index={i + 1}
                 style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
                 edgeSide={edgeSideOf(rect)} label={h.label} coords={h} pressed={activeHotspotKey === key}
-                onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode}
-                badge={key === 'workstation' && (badgeCounts.email > 0 || badgeCounts.phone > 0)} />
+                onActivate={() => openObject(h.app, key)} debug={debugHotspots} showAll={interactionMode} />
             );
           })}
+          <MonitorBadge rect={monitorScreenRect} active={hasMonitorBadge} />
         </div>
         {/* Edge navigation hints */}
         {!isZooming && ZONES.indexOf(zone) > 0 && (
@@ -1026,6 +1037,20 @@ function NexusDesktop({ apps, badgeCounts, clock, onOpen, onClose }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// =====================================================
+// MonitorBadge - pulsing red indicator placed at the bottom-right corner of
+// the visible monitor screen. It is purely visual and pointer-events-none, so
+// the whole monitor hotspot remains the clickable area.
+// =====================================================
+function MonitorBadge({ rect, active }) {
+  if (!active || !rect) return null;
+  return (
+    <div className="absolute z-30 pointer-events-none" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}>
+      <div className="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-[#ff3355] animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_8px_#ff3355]" />
     </div>
   );
 }
