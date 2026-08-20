@@ -33,6 +33,21 @@ export function siblingDistractors(item, allItemsById, count, extractFn, rng) {
 }
 
 /**
+ * Pick up to `count` distractor labels from items that share the same
+ * `conceptCluster` as `item`. `extractFn(item)` must return a string label.
+ * The item's own definition/description/term/subject is excluded.
+ */
+export function sameClusterDistractors(item, allItemsById, count, extractFn, rng) {
+  if (!item?.conceptCluster) return [];
+  const pool = Object.values(allItemsById)
+    .filter((other) => other && other.id !== item.id && other.conceptCluster === item.conceptCluster)
+    .map(extractFn)
+    .filter((label) => typeof label === 'string' && label !== String(item.data?.definition || item.data?.description || item.data?.term || item.data?.subject || ''))
+    .filter((label, idx, arr) => arr.indexOf(label) === idx);
+  return pickN(pool, count, rng);
+}
+
+/**
  * Pick distractors from an explicit list of alternative values.
  * `correctValue` is excluded.
  */

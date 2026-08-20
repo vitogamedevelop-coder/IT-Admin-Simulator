@@ -382,11 +382,15 @@ function normalizeConversationDifficulty(d) {
 function generateQuestionFromCandidate(candidate, seed, contextType, difficulty) {
   if (candidate.kind === 'knowledge') {
     const item = candidate.item;
-    return generateQuestion(item.id, null, {
+    const question = generateQuestion(item.id, null, {
       seed,
       contextType,
       difficulty,
     });
+    if (!question.concept) {
+      question.concept = question.learningObjective || question.conceptCluster || 'general';
+    }
+    return question;
   }
   // Legacy fallback.
   return buildInstance(candidate.topicKey, candidate.archetype);
@@ -466,6 +470,7 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
 }
 
 function hasUsableQuestion(key, session) {
+  if (hasKnowledgeCoverage(key)) return true;
   const topicData = CONVERSATION_TOPICS[key];
   const archetypes = getArchetypes(topicData);
   const askedArchetypeIds = new Set((session.questions || []).map((q) => q.archetypeId));
@@ -567,6 +572,34 @@ function buildAnswerAwareExplanation(question, answer) {
     const specific = question.wrongOptionExplanations[answer];
     if (specific) return specific;
   }
+  if (question.type === 'ordering' && Array.isArray(answer) && question.correctOrderLabels) {
+    const userOrderLabel = answer.map((id) => question.itemMap?.[id] || id).join(' → ');
+    const correctOrderLabel = question.correctOrderLabels.join(' → ');
+    let mismatchIndex = -1;
+    for (let i = 0; i < answer.length; i += 1) {
+      if (answer[i] !== question.correctOrderIds[i]) {
+        mismatchIndex = i;
+        break;
+      }
+    }
+    const mismatchText = mismatchIndex >= 0
+      ? `Erster Fehler bei Position ${mismatchIndex + 1}: ${question.itemMap?.[answer[mismatchIndex]] || answer[mismatchIndex]} steht nicht an der richtigen Stelle.`
+      : (answer.length !== question.correctOrderIds.length
+        ? `Deine Reihenfolge ist unvollständig (${answer.length} von ${question.correctOrderIds.length} Elementen).`
+        : '');
+    return `Deine Reihenfolge: ${userOrderLabel}. Korrekt wäre: ${correctOrderLabel}. ${mismatchText}${question.explanation || ''}`;
+  }
+  if (question.type === 'matching' && answer && typeof answer === 'object' && question.correctPairLabels) {
+    const userPairs = Object.entries(answer)
+      .map(([leftId, rightId]) => {
+        const left = question.leftMap?.[leftId] || leftId;
+        const right = question.rightMap?.[rightId] || rightId;
+        return `${left} → ${right}`;
+      })
+      .join(', ');
+    const correctPairs = question.correctPairLabels.join(', ');
+    return `Deine Zuordnung: ${userPairs}. Korrekt wäre: ${correctPairs}. ${question.explanation || ''}`;
+  }
   return question.explanation;
 }
 
@@ -641,8 +674,8 @@ export function evaluateEmployeeAnswer(conversation, answer) {
       samIntervention: true,
     });
 
-    const { topicId } = topicIdsFromKey(currentTopicKey);
-    recordSkillEvent('fundamentals', topicId, question.concept || 'general', {
+    const { categoryId, topicId } = topicIdsFromKey(currentTopicKey);
+    recordSkillEvent(categoryId, topicId, question.concept || 'general', {
       correct: false,
       source: SKILL_SOURCE.CONVERSATION,
       dimension: SKILL_DIMENSION.KNOWLEDGE,

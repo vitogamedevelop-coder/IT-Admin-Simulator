@@ -54,6 +54,12 @@ const VALID_CONCEPT_CLUSTERS = new Set([
   // Phase 7 – Netzwerk-Grundlagen
   'grundbegriffe.networkSizes',
   'grundbegriffe.addressing',
+  // Phase 7.1 – Netzwerk-Reichweite (PAN/LAN/MAN/WAN)
+  'grundbegriffe.networkSizes.definition',
+  'grundbegriffe.networkSizes.relativeSize',
+  'grundbegriffe.networkSizes.identification',
+  'grundbegriffe.networkSizes.scenarioClassification',
+  'grundbegriffe.networkSizes.comparison',
   'topologien.properties',
   'topologien.compare',
   'topologien.identification',
@@ -438,6 +444,71 @@ export function validateConversationInstance(instance) {
   }
 
   return errors;
+}
+
+// Broader semantic domains used for distractor plausibility. Distractors may
+// come from any cluster within the same group; only distractors from a
+// different group are flagged as cross-domain.
+const DISTRACTOR_DOMAIN_GROUPS = [
+  ['grundbegriffe', 'topologien', 'kommunikation', 'tcpudp', 'dns', 'dhcp', 'routing', 'vlsm', 'supernetting'],
+  ['cisco'],
+  ['osi'],
+  ['binary', 'ipv4', 'subnetting', 'switching', 'vlan', 'ssh'],
+];
+
+function getDistractorDomain(cluster) {
+  const prefix = cluster.split('.')[0];
+  return DISTRACTOR_DOMAIN_GROUPS.find((g) => g.includes(prefix));
+}
+
+/**
+ * Validates that MC distractors for a Knowledge Item do not leak in from a
+ * completely unrelated concept domain. Distractors from the same broader domain
+ * (e.g. DNS vs. DHCP, MAC vs. IP) are allowed. Returns an array of issue objects.
+ */
+export function validateDistractorDomain(question, item, allItemsById) {
+  const issues = [];
+  if (question.type !== 'mc' || !question.options) return issues;
+  const correctCluster = item?.conceptCluster;
+  if (!correctCluster) return issues;
+  const correctDomain = getDistractorDomain(correctCluster);
+  for (const opt of question.options) {
+    if (opt.id === question.correctOptionId) continue;
+    // Try to find which item a distractor label came from.
+    const source = Object.values(allItemsById).find((i) => {
+      if (i.id === item.id) return false;
+      const sibLabel = i.data?.definition || i.data?.description;
+      return sibLabel && sibLabel === opt.label;
+    });
+    if (!source) continue;
+    if (source.conceptCluster === correctCluster) continue;
+    const sourceDomain = getDistractorDomain(source.conceptCluster);
+    if (correctDomain && sourceDomain && correctDomain === sourceDomain) continue;
+    issues.push({ type: 'cross-domain-distractor', option: opt.label, sourceItem: source.id, sourceCluster: source.conceptCluster, correctCluster });
+  }
+  return issues;
+}
+
+/**
+ * Validates that ordering item labels do not leak their target position
+ * (e.g. "2. Foo", "zweite", "1."). Returns an array of issue objects.
+ */
+export function validateOrderingPositionLeak(question) {
+  const issues = [];
+  if (question.type !== 'ordering' || !Array.isArray(question.items)) return issues;
+  const leakPatterns = [
+    /^\d+\.\s/, // leading "2. "
+    /^\d+\s/,   // leading number
+    /\b(erste|zweite|dritte|vierte|fünfte|sechste|siebte|achte)\b/i,
+    /\b(1\.|2\.|3\.|4\.|5\.|6\.|7\.|8\.)\b/,
+  ];
+  for (const it of question.items) {
+    const label = it.label || '';
+    if (leakPatterns.some((re) => re.test(label))) {
+      issues.push({ type: 'ordering-position-leak', itemId: it.id, label });
+    }
+  }
+  return issues;
 }
 
 /**

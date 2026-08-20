@@ -34,6 +34,11 @@ const GRUNDLAGEN_ITEMS = [
       term: 'Cisco IOS',
       definition: 'Internetwork Operating System – das Betriebssystem auf Cisco-Switches und -Routern, das die Kommandozeile (CLI) zur Konfiguration und Überwachung bereitstellt.',
       description: 'Cisco IOS ist das Betriebssystem auf Cisco-Geräten; es stellt die CLI bereit.',
+      distractorDefinitions: [
+        'Ein speicherbasiertes Modul auf Cisco-Geräten, das die aktuelle Konfiguration vor einem Neustart sichert.',
+        'Das Routing-Protokoll, das Cisco-Router verwenden, um Netze automatisch zu erlernen.',
+        'Ein proprietäres Diagnoseprogramm, das nur während des POST-Bootvorgangs ausgeführt wird.',
+      ],
     },
     siblings: ['ct.grundlagen.memory', 'ct.grundlagen.boot', 'ct.grundlagen.modes', 'ct.grundlagen.configFiles'],
     roleHints: ['technical'],
@@ -141,6 +146,11 @@ const ROUTER_BASICS_ITEMS = [
       term: 'Router',
       definition: 'Ein Router verbindet unterschiedliche Netzwerke und entscheidet anhand der Ziel-IP-Adresse eines Pakets, über welche Schnittstelle es weitergeleitet wird.',
       description: 'Ein Router leitet Pakete zwischen unterschiedlichen Netzen anhand von IP-Adressen weiter.',
+      distractorDefinitions: [
+        'Ein Switch verbindet Endgeräte innerhalb desselben Netzes anhand von MAC-Adressen.',
+        'Eine Firewall überwacht und filtert Datenverkehr anhand von Sicherheitsregeln.',
+        'Ein Access Point stellt drahtlose Verbindungen für Endgeräte in einem LAN bereit.',
+      ],
     },
     siblings: ['ct.router.table', 'ct.router.nextHop', 'ct.router.ad'],
     roleHints: ['technical'],
@@ -157,6 +167,11 @@ const ROUTER_BASICS_ITEMS = [
     data: {
       subject: 'Routingtabelle',
       description: 'Die Routingtabelle enthält Einträge mit Zielnetz, Next Hop, Ausgangsschnittstelle und Metrik.',
+      distractorDescriptions: [
+        'Eine Tabelle, die MAC-Adressen den Switch-Ports zuordnet, an denen die Geräte angeschlossen sind.',
+        'Eine Liste aller aktiven Benutzersitzungen auf dem Router mit ihren Berechtigungen.',
+        'Ein Protokoll, das automatisch Routing-Informationen zwischen benachbarten Routern austauscht.',
+      ],
     },
     siblings: ['ct.router.nextHop', 'ct.router.ad'],
     roleHints: ['technical'],
@@ -173,6 +188,11 @@ const ROUTER_BASICS_ITEMS = [
     data: {
       subject: 'Next Hop',
       description: 'Der Next Hop ist die IP-Adresse des nächsten Routers, an den ein Paket auf dem Weg zum Zielnetz weitergegeben wird.',
+      distractorDescriptions: [
+        'Die physische Port-Nummer, über die das Paket den Router verlässt.',
+        'Die MAC-Adresse des nächsten Netzwerkgeräts im lokalen Segment.',
+        'Die Ziel-IP-Adresse des Endgeräts, an das das Paket letztendlich ausgeliefert wird.',
+      ],
     },
     siblings: ['ct.router.table', 'ct.router.ad'],
     roleHints: ['technical'],
@@ -189,6 +209,11 @@ const ROUTER_BASICS_ITEMS = [
     data: {
       subject: 'Longest Prefix Match',
       description: 'Wenn mehrere Routing-Einträge passen, gewinnt immer der spezifischere Eintrag mit der längeren Subnetzmaske.',
+      distractorDescriptions: [
+        'Wenn mehrere Routing-Einträge passen, gewinnt immer der Eintrag mit der niedrigsten Metrik.',
+        'Wenn mehrere Routing-Einträge passen, wählt der Router zufällig einen aus, um Last zu verteilen.',
+        'Wenn mehrere Routing-Einträge passen, gewinnt immer die älteste bekannte Route in der Tabelle.',
+      ],
     },
     siblings: ['ct.router.ad'],
     roleHints: ['technical'],
@@ -205,6 +230,11 @@ const ROUTER_BASICS_ITEMS = [
     data: {
       subject: 'Administrative Distance',
       description: 'Die Administrative Distance bewertet, wie vertrauenswürdig eine Routing-Quelle ist; niedrigere Werte gewinnen, wenn mehrere Quellen dieselbe Route liefern.',
+      distractorDescriptions: [
+        'Die Administrative Distance gibt die Anzahl der Router an, die ein Paket bis zum Ziel passieren darf.',
+        'Die Administrative Distance misst die physische Entfernung zwischen zwei Routern in Metern.',
+        'Die Administrative Distance ist die maximale Anzahl gleichzeitiger Verbindungen auf einem Router.',
+      ],
     },
     siblings: ['ct.router.table', 'ct.router.nextHop', 'ct.router.lpm'],
     roleHints: ['technical'],
@@ -229,6 +259,11 @@ const STATIC_ROUTING_ITEMS = [
       term: 'Statische Route',
       definition: 'Ein manuell vom Administrator eingetragener Weg zu einem entfernten Netz; geeignet für kleine, stabile Netze oder als Default Route.',
       description: 'Eine statische Route wird manuell eingetragen, um ein entferntes Netz über einen definierten Next Hop zu erreichen.',
+      distractorDefinitions: [
+        'Eine Route, die Router automatisch über ein Routing-Protokoll wie OSPF austauschen.',
+        'Ein temporärer Pfad, der bei jedem Neustart des Routers neu ausgehandelt werden muss.',
+        'Eine vom DHCP-Server verteilte Standardroute für alle Clients im Netzwerk.',
+      ],
     },
     siblings: ['ct.static.components', 'ct.static.defaultRoute'],
     roleHints: ['technical'],
@@ -265,6 +300,11 @@ const STATIC_ROUTING_ITEMS = [
     data: {
       subject: 'Default Route',
       description: 'Die Default Route passt auf jedes Ziel, für das keine spezifischere Route existiert; typischerweise der Weg ins Internet.',
+      distractorDescriptions: [
+        'Die Default Route ist die Route mit der geringsten Bandbreite im gesamten Netzwerk.',
+        'Die Default Route wird nur für Pakete verwendet, die an das lokale Subnetz adressiert sind.',
+        'Die Default Route ist eine dynamisch gelernte Route mit der höchsten Priorität.',
+      ],
     },
     siblings: ['ct.static.definition', 'ct.static.components'],
     roleHints: ['technical'],

@@ -20,6 +20,7 @@ import {
 } from './types.js';
 import {
   siblingDistractors,
+  sameClusterDistractors,
   buildMcOptions,
 } from './distractors.js';
 import { generateCalculationData } from './calculationGenerators.js';
@@ -114,8 +115,10 @@ function buildMcInstance({ templateId, item, archetype, seed, prompt, correctVal
 
 function buildOrderingInstance({ templateId, item, archetype, seed, prompt, items, correctOrderIds, explanation, contextType, speechLeadIn, roleHints, rng, learningObjective = null, knowledgeFacet = null, promptStyle = PROMPT_STYLES.SELF_CONTAINED, contextDependency = CONTEXT_DEPENDENCIES.NEUTRAL, conversationLeads = null }) {
   const instance = baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency });
+  instance.itemMap = Object.fromEntries(items.map((it) => [it.id, it.label]));
   instance.items = rng.shuffle([...items]);
   instance.correctOrderIds = correctOrderIds;
+  instance.correctOrderLabels = correctOrderIds.map((id) => instance.itemMap[id]);
   instance.correctAnswer = { orderIds: correctOrderIds };
   instance.explanation = explanation;
   instance.conversationText = buildConversationText({ prompt, promptStyle, contextType, conversationLeads, rng });
@@ -130,6 +133,9 @@ function buildMatchingInstance({ templateId, item, archetype, seed, prompt, pair
   const left = rng.shuffle([...pairs.map((p) => ({ id: p.leftId, label: p.leftLabel }))]);
   const right = rng.shuffle([...pairs.map((p) => ({ id: p.rightId, label: p.rightLabel }))]);
   instance.pairs = { left, right };
+  instance.leftMap = Object.fromEntries(pairs.map((p) => [p.leftId, p.leftLabel]));
+  instance.rightMap = Object.fromEntries(pairs.map((p) => [p.rightId, p.rightLabel]));
+  instance.correctPairLabels = correctPairs.map((p) => ({ left: instance.leftMap[p.leftId], right: instance.rightMap[p.rightId] }));
   // Provide the same data under the legacy leftItems/rightItems keys so that
   // conversation components and older evaluators keep working.
   instance.leftItems = left;
@@ -348,8 +354,8 @@ function osiOrderingTemplates() {
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const order = item.data.senderOrder;
         const labels = ['Anwendung', 'Darstellung', 'Sitzung', 'Transport', 'Vermittlung', 'Sicherung', 'Bitübertragung'];
-        const items = order.map((num, idx) => ({ id: `l${num}`, label: `${num}. ${labels[idx]}` }));
-        const directPrompt = 'Bringe die OSI-Schichten in die Reihenfolge, in der Daten beim Sender durchlaufen werden (oben nach unten).';
+        const items = order.map((num, idx) => ({ id: `l${num}`, label: labels[idx] }));
+        const directPrompt = 'Bringe die OSI-Schichten in die Reihenfolge, in der Daten beim Sender kapselt werden – beginnend mit der höchsten Schicht.';
         const prompt = contextType === 'coworker_question'
           ? `Ich verwechsle ständig die Kapselungsrichtung. ${directPrompt}`
           : directPrompt;
@@ -397,7 +403,7 @@ function binaryTemplates() {
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const values = item.data.values;
         const items = values.map((v, i) => ({ id: `bit${i}`, label: String(v) }));
-        const directPrompt = 'Sortiere die Bit-Stellenwerte eines Oktetts von links (128) nach rechts (1).';
+        const directPrompt = 'Sortiere die Bit-Stellenwerte eines Oktetts beginnend mit dem höchsten Stellenwert (128) bis zum niedrigsten (1).';
         const prompt = contextType === 'coworker_question'
           ? withCoworkerLead(directPrompt, ['Ich habe die Bitwerte durcheinandergebracht.', 'Kurze Abfrage:'], rng)
           : directPrompt;
@@ -1617,20 +1623,37 @@ function phase7DefinitionTemplates() {
           ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
           : directPrompt;
         const correctValue = item.data.definition || item.data.description;
-        const distractors = siblingDistractors(
+        let distractors = sameClusterDistractors(
           item,
           allItemsById,
           3,
           (sib) => sib.data?.definition || sib.data?.description,
           rng,
         );
+        if (distractors.length < 3 && Array.isArray(item.data.distractorDefinitions)) {
+          const seen = new Set(distractors);
+          for (const d of item.data.distractorDefinitions) {
+            if (distractors.length >= 3) break;
+            if (d === correctValue) continue;
+            const ds = String(d);
+            if (!seen.has(ds)) {
+              distractors.push(ds);
+              seen.add(ds);
+            }
+          }
+        }
         const wrongOptionExplanations = {};
-        const siblings = Object.values(allItemsById).filter((sib) => (item.siblings || []).includes(sib.id));
+        const siblings = Object.values(allItemsById).filter((sib) => sib.conceptCluster === item.conceptCluster && sib.id !== item.id);
         for (const sib of siblings) {
           const label = sib.data?.definition || sib.data?.description;
           if (label) {
             const sibTerm = sib.data?.term || sib.data?.subject || 'einen anderen Begriff';
             wrongOptionExplanations[label] = `Das beschreibt ${sibTerm}, nicht ${term}.`;
+          }
+        }
+        for (const d of distractors) {
+          if (!wrongOptionExplanations[d]) {
+            wrongOptionExplanations[d] = `Das ist keine zutreffende Definition für ${term}.`;
           }
         }
         return buildMcInstance({
@@ -1671,20 +1694,37 @@ function phase7PropertyTemplates() {
           ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
           : directPrompt;
         const correctValue = item.data.description;
-        const distractors = siblingDistractors(
+        let distractors = sameClusterDistractors(
           item,
           allItemsById,
           3,
           (sib) => sib.data?.description || sib.data?.definition,
           rng,
         );
+        if (distractors.length < 3 && Array.isArray(item.data.distractorDescriptions)) {
+          const seen = new Set(distractors);
+          for (const d of item.data.distractorDescriptions) {
+            if (distractors.length >= 3) break;
+            if (d === correctValue) continue;
+            const ds = String(d);
+            if (!seen.has(ds)) {
+              distractors.push(ds);
+              seen.add(ds);
+            }
+          }
+        }
         const wrongOptionExplanations = {};
-        const siblings = Object.values(allItemsById).filter((sib) => (item.siblings || []).includes(sib.id));
+        const siblings = Object.values(allItemsById).filter((sib) => sib.conceptCluster === item.conceptCluster && sib.id !== item.id);
         for (const sib of siblings) {
           const label = sib.data?.description || sib.data?.definition;
           if (label) {
             const sibSubject = sib.data?.subject || sib.data?.name || sib.data?.term || 'einen anderen Begriff';
             wrongOptionExplanations[label] = `Das trifft eher auf ${sibSubject} zu, nicht auf ${subject}.`;
+          }
+        }
+        for (const d of distractors) {
+          if (!wrongOptionExplanations[d]) {
+            wrongOptionExplanations[d] = `Das trifft nicht auf ${subject} zu.`;
           }
         }
         return buildMcInstance({
