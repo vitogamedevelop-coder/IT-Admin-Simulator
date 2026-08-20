@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, X } from 'lucide-react';
+import { CheckCircle, X, Check } from 'lucide-react';
 
 export default function ConversationMatching({ question, disabled, onAnswer }) {
   const [matches, setMatches] = useState({});
@@ -36,7 +36,41 @@ export default function ConversationMatching({ question, disabled, onAnswer }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {Object.keys(matches).length > 0 && (
+      {disabled ? (
+        <div className="flex flex-col gap-2">
+          {question.leftItems.map((left) => {
+            const userRightId = matches[left.id];
+            const correctPair = question.correctPairs.find(
+              (p) => (p.leftId ?? p.left) === left.id,
+            );
+            const correctRightId = correctPair ? (correctPair.rightId ?? correctPair.right) : null;
+            const isCorrect = Boolean(userRightId) && userRightId === correctRightId;
+            const userRight = question.rightItems.find((r) => r.id === userRightId);
+            const correctRight = question.rightItems.find((r) => r.id === correctRightId);
+            return (
+              <div
+                key={left.id}
+                className={`flex items-center gap-2 p-2 rounded-lg border text-sm ${
+                  isCorrect
+                    ? 'border-green-500 bg-green-500/10 text-green-400'
+                    : 'border-red-500 bg-red-500/10 text-red-400'
+                }`}>
+                {isCorrect ? <Check size={14} className="shrink-0" aria-hidden="true" /> : <X size={14} className="shrink-0" aria-hidden="true" />}
+                <span className="flex-1 text-[#c9d1d9]">
+                  <span className="text-[#00f0ff]">{left.label}</span>
+                  {' → '}
+                  <span className={isCorrect ? 'text-green-300' : 'text-red-300'}>
+                    {userRight?.label || 'nicht zugeordnet'}
+                  </span>
+                  {!isCorrect && correctRight && (
+                    <span className="text-[#8b949e]"> (richtig: {correctRight.label})</span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : Object.keys(matches).length > 0 && (
         <div className="flex flex-col gap-2">
           {question.leftItems.filter((l) => matches[l.id]).map((left) => {
             const right = question.rightItems.find((r) => r.id === matches[left.id]);

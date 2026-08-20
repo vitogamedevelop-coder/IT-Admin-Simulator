@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Check, X } from 'lucide-react';
 
 export default function ConversationOrdering({ question, disabled, onAnswer }) {
   const [items, setItems] = useState(question.items);
@@ -61,12 +61,23 @@ export default function ConversationOrdering({ question, disabled, onAnswer }) {
   if (disabled) {
     return (
       <div className="flex flex-col gap-2 opacity-70">
-        {items.map((item, i) => (
-          <div key={item.id} className="flex items-center gap-2 p-2.5 rounded-lg border border-[#30363d] bg-[#0d1117]/60 text-sm text-[#c9d1d9]">
-            <span className="w-5 text-[#00f0ff]">{i + 1}</span>
-            {item.label}
-          </div>
-        ))}
+        {items.map((item, i) => {
+          const expectedId = question.correctOrderIds[i];
+          const isCorrect = item.id === expectedId;
+          return (
+            <div
+              key={item.id}
+              className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm ${
+                isCorrect
+                  ? 'border-green-500 bg-green-500/10 text-green-400'
+                  : 'border-red-500 bg-red-500/10 text-red-400'
+              }`}>
+              <span className="w-5 shrink-0">{i + 1}</span>
+              {isCorrect ? <Check size={14} className="shrink-0" aria-hidden="true" /> : <X size={14} className="shrink-0" aria-hidden="true" />}
+              <span className="flex-1 min-w-0">{item.label}</span>
+            </div>
+          );
+        })}
       </div>
     );
   }
