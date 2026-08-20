@@ -8,8 +8,15 @@ function createKnownCredentials() {
   return { enableSecret: null, localAdminUsername: null, localAdminPassword: null };
 }
 
+// IMPORTANT: keep this equal to the highest version number used in any
+// `saved.stateVersion < N` branch in migrateState() below. A brand-new save
+// (no `saved` at all) skips migrateState() entirely and starts from this
+// object directly (see readGameState()), so if this lags behind the latest
+// migration step, the very next load would immediately re-run the trailing
+// migrations against an already-current save - harmless since every branch
+// is idempotent, but wasteful and a sign the two numbers have drifted apart.
 const initialState = {
-  stateVersion: 8,
+  stateVersion: 10,
   contentPackVersion: 1,
   company: 'NEXUS Systems',
   // Purely local display name (no account, no PII beyond a self-chosen
@@ -124,8 +131,12 @@ function migrateState(saved) {
     // was renumbered to cisco-main-004 so the new HM3 (Block 1.5
     // SSH/Remote Administration) can occupy cisco-main-003 in curriculum
     // order. Remap any completed-quest and delivery records from old saves.
+    // IMPORTANT: build on `migrated.completedQuests` (already passed through
+    // any earlier migration step, e.g. the `< 8` gate-id remap above), never
+    // on `saved.completedQuests` directly - re-reading the raw saved value
+    // here would silently undo earlier remaps for any save older than v10.
     const remap = (id) => (id === 'cisco-main-003' ? 'cisco-main-004' : id);
-    migrated.completedQuests = (saved.completedQuests || []).map(remap);
+    migrated.completedQuests = (migrated.completedQuests || []).map(remap);
     migrated.deliveredMissionInstances = (migrated.deliveredMissionInstances || []).map(remap);
     if (migrated.activeQuest && migrated.activeQuest.id === 'cisco-main-003') {
       migrated.activeQuest = { ...migrated.activeQuest, id: 'cisco-main-004' };

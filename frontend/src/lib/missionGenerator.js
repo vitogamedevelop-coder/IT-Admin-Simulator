@@ -63,6 +63,27 @@ export function writeInstances(instances) {
   localStorage.setItem(INSTANCES_KEY, JSON.stringify(instances));
 }
 
+// Recursively fills in any key that is missing in `actual` using the value
+// from `defaults`, but NEVER overwrites a leaf value that already exists in
+// `actual` - so a persisted mission's real progress is always preserved.
+// Used to repair `device` shapes that predate a later-added nested field
+// (e.g. a new `lines.console.*` flag), the same class of bug that
+// `requiredResolvedParams` already guards against for `resolvedParameters`.
+function deepMergeDefaults(defaults, actual) {
+  if (Array.isArray(defaults)) return Array.isArray(actual) ? actual : defaults;
+  if (defaults && typeof defaults === 'object') {
+    if (!actual || typeof actual !== 'object' || Array.isArray(actual)) return { ...defaults };
+    const result = { ...defaults };
+    for (const key of Object.keys(actual)) {
+      result[key] = Object.prototype.hasOwnProperty.call(defaults, key)
+        ? deepMergeDefaults(defaults[key], actual[key])
+        : actual[key];
+    }
+    return result;
+  }
+  return actual !== undefined ? actual : defaults;
+}
+
 function normalizeMissionInstance(instance) {
   if (!instance || !instance.templateId || !instance.seed) return instance;
   const template = getTemplate(instance.templateId);
@@ -100,6 +121,21 @@ function normalizeMissionInstance(instance) {
     }
     if (missingBefore.length > 0 && typeof template.buildBriefing === 'function') {
       instance.briefing = template.buildBriefing(merged, instance.archetype, instance.context, instance.difficulty);
+    }
+
+    // Repair the persisted device shape against a freshly built reference
+    // device for this template, so a save made before a schema change (a
+    // newly added nested config flag, a renamed sub-object, ...) doesn't
+    // crash evaluators that assume the field exists. Real saved values
+    // always win; only genuinely missing nested keys are filled in.
+    if (instance.device && typeof template.buildDevice === 'function') {
+      try {
+        const { device: freshDevice } = template.buildDevice(merged, instance.archetype);
+        instance.device = deepMergeDefaults(freshDevice, instance.device);
+      } catch {
+        // Leave the device untouched if a reference build fails - evaluators
+        // must tolerate missing optional fields defensively either way.
+      }
     }
   } catch {
     // Leave the instance untouched if regeneration fails; the validator will
