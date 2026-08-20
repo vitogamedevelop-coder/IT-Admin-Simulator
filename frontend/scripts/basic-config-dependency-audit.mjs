@@ -55,6 +55,36 @@ function createAndStartInstance(archetype, context, seed) {
   return startProceduralMission(instanceId);
 }
 
+function createCompositeInstance(selectedTaskIds, seed) {
+  const rng = seededRng(seed);
+  const context = template.contexts[0];
+  const params = template.resolveParameters(rng, MISSION_ARCHETYPE.BUILD, context, 'medium');
+  params.selectedTaskIds = selectedTaskIds;
+  const { device } = template.buildDevice(params, MISSION_ARCHETYPE.BUILD);
+
+  const instanceId = `audit-bc-composite-${seed}`;
+  const instance = {
+    instanceId, templateId: template.id, seed, generatedAt: Date.now(),
+    channel: 'email', skillIds: [], difficulty: 'medium', archetype: MISSION_ARCHETYPE.BUILD, context,
+    resolvedParameters: params, device, title: 't', briefing: 'b', status: 'available',
+    readState: { read: false, readAt: null }, acceptedState: { accepted: false, acceptedAt: null },
+    completedState: { completed: false, completedAt: null }, attempts: 0, hintsUsed: [],
+    solutionRevealedFor: [], showCommandsUsed: [],
+  };
+  storage.setItem(INSTANCES_KEY, JSON.stringify({ [instanceId]: instance }));
+  return startProceduralMission(instanceId);
+}
+
+function checkComposite(seed, description, commands, expectedConsoleSecurity) {
+  storage.clear();
+  const state = createCompositeInstance(['enable_secret', 'console_security', 'exec_timeout'], seed);
+  const finalState = runCommands(state, commands);
+  const progress = getProceduralMissionProgress(finalState);
+  const consoleCheck = progress.checks.find((c) => c.id === 'console_security');
+  assert(consoleCheck, `${description}: console_security check exists`);
+  assert(consoleCheck.ok === expectedConsoleSecurity, `${description}: console_security should be ${expectedConsoleSecurity}, got ${consoleCheck.ok} (checks: ${JSON.stringify(progress.checks)})`);
+}
+
 function solveCommands(params) {
   const selected = new Set(params.selectedTaskIds);
   const head = ['enable', 'configure terminal'];
@@ -67,7 +97,8 @@ function solveCommands(params) {
 
   const lineCommands = [];
   if (selected.has('console_security')) lineCommands.push(`password ${params.consolePassword}`);
-  if (selected.has('login')) lineCommands.push('login');
+  // console_security now requires the line to actually use password authentication.
+  if (selected.has('console_security') || selected.has('login')) lineCommands.push('login');
   if (selected.has('login_local')) lineCommands.push('login local');
   if (selected.has('exec_timeout')) lineCommands.push(`exec-timeout ${params.execTimeoutMinutes} ${params.execTimeoutSeconds}`);
   if (lineCommands.length > 0) {
@@ -92,6 +123,7 @@ function validateParams(params, label) {
   assert(!selected.has('login') || selected.has('console_security'), `${label}: login requires console_security`);
   assert(!selected.has('login_local') || selected.has('local_user'), `${label}: login_local requires local_user`);
   assert(!(selected.has('login') && selected.has('login_local')), `${label}: login and login_local are mutually exclusive`);
+  assert(!(selected.has('console_security') && selected.has('login_local')), `${label}: console_security (line-password auth) and login_local (local-user auth) are mutually exclusive`);
 }
 
 console.log('A) Dependency rules across 1000 BUILD seeds');
@@ -155,6 +187,36 @@ for (let seed = 1; seed <= 500; seed += 1) {
   assert(params.selectedTaskIds.length >= 3, `COUNT/seed${seed}: at least 3 selected tasks`);
   assert(params.selectedTaskIds.length <= BASIC_CONFIG_TASKS.length, `COUNT/seed${seed}: selected tasks do not exceed pool`);
 }
+
+console.log('F) Composite console_security evaluation: password + login mode');
+const pass = 'pass';
+checkComposite(1, 'A) password only, no login', [
+  'enable', 'configure terminal', `enable secret ${pass}`,
+  'line console 0', `password ${pass}`, 'exec-timeout 4 0', 'exit',
+  'end', 'copy running-config startup-config',
+], false);
+checkComposite(2, 'B) login only, no password', [
+  'enable', 'configure terminal', `enable secret ${pass}`,
+  'line console 0', 'login', 'exec-timeout 4 0', 'exit',
+  'end', 'copy running-config startup-config',
+], false);
+checkComposite(3, 'C) password + login', [
+  'enable', 'configure terminal', `enable secret ${pass}`,
+  'line console 0', `password ${pass}`, 'login', 'exec-timeout 4 0', 'exit',
+  'end', 'copy running-config startup-config',
+], true);
+checkComposite(4, 'D) username + login local must not satisfy line-password', [
+  'enable', 'configure terminal', `enable secret ${pass}`,
+  `username admin secret ${pass}`,
+  'line console 0', 'login local', 'exec-timeout 4 0', 'exit',
+  'end', 'copy running-config startup-config',
+], false);
+checkComposite(5, 'E) password + login then login local: final mode is local', [
+  'enable', 'configure terminal', `enable secret ${pass}`,
+  'line console 0', `password ${pass}`, 'login', 'exec-timeout 4 0', 'exit',
+  'line console 0', 'login local', 'exit',
+  'end', 'copy running-config startup-config',
+], false);
 
 console.log('\n=== Basic Config Dependency Audit: Summary ===');
 const passed = results.filter((r) => r.ok).length;

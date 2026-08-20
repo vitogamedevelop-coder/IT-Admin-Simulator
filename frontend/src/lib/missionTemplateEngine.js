@@ -192,37 +192,91 @@ function shuffleArray(rng, arr) {
   return copy;
 }
 
+// Removes taskId from `selected` and cascades: any other selected task that
+// `requires` the removed task is no longer solvable, so it is removed too
+// (recursively). This prevents conflict resolution from leaving a dangling
+// dependency behind (e.g. removing console_security while 'login', which
+// requires it, stays selected).
+function removeTaskCascading(pool, selected, taskId) {
+  if (!selected.delete(taskId)) return;
+  for (const task of pool) {
+    if (selected.has(task.id) && task.requires?.includes(taskId)) {
+      removeTaskCascading(pool, selected, task.id);
+    }
+  }
+}
+
 // Select a random subset of tasks and then enforce fachliche dependencies:
 // - 'login' requires a configured console line password (console_security).
 // - 'login_local' requires a configured local user.
-// - 'login' and 'login_local' are mutually exclusive on a single line.
-function selectDependencyAwareTasks(rng, pool, targetCount) {
-  const shuffled = shuffleArray(rng, pool);
-  const selected = new Set(shuffled.slice(0, targetCount).map((t) => t.id));
+// - The console can only run ONE effective authentication mode at a time, so
+//   any pair of tasks declaring each other as `conflicts` (line-password mode
+//   vs local-user mode) is mutually exclusive.
+// Minimum number of tasks a generated basic-config mission should contain so
+// it stays a meaningful exercise even after conflict resolution potentially
+// removes both sides of a login/login-local pair.
+const MIN_BASIC_CONFIG_TASKS = 3;
 
-  // Pull in required dependencies until the set is stable.
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const id of Array.from(selected)) {
-      const task = pool.find((t) => t.id === id);
-      if (task?.requires) {
-        for (const req of task.requires) {
+function stabilizeTaskSelection(rng, pool, selected) {
+  let stable = false;
+  while (!stable) {
+    stable = true;
+
+    // 1) Pull in required dependencies until the set is stable.
+    let depsChanged = true;
+    while (depsChanged) {
+      depsChanged = false;
+      for (const id of Array.from(selected)) {
+        const task = pool.find((t) => t.id === id);
+        for (const req of task?.requires || []) {
           if (!selected.has(req)) {
             selected.add(req);
-            changed = true;
+            depsChanged = true;
+            stable = false;
           }
         }
       }
     }
-  }
 
-  // Resolve the mutual exclusion between login and login_local.
-  if (selected.has('login') && selected.has('login_local')) {
-    if (rng(0, 1) === 0) {
-      selected.delete('login_local');
-    } else {
-      selected.delete('login');
+    // 2) Resolve the first conflicting pair found, cascading removal to any
+    //    task that depended on the removed one.
+    for (const id of Array.from(selected)) {
+      const task = pool.find((t) => t.id === id);
+      const conflictId = task?.conflicts?.find((c) => selected.has(c));
+      if (conflictId) {
+        const toRemove = rng(0, 1) === 0 ? conflictId : id;
+        removeTaskCascading(pool, selected, toRemove);
+        stable = false;
+        break;
+      }
+    }
+  }
+}
+
+function selectDependencyAwareTasks(rng, pool, targetCount) {
+  const shuffled = shuffleArray(rng, pool);
+  const selected = new Set(shuffled.slice(0, targetCount).map((t) => t.id));
+
+  // Alternate filling in missing dependencies and resolving conflicts until
+  // the set is fully stable: resolving a conflict can remove a task that
+  // something else depends on (cascaded away), and re-adding a dependency
+  // could in theory reintroduce a conflict, so both steps must reach a fixed
+  // point together.
+  stabilizeTaskSelection(rng, pool, selected);
+
+  // Conflict resolution can shrink the set below the intended minimum (e.g.
+  // both 'login' and 'login_local' get dropped, leaving only their
+  // dependencies behind). Top back up with additional, non-conflicting tasks
+  // and re-stabilize until the minimum is met or no more candidates exist.
+  let addedMore = true;
+  while (selected.size < Math.min(MIN_BASIC_CONFIG_TASKS, pool.length) && addedMore) {
+    const candidates = pool.filter((t) => !selected.has(t.id)
+      && !(t.conflicts || []).some((c) => selected.has(c))
+      && !Array.from(selected).some((id) => pool.find((p) => p.id === id)?.conflicts?.includes(t.id)));
+    addedMore = candidates.length > 0;
+    if (addedMore) {
+      selected.add(candidates[rng(0, candidates.length - 1)].id);
+      stabilizeTaskSelection(rng, pool, selected);
     }
   }
 
@@ -274,9 +328,18 @@ export const BASIC_CONFIG_TASKS = [
     id: 'console_security',
     skill: 'cisco.basic_configuration.console_security',
     label: () => 'Konsolenzugang per Passwort gesichert',
-    brief: () => 'Konsolen-Line mit Passwort sichern',
+    brief: () => 'Konsolen-Line mit Passwort sichern und Login aktivieren',
+    // A console can only run one effective authentication mode. Since this
+    // task's target state IS line-password authentication (password + login),
+    // it is incompatible with login_local (local-user authentication).
+    conflicts: ['login_local'],
     preconfigure: (device, params) => { device.runningConfig.lines.console.password = params.consolePassword; },
-    evaluate: (device) => !!device.runningConfig.lines.console.password || !!device.runningConfig.lines.console.secret,
+    evaluate: (device) => {
+      const line = device.runningConfig.lines.console;
+      // A line password alone is not enough; the console must actually use
+      // line-password authentication (login) and not local authentication.
+      return (!!line.password || !!line.secret) && !!line.login && !line.loginLocal;
+    },
   },
   {
     id: 'login',
@@ -294,7 +357,7 @@ export const BASIC_CONFIG_TASKS = [
     label: () => 'Login local auf Konsole aktiviert',
     brief: () => 'Login local auf der Konsole aktivieren',
     requires: ['local_user'],
-    conflicts: ['login'],
+    conflicts: ['login', 'console_security'],
     preconfigure: (device) => { device.runningConfig.lines.console.loginLocal = true; device.runningConfig.lines.console.login = false; },
     evaluate: (device) => device.runningConfig.lines.console.loginLocal && !device.runningConfig.lines.console.login,
   },
@@ -361,9 +424,9 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
     'cisco.basic_configuration.console_security': defineHintLadder({
       subskillPath: 'cisco.basic_configuration.console_security',
       nudge: 'Der physische Konsolenzugang muss abgesichert werden.',
-      focus: 'Wechsle in die Konsolen-Line und setze ein Passwort.',
-      directive: 'Verwende "line console 0" und "password PASSWORT".',
-      solution: { answer: 'line console 0\npassword <passwort>', explanation: 'Das Konsolenpasswort wird in der Line-Konfiguration gesetzt.' },
+      focus: 'Wechsle in die Konsolen-Line, setze ein Passwort und aktiviere die Passwortprüfung.',
+      directive: 'Verwende "line console 0", "password PASSWORT" und "login".',
+      solution: { answer: 'line console 0\npassword <passwort>\nlogin\nexit', explanation: 'Das Konsolenpasswort wird in der Line-Konfiguration gesetzt und mit "login" aktiviert.' },
     }),
     'cisco.basic_configuration.login': defineHintLadder({
       subskillPath: 'cisco.basic_configuration.login',
