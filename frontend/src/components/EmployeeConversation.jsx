@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  CheckCircle, XCircle, MessageCircle, User, GraduationCap, RotateCcw,
+  CheckCircle, XCircle, MessageCircle, User, GraduationCap, RotateCcw, Check, X,
 } from 'lucide-react';
 import { characterAsset } from '../lib/rpgAssets';
 import { evaluateEmployeeAnswer, advanceConversation, getConversationSummary } from '../lib/employeeConversations';
+import { getMcOptionState } from '../lib/conversationMcState';
 import { speakAs } from '../lib/speechSynthesis';
 import ConversationOrdering from './ConversationOrdering';
 import ConversationMatching from './ConversationMatching';
@@ -13,8 +14,9 @@ function openAcademyTopic(categoryId, topicId) {
   window.location.href = path;
 }
 
-function ConversationMc({ question, disabled, onAnswer }) {
+function ConversationMc({ question, disabled, result, onAnswer }) {
   const [selected, setSelected] = useState(null);
+  const submitted = !!result;
 
   useEffect(() => {
     setSelected(null);
@@ -22,20 +24,59 @@ function ConversationMc({ question, disabled, onAnswer }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {question.options.map((opt) => (
-        <button
-          key={opt.id}
-          disabled={disabled}
-          onClick={() => !disabled && setSelected(opt.id)}
-          className={`text-left p-2.5 rounded-lg border text-sm transition-all ${
-            selected === opt.id
-              ? 'border-[#00f0ff] bg-[#00f0ff]/10 text-[#c9d1d9]'
-              : 'border-[#30363d] bg-[#0d1117]/60 text-[#c9d1d9] hover:bg-[#21262d]'
-          }`}>
-          {opt.label}
-        </button>
-      ))}
-      {!disabled && (
+      {question.options.map((opt) => {
+        const state = getMcOptionState({
+          optionId: opt.id,
+          selectedId: selected,
+          correctOptionId: question.correctOptionId,
+          submitted,
+          isCorrect: result?.correct ?? false,
+        });
+        const isLocked = submitted || disabled;
+
+        let border = 'border-[#30363d]';
+        let bg = 'bg-[#0d1117]/60';
+        let text = 'text-[#c9d1d9]';
+        let icon = null;
+        let stateLabel = null;
+
+        if (state === 'selected') {
+          border = 'border-[#00f0ff]';
+          bg = 'bg-[#00f0ff]/10';
+        } else if (state === 'correct') {
+          border = 'border-green-500';
+          bg = 'bg-green-500/10';
+          text = 'text-green-400';
+          icon = <Check size={16} className="shrink-0 text-green-400" aria-hidden="true" />;
+          stateLabel = 'Richtig';
+        } else if (state === 'incorrect-selected') {
+          border = 'border-red-500';
+          bg = 'bg-red-500/10';
+          text = 'text-red-400';
+          icon = <X size={16} className="shrink-0 text-red-400" aria-hidden="true" />;
+          stateLabel = 'Falsch gewählt';
+        }
+
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            disabled={isLocked}
+            aria-pressed={state === 'selected'}
+            aria-label={stateLabel || undefined}
+            onClick={() => !isLocked && setSelected(opt.id)}
+            className={`flex items-center gap-2 text-left p-2.5 rounded-lg border text-sm transition-all ${border} ${bg} ${text} ${
+              !isLocked ? 'hover:bg-[#21262d]' : 'cursor-default'
+            }`}>
+            {icon && <span className="shrink-0">{icon}</span>}
+            <span className="flex-1 min-w-0">{opt.label}</span>
+            {stateLabel && (
+              <span className="text-xs font-medium shrink-0">{stateLabel}</span>
+            )}
+          </button>
+        );
+      })}
+      {!submitted && (
         <button
           disabled={selected === null}
           onClick={() => onAnswer(selected)}
@@ -109,7 +150,7 @@ export default function EmployeeConversation({ conversation: initialConversation
     if (question.type === 'matching') {
       return <ConversationMatching question={question} disabled={submitted} onAnswer={handleAnswer} />;
     }
-    return <ConversationMc question={question} disabled={submitted} onAnswer={handleAnswer} />;
+    return <ConversationMc question={question} disabled={submitted} result={result} onAnswer={handleAnswer} />;
   }
 
   function pickGoodbye() {
