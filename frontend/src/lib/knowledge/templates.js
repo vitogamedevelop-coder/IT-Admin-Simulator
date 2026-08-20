@@ -1830,7 +1830,19 @@ function phase7OrderTemplates() {
         && item.data.steps.length >= 2,
       supportedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING],
       generate: (item, _allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const directPrompt = 'Bringe die Schritte in die richtige Reihenfolge.';
+        let directPrompt = 'Bringe die Schritte in die richtige Reihenfolge.';
+        const cluster = item.conceptCluster || '';
+        if (cluster.startsWith('grundbegriffe.networkSizes')) {
+          directPrompt = 'Sortiere die Netzwerktypen nach typischer geografischer Ausdehnung – beginnend mit dem kleinsten.';
+        } else if (cluster.startsWith('binary')) {
+          directPrompt = 'Sortiere die Bit-Stellenwerte eines Oktetts beginnend mit dem höchsten Stellenwert.';
+        } else if (cluster.startsWith('dns.resolution')) {
+          directPrompt = 'Bringe die Schritte einer DNS-Namensauflösung in die richtige Reihenfolge.';
+        } else if (cluster.startsWith('cisco.boot')) {
+          directPrompt = 'Bringe die Boot-Schritte eines Cisco-Geräts in die richtige Reihenfolge.';
+        } else if (item.data.description && item.data.description.includes('Reihenfolge')) {
+          directPrompt = item.data.description;
+        }
         const prompt = contextType === 'coworker_question'
           ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
           : directPrompt;
@@ -1873,16 +1885,26 @@ function phase7MappingTemplates() {
         && item.data.pairs.length >= 2,
       supportedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.MAPPING],
       generate: (item, _allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const directPrompt = 'Ordne die Begriffe den passenden Beschreibungen zu.';
-        const prompt = contextType === 'coworker_question'
-          ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
-          : directPrompt;
         const pairs = item.data.pairs.map((p, idx) => ({
           leftId: `l-${idx}`,
           leftLabel: p.key || p.left,
           rightId: `r-${idx}`,
           rightLabel: p.value || p.right,
         }));
+        const termList = pairs.map((p) => p.leftLabel).join(', ');
+        let typeLabel = item.data.subject || item.data.term || null;
+        if (!typeLabel) {
+          if (item.conceptCluster?.startsWith('dns')) typeLabel = 'DNS-Record-Typen';
+          else if (item.conceptCluster?.startsWith('cisco.memory')) typeLabel = 'Cisco-Speicherbereiche';
+          else if (item.conceptCluster?.startsWith('cisco.static')) typeLabel = 'Komponenten einer statischen Route';
+          else if (item.conceptCluster?.startsWith('grundbegriffe.networkSizes')) typeLabel = 'Netzwerktypen';
+        }
+        const directPrompt = pairs.length <= 4
+          ? `Ordne ${typeLabel ? `die ${typeLabel} ${termList}` : termList} der passenden Bedeutung zu.`
+          : `Ordne die ${typeLabel || 'Begriffe'} der passenden Bedeutung zu.`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng)
+          : directPrompt;
         const correctPairs = pairs.map((p) => ({ leftId: p.leftId, rightId: p.rightId }));
         return buildMatchingInstance({
           templateId: 'phase7.mapping.pairs',

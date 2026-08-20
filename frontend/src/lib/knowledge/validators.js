@@ -532,3 +532,122 @@ export function validateQuestionInstances(instances) {
 
   return { ok: errors.length === 0, errors, stats };
 }
+
+// =============================================================================
+// Phase 7.2 – Solvability validators for structured question types
+// =============================================================================
+
+function labelIsUsable(label) {
+  return typeof label === 'string' && label.trim().length > 0 && !label.includes('[object Object]');
+}
+
+export function validateSolvability(question) {
+  const issues = [];
+
+  // Generic sanity: no object-Object leaks anywhere
+  const json = JSON.stringify(question);
+  if (json.includes('[object Object]')) {
+    issues.push({ type: 'object-object-leak', message: 'Question contains the literal "[object Object]"' });
+  }
+
+  if (question.type === 'matching') {
+    const leftItems = Array.isArray(question.leftItems) ? question.leftItems : [];
+    const rightItems = Array.isArray(question.rightItems) ? question.rightItems : [];
+    const correctPairs = Array.isArray(question.correctPairs) ? question.correctPairs : [];
+
+    if (leftItems.length < 2) issues.push({ type: 'unsolvable-matching', message: `Only ${leftItems.length} left item(s)` });
+    if (rightItems.length < 2) issues.push({ type: 'unsolvable-matching', message: `Only ${rightItems.length} right item(s)` });
+    if (correctPairs.length === 0) issues.push({ type: 'unsolvable-matching', message: 'No correct pairs defined' });
+
+    const leftIds = new Set();
+    const rightIds = new Set();
+
+    leftItems.forEach((it, i) => {
+      if (!it?.id) issues.push({ type: 'invalid-matching-item', index: i, message: 'Left item has no id' });
+      if (!labelIsUsable(it?.label)) issues.push({ type: 'invalid-matching-item', index: i, message: `Left item ${i} has unusable label` });
+      if (leftIds.has(it.id)) issues.push({ type: 'duplicate-id', id: it.id, message: `Duplicate left id ${it.id}` });
+      leftIds.add(it.id);
+    });
+
+    rightItems.forEach((it, i) => {
+      if (!it?.id) issues.push({ type: 'invalid-matching-item', index: i, message: 'Right item has no id' });
+      if (!labelIsUsable(it?.label)) issues.push({ type: 'invalid-matching-item', index: i, message: `Right item ${i} has unusable label` });
+      if (rightIds.has(it.id)) issues.push({ type: 'duplicate-id', id: it.id, message: `Duplicate right id ${it.id}` });
+      rightIds.add(it.id);
+    });
+
+    correctPairs.forEach((p, i) => {
+      const leftId = p?.leftId ?? p?.left;
+      const rightId = p?.rightId ?? p?.right;
+      if (!leftId || !rightId) {
+        issues.push({ type: 'invalid-correct-pair', index: i, message: `Pair ${i} is missing ids` });
+      } else {
+        if (!leftIds.has(leftId)) issues.push({ type: 'invalid-correct-pair', index: i, message: `Left id ${leftId} not in leftItems` });
+        if (!rightIds.has(rightId)) issues.push({ type: 'invalid-correct-pair', index: i, message: `Right id ${rightId} not in rightItems` });
+      }
+    });
+  }
+
+  if (question.type === 'ordering') {
+    const items = Array.isArray(question.items) ? question.items : [];
+    const correctOrderIds = Array.isArray(question.correctOrderIds) ? question.correctOrderIds : [];
+
+    if (items.length < 2) issues.push({ type: 'unsolvable-ordering', message: `Only ${items.length} ordering item(s)` });
+    if (correctOrderIds.length !== items.length) {
+      issues.push({ type: 'invalid-ordering-answer', message: `correctOrderIds length ${correctOrderIds.length} does not match items ${items.length}` });
+    }
+
+    const ids = new Set();
+    items.forEach((it, i) => {
+      if (!it?.id) issues.push({ type: 'invalid-ordering-item', index: i, message: 'Ordering item has no id' });
+      if (!labelIsUsable(it?.label)) issues.push({ type: 'invalid-ordering-item', index: i, message: `Ordering item ${i} has unusable label` });
+      if (ids.has(it.id)) issues.push({ type: 'duplicate-id', id: it.id, message: `Duplicate ordering id ${it.id}` });
+      ids.add(it.id);
+    });
+
+    const leakPatterns = [
+      /^\d+\.\s/,
+      /^\d+\s/,
+      /\b(erste|zweite|dritte|vierte|fünfte|sechste|siebte|achte)\b/i,
+      /\b(1\.|2\.|3\.|4\.|5\.|6\.|7\.|8\.)\b/,
+    ];
+
+    items.forEach((it, i) => {
+      if (leakPatterns.some((re) => re.test(it.label))) {
+        issues.push({ type: 'ordering-position-leak', index: i, label: it.label, message: 'Ordering label leaks position' });
+      }
+    });
+
+    correctOrderIds.forEach((id) => {
+      if (!ids.has(id)) issues.push({ type: 'invalid-ordering-answer', message: `correctOrderId ${id} not in items` });
+    });
+  }
+
+  if (question.type === 'mc') {
+    const options = Array.isArray(question.options) ? question.options : [];
+    const labels = new Set();
+    if (options.length < 2) issues.push({ type: 'unsolvable-mc', message: `Only ${options.length} option(s)` });
+    options.forEach((opt, i) => {
+      if (!opt?.id) issues.push({ type: 'invalid-mc-option', index: i, message: 'MC option has no id' });
+      if (!labelIsUsable(opt?.label)) issues.push({ type: 'invalid-mc-option', index: i, message: `MC option ${i} has unusable label` });
+      if (labels.has(opt.label)) issues.push({ type: 'duplicate-mc-label', label: opt.label, message: `Duplicate MC label` });
+      labels.add(opt.label);
+    });
+    if (!options.some((o) => o.id === question.correctOptionId)) {
+      issues.push({ type: 'invalid-mc-answer', message: `correctOptionId ${question.correctOptionId} not in options` });
+    }
+  }
+
+  if (question.type === 'input') {
+    const answers = Array.isArray(question.answers) ? question.answers : [];
+    if (answers.length === 0) issues.push({ type: 'unsolvable-input', message: 'No accepted answers defined' });
+    answers.forEach((a, i) => {
+      if (typeof a !== 'string' || a.trim().length === 0) issues.push({ type: 'invalid-input-answer', index: i, message: 'Empty/non-string input answer' });
+    });
+  }
+
+  // Prompt must be usable and must not leak the answer
+  if (!labelIsUsable(question.prompt)) issues.push({ type: 'invalid-prompt', message: 'Prompt is empty or contains [object Object]' });
+
+  return issues;
+}

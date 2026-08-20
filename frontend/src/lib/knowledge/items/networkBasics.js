@@ -639,7 +639,7 @@ const DNS_ITEMS = [
       pairs: [
         { key: 'A', value: 'Name → IPv4-Adresse' },
         { key: 'PTR', value: 'IP-Adresse → Name' },
-        { key: 'CNAME', value: 'Alias-Name für einen anderen Namen' },
+        { key: 'CNAME', value: 'Alias → kanonischer Name' },
         { key: 'MX', value: 'Zuständiger Mailserver für eine Domain' },
       ],
       description: 'DNS-Eintragstypen haben klar unterschiedliche Aufgaben.',

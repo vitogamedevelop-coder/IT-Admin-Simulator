@@ -19,6 +19,7 @@ import {
   recordFacetWrong,
   getAllFacetMasteryScores,
 } from './knowledge/index.js';
+import { validateSolvability } from './knowledge/validators.js';
 
 // =============================================================================
 // NEXUS Mitarbeitergespräche – adaptive Wiederholung im Flur (Phase 1I / 1I.2).
@@ -418,12 +419,24 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
 
     const selected = selectCandidate(candidates, state, { seed: generateSeed(conversation, questionIndex) });
     if (!selected) return null;
-    return generateQuestionFromCandidate(
-      selected,
-      generateSeed(conversation, questionIndex),
-      'coworker_question',
-      normalizeConversationDifficulty(topicState?.currentDifficulty),
-    );
+    const difficulty = normalizeConversationDifficulty(topicState?.currentDifficulty);
+    const baseSeed = generateSeed(conversation, questionIndex);
+
+    let question = generateQuestionFromCandidate(selected, baseSeed, 'coworker_question', difficulty);
+    if (!question || validateSolvability(question).length > 0) {
+      const tried = new Set([selected.item?.id || selected.id]);
+      for (const fallback of candidates.filter((c) => !tried.has(c.item?.id || c.id))) {
+        const seed = `${baseSeed}-${fallback.item?.id || fallback.id}`;
+        const q = generateQuestionFromCandidate(fallback, seed, 'coworker_question', difficulty);
+        if (q && validateSolvability(q).length === 0) {
+          question = q;
+          break;
+        }
+        tried.add(fallback.item?.id || fallback.id);
+      }
+    }
+    if (!question || validateSolvability(question).length > 0) return null;
+    return question;
   }
 
   const topicData = CONVERSATION_TOPICS[key];
@@ -587,18 +600,53 @@ function buildAnswerAwareExplanation(question, answer) {
       : (answer.length !== question.correctOrderIds.length
         ? `Deine Reihenfolge ist unvollständig (${answer.length} von ${question.correctOrderIds.length} Elementen).`
         : '');
-    return `Deine Reihenfolge: ${userOrderLabel}. Korrekt wäre: ${correctOrderLabel}. ${mismatchText}${question.explanation || ''}`;
+    return `Deine Reihenfolge: ${userOrderLabel}. Korrekt wäre: ${correctOrderLabel}. ${mismatchText}${question.explanation ? ' ' + question.explanation : ''}`;
   }
-  if (question.type === 'matching' && answer && typeof answer === 'object' && question.correctPairLabels) {
-    const userPairs = Object.entries(answer)
-      .map(([leftId, rightId]) => {
-        const left = question.leftMap?.[leftId] || leftId;
-        const right = question.rightMap?.[rightId] || rightId;
-        return `${left} → ${right}`;
-      })
-      .join(', ');
-    const correctPairs = question.correctPairLabels.join(', ');
-    return `Deine Zuordnung: ${userPairs}. Korrekt wäre: ${correctPairs}. ${question.explanation || ''}`;
+  if (question.type === 'matching' && answer && typeof answer === 'object' && question.correctPairs) {
+    const correctLookup = Object.fromEntries(
+      question.correctPairs.map((p) => [p.leftId ?? p.left, p.rightId ?? p.right]),
+    );
+    const correctLabels = question.correctPairLabels
+      ? question.correctPairLabels.map((p) => `${p.left} → ${p.right}`).join(', ')
+      : '';
+    const userPairLines = [];
+    const wrongDetails = [];
+    const correctLefts = [];
+
+    for (const left of question.leftItems || []) {
+      const leftId = left.id;
+      const leftLabel = question.leftMap?.[leftId] || leftId;
+      const userRightId = answer[leftId];
+      const userRightLabel = userRightId ? (question.rightMap?.[userRightId] || userRightId) : null;
+      const expectedRightId = correctLookup[leftId];
+      const expectedRightLabel = expectedRightId ? (question.rightMap?.[expectedRightId] || expectedRightId) : null;
+
+      userPairLines.push(`${leftLabel} → ${userRightLabel || 'nicht zugeordnet'}`);
+
+      if (userRightId === expectedRightId) {
+        correctLefts.push(leftLabel);
+      } else {
+        wrongDetails.push({
+          leftLabel,
+          userLabel: userRightLabel,
+          expectedLabel: expectedRightLabel,
+        });
+      }
+    }
+
+    const userPairsText = userPairLines.join(', ');
+    let detailText = '';
+    if (wrongDetails.length > 0) {
+      const lines = wrongDetails.map((w) => {
+        const expected = w.expectedLabel ? `Richtig wäre „${w.expectedLabel}“` : 'Keine passende Bedeutung hinterlegt';
+        return `Bei ${w.leftLabel} hast du „${w.userLabel || 'nichts'}“ gewählt; ${expected}.`;
+      });
+      detailText = ` ${lines.join(' ')}`;
+    }
+    const praiseText = correctLefts.length > 0
+      ? ` Richtig war${correctLefts.length > 1 ? 'en' : ''}: ${correctLefts.join(', ')}.`
+      : '';
+    return `Deine Zuordnung: ${userPairsText}. Korrekt wäre: ${correctLabels}.${detailText}${praiseText}${question.explanation ? ' ' + question.explanation : ''}`;
   }
   return question.explanation;
 }
