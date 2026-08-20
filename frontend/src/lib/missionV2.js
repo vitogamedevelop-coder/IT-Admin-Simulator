@@ -310,15 +310,15 @@ export function createMission002Device(scenario) {
 }
 
 export const MISSION_002_REQUIREMENTS = [
-  { id: 'vlan_personal', label: `VLAN ${PERSONAL_VLAN_ID} / ${PERSONAL_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
-  { id: 'vlan_buchhaltung', label: `VLAN ${BUCHHALTUNG_VLAN_ID} / ${BUCHHALTUNG_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation' },
-  { id: 'vlan_unused', label: `VLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}`, skill: 'cisco.layer2.vlan_creation' },
-  { id: 'personal_port', label: `Fa0/1 Access VLAN ${PERSONAL_VLAN_ID}`, skill: 'cisco.layer2.access_ports' },
-  { id: 'buchhaltung_port', label: `Fa0/2 Access VLAN ${BUCHHALTUNG_VLAN_ID}`, skill: 'cisco.layer2.access_ports' },
-  { id: 'unused_ports_parked', label: 'Fa0/3–Fa0/8 Parking-VLAN und deaktiviert', skill: 'cisco.layer2.shutdown' },
-  { id: 'uplink_trunk', label: 'Gi0/1 Trunk', skill: 'cisco.layer2.trunking' },
-  { id: 'verified', label: 'Konfiguration geprüft', skill: 'cisco.basic_configuration.verify_running_config' },
-  { id: 'saved', label: 'Konfiguration dauerhaft gespeichert', skill: 'cisco.basic_configuration.save_config' },
+  { id: 'vlan_personal', label: `VLAN ${PERSONAL_VLAN_ID} / ${PERSONAL_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation', type: 'state' },
+  { id: 'vlan_buchhaltung', label: `VLAN ${BUCHHALTUNG_VLAN_ID} / ${BUCHHALTUNG_VLAN_NAME}`, skill: 'cisco.layer2.vlan_creation', type: 'state' },
+  { id: 'vlan_unused', label: `VLAN ${PARKING_VLAN_ID_002} / ${PARKING_VLAN_NAME_002}`, skill: 'cisco.layer2.vlan_creation', type: 'state' },
+  { id: 'personal_port', label: `Fa0/1 Access VLAN ${PERSONAL_VLAN_ID}`, skill: 'cisco.layer2.access_ports', type: 'state' },
+  { id: 'buchhaltung_port', label: `Fa0/2 Access VLAN ${BUCHHALTUNG_VLAN_ID}`, skill: 'cisco.layer2.access_ports', type: 'state' },
+  { id: 'unused_ports_parked', label: 'Fa0/3–Fa0/8 Parking-VLAN und deaktiviert', skill: 'cisco.layer2.shutdown', type: 'state' },
+  { id: 'uplink_trunk', label: 'Gi0/1 Trunk', skill: 'cisco.layer2.trunking', type: 'state' },
+  { id: 'verified', label: 'Konfiguration geprüft', skill: 'cisco.basic_configuration.verify_running_config', type: 'verification' },
+  { id: 'saved', label: 'Konfiguration dauerhaft gespeichert', skill: 'cisco.basic_configuration.save_config', type: 'persistence' },
 ];
 
 const HINT_LADDERS_002 = {
@@ -414,16 +414,22 @@ const HINT_LADDERS_002 = {
   }),
 };
 
+function effectiveSwitchportMode(iface) {
+  if (iface.switchportMode) return iface.switchportMode;
+  if (iface.accessVlan != null) return 'access';
+  return null;
+}
+
 function accessPortsOk(interfaces, vlanId) {
   return interfaces.length > 0
-    && interfaces.every((iface) => iface.switchportMode === 'access'
+    && interfaces.every((iface) => (effectiveSwitchportMode(iface) === 'access')
       && iface.accessVlan === vlanId
       && !iface.administrativelyDown);
 }
 
 function parkedPortsOk(interfaces, parkingVlanId) {
   return interfaces.length > 0
-    && interfaces.every((iface) => iface.switchportMode === 'access'
+    && interfaces.every((iface) => (effectiveSwitchportMode(iface) === 'access')
       && iface.accessVlan === parkingVlanId
       && iface.administrativelyDown);
 }
@@ -481,24 +487,24 @@ function _getMission002Progress(device, scenario, state = null) {
   }
 
   const checks = {
-    vlan_personal: vlanPersonal,
-    vlan_buchhaltung: vlanBuchhaltung,
-    vlan_unused: vlanUnused,
-    personal_port: personalPort,
-    buchhaltung_port: buchhaltungPort,
-    unused_ports_parked: unusedPortsParked,
-    uplink_trunk: uplinkTrunk,
-    verified,
-    saved,
+    vlan_personal: { ok: vlanPersonal, type: 'state' },
+    vlan_buchhaltung: { ok: vlanBuchhaltung, type: 'state' },
+    vlan_unused: { ok: vlanUnused, type: 'state' },
+    personal_port: { ok: personalPort, type: 'state' },
+    buchhaltung_port: { ok: buchhaltungPort, type: 'state' },
+    unused_ports_parked: { ok: unusedPortsParked, type: 'state' },
+    uplink_trunk: { ok: uplinkTrunk, type: 'state' },
+    verified: { ok: verified, type: 'verification' },
+    saved: { ok: saved, type: 'persistence' },
   };
 
-  const completed = MISSION_002_REQUIREMENTS.filter((r) => checks[r.id]).length;
+  const completed = MISSION_002_REQUIREMENTS.filter((r) => checks[r.id].ok).length;
   const total = MISSION_002_REQUIREMENTS.length;
 
   return {
     completed,
     total,
-    checks: MISSION_002_REQUIREMENTS.map((r) => ({ ...r, ok: checks[r.id] })),
+    checks: MISSION_002_REQUIREMENTS.map((r) => ({ ...r, ok: checks[r.id].ok, type: r.type || checks[r.id].type })),
     allCorrect: completed === total,
   };
 }

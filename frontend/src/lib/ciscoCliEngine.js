@@ -450,11 +450,17 @@ function buildInterfaceSelectionCommand() {
       device.cli.currentLine = null;
       return { output: '', modeChanged: true };
     }
-    // "interface vlan <id>" enters (creating if necessary) the switched
+    // "interface vlan <id>" or "interface Vlan<id>" enters (creating if necessary) the switched
     // virtual interface (SVI) used for management IPs on L2/L3 switches.
-    if (tokens[1].toLowerCase() === 'vlan') {
-      if (tokens.length < 3) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
-      const vlanId = parseInt(tokens[2], 10);
+    if (tokens[1].toLowerCase() === 'vlan'
+        || tokens[1].toLowerCase().startsWith('vlan')) {
+      let vlanId;
+      if (tokens[1].toLowerCase() === 'vlan') {
+        if (tokens.length < 3) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+        vlanId = parseInt(tokens[2], 10);
+      } else {
+        vlanId = parseInt(tokens[1].slice(4), 10);
+      }
       if (Number.isNaN(vlanId) || vlanId < 1 || vlanId > 4094) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
       const sviId = `Vlan${vlanId}`;
       if (!device.runningConfig.interfaces[sviId]) {
@@ -1850,14 +1856,14 @@ export function renderInterfacesTrunk(device) {
 }
 
 export function renderInterfaceSwitchport(iface) {
-  const mode = iface.switchportMode || 'access';
+  const mode = iface.switchportMode || 'dynamic auto';
   const lines = [
     `Name: ${iface.name}`,
     `Switchport: ${iface.switchportMode ? 'Enabled' : 'Disabled'}`,
     `Administrative Mode: ${mode}`,
     `Operational Mode: ${mode}`,
   ];
-  if (mode === 'trunk') {
+  if (iface.switchportMode === 'trunk') {
     lines.push('Administrative Trunking Encapsulation: dot1q');
     lines.push(`Trunking Native Mode VLAN: ${iface.nativeVlan || 1} (default)`);
     lines.push(`Trunking VLANs Enabled: ${iface.trunkAllowedVlans ? iface.trunkAllowedVlans.join(',') : 'ALL'}`);
@@ -1891,6 +1897,7 @@ export function evaluateRouterOnAStick(device, scenario) {
     checks.push({
       id: `vlan_${vlan.id}_exists`,
       label: `VLAN ${vlan.id} ${vlan.name} existiert`,
+      type: 'state',
       ok: !!actual && actual.name === vlan.name,
     });
   });
@@ -1902,7 +1909,7 @@ export function evaluateRouterOnAStick(device, scenario) {
       const iface = rc.interfaces[id];
       return iface && iface.switchportMode === 'access' && iface.accessVlan === vlan.id && !iface.administrativelyDown;
     });
-    checks.push({ id: `vlan_${vlan.id}_access`, label: `Access-Ports für VLAN ${vlan.id}`, ok });
+    checks.push({ id: `vlan_${vlan.id}_access`, label: `Access-Ports für VLAN ${vlan.id}`, type: 'state', ok });
   });
 
   // Uplink is trunk and allows all VLANs
@@ -1911,12 +1918,12 @@ export function evaluateRouterOnAStick(device, scenario) {
     && uplink.switchportMode === 'trunk'
     && !uplink.administrativelyDown
     && (!uplink.trunkAllowedVlans || p.vlans.every((v) => uplink.trunkAllowedVlans.includes(v.id)));
-  checks.push({ id: 'uplink_trunk', label: 'Switch-Uplink ist Trunk', ok: uplinkOk });
+  checks.push({ id: 'uplink_trunk', label: 'Switch-Uplink ist Trunk', type: 'state', ok: uplinkOk });
 
   // Router physical interface is up
   const routerPhysical = rc.interfaces[p.routerPhysicalPort];
   const physicalOk = !!routerPhysical && isInterfaceUp(routerPhysical, device);
-  checks.push({ id: 'router_physical_up', label: 'Router-Physikinterface ist aktiv', ok: physicalOk });
+  checks.push({ id: 'router_physical_up', label: 'Router-Physikinterface ist aktiv', type: 'state', ok: physicalOk });
 
   // Subinterface per VLAN with dot1q and gateway IP
   p.vlans.forEach((vlan) => {
@@ -1928,7 +1935,7 @@ export function evaluateRouterOnAStick(device, scenario) {
       && sub.ipv4 === vlan.gateway
       && sub.mask === vlan.mask
       && isInterfaceUp(sub, device);
-    checks.push({ id: `subinterface_${vlan.id}`, label: `Subinterface für VLAN ${vlan.id}`, ok });
+    checks.push({ id: `subinterface_${vlan.id}`, label: `Subinterface für VLAN ${vlan.id}`, type: 'state', ok });
   });
 
   return { checks, allCorrect: checks.every((c) => c.ok) };

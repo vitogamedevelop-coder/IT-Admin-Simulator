@@ -38,6 +38,13 @@ export const MISSION_ARCHETYPE = {
   HARDEN: 'harden',
 };
 
+export const REQUIREMENT_TYPE = {
+  STATE: 'state',
+  ACTION: 'action',
+  VERIFICATION: 'verification',
+  PERSISTENCE: 'persistence',
+};
+
 // Delivery channels a template may use (item 21). The generator picks one
 // of a template's `allowedChannels` based on the chosen archetype - it is
 // never randomized independently of the story fit.
@@ -418,6 +425,7 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       id: task.id,
       label: task.label(params),
       skill: task.skill,
+      type: REQUIREMENT_TYPE.STATE,
       ok: task.evaluate(device, params),
     }));
 
@@ -429,6 +437,7 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       id: 'save_config',
       label: 'Konfiguration gespeichert',
       skill: 'cisco.basic_configuration.save_config',
+      type: REQUIREMENT_TYPE.PERSISTENCE,
       ok: savedOk,
     });
 
@@ -573,8 +582,8 @@ export const TEMPLATE_VLAN_ACCESS_PORT = defineMissionTemplate({
       return !!iface && iface.switchportMode === 'access' && iface.accessVlan === params.vlanId && !iface.administrativelyDown;
     });
     const checks = [
-      { id: 'vlan_created', label: `VLAN ${params.vlanId} ${params.vlanName}`, ok: vlanOk },
-      { id: 'ports_configured', label: 'Access-Port(s) im richtigen VLAN', ok: portsOk },
+      { id: 'vlan_created', label: `VLAN ${params.vlanId} ${params.vlanName}`, type: REQUIREMENT_TYPE.STATE, ok: vlanOk },
+      { id: 'ports_configured', label: 'Access-Port(s) im richtigen VLAN', type: REQUIREMENT_TYPE.STATE, ok: portsOk },
     ];
     return { checks, allCorrect: checks.every((c) => c.ok) };
   },
@@ -595,7 +604,7 @@ export const TEMPLATE_VLAN_ACCESS_PORT = defineMissionTemplate({
       case MISSION_ARCHETYPE.AUDIT:
         return `Prüfe auf ${params.hostname}, ob ${params.targetPort} bereits korrekt in VLAN ${params.vlanId} ${params.vlanName} konfiguriert ist. Falls nicht: richte es ein.`;
       case MISSION_ARCHETYPE.DIAGNOSE:
-        return `${params.employee} meldet: ihr Rechner an ${params.hostname} erreicht die falschen Systeme.\n\nFinde die Ursache und stelle sicher, dass der Port in VLAN ${params.vlanId} ${params.vlanName} liegt.`;
+        return `${params.employee} meldet: ihr Rechner an Port ${params.targetPort.replace('FastEthernet', 'Fa')} auf ${params.hostname} erreicht die falschen Systeme.\n\nFinde die Ursache und stelle sicher, dass der Port in VLAN ${params.vlanId} ${params.vlanName} liegt.`;
       case MISSION_ARCHETYPE.COMPLETE:
         return `Ein Kollege hat VLAN ${params.vlanId} ${params.vlanName} auf ${params.hostname} bereits angelegt, aber noch keinen Port zugeordnet.\n\nSchließe die Arbeit ab: ${params.targetPort} soll in dieses VLAN.`;
       default:
@@ -680,8 +689,8 @@ const TEMPLATE_VLAN_ACCESS_RANGE = defineMissionTemplate({
     });
     return {
       checks: [
-        { id: 'vlan_created', label: `VLAN ${params.vlanId} ${params.vlanName}`, ok: vlanOk },
-        { id: 'ports_configured', label: 'Access-Ports im richtigen VLAN', ok: portsOk },
+        { id: 'vlan_created', label: `VLAN ${params.vlanId} ${params.vlanName}`, type: REQUIREMENT_TYPE.STATE, ok: vlanOk },
+        { id: 'ports_configured', label: 'Access-Ports im richtigen VLAN', type: REQUIREMENT_TYPE.STATE, ok: portsOk },
       ],
       allCorrect: vlanOk && portsOk,
     };
@@ -772,7 +781,7 @@ const TEMPLATE_VLAN_MOVE = defineMissionTemplate({
   evaluate(device, params) {
     const iface = device.runningConfig.interfaces[params.targetPort];
     const ok = !!iface && iface.switchportMode === 'access' && iface.accessVlan === params.targetVlanId && !iface.administrativelyDown;
-    return { checks: [{ id: 'port_moved', label: `Port ${params.targetPort} in VLAN ${params.targetVlanId}`, ok }], allCorrect: ok };
+    return { checks: [{ id: 'port_moved', label: `Port ${params.targetPort} in VLAN ${params.targetVlanId}`, type: REQUIREMENT_TYPE.STATE, ok }], allCorrect: ok };
   },
   buildTitle(params, archetype) {
     return archetype === MISSION_ARCHETYPE.INCIDENT ? `Port ${params.targetPort.replace('FastEthernet', 'Fa')} offline` : `VLAN-Wechsel auf ${params.hostname}`;
@@ -842,7 +851,7 @@ const TEMPLATE_TRUNK_UPLINK = defineMissionTemplate({
       && uplink.switchportMode === 'trunk'
       && !uplink.administrativelyDown
       && params.vlans.every((v) => allowed.includes(v.id));
-    return { checks: [{ id: 'uplink_trunk', label: 'Uplink ist Trunk für alle VLANs', ok }], allCorrect: ok };
+    return { checks: [{ id: 'uplink_trunk', label: 'Uplink ist Trunk für alle VLANs', type: REQUIREMENT_TYPE.STATE, ok }], allCorrect: ok };
   },
   buildTitle(params, archetype) {
     return archetype === MISSION_ARCHETYPE.REPAIR ? `Uplink-Fehler auf ${params.hostname}` : `Trunk-Uplink auf ${params.hostname}`;
@@ -911,7 +920,7 @@ const TEMPLATE_TRUNK_ALLOWED_VLAN = defineMissionTemplate({
     const uplink = device.runningConfig.interfaces[params.uplinkPort];
     const allowed = uplink.trunkAllowedVlans || [];
     const ok = !!uplink && uplink.switchportMode === 'trunk' && !uplink.administrativelyDown && params.vlans.every((v) => allowed.includes(v.id));
-    return { checks: [{ id: 'allowed_vlans', label: 'Alle VLANs auf dem Trunk erlaubt', ok }], allCorrect: ok };
+    return { checks: [{ id: 'allowed_vlans', label: 'Alle VLANs auf dem Trunk erlaubt', type: REQUIREMENT_TYPE.STATE, ok }], allCorrect: ok };
   },
   buildTitle(params) {
     return `Fehlendes VLAN auf Trunk ${params.hostname}`;
@@ -1143,10 +1152,11 @@ const TEMPLATE_ROUTER_FAULT = defineMissionTemplate({
       missing_allowed_vlan: 'Ein VLAN fehlt auf dem Trunk.',
       uplink_access: 'Der Uplink ist nicht als Trunk, sondern als Access-Port konfiguriert.',
     }[params.faultId] || 'Eine Konfiguration verhindert das Routing zwischen VLANs.';
+    const infra = `Uplink: ${params.uplinkPort.replace('GigabitEthernet', 'Gi')}\nRouter-Interface: ${params.routerPhysicalPort.replace('GigabitEthernet', 'Gi')}`;
     if (difficulty === DIFFICULTY_PROFILE.EASY) {
-      return `Auf ${params.hostname} funktioniert das Inter-VLAN-Routing nicht mehr.\n\n${vlanList}\n\nHinweis: ${faultText} Finde und behebe den Fehler.`;
+      return `Auf ${params.hostname} funktioniert das Inter-VLAN-Routing nicht mehr.\n\n${vlanList}\n\n${infra}\n\nHinweis: ${faultText} Finde und behebe den Fehler.`;
     }
-    return `Mitarbeiter melden auf ${params.hostname}, dass sie Ressourcen im anderen VLAN nicht erreichen.\n\n${vlanList}\n\nDiagnostiziere das Problem und behebe es.`;
+    return `Mitarbeiter melden auf ${params.hostname}, dass sie Ressourcen im anderen VLAN nicht erreichen.\n\n${vlanList}\n\n${infra}\n\nDiagnostiziere das Problem und behebe es.`;
   },
   antiRepetitionMetadata(params, archetype, context) {
     return { skillGroup: 'inter_vlan', archetype, context, hostname: params.hostname, faultId: params.faultId };
@@ -1363,9 +1373,9 @@ const TEMPLATE_SSH_MANAGEMENT_ACCESS = defineMissionTemplate({
     const sviAddress = !!svi && svi.ipv4 === params.mgmtIp && svi.mask === params.mgmtMask && !svi.administrativelyDown;
     const defaultGateway = device.runningConfig.ipDefaultGateway === params.mgmtGateway;
     const checks = [
-      { id: 'mgmt_vlan', label: `VLAN ${params.mgmtVlanId} / ${params.mgmtVlanName}`, skill: 'cisco.switching.vlan.create', ok: mgmtVlan },
-      { id: 'svi_address', label: `SVI Vlan${params.mgmtVlanId} mit IP ${params.mgmtIp}, aktiviert`, skill: 'cisco.remote_administration.management_svi', ok: sviAddress },
-      { id: 'default_gateway', label: `Default Gateway ${params.mgmtGateway}`, skill: 'cisco.basic_configuration.default_gateway', ok: defaultGateway },
+      { id: 'mgmt_vlan', label: `VLAN ${params.mgmtVlanId} / ${params.mgmtVlanName}`, skill: 'cisco.switching.vlan.create', type: REQUIREMENT_TYPE.STATE, ok: mgmtVlan },
+      { id: 'svi_address', label: `SVI Vlan${params.mgmtVlanId} mit IP ${params.mgmtIp}, aktiviert`, skill: 'cisco.remote_administration.management_svi', type: REQUIREMENT_TYPE.STATE, ok: sviAddress },
+      { id: 'default_gateway', label: `Default Gateway ${params.mgmtGateway}`, skill: 'cisco.basic_configuration.default_gateway', type: REQUIREMENT_TYPE.STATE, ok: defaultGateway },
     ];
     return { checks, allCorrect: checks.every((c) => c.ok) };
   },
@@ -1443,9 +1453,9 @@ const TEMPLATE_SSH_ENABLE = defineMissionTemplate({
     const rsaKey = !!device.runningConfig.cryptoKey?.exists && device.runningConfig.cryptoKey.modulus >= SSH_TARGET_MODULUS;
     const sshVersion = device.runningConfig.ipSshVersion === 2;
     const checks = [
-      { id: 'domain_name', label: `Domain-Name ${params.domainName}`, skill: 'cisco.basic_configuration.domain_name', ok: domainName },
-      { id: 'rsa_key', label: `RSA-Schlüssel (>= ${SSH_TARGET_MODULUS} Bit)`, skill: 'cisco.remote_administration.rsa_keys', ok: rsaKey },
-      { id: 'ssh_version', label: 'SSH Version 2', skill: 'cisco.remote_administration.ssh_version', ok: sshVersion },
+      { id: 'domain_name', label: `Domain-Name ${params.domainName}`, skill: 'cisco.basic_configuration.domain_name', type: REQUIREMENT_TYPE.STATE, ok: domainName },
+      { id: 'rsa_key', label: `RSA-Schlüssel (>= ${SSH_TARGET_MODULUS} Bit)`, skill: 'cisco.remote_administration.rsa_keys', type: REQUIREMENT_TYPE.STATE, ok: rsaKey },
+      { id: 'ssh_version', label: 'SSH Version 2', skill: 'cisco.remote_administration.ssh_version', type: REQUIREMENT_TYPE.STATE, ok: sshVersion },
     ];
     return { checks, allCorrect: checks.every((c) => c.ok) };
   },
@@ -1546,9 +1556,9 @@ const TEMPLATE_SSH_VTY_ACCESS = defineMissionTemplate({
       && device.runningConfig.lines.vty.transportInput.every((t) => t === 'ssh');
     const newUser = !!device.runningConfig.users?.[params.newUsername];
     const all = {
-      login_local: { id: 'login_local', label: 'VTY login local', skill: 'cisco.remote_administration.vty_login_local', ok: loginLocal },
-      transport_ssh: { id: 'transport_ssh', label: 'VTY transport input ssh (kein Telnet)', skill: 'cisco.remote_administration.vty_transport_ssh', ok: transportSsh },
-      new_user: { id: 'new_user', label: `Benutzer ${params.newUsername} angelegt`, skill: 'cisco.remote_administration.local_user', ok: newUser },
+      login_local: { id: 'login_local', label: 'VTY login local', skill: 'cisco.remote_administration.vty_login_local', type: REQUIREMENT_TYPE.STATE, ok: loginLocal },
+      transport_ssh: { id: 'transport_ssh', label: 'VTY transport input ssh (kein Telnet)', skill: 'cisco.remote_administration.vty_transport_ssh', type: REQUIREMENT_TYPE.STATE, ok: transportSsh },
+      new_user: { id: 'new_user', label: `Benutzer ${params.newUsername} angelegt`, skill: 'cisco.remote_administration.local_user', type: REQUIREMENT_TYPE.STATE, ok: newUser },
     };
     const checks = params.requiredChecks.map((id) => all[id]);
     return { checks, allCorrect: checks.every((c) => c.ok) };
@@ -1686,15 +1696,15 @@ const TEMPLATE_SSH_DIAGNOSE = defineMissionTemplate({
       && rc.lines.vty.transportInput.every((t) => t === 'ssh');
     const userExists = !!rc.users?.[params.username];
     const checks = [
-      { id: 'mgmt_vlan', label: `VLAN ${params.mgmtVlanId} / ${params.mgmtVlanName}`, skill: 'cisco.switching.vlan.create', ok: mgmtVlan },
-      { id: 'svi_address', label: `SVI Vlan${params.mgmtVlanId} mit IP ${params.mgmtIp}, aktiviert`, skill: 'cisco.remote_administration.management_svi', ok: sviAddress },
-      { id: 'default_gateway', label: `Default Gateway ${params.mgmtGateway}`, skill: 'cisco.basic_configuration.default_gateway', ok: defaultGateway },
-      { id: 'domain_name', label: `Domain-Name ${params.domainName}`, skill: 'cisco.basic_configuration.domain_name', ok: domainName },
-      { id: 'rsa_key', label: `RSA-Schlüssel (>= ${SSH_MIN_MODULUS} Bit)`, skill: 'cisco.remote_administration.rsa_keys', ok: rsaKey },
-      { id: 'ssh_version', label: 'SSH Version 2', skill: 'cisco.remote_administration.ssh_version', ok: sshVersion },
-      { id: 'vty_login_local', label: 'VTY login local', skill: 'cisco.remote_administration.vty_login_local', ok: loginLocal },
-      { id: 'vty_transport_ssh', label: 'VTY transport input ssh (kein Telnet)', skill: 'cisco.remote_administration.vty_transport_ssh', ok: transportSsh },
-      { id: 'user_exists', label: `Benutzer ${params.username} vorhanden`, skill: 'cisco.remote_administration.local_user', ok: userExists },
+      { id: 'mgmt_vlan', label: `VLAN ${params.mgmtVlanId} / ${params.mgmtVlanName}`, skill: 'cisco.switching.vlan.create', type: REQUIREMENT_TYPE.STATE, ok: mgmtVlan },
+      { id: 'svi_address', label: `SVI Vlan${params.mgmtVlanId} mit IP ${params.mgmtIp}, aktiviert`, skill: 'cisco.remote_administration.management_svi', type: REQUIREMENT_TYPE.STATE, ok: sviAddress },
+      { id: 'default_gateway', label: `Default Gateway ${params.mgmtGateway}`, skill: 'cisco.basic_configuration.default_gateway', type: REQUIREMENT_TYPE.STATE, ok: defaultGateway },
+      { id: 'domain_name', label: `Domain-Name ${params.domainName}`, skill: 'cisco.basic_configuration.domain_name', type: REQUIREMENT_TYPE.STATE, ok: domainName },
+      { id: 'rsa_key', label: `RSA-Schlüssel (>= ${SSH_MIN_MODULUS} Bit)`, skill: 'cisco.remote_administration.rsa_keys', type: REQUIREMENT_TYPE.STATE, ok: rsaKey },
+      { id: 'ssh_version', label: 'SSH Version 2', skill: 'cisco.remote_administration.ssh_version', type: REQUIREMENT_TYPE.STATE, ok: sshVersion },
+      { id: 'vty_login_local', label: 'VTY login local', skill: 'cisco.remote_administration.vty_login_local', type: REQUIREMENT_TYPE.STATE, ok: loginLocal },
+      { id: 'vty_transport_ssh', label: 'VTY transport input ssh (kein Telnet)', skill: 'cisco.remote_administration.vty_transport_ssh', type: REQUIREMENT_TYPE.STATE, ok: transportSsh },
+      { id: 'user_exists', label: `Benutzer ${params.username} vorhanden`, skill: 'cisco.remote_administration.local_user', type: REQUIREMENT_TYPE.STATE, ok: userExists },
     ];
     return { checks, allCorrect: checks.every((c) => c.ok) };
   },
