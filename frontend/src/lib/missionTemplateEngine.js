@@ -13,7 +13,9 @@
 // LinuxMissionValidator/templates would live in a sibling file and reuse the
 // same `defineMissionTemplate` contract.
 
-import { createCiscoDevice, evaluateRouterOnAStick, createSubinterface } from './ciscoCliEngine.js';
+import {
+  createCiscoDevice, evaluateRouterOnAStick, createSubinterface, simulateBpduReceived,
+} from './ciscoCliEngine.js';
 import { defineHintLadder } from './missionHintSystem.js';
 import { randomPersonalUsername, ACCOUNT_NAME_POOL } from './officeWorld.js';
 
@@ -1040,6 +1042,244 @@ const TEMPLATE_TRUNK_ALLOWED_VLAN = defineMissionTemplate({
   },
 });
 
+// ============================================================================
+// PortFast + BPDU Guard (Phase 9A): access-port hardening on the L2/VLAN
+// device model already used by TEMPLATE_VLAN_ACCESS_PORT/TRUNK_*. State-based
+// throughout - see section 22/11 of the Phase 9A brief: pre-existing correct
+// config is recognized immediately, and PortFast/BPDU Guard on the uplink is
+// explicitly evaluated as WRONG (a port's role decides what belongs on it,
+// not "more security commands = better").
+// ============================================================================
+
+const TEMPLATE_ACCESS_PORT_HARDENING = defineMissionTemplate({
+  id: 'cisco-access-port-hardening',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.stp.portfast',
+    'cisco.stp.bpdu_guard',
+  ],
+  unlockedBy: ['cisco-main-002'],
+  archetypes: [MISSION_ARCHETYPE.BUILD, MISSION_ARCHETYPE.AUDIT, MISSION_ARCHETYPE.DIAGNOSE],
+  contexts: ['neue_arbeitsplaetze', 'buero_erweiterung', 'sicherheitsaudit'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.stp.portfast': defineHintLadder({
+      subskillPath: 'cisco.stp.portfast',
+      nudge: 'Ein Access-Port mit einem einzelnen Endgerät braucht die volle STP-Anlaufzeit eigentlich nicht.',
+      focus: 'PortFast gehört auf Ports mit Endgeräten (PCs), NICHT auf Uplinks zu anderen Switches.',
+      directive: 'Verwende "spanning-tree portfast" im Interface-Modus des jeweiligen Arbeitsplatzports.',
+      solution: { answer: 'interface <access-port>\nspanning-tree portfast\nexit', explanation: '"spanning-tree portfast" überspringt auf einem Endgeräte-Port die STP-Anlaufphase und bringt ihn sofort in den Forwarding-Zustand.' },
+    }),
+    'cisco.stp.bpdu_guard': defineHintLadder({
+      subskillPath: 'cisco.stp.bpdu_guard',
+      nudge: 'Ein Access-Port sollte niemals selbst eine BPDU empfangen - das würde bedeuten, dass dort unerwartet ein weiterer Switch hängt.',
+      focus: 'BPDU Guard schützt genau die Ports, auf denen auch PortFast aktiv ist.',
+      directive: 'Verwende "spanning-tree bpduguard enable" im Interface-Modus des jeweiligen Arbeitsplatzports.',
+      solution: { answer: 'interface <access-port>\nspanning-tree bpduguard enable\nexit', explanation: '"spanning-tree bpduguard enable" schaltet den Port ab, sobald er eine BPDU empfängt - typischerweise ein Zeichen für einen nicht vorgesehenen zusätzlichen Switch.' },
+    }),
+  },
+  requiredResolvedParams: ['hostname', 'vlanId', 'vlanName', 'accessPorts', 'uplinkPort', 'faultyPort'],
+  resolveParameters(rng, archetype) {
+    const vlanId = pickFrom(rng, STAGE2_VLAN_ID_POOL);
+    const vlanName = pickFrom(rng, STAGE2_DEPARTMENT_NAMES);
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    const portCount = rng(2, 4);
+    const portNumbers = [];
+    while (portNumbers.length < portCount) {
+      const n = rng(1, 24);
+      if (!portNumbers.includes(n)) portNumbers.push(n);
+    }
+    const accessPorts = portNumbers.map((n) => `FastEthernet0/${n}`);
+    const faultyPort = archetype === MISSION_ARCHETYPE.DIAGNOSE ? pickFrom(rng, accessPorts) : null;
+    return {
+      hostname, vlanId, vlanName, accessPorts, uplinkPort: 'GigabitEthernet0/1', faultyPort,
+    };
+  },
+  buildDevice(params, archetype) {
+    const device = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: params.hostname });
+    device.runningConfig.vlans[params.vlanId] = { id: params.vlanId, name: params.vlanName };
+    params.accessPorts.forEach((id) => {
+      const iface = device.runningConfig.interfaces[id];
+      iface.switchportMode = 'access';
+      iface.accessVlan = params.vlanId;
+      iface.operationalStatus = 'connected';
+      iface.administrativelyDown = false;
+    });
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    uplink.switchportMode = 'trunk';
+    uplink.trunkAllowedVlans = [params.vlanId];
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+
+    if (archetype === MISSION_ARCHETYPE.AUDIT) {
+      // Half-compliant, audit-style state: some access ports are already
+      // hardened, the rest are not - mirrors the pattern used by the other
+      // AUDIT archetypes in this file.
+      const secureCount = Math.max(1, Math.floor(params.accessPorts.length / 2));
+      params.accessPorts.slice(0, secureCount).forEach((id) => {
+        const iface = device.runningConfig.interfaces[id];
+        iface.portfast = true;
+        iface.bpduGuard = true;
+      });
+    } else if (archetype === MISSION_ARCHETYPE.DIAGNOSE) {
+      // All access ports are already correctly hardened; one of them is now
+      // err-disabled because an unauthorized device sent a BPDU (e.g.
+      // someone connected a small private switch) - see simulateBpduReceived.
+      params.accessPorts.forEach((id) => {
+        const iface = device.runningConfig.interfaces[id];
+        iface.portfast = true;
+        iface.bpduGuard = true;
+      });
+      simulateBpduReceived(device, params.faultyPort);
+    }
+    // BUILD: ports and uplink exist and are connected, nothing hardened yet.
+    return { device };
+  },
+  evaluate(device, params, archetype, state) {
+    const rc = device.runningConfig;
+    const accessIfaces = params.accessPorts.map((id) => rc.interfaces[id]).filter(Boolean);
+    const uplink = rc.interfaces[params.uplinkPort];
+    const accessHardened = accessIfaces.length > 0 && accessIfaces.every((i) => i.portfast && i.bpduGuard);
+    // A port's role decides what belongs on it: PortFast/BPDU Guard on the
+    // uplink towards the rest of the network would be a real misconfiguration
+    // (it could shut down the entire uplink the moment it sees a normal BPDU).
+    const uplinkUntouched = !!uplink && !uplink.portfast && !uplink.bpduGuard;
+    const checks = [
+      { id: 'access_ports_hardened', label: 'PortFast + BPDU Guard auf allen Arbeitsplatzports', type: REQUIREMENT_TYPE.STATE, ok: accessHardened },
+      { id: 'uplink_not_hardened', label: 'Uplink nicht wie ein Endgeräte-Port behandelt', type: REQUIREMENT_TYPE.STATE, ok: uplinkUntouched },
+    ];
+    if (archetype === MISSION_ARCHETYPE.DIAGNOSE) {
+      const faultyIface = rc.interfaces[params.faultyPort];
+      const recovered = !!faultyIface && !faultyIface.errDisabled && !faultyIface.administrativelyDown;
+      const verified = (state?.showCommandsUsed || []).some((c) => c.includes('show spanning-tree summary') || c.includes('show interfaces status') || c.includes('show ip interface brief'));
+      checks.push({ id: 'port_recovered', label: 'Betroffener Port wieder aktiv (err-disable behoben)', type: REQUIREMENT_TYPE.STATE, ok: recovered });
+      checks.push({ id: 'diagnosis_verified', label: 'Ursache über einen show-Befehl geprüft', type: REQUIREMENT_TYPE.VERIFICATION, ok: verified });
+    }
+    return { checks, allCorrect: checks.every((c) => c.ok) };
+  },
+  buildTitle(params, archetype) {
+    const titles = {
+      [MISSION_ARCHETYPE.BUILD]: `Neue Arbeitsplätze absichern: ${params.hostname}`,
+      [MISSION_ARCHETYPE.AUDIT]: `Port-Sicherheits-Check ${params.hostname}`,
+      [MISSION_ARCHETYPE.DIAGNOSE]: `Port ohne Verbindung: ${params.hostname}`,
+    };
+    return titles[archetype] || `Arbeitsplatzports absichern (${params.hostname})`;
+  },
+  buildBriefing(params, archetype) {
+    const portList = params.accessPorts.map((p) => p.replace('FastEthernet', 'Fa')).join(', ');
+    const uplinkShort = params.uplinkPort.replace('GigabitEthernet', 'Gi');
+    if (archetype === MISSION_ARCHETYPE.AUDIT) {
+      return `Mehrere neue Arbeitsplätze hängen jetzt an ${params.hostname} (${portList}), angebunden über den Uplink ${uplinkShort}.\n\nPrüfe, ob wirklich nur die Arbeitsplatzports gegen unautorisierte Switches abgesichert sind - nicht der Uplink. Ergänze, was fehlt.`;
+    }
+    if (archetype === MISSION_ARCHETYPE.DIAGNOSE) {
+      return `Einer der Arbeitsplätze an ${params.hostname} (${portList}, angebunden über den Uplink ${uplinkShort}) hat plötzlich keine Verbindung mehr.\n\nFinde über passende show-Befehle heraus, was passiert ist, und stelle den Port wieder her.`;
+    }
+    return `Die neuen Arbeitsplätze an ${params.hostname} sind jetzt angeschlossen (${portList}), angebunden über den Uplink ${uplinkShort}.\n\nMehrere Kollegen melden, dass ihre Verbindung nach dem Einstecken erst mit spürbarer Verzögerung verfügbar ist. Außerdem soll verhindert werden, dass jemand an einem dieser Ports einfach einen weiteren Switch anschließt und unsere Layer-2-Topologie beeinflusst.\n\nPrüf die Arbeitsplatzports - nicht den Uplink zum restlichen Netz.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return {
+      skillGroup: 'stp_edge_ports', archetype, context, hostname: params.hostname, accessPorts: params.accessPorts,
+    };
+  },
+});
+
+// ============================================================================
+// Native VLAN on an existing trunk (Phase 9A): extends the trunk system
+// (TEMPLATE_TRUNK_UPLINK/TRUNK_ALLOWED_VLAN) rather than introducing a
+// parallel one. Allowed-VLAN and Native-VLAN correctness are evaluated as two
+// INDEPENDENT state checks, so a correct allowed-list with a wrong native
+// VLAN (or vice versa) is never silently accepted.
+// ============================================================================
+
+const TEMPLATE_TRUNK_NATIVE_VLAN = defineMissionTemplate({
+  id: 'cisco-trunk-native-vlan',
+  domain: 'cisco',
+  requiredSkills: [
+    'cisco.switching.trunk.native_vlan',
+    'cisco.switching.trunk.allowed_vlans',
+    'cisco.switching.trunk.verify',
+  ],
+  unlockedBy: ['cisco-main-002'],
+  archetypes: [MISSION_ARCHETYPE.REPAIR, MISSION_ARCHETYPE.CHANGE, MISSION_ARCHETYPE.AUDIT],
+  contexts: ['neuer_switch', 'erweiterung', 'sicherheitsaudit'],
+  allowedChannels: [MISSION_CHANNEL.EMAIL, MISSION_CHANNEL.PHONE],
+  difficultyProfiles: [DIFFICULTY_PROFILE.EASY, DIFFICULTY_PROFILE.MEDIUM, DIFFICULTY_PROFILE.HARD],
+  hintDefinitions: {
+    'cisco.switching.trunk.native_vlan': defineHintLadder({
+      subskillPath: 'cisco.switching.trunk.native_vlan',
+      nudge: 'Ungetaggter Traffic auf einem 802.1Q-Trunk gehört zu genau einem VLAN: dem Native VLAN.',
+      focus: 'Das Native VLAN ist NICHT dasselbe wie die Allowed-VLAN-Liste oder ein Access-VLAN - prüfe beide getrennt.',
+      directive: 'Verwende "switchport trunk native vlan <id>" auf dem Uplink.',
+      solution: { answer: 'interface <uplink>\nswitchport trunk native vlan <id>\nexit', explanation: '"switchport trunk native vlan" legt fest, zu welchem VLAN ungetaggter Traffic auf diesem Trunk gehört.' },
+    }),
+  },
+  requiredResolvedParams: ['hostname', 'uplinkPort', 'vlans', 'targetNativeVlanId', 'currentNativeVlanId', 'targetAllowedVlanIds'],
+  resolveParameters(rng) {
+    const vlanIds = [];
+    while (vlanIds.length < 3) {
+      const candidate = pickFrom(rng, STAGE2_VLAN_ID_POOL);
+      if (!vlanIds.includes(candidate)) vlanIds.push(candidate);
+    }
+    const vlans = vlanIds.map((id) => ({ id, name: pickFrom(rng, STAGE2_DEPARTMENT_NAMES) }));
+    const hostname = pickFrom(rng, STAGE2_DEVICE_HOSTNAMES);
+    return {
+      hostname,
+      uplinkPort: 'GigabitEthernet0/1',
+      vlans,
+      targetNativeVlanId: vlanIds[0],
+      currentNativeVlanId: vlanIds[1],
+      targetAllowedVlanIds: vlanIds,
+    };
+  },
+  buildDevice(params, archetype) {
+    const device = createCiscoDevice({ profile: 'catalyst_24fe_2ge', hostname: params.hostname });
+    params.vlans.forEach((v) => { device.runningConfig.vlans[v.id] = { id: v.id, name: v.name }; });
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    uplink.operationalStatus = 'connected';
+    uplink.administrativelyDown = false;
+    uplink.switchportMode = 'trunk';
+    uplink.trunkAllowedVlans = params.targetAllowedVlanIds;
+    // Fault: the trunk's native VLAN does not match what it should be -
+    // untagged traffic currently lands in the wrong VLAN.
+    uplink.nativeVlan = params.currentNativeVlanId;
+    if (archetype === MISSION_ARCHETYPE.AUDIT) {
+      // Half-compliant, audit-style state: allowed VLANs are incomplete too,
+      // so allowed-list and native-VLAN correctness are both exercised.
+      uplink.trunkAllowedVlans = params.targetAllowedVlanIds.slice(0, -1);
+    }
+    return { device };
+  },
+  evaluate(device, params) {
+    const uplink = device.runningConfig.interfaces[params.uplinkPort];
+    const allowed = uplink?.trunkAllowedVlans || [];
+    const allowedOk = !!uplink && uplink.switchportMode === 'trunk' && !uplink.administrativelyDown
+      && params.targetAllowedVlanIds.every((id) => allowed.includes(id));
+    const nativeOk = !!uplink && uplink.switchportMode === 'trunk' && (uplink.nativeVlan || 1) === params.targetNativeVlanId;
+    const checks = [
+      { id: 'allowed_vlans', label: 'Allowed VLANs auf dem Trunk korrekt', type: REQUIREMENT_TYPE.STATE, ok: allowedOk },
+      { id: 'native_vlan', label: `Native VLAN ${params.targetNativeVlanId} korrekt gesetzt`, type: REQUIREMENT_TYPE.STATE, ok: nativeOk },
+    ];
+    return { checks, allCorrect: checks.every((c) => c.ok) };
+  },
+  buildTitle(params) {
+    return `Native VLAN auf Trunk ${params.hostname}`;
+  },
+  buildBriefing(params, archetype) {
+    const vlanList = params.vlans.map((v) => `VLAN ${v.id} ${v.name}`).join(', ');
+    const uplinkShort = params.uplinkPort.replace('GigabitEthernet', 'Gi');
+    if (archetype === MISSION_ARCHETYPE.AUDIT) {
+      return `Prüfe den Trunk ${uplinkShort} auf ${params.hostname}: er soll die VLANs ${vlanList} transportieren, und ungetaggter Traffic soll VLAN ${params.targetNativeVlanId} zugeordnet sein. Ergänze, was fehlt.`;
+    }
+    return `Am Uplink ${uplinkShort} auf ${params.hostname} kommt ungetaggter Traffic offenbar im falschen VLAN an.\n\nDer Trunk soll die VLANs ${vlanList} transportieren; ungetaggter Traffic gehört zu VLAN ${params.targetNativeVlanId}. Prüfe Allowed-VLANs und Native VLAN getrennt.`;
+  },
+  antiRepetitionMetadata(params, archetype, context) {
+    return {
+      skillGroup: 'switching_trunk_native', archetype, context, hostname: params.hostname, targetNativeVlanId: params.targetNativeVlanId,
+    };
+  },
+});
+
 function buildVlanListForRouter(rng, count) {
   const vlanIds = [];
   while (vlanIds.length < count) {
@@ -1845,6 +2085,8 @@ export const TEMPLATE_REGISTRY = {
   [TEMPLATE_VLAN_MOVE.id]: TEMPLATE_VLAN_MOVE,
   [TEMPLATE_TRUNK_UPLINK.id]: TEMPLATE_TRUNK_UPLINK,
   [TEMPLATE_TRUNK_ALLOWED_VLAN.id]: TEMPLATE_TRUNK_ALLOWED_VLAN,
+  [TEMPLATE_ACCESS_PORT_HARDENING.id]: TEMPLATE_ACCESS_PORT_HARDENING,
+  [TEMPLATE_TRUNK_NATIVE_VLAN.id]: TEMPLATE_TRUNK_NATIVE_VLAN,
   [TEMPLATE_ROUTER_ON_A_STICK.id]: TEMPLATE_ROUTER_ON_A_STICK,
   [TEMPLATE_ROUTER_FAULT.id]: TEMPLATE_ROUTER_FAULT,
   [TEMPLATE_SSH_MANAGEMENT_ACCESS.id]: TEMPLATE_SSH_MANAGEMENT_ACCESS,

@@ -205,6 +205,32 @@ function solveCommands(templateId, archetype, params) {
       ];
     }
 
+    case 'cisco-access-port-hardening': {
+      const body = [];
+      params.accessPorts.forEach((port) => {
+        body.push(`interface ${port}`, 'spanning-tree portfast', 'spanning-tree bpduguard enable', 'exit');
+      });
+      if (archetype === 'diagnose') {
+        // Errdisable recovery for the faulty port: verify via a show command
+        // first (VERIFICATION requirement), then cycle shutdown/no shutdown.
+        body.unshift('do show spanning-tree summary');
+        body.push(`interface ${params.faultyPort}`, 'shutdown', 'no shutdown', 'exit');
+      }
+      return [...head, ...body, ...tail];
+    }
+
+    case 'cisco-trunk-native-vlan': {
+      return [
+        ...head,
+        `interface ${params.uplinkPort}`,
+        `switchport trunk allowed vlan ${params.targetAllowedVlanIds.join(',')}`,
+        `switchport trunk native vlan ${params.targetNativeVlanId}`,
+        'no shutdown',
+        'exit',
+        ...tail,
+      ];
+    }
+
     case 'cisco-router-on-a-stick': {
       const body = [];
       params.vlans.forEach((v) => { body.push(`vlan ${v.id}`, `name ${v.name}`, 'exit'); });

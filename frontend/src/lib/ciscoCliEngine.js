@@ -61,6 +61,17 @@ function createInterface(id, type = 'physical', parentId = null) {
     nativeVlan: null,
     encapsulationVlan: null,
     encapsulationDot1q: null,
+    // Minimal STP edge-port simulation (Phase 9A): PortFast and BPDU Guard
+    // are tracked per interface. We deliberately do NOT model root
+    // elections, path cost or port roles - see errDisabled below for the
+    // one behavioral consequence we DO simulate.
+    portfast: false,
+    bpduGuard: false,
+    // Set by simulateBpduReceived() when a BPDU-Guard-protected port is hit
+    // by a BPDU (fault injection for DIAGNOSE/REPAIR missions), mirroring
+    // real IOS err-disable behavior. Never set directly by a player command.
+    errDisabled: false,
+    errDisableReason: null,
   };
 }
 
@@ -360,8 +371,19 @@ function cmd(keyword, execute, help, skill = null, complete = null) {
 
 function setInterfaceShutdown(device, isDown) {
   forEachTargetInterface(device, (iface) => {
+    // Manually cycling an err-disabled port ("shutdown" then "no shutdown")
+    // is the real IOS recovery procedure absent "errdisable recovery"
+    // auto-recovery, which this minimal simulation does not model. It only
+    // clears the err-disable state itself, never the BPDU Guard config that
+    // caused it - if the offending device is still attached and still
+    // sending BPDUs, a mission's fault-injection step can re-trigger it.
+    const wasErrDisabled = iface.errDisabled;
     iface.administrativelyDown = isDown;
-    iface.operationalStatus = isDown ? 'disabled' : 'notconnect';
+    if (!isDown && wasErrDisabled) {
+      iface.errDisabled = false;
+      iface.errDisableReason = null;
+    }
+    iface.operationalStatus = isDown ? 'disabled' : (wasErrDisabled ? 'connected' : 'notconnect');
   });
 }
 
@@ -426,6 +448,98 @@ function buildSwitchportNode() {
               }, 'Set allowed VLANs when interface is in trunking mode', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'switchport_trunk_allowed_vlan', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<vlan-id[,vlan-id...]>']),
             ],
           }),
+          node('native', {
+            help: 'Set trunk native characteristics when interface is in trunking mode',
+            children: [
+              cmd('vlan', (device, tokens) => {
+                if (tokens.length < 5) return { output: '', error: CLI_ERROR.INCOMPLETE_COMMAND };
+                const id = parseInt(tokens[4], 10);
+                if (Number.isNaN(id) || id < 1 || id > 4094) return { output: '', error: CLI_ERROR.INVALID_ARGUMENT };
+                // The native VLAN carries the interface's UNTAGGED traffic on
+                // an 802.1Q trunk. It is independent from both the allowed-
+                // VLAN list and from access-port VLAN assignment - a VLAN can
+                // be the native VLAN without necessarily being "allowed" in
+                // the classic sense (real IOS even warns, but does not block,
+                // a native VLAN mismatch between two trunk ends).
+                forEachTargetInterface(device, (iface) => { iface.nativeVlan = id; });
+                return { output: '', stateChanged: true };
+              }, 'Set native VLAN when interface is in trunking mode', { domainId: 'cisco', skillId: 'switching', subskillId: 'trunk.native_vlan', dimension: SKILL_DIMENSION.CONFIGURE }, () => ['<vlan-id>']),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+// Negation commands shared by INTERFACE_CONFIG and INTERFACE_RANGE_CONFIG's
+// "no" subtree: "no spanning-tree portfast/bpduguard" and "no switchport
+// trunk native vlan" (resets to the default native VLAN, i.e. null which
+// renders as "1 (default)" - see renderInterfaceSwitchport/InterfacesTrunk).
+function buildNoSpanningTreeAndNativeVlanNodes() {
+  return [
+    node('spanning-tree', {
+      help: 'Spanning tree subsystem',
+      children: [
+        cmd('portfast', (device) => {
+          forEachTargetInterface(device, (iface) => { iface.portfast = false; });
+          return { output: '', stateChanged: true };
+        }, 'Disable the PortFast feature on this interface', { domainId: 'cisco', skillId: 'stp', subskillId: 'portfast', dimension: SKILL_DIMENSION.CONFIGURE }),
+        node('bpduguard', {
+          help: 'BPDU Guard configuration commands',
+          children: [
+            cmd('enable', (device) => {
+              forEachTargetInterface(device, (iface) => { iface.bpduGuard = false; });
+              return { output: '', stateChanged: true };
+            }, 'Disable BPDU Guard on this interface', { domainId: 'cisco', skillId: 'stp', subskillId: 'bpdu_guard', dimension: SKILL_DIMENSION.CONFIGURE }),
+          ],
+        }),
+      ],
+    }),
+    node('switchport', {
+      help: 'Remove switchport parameters',
+      children: [
+        node('trunk', {
+          help: 'Remove trunking characteristics',
+          children: [
+            node('native', {
+              help: 'Remove native VLAN configuration',
+              children: [
+                cmd('vlan', (device) => {
+                  forEachTargetInterface(device, (iface) => { iface.nativeVlan = null; });
+                  return { output: '', stateChanged: true };
+                }, 'Reset native VLAN to the default (VLAN 1)', { domainId: 'cisco', skillId: 'switching', subskillId: 'trunk.native_vlan', dimension: SKILL_DIMENSION.CONFIGURE }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+  ];
+}
+
+// PortFast + BPDU Guard (Phase 9A minimal viable STP edge-port simulation).
+// Deliberately excludes root elections, path cost and port roles - see the
+// interface state comment in createInterface() for the scope decision.
+function buildSpanningTreeNode() {
+  return node('spanning-tree', {
+    help: 'Spanning tree subsystem',
+    children: [
+      cmd('portfast', (device) => {
+        forEachTargetInterface(device, (iface) => { iface.portfast = true; });
+        return { output: '', stateChanged: true };
+      }, 'Enable the PortFast feature on this interface', { domainId: 'cisco', skillId: 'stp', subskillId: 'portfast', dimension: SKILL_DIMENSION.CONFIGURE }),
+      node('bpduguard', {
+        help: 'BPDU Guard configuration commands',
+        children: [
+          cmd('enable', (device) => {
+            forEachTargetInterface(device, (iface) => { iface.bpduGuard = true; });
+            return { output: '', stateChanged: true };
+          }, 'Enable BPDU Guard on this interface', { domainId: 'cisco', skillId: 'stp', subskillId: 'bpdu_guard', dimension: SKILL_DIMENSION.CONFIGURE }),
+          cmd('disable', (device) => {
+            forEachTargetInterface(device, (iface) => { iface.bpduGuard = false; });
+            return { output: '', stateChanged: true };
+          }, 'Disable BPDU Guard on this interface', { domainId: 'cisco', skillId: 'stp', subskillId: 'bpdu_guard', dimension: SKILL_DIMENSION.CONFIGURE }),
         ],
       }),
     ],
@@ -545,6 +659,12 @@ export const BASE_COMMAND_TREE = {
                 }, 'Display switchport configuration of the interface', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'verify_switchport', dimension: SKILL_DIMENSION.VERIFY }),
               ],
             }),
+          ],
+        }),
+        node('spanning-tree', {
+          help: 'Spanning tree subsystem',
+          children: [
+            cmd('summary', (device) => ({ output: renderSpanningTreeSummary(device), stateChanged: false }), 'Display PortFast/BPDU Guard/err-disable summary', { domainId: 'cisco', skillId: 'stp', subskillId: 'verify', dimension: SKILL_DIMENSION.VERIFY }),
           ],
         }),
       ],
@@ -794,6 +914,7 @@ export const BASE_COMMAND_TREE = {
             }, 'Remove the IP address from the interface', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_ip', dimension: SKILL_DIMENSION.CONFIGURE }),
           ],
         }),
+        ...buildNoSpanningTreeAndNativeVlanNodes(),
       ],
     }),
     cmd('shutdown', (device) => {
@@ -807,6 +928,7 @@ export const BASE_COMMAND_TREE = {
       return { output: '', stateChanged: true };
     }, 'Interface specific description', null, () => ['<text>']),
     buildSwitchportNode(),
+    buildSpanningTreeNode(),
     buildInterfaceSelectionCommand(),
     node('encapsulation', {
       help: 'Set encapsulation type for a subinterface',
@@ -849,6 +971,7 @@ export const BASE_COMMAND_TREE = {
           setInterfaceShutdown(device, false);
           return { output: '', stateChanged: true };
         }, 'Cancel shutdown and enable the interfaces', { domainId: 'cisco', skillId: 'basic_configuration', subskillId: 'interface_enable', dimension: SKILL_DIMENSION.CONFIGURE }),
+        ...buildNoSpanningTreeAndNativeVlanNodes(),
       ],
     }),
     cmd('shutdown', (device) => {
@@ -862,6 +985,7 @@ export const BASE_COMMAND_TREE = {
       return { output: '', stateChanged: true };
     }, 'Interface specific description', null, () => ['<text>']),
     buildSwitchportNode(),
+    buildSpanningTreeNode(),
     buildInterfaceSelectionCommand(),
     cmd('exit', (device) => {
       device.cli.mode = CLI_MODE.GLOBAL_CONFIG;
@@ -1670,6 +1794,9 @@ export function renderRunningConfig(device) {
       if (iface.accessVlan) lines.push(` switchport access vlan ${iface.accessVlan}`);
       if (iface.switchportMode === 'trunk') lines.push(' switchport mode trunk');
       if (iface.trunkAllowedVlans) lines.push(` switchport trunk allowed vlan ${iface.trunkAllowedVlans.join(',')}`);
+      if (iface.switchportMode === 'trunk' && iface.nativeVlan) lines.push(` switchport trunk native vlan ${iface.nativeVlan}`);
+      if (iface.portfast) lines.push(' spanning-tree portfast');
+      if (iface.bpduGuard) lines.push(' spanning-tree bpduguard enable');
       if (iface.ipv4 && iface.mask) lines.push(` ip address ${iface.ipv4} ${iface.mask}`);
       lines.push(` ${iface.administrativelyDown ? 'shutdown' : 'no shutdown'}`);
     }
@@ -1797,12 +1924,18 @@ function interfaceVlanColumn(iface) {
   return '1';
 }
 
+function interfaceStatusLabel(iface) {
+  if (iface.errDisabled) return 'err-disabled';
+  if (iface.administrativelyDown) return 'disabled';
+  return iface.operationalStatus || 'notconnect';
+}
+
 export function renderInterfacesStatus(device) {
   const header = 'Port      Name                 Status       Vlan       Duplex  Speed Type';
   const rows = Object.values(device.runningConfig.interfaces).map((iface) => {
     const port = shortInterfaceName(iface.name).padEnd(10);
     const name = (iface.description || '').slice(0, 20).padEnd(21);
-    const status = (iface.administrativelyDown ? 'disabled' : iface.operationalStatus || 'notconnect').padEnd(13);
+    const status = interfaceStatusLabel(iface).padEnd(13);
     const vlan = interfaceVlanColumn(iface).padEnd(11);
     const duplex = (iface.duplex || 'auto').padEnd(8);
     const speed = (iface.speed || 'auto').padEnd(6);
@@ -1865,12 +1998,54 @@ export function renderInterfaceSwitchport(iface) {
   ];
   if (iface.switchportMode === 'trunk') {
     lines.push('Administrative Trunking Encapsulation: dot1q');
-    lines.push(`Trunking Native Mode VLAN: ${iface.nativeVlan || 1} (default)`);
+    lines.push(`Trunking Native Mode VLAN: ${iface.nativeVlan || 1}${iface.nativeVlan ? '' : ' (default)'}`);
     lines.push(`Trunking VLANs Enabled: ${iface.trunkAllowedVlans ? iface.trunkAllowedVlans.join(',') : 'ALL'}`);
   } else {
     lines.push(`Access Mode VLAN: ${iface.accessVlan || 1}${iface.accessVlan ? '' : ' (default)'}`);
   }
   return lines.join('\n');
+}
+
+// Minimal, deliberately compact PortFast/BPDU-Guard verification (Phase 9A).
+// Real IOS spreads this information across "show spanning-tree summary"
+// (global PortFast default) and "show spanning-tree interface <id> detail"
+// (per-port PortFast/BPDU Guard state). To avoid building a second show
+// command just for this, both pieces of information the player actually
+// needs - which ports have PortFast/BPDU Guard, and which are err-disabled -
+// are combined into a single, clearly-labeled summary here.
+export function renderSpanningTreeSummary(device) {
+  const interfaces = Object.values(device.runningConfig.interfaces).filter((i) => i.type === 'physical');
+  const portfastPorts = interfaces.filter((i) => i.portfast);
+  const bpduGuardPorts = interfaces.filter((i) => i.bpduGuard);
+  const errDisabledPorts = interfaces.filter((i) => i.errDisabled);
+
+  const lines = ['Spanning tree enabled protocol ieee'];
+  lines.push('');
+  lines.push(`PortFast Edge ports: ${portfastPorts.length ? portfastPorts.map((i) => shortInterfaceName(i.name)).join(', ') : 'none'}`);
+  lines.push(`BPDU Guard ports: ${bpduGuardPorts.length ? bpduGuardPorts.map((i) => shortInterfaceName(i.name)).join(', ') : 'none'}`);
+  if (errDisabledPorts.length) {
+    lines.push('');
+    errDisabledPorts.forEach((iface) => {
+      const reason = iface.errDisableReason === 'bpduguard' ? 'BPDU Guard - a BPDU was received on a PortFast/BPDU-Guard port' : 'unknown';
+      lines.push(`%SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port ${shortInterfaceName(iface.name)}, with BPDU Guard enabled. Disabling port.`);
+      lines.push(`${shortInterfaceName(iface.name)} is err-disabled (reason: ${reason})`);
+    });
+  }
+  return lines.join('\n');
+}
+
+// Fault-injection helper (Phase 9A DIAGNOSE/REPAIR missions), NOT a player
+// CLI command: simulates a BPDU arriving on a port. Mirrors real IOS
+// behavior - a BPDU-Guard-protected port that sees a BPDU (e.g. because
+// someone connected an unauthorized switch/hub) is put into err-disable,
+// regardless of whether PortFast is also configured on it.
+export function simulateBpduReceived(device, interfaceId) {
+  const iface = device.runningConfig.interfaces[interfaceId];
+  if (!iface || !iface.bpduGuard) return false;
+  iface.errDisabled = true;
+  iface.errDisableReason = 'bpduguard';
+  iface.operationalStatus = 'err-disabled';
+  return true;
 }
 
 // ============================================================================

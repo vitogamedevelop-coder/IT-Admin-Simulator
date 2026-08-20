@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **1.32.4**
+Aktuelle Version: **1.33.0**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
@@ -1587,6 +1587,51 @@ unterstützt.
 - Side Mission 004 ("Offene Türen", Layer-2-Security-Nachfolgeauftrag) bleibt
   unverändert - sie vertieft dasselbe Parking-VLAN-Konzept an einem eigenen
   Geräte-Snapshot nach Abschluss von Main Mission 002.
+
+## Phase 9A: L2-Completion (PortFast, BPDU Guard, Native VLAN) + Basic-Config Knowledge
+
+Schließt die P1-Lücken aus dem "NEXUS Cisco-Lehrgang Coverage Audit" für den
+bestehenden L2-Unterbau, ohne neue große Systeme zu bauen. Kein STP-Vollmodell,
+kein L3/DHCP/NAT/ACL (bewusst auf Phase 9B verschoben, siehe Audit-Bericht).
+
+- CLI-Engine (`ciscoCliEngine.js`): `spanning-tree portfast`/`no ...`,
+  `spanning-tree bpduguard enable`/`no ...`, `switchport trunk native vlan
+  <id>`/`no ...` (Interface- und Interface-Range-Modus). Neue Interface-
+  State-Felder `portfast`, `bpduGuard`, `errDisabled`, `errDisableReason`.
+  Minimale Err-Disable-Simulation: `simulateBpduReceived(device, ifaceId)`
+  (nur Fault-Injection für DIAGNOSE-Missionen, kein Spieler-Befehl); Recovery
+  über `shutdown`/`no shutdown` wie in echtem IOS ohne "errdisable recovery"-
+  Autorecovery. Neuer Verifikationsbefehl `show spanning-tree summary`
+  (PortFast-/BPDU-Guard-/Err-disable-Übersicht) - bewusst nur ein neuer
+  Show-Befehl statt vieler.
+- Mission-Templates (`missionTemplateEngine.js`): `cisco-access-port-
+  hardening` (BUILD/AUDIT/DIAGNOSE - PortFast+BPDU Guard auf Access-Ports,
+  Uplink bewusst ausgenommen und als eigener STATE-Check bewertet, damit
+  PortFast/BPDU Guard auf dem Uplink explizit als Fehlkonfiguration erkannt
+  wird) und `cisco-trunk-native-vlan` (REPAIR/CHANGE/AUDIT - erweitert das
+  bestehende Trunk-System statt ein neues zu bauen; Allowed-VLANs und Native
+  VLAN werden als zwei unabhängige STATE-Checks bewertet).
+- Knowledge Layer: neue Dateien `knowledge/items/ciscoBasicConfig.js` (7
+  Items: password vs. secret, Console-Auth-Modi inkl. Abhängigkeits-
+  Troubleshooting, exec-timeout, service password-encryption, running- vs.
+  startup-config, Konfigurationsreihenfolge) und `knowledge/items/ciscoStp.js`
+  (4 Items: PortFast-Zweck, BPDU-Guard-Wirkung, Fehlplatzierungs-
+  Troubleshooting, Native-VLAN-Abgrenzung zu Access-/Allowed-VLAN) nach dem
+  Muster von `knowledge/items/ssh.js`. Passende Templates in `templates.js`
+  ergänzt. Automatische Mitarbeitergespräch-Anbindung über die bestehende
+  `hasKnowledgeCoverage()`-Erkennung in `employeeConversations.js` - keine
+  neuen Legacy-`CONVERSATION_TOPICS`-Einträge für diese Themen.
+- Neue Test-Skripte: `scripts/phase9a-l2-completion-audit.mjs` (CLI-Unit-
+  Tests, Err-Disable-Simulation, Negativtests, Massentest über Templates x
+  Archetypen x Seeds x Reload), `scripts/cisco-knowledge-quality-audit.mjs`
+  (Massentest aller Cisco-Knowledge-Items: Lösbarkeit, keine Answer-Leaks,
+  Erklärungen, Verständnis- vs. Begriffs-Wiederholungs-Heuristik) und
+  `scripts/academy-knowledge-conversation-consistency-audit.mjs` (erkennt
+  automatisch, wenn ein Cisco-Academy-Topic ohne Knowledge-/Conversation-
+  Anbindung bleibt; bekannte, bewusst spätere Lücken sind explizit gelistet).
+- Bestehende Regressionssuiten (`procedural-mission-solvability-audit.mjs`,
+  `basic-config-dependency-audit.mjs`, `persistence-migration-audit.mjs`)
+  unverändert grün.
 
 ### Tests
 - `frontend/scripts/cisco-main-002-test.mjs` komplett neu geschrieben: Device-

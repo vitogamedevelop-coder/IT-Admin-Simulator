@@ -1931,6 +1931,468 @@ function phase7MappingTemplates() {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 9A templates – Cisco Grundkonfiguration (dependency-aware)
+// ---------------------------------------------------------------------------
+
+const basicConfigLeads = [
+  'Ich richte gerade einen neuen Switch ein.',
+  'Kurze Rückfrage zur Grundkonfiguration:',
+  'Ich bin mir bei der Konsolen-Absicherung nicht sicher.',
+];
+
+function ciscoBasicConfigTemplates() {
+  return [
+    {
+      id: 'basicConfig.passwordVsSecret',
+      archetype: QUESTION_ARCHETYPES.COMPARE,
+      matches: (item) => item.id === 'basicConfig.passwordVsSecret',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const proto = rng.pick(item.data.items);
+        const directPrompt = `Wie wird das Passwort bei "${proto.name}" gespeichert?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, basicConfigLeads, rng)
+          : directPrompt;
+        const sibling = item.data.items.find((p) => p.name !== proto.name);
+        const distractors = [sibling.storage];
+        const wrongOptionExplanations = { [sibling.storage]: `Das trifft auf "${sibling.name}" zu, nicht auf "${proto.name}".` };
+        return buildMcInstance({
+          templateId: 'basicConfig.passwordVsSecret',
+          item,
+          archetype: QUESTION_ARCHETYPES.COMPARE,
+          seed,
+          prompt,
+          correctValue: proto.storage,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'security'],
+          rng,
+          learningObjective: 'basicConfig.passwordVsSecret',
+          knowledgeFacet: 'basicConfig.passwordVsSecret.storage',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: basicConfigLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'basicConfig.consoleAuthModes',
+      archetype: QUESTION_ARCHETYPES.COMPARE,
+      matches: (item) => item.id === 'basicConfig.consoleAuthModes',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const proto = rng.pick(item.data.items);
+        const directPrompt = `Mit welchen Befehlen wird die Konsole abgesichert, wenn gegen "${proto.db}" geprüft werden soll?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, basicConfigLeads, rng)
+          : directPrompt;
+        const sibling = item.data.items.find((p) => p.name !== proto.name);
+        const distractors = [sibling.commands];
+        const wrongOptionExplanations = { [sibling.commands]: `Das gehört zu "${sibling.name}" (prüft gegen ${sibling.db}), nicht zu "${proto.name}".` };
+        return buildMcInstance({
+          templateId: 'basicConfig.consoleAuthModes',
+          item,
+          archetype: QUESTION_ARCHETYPES.COMPARE,
+          seed,
+          prompt,
+          correctValue: proto.commands,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'basicConfig.consoleAuth',
+          knowledgeFacet: 'basicConfig.consoleAuth.modes',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: basicConfigLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'basicConfig.consoleLoginDependency',
+      archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+      matches: (item) => item.id === 'basicConfig.consoleLoginDependency',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const symptomEntry = rng.pick(item.data.symptoms);
+        const directPrompt = `Zustand: "${symptomEntry.symptom}". Was ist die Ursache?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, ['Konsolen-Absicherung funktioniert nicht wie erwartet.', basicConfigLeads[2]], rng)
+          : directPrompt;
+        const correct = symptomEntry.cause;
+        const siblings = item.data.symptoms.filter((s) => s.cause !== correct);
+        const distractors = siblings.map((s) => s.cause);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.cause] = `Das würde eher zu "${sib.symptom}" passen. Hier liegt aber "${symptomEntry.symptom}" vor.`;
+        }
+        return buildMcInstance({
+          templateId: 'basicConfig.consoleLoginDependency',
+          item,
+          archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'basicConfig.consoleAuth',
+          knowledgeFacet: 'basicConfig.consoleAuth.dependency',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'basicConfig.execTimeoutPurpose',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'basicConfig.execTimeoutPurpose',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = `Wozu dient "${item.data.command}" auf einer Konsolen- oder VTY-Line?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, basicConfigLeads, rng)
+          : directPrompt;
+        const correct = 'Er beendet eine inaktive Sitzung nach der angegebenen Zeit automatisch.';
+        const distractors = [
+          'Er verschlüsselt das Line-Passwort.',
+          'Er begrenzt, wie viele Benutzer sich gleichzeitig anmelden dürfen.',
+          'Er legt fest, wie lange ein Passwort gültig bleibt.',
+        ];
+        const wrongOptionExplanations = {
+          'Er verschlüsselt das Line-Passwort.': 'Dafür ist "service password-encryption" zuständig, nicht exec-timeout.',
+          'Er begrenzt, wie viele Benutzer sich gleichzeitig anmelden dürfen.': 'Das steuert die Anzahl konfigurierter Lines (z. B. "line vty 0 15"), nicht exec-timeout.',
+          'Er legt fest, wie lange ein Passwort gültig bleibt.': 'Cisco IOS kennt keine Passwort-Ablaufzeit über exec-timeout - das betrifft nur inaktive Sitzungen.',
+        };
+        return buildMcInstance({
+          templateId: 'basicConfig.execTimeoutPurpose',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: correct,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'security'],
+          rng,
+          learningObjective: 'basicConfig.execTimeout',
+          knowledgeFacet: 'basicConfig.execTimeout.purpose',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: basicConfigLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'basicConfig.servicePasswordEncryption',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'basicConfig.servicePasswordEncryption',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.TROUBLESHOOT],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = `Was bewirkt "${item.data.command}" tatsächlich?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, ['Sicherheitsfrage zur Konfiguration:', basicConfigLeads[1]], rng)
+          : directPrompt;
+        const correct = 'Es verschleiert gespeicherte Klartext-Passwörter mit einem schwachen, umkehrbaren Verfahren.';
+        const distractors = [
+          'Es verschlüsselt alle Passwörter genauso stark wie "enable secret" (MD5).',
+          'Es macht das Line-Passwort komplett unsichtbar, auch für Administratoren.',
+          'Es verhindert, dass Passwörter im Klartext eingegeben werden können.',
+        ];
+        const wrongOptionExplanations = {
+          'Es verschlüsselt alle Passwörter genauso stark wie "enable secret" (MD5).': `Nein - ${item.data.strength}`,
+          'Es macht das Line-Passwort komplett unsichtbar, auch für Administratoren.': `Nein - Type-7-Verschleierung ist umkehrbar, kein echter Schutz vor gezieltem Entschlüsseln.`,
+          'Es verhindert, dass Passwörter im Klartext eingegeben werden können.': 'Nein - die Eingabe bleibt Klartext, nur die Speicherung wird verschleiert.',
+        };
+        return buildMcInstance({
+          templateId: 'basicConfig.servicePasswordEncryption',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: correct,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'security'],
+          rng,
+          learningObjective: 'basicConfig.servicePasswordEncryption',
+          knowledgeFacet: 'basicConfig.servicePasswordEncryption.strength',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Sicherheitsfrage zur Konfiguration:', basicConfigLeads[1]],
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'basicConfig.runningVsStartupConfig',
+      archetype: QUESTION_ARCHETYPES.COMPARE,
+      matches: (item) => item.id === 'basicConfig.runningVsStartupConfig',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const proto = rng.pick(item.data.items);
+        const directPrompt = `Was passiert mit der "${proto.name}" bei einem Neustart des Geräts?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, basicConfigLeads, rng)
+          : directPrompt;
+        const sibling = item.data.items.find((p) => p.name !== proto.name);
+        const distractors = [sibling.persistence];
+        const wrongOptionExplanations = { [sibling.persistence]: `Das trifft auf die "${sibling.name}" zu, nicht auf die "${proto.name}".` };
+        return buildMcInstance({
+          templateId: 'basicConfig.runningVsStartupConfig',
+          item,
+          archetype: QUESTION_ARCHETYPES.COMPARE,
+          seed,
+          prompt,
+          correctValue: proto.persistence,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'basicConfig.persistence',
+          knowledgeFacet: 'basicConfig.persistence.runningVsStartup',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: basicConfigLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'basicConfig.configOrder',
+      archetype: QUESTION_ARCHETYPES.ORDERING,
+      matches: (item) => item.id === 'basicConfig.configOrder',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const steps = item.data.steps;
+        const items = steps.map((step, idx) => ({ id: `s${idx}`, label: step }));
+        const directPrompt = 'Bringe die Schritte einer sinnvollen Cisco-Grundkonfiguration in die richtige Reihenfolge.';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, basicConfigLeads, rng)
+          : directPrompt;
+        return buildOrderingInstance({
+          templateId: 'basicConfig.configOrder',
+          item,
+          archetype: QUESTION_ARCHETYPES.ORDERING,
+          seed,
+          prompt,
+          items,
+          correctOrderIds: items.map((it) => it.id),
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'basicConfig.order',
+          knowledgeFacet: 'basicConfig.order.sequence',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: basicConfigLeads,
+        });
+      },
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9A templates – PortFast, BPDU Guard, Native VLAN
+// ---------------------------------------------------------------------------
+
+const stpLeads = [
+  'Wir sichern gerade neue Arbeitsplatzports ab.',
+  'Kurze Frage zu PortFast/BPDU Guard:',
+  'Ich bin mir beim Trunk-Verhalten nicht sicher.',
+];
+
+function ciscoStpTemplates() {
+  return [
+    {
+      id: 'stp.portfastPurpose',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'stp.portfastPurpose',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = `Auf welchem Porttyp sollte "${item.data.command}" aktiviert werden?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, stpLeads, rng)
+          : directPrompt;
+        const correct = item.data.suitableFor;
+        const distractors = [
+          item.data.unsuitableFor,
+          'Auf allen Ports gleichermaßen, unabhängig von der Funktion.',
+          'Nur auf dem Port mit der Management-SVI.',
+        ];
+        const wrongOptionExplanations = {
+          [item.data.unsuitableFor]: item.data.reason,
+          'Auf allen Ports gleichermaßen, unabhängig von der Funktion.': item.data.reason,
+          'Nur auf dem Port mit der Management-SVI.': 'Eine SVI ist eine logische Schnittstelle, kein physischer Port - PortFast wird auf physischen Access-Ports mit Endgeräten konfiguriert.',
+        };
+        return buildMcInstance({
+          templateId: 'stp.portfastPurpose',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'stp.portfast',
+          knowledgeFacet: 'stp.portfast.suitablePorts',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: stpLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'stp.bpduGuardPurpose',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'stp.bpduGuardPurpose',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = `Was passiert, wenn ein Port mit aktivem "${item.data.command}" eine BPDU empfängt?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, stpLeads, rng)
+          : directPrompt;
+        const correct = item.data.reaction;
+        const distractors = [
+          'Nichts - BPDU Guard protokolliert nur ein Ereignis.',
+          'Der Port wechselt automatisch in den Trunk-Modus.',
+          'Der Port ignoriert die BPDU, weil PortFast aktiv ist.',
+        ];
+        const wrongOptionExplanations = {
+          'Nichts - BPDU Guard protokolliert nur ein Ereignis.': 'BPDU Guard ist ein harter Trigger, kein reines Logging - der Port wird tatsächlich abgeschaltet.',
+          'Der Port wechselt automatisch in den Trunk-Modus.': 'BPDU Guard ändert nicht den Switchport-Modus, sondern deaktiviert den Port.',
+          'Der Port ignoriert die BPDU, weil PortFast aktiv ist.': 'PortFast beeinflusst BPDU Guard nicht - im Gegenteil, beide werden meist zusammen konfiguriert, genau weil ein PortFast-Port keine BPDU erwarten sollte.',
+        };
+        return buildMcInstance({
+          templateId: 'stp.bpduGuardPurpose',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'security'],
+          rng,
+          learningObjective: 'stp.bpduGuard',
+          knowledgeFacet: 'stp.bpduGuard.reaction',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: stpLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'stp.portfastBpduGuardMisplacement',
+      archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+      matches: (item) => item.id === 'stp.portfastBpduGuardMisplacement',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const symptomEntry = rng.pick(item.data.symptoms);
+        const directPrompt = `Situation: "${symptomEntry.symptom}". Was ist die wahrscheinlichste Ursache?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, ['Ein Port verhält sich seltsam.', stpLeads[1]], rng)
+          : directPrompt;
+        const correct = symptomEntry.cause;
+        const siblings = item.data.symptoms.filter((s) => s.cause !== correct);
+        const distractors = siblings.map((s) => s.cause);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.cause] = `Das würde eher zu "${sib.symptom}" passen. Hier liegt aber "${symptomEntry.symptom}" vor.`;
+        }
+        return buildMcInstance({
+          templateId: 'stp.portfastBpduGuardMisplacement',
+          item,
+          archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'stp.misplacement',
+          knowledgeFacet: 'stp.misplacement.diagnosis',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'trunk.nativeVlanVsAccessAllowed',
+      archetype: QUESTION_ARCHETYPES.COMPARE,
+      matches: (item) => item.id === 'trunk.nativeVlanVsAccessAllowed',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const proto = rng.pick(item.data.items);
+        const directPrompt = `Wofür steht "${proto.command}"?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, stpLeads, rng)
+          : directPrompt;
+        const siblings = item.data.items.filter((p) => p.name !== proto.name);
+        const distractors = siblings.map((p) => p.meaning);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.meaning] = `Das beschreibt "${sib.name}" (${sib.command}), nicht "${proto.name}".`;
+        }
+        return buildMcInstance({
+          templateId: 'trunk.nativeVlanVsAccessAllowed',
+          item,
+          archetype: QUESTION_ARCHETYPES.COMPARE,
+          seed,
+          prompt,
+          correctValue: proto.meaning,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'trunk.nativeVlan',
+          knowledgeFacet: 'trunk.nativeVlan.distinction',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: stpLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -1942,6 +2404,8 @@ export const TEMPLATES = [
   ...subnettingTemplates(),
   ...switchingVlanTemplates(),
   ...sshTemplates(),
+  ...ciscoBasicConfigTemplates(),
+  ...ciscoStpTemplates(),
   ...phase7DefinitionTemplates(),
   ...phase7PropertyTemplates(),
   ...phase7CompareTemplates(),
