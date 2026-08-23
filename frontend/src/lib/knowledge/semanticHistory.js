@@ -40,6 +40,7 @@ export function buildHistoryRecord(questionInstance) {
     templateId: inst.context?.templateId || inst.templateId || null,
     calculationFamily: params.calculationFamily || null,
     calculationTarget: params.target || null,
+    calculationValue: params.value ?? params.decimal ?? params.prefix ?? null,
     prefix: params.prefix ?? null,
     difficulty: inst.difficulty || null,
     correct: inst.lastResult?.correct ?? null,
@@ -123,4 +124,14 @@ export function getRecent(history, count) {
 export function getLongTermRecent(history, count) {
   if (!history) return [];
   return (history.longTerm || []).slice(-count);
+}
+
+export function recentValuesForFamily(history, family, limit = 24) {
+  if (!history || !family) return new Set();
+  const records = [...(history.longTerm || []), ...(history.session || [])];
+  const values = records
+    .filter((r) => r.calculationFamily === family && r.calculationValue != null)
+    .map((r) => r.calculationValue)
+    .slice(-limit);
+  return new Set(values);
 }

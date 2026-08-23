@@ -31,12 +31,24 @@ const { ACADEMY_TOPICS, topicKey } = await import('../src/lib/academyTopics.js')
 const { LESSONS } = await import('../src/lib/academyLessonData.js');
 const { getAllKnowledgeItems } = await import('../src/lib/knowledge/index.js');
 const { CONVERSATION_TOPICS, getArchetypes } = await import('../src/lib/employeeConversations.js');
+const { TEMPLATES, findTemplatesForItem } = await import('../src/lib/knowledge/templates.js');
+const { generateQuestion } = await import('../src/lib/knowledge/questionGenerator.js');
 
 const results = [];
 function assert(condition, message) {
   results.push({ ok: !!condition, message });
   if (!condition) console.error(`  FAIL - ${message}`);
 }
+
+// Known data-quality gaps (not curriculum gaps, but item-level drift that
+// is intentionally not fixed in this milestone). Keeping them explicit keeps
+// the audit honest while still failing any new, unexpected drift.
+const KNOWN_DATA_GAPS = new Set([
+  'osi.toTcpIp', // type MAPPING with osi.tcpipMapping, but no template exists yet
+  'security.breach.definition', // sourceSection 'fundamentals' not in information-security/security-incidents lesson
+  'security.incident.definition', // sourceSection 'fundamentals' not in information-security/security-incidents lesson
+  'security.breachIncident.compare', // sourceSection 'fundamentals' not in information-security/security-incidents lesson
+]);
 
 // Known, intentional gaps (curriculum blocks explicitly deferred to a later
 // phase per the Cisco Coverage Audit - Phase 9A explicitly excludes them,
@@ -46,8 +58,6 @@ const EXPECTED_KNOWLEDGE_GAPS = new Set([
   'cisco-packet-tracer/router-basics', // conceptual routing covered under ciscoTheory.js (ct.router.*), not this exact topicKey
   'cisco-packet-tracer/static-routing', // conceptual routing covered under ciscoTheory.js (ct.static.*), not this exact topicKey
   'cisco-packet-tracer/inter-vlan-routing', // Router-on-a-Stick specifics not yet in Knowledge Layer (Phase 9B candidate)
-  'cisco-packet-tracer/vlan', // pre-existing gap (predates Phase 9A): VLAN concepts live under fundamentals/vlan-basics, not this topicKey - Phase 9B candidate
-  'cisco-packet-tracer/access-port', // pre-existing gap (predates Phase 9A), same cause as above - Phase 9B candidate
   'cisco-packet-tracer/multilayer-switching', // L3 switching - deferred (Phase 9A section 28)
   'cisco-packet-tracer/ospf', // deferred, not part of the audited 7 curriculum blocks
   'cisco-packet-tracer/acl', // deferred (Phase 9A section 28)
@@ -120,6 +130,21 @@ for (const key of PHASE_9A_TOPICS) {
 }
 
 // ============================================================================
+// Explicit Phase 9B regression: additional topics that now have real coverage.
+// ============================================================================
+console.log('\nPhase 9B closed-gap verification:');
+const PHASE_9B_TOPICS = [
+  topicKey('cisco-packet-tracer', 'vlan'),
+  topicKey('cisco-packet-tracer', 'access-port'),
+];
+for (const key of PHASE_9B_TOPICS) {
+  const count = knowledgeItemsForTopic(key).length;
+  assert(count > 0, `${key}: Phase 9B must have added Knowledge Layer items (found ${count})`);
+  assert(hasRealConversationCoverage(key), `${key}: Phase 9B topic must be reachable in conversations`);
+  assert(!EXPECTED_KNOWLEDGE_GAPS.has(key), `${key}: must not remain listed as an expected gap now that it is implemented`);
+}
+
+// ============================================================================
 // Legacy-placeholder detection: CONVERSATION_TOPICS entries with an empty
 // questions array (dead code found by the previous Coverage Audit) should
 // either be removed or actually filled - flag them explicitly so they don't
@@ -133,6 +158,60 @@ for (const [key, topicData] of Object.entries(CONVERSATION_TOPICS)) {
     console.log(`  NOTE (known, pre-existing): ${key} has a CONVERSATION_TOPICS entry with 0 usable archetypes and no Knowledge Layer coverage.`);
   }
 }
+
+// ============================================================================
+// Source-of-truth check: every Knowledge Item references a real Academy topic
+// and, when a sourceSection is given, a real lesson explanation.
+// ============================================================================
+console.log('\nKnowledge item source references:');
+const validTopicKeys = new Set(ACADEMY_TOPICS.map((t) => topicKey(t.categoryId, t.topicId)));
+for (const item of allKnowledgeItems) {
+  if (KNOWN_DATA_GAPS.has(item.id)) continue;
+  if (item.sourceTopicKey) {
+    assert(validTopicKeys.has(item.sourceTopicKey), `${item.id}: sourceTopicKey ${item.sourceTopicKey} is not a registered ACADEMY topic`);
+    const lesson = LESSONS[item.sourceTopicKey];
+    if (item.sourceSection && lesson) {
+      const sectionIds = new Set((lesson.explanations || []).map((e) => e.id));
+      assert(sectionIds.has(item.sourceSection), `${item.id}: sourceSection ${item.sourceSection} not found in LESSONS[${item.sourceTopicKey}]`);
+    }
+  }
+}
+
+// ============================================================================
+// Template coverage and validity.
+// ============================================================================
+console.log('\nTemplate coverage and validity:');
+const templateIds = new Set();
+for (const t of TEMPLATES) {
+  assert(typeof t.matches === 'function', `Template ${t.id}: matches must be a function`);
+  assert(typeof t.generate === 'function', `Template ${t.id}: generate must be a function`);
+  assert(!templateIds.has(t.id), `Template id ${t.id} is duplicated`);
+  templateIds.add(t.id);
+}
+for (const item of allKnowledgeItems) {
+  if (KNOWN_DATA_GAPS.has(item.id)) continue;
+  const templates = findTemplatesForItem(item);
+  assert(templates.length > 0, `${item.id}: has no applicable templates`);
+}
+
+// ============================================================================
+// Facet coverage: generated questions carry the metadata the balancer needs.
+// ============================================================================
+console.log('\nFacet coverage (spot-check one generation per item):');
+let facetSamples = 0;
+for (const item of allKnowledgeItems) {
+  const templates = findTemplatesForItem(item);
+  if (templates.length === 0) continue;
+  try {
+    const q = generateQuestion(item.id, templates[0].id, { seed: `facet-audit-${item.id}` });
+    assert(q.knowledgeFacet, `${item.id}: generated question has no knowledgeFacet (template ${templates[0].id})`);
+    assert(q.conceptCluster, `${item.id}: generated question has no conceptCluster (template ${templates[0].id})`);
+    facetSamples += 1;
+  } catch (err) {
+    assert(false, `${item.id}: template ${templates[0].id} failed to generate a question: ${err.message}`);
+  }
+}
+console.log(`  Spot-checked ${facetSamples} generated questions for facet metadata.`);
 
 console.log('\n=== Academy <-> Knowledge <-> Conversation Consistency Audit: Summary ===');
 const passed = results.filter((r) => r.ok).length;

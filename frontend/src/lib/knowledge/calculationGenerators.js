@@ -441,12 +441,22 @@ function semanticTagsFor(family, params, item, difficulty) {
 // Calculation families
 // ---------------------------------------------------------------------------
 
+function rejectRecent(value, recentValues, attempt, maxAttempts = 10) {
+  if (!recentValues || !recentValues.has(value)) return false;
+  return attempt < maxAttempts - 1;
+}
+
 const CALCULATION_FAMILIES = {
   decimalToBinary: {
-    generateParams(rng, difficulty, item) {
+    generateParams(rng, difficulty, item, recentValues = new Set()) {
       const range = item.data.difficultyRanges[difficulty] || item.data.difficultyRanges.medium;
-      const decimal = rng.nextInt(range.min, range.max);
-      return { decimal };
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const decimal = rng.nextInt(range.min, range.max);
+        if (!rejectRecent(decimal, recentValues, attempt)) {
+          return { decimal, value: decimal };
+        }
+      }
+      throw new CalculationError('decimalToBinary could not pick a non-recent value', item.id, 'decimalToBinary');
     },
     calculate(params) {
       return decimalToBinaryOctet(params.decimal);
@@ -454,10 +464,15 @@ const CALCULATION_FAMILIES = {
   },
 
   binaryToDecimal: {
-    generateParams(rng, difficulty, item) {
+    generateParams(rng, difficulty, item, recentValues = new Set()) {
       const range = item.data.difficultyRanges[difficulty] || item.data.difficultyRanges.medium;
-      const decimal = rng.nextInt(range.min, range.max);
-      return { decimal, binary: decimalToBinaryOctet(decimal) };
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const decimal = rng.nextInt(range.min, range.max);
+        if (!rejectRecent(decimal, recentValues, attempt)) {
+          return { decimal, binary: decimalToBinaryOctet(decimal), value: decimal };
+        }
+      }
+      throw new CalculationError('binaryToDecimal could not pick a non-recent value', item.id, 'binaryToDecimal');
     },
     calculate(params) {
       return binaryOctetToDecimal(params.binary);
@@ -465,10 +480,15 @@ const CALCULATION_FAMILIES = {
   },
 
   prefixToMask: {
-    generateParams(rng, difficulty, item) {
+    generateParams(rng, difficulty, item, recentValues = new Set()) {
       const range = item.data.difficultyRanges[difficulty] || item.data.difficultyRanges.medium;
-      const prefix = rng.nextInt(range.prefixMin, range.prefixMax);
-      return { prefix };
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const prefix = rng.nextInt(range.prefixMin, range.prefixMax);
+        if (!rejectRecent(prefix, recentValues, attempt)) {
+          return { prefix, value: prefix };
+        }
+      }
+      throw new CalculationError('prefixToMask could not pick a non-recent prefix', item.id, 'prefixToMask');
     },
     calculate(params) {
       return prefixToSubnetMask(params.prefix).decimal;
@@ -476,10 +496,15 @@ const CALCULATION_FAMILIES = {
   },
 
   maskToPrefix: {
-    generateParams(rng, difficulty, item) {
+    generateParams(rng, difficulty, item, recentValues = new Set()) {
       const range = item.data.difficultyRanges[difficulty] || item.data.difficultyRanges.medium;
-      const prefix = rng.nextInt(range.prefixMin, range.prefixMax);
-      return { prefix, mask: prefixToSubnetMask(prefix).decimal };
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const prefix = rng.nextInt(range.prefixMin, range.prefixMax);
+        if (!rejectRecent(prefix, recentValues, attempt)) {
+          return { prefix, mask: prefixToSubnetMask(prefix).decimal, value: prefix };
+        }
+      }
+      throw new CalculationError('maskToPrefix could not pick a non-recent prefix', item.id, 'maskToPrefix');
     },
     calculate(params) {
       return subnetMaskToPrefix(params.mask);
@@ -487,8 +512,16 @@ const CALCULATION_FAMILIES = {
   },
 
   subnetting: {
-    generateParams(rng, difficulty, item) {
-      return generatePrivateSubnetParams(rng, difficulty, item);
+    generateParams(rng, difficulty, item, recentValues = new Set()) {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const params = generatePrivateSubnetParams(rng, difficulty, item);
+        const value = `${params.ip}/${params.prefix}`;
+        if (!rejectRecent(value, recentValues, attempt)) {
+          return { ...params, value };
+        }
+      }
+      const last = generatePrivateSubnetParams(rng, difficulty, item);
+      return { ...last, value: `${last.ip}/${last.prefix}` };
     },
     calculate(params, item) {
       const target = item.data.target;
@@ -520,7 +553,7 @@ const CALCULATION_FAMILIES = {
  * @returns {object} { params, correctAnswer, distractors, prompt, explanation, answerFormat, semanticTags }
  */
 export function generateCalculationData(item, rng, opts = {}) {
-  const { difficulty = null, contextType = 'direct_question' } = opts;
+  const { difficulty = null, contextType = 'direct_question', recentValues = new Set() } = opts;
   const familyId = item.data.calculationFamily;
   const family = CALCULATION_FAMILIES[familyId];
   if (!family) {
@@ -532,7 +565,9 @@ export function generateCalculationData(item, rng, opts = {}) {
     throw new CalculationError(`No difficulty range for ${selectedDifficulty}`, item.id, familyId);
   }
 
-  const params = family.generateParams(rng, selectedDifficulty, item);
+  const params = family.generateParams(rng, selectedDifficulty, item, recentValues);
+  params.calculationFamily = familyId;
+  params.target = item.data.target || null;
   const correctAnswer = family.calculate(params, item);
   const strategy = item.data.distractorStrategy || familyId;
   const distractors = getDistractors(strategy, params, correctAnswer, rng, item);

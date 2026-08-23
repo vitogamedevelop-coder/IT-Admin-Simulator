@@ -21,80 +21,8 @@ const VALID_DIFFICULTIES = Object.values(DIFFICULTY);
 
 const VALID_TOPIC_KEYS = new Set(ACADEMY_TOPICS.map((t) => topicKey(t.categoryId, t.topicId)));
 
-// Concept clusters used in Phase 1. Later phases may expand this list.
-const VALID_CONCEPT_CLUSTERS = new Set([
-  'osi.layers',
-  'osi.encapsulation',
-  'osi.tcpipMapping',
-  'binary.values',
-  'binary.calculation',
-  'binary.range',
-  'ipv4.structure',
-  'ipv4.ranges',
-  'ipv4.special',
-  'ipv4.cidr',
-  'subnetting.mask',
-  'subnetting.calculation',
-  'switching.devices',
-  'switching.macTable',
-  'switching.actions',
-  'switching.domains',
-  'vlan.concept',
-  'vlan.reasons',
-  'vlan.ports',
-  'ssh.protocol',
-  'ssh.version',
-  'ssh.procedure',
-  'ssh.rsa',
-  'ssh.vty',
-  'ssh.svi',
-  'ssh.reachability',
-  'ssh.troubleshooting',
-  'ssh.verification',
-  // Phase 7 – Netzwerk-Grundlagen
-  'grundbegriffe.networkSizes',
-  'grundbegriffe.addressing',
-  // Phase 7.1 – Netzwerk-Reichweite (PAN/LAN/MAN/WAN)
-  'grundbegriffe.networkSizes.definition',
-  'grundbegriffe.networkSizes.relativeSize',
-  'grundbegriffe.networkSizes.identification',
-  'grundbegriffe.networkSizes.scenarioClassification',
-  'grundbegriffe.networkSizes.comparison',
-  'topologien.properties',
-  'topologien.compare',
-  'topologien.identification',
-  'kommunikation.types',
-  'kommunikation.operatingModes',
-  'kommunikation.media',
-  'tcpudp.protocols',
-  'tcpudp.compare',
-  'tcpudp.handshake',
-  'dns.purpose',
-  'dns.records',
-  'dns.resolution',
-  'dhcp.purpose',
-  'dhcp.dora',
-  'routing.purpose',
-  'routing.table',
-  'routing.compare',
-  'vlsm.concept',
-  'vlsm.method',
-  'supernetting.concept',
-  'supernetting.method',
-  // Phase 7 – Cisco-Theorie
-  'cisco.ios',
-  'cisco.memory',
-  'cisco.boot',
-  'cisco.modes',
-  'cisco.configFiles',
-  'cisco.router.purpose',
-  'cisco.router.table',
-  'cisco.router.decision',
-  'cisco.router.ad',
-  'cisco.static.purpose',
-  'cisco.static.components',
-  'cisco.static.defaultRoute',
-]);
+// Concept clusters are validated by the registry they belong to: any well-formed
+// dotted identifier (e.g. "domain.subdomain" or "security.cia") is accepted.
 
 const REQUIRED_FIELDS_PER_TYPE = {
   [KNOWLEDGE_TYPES.DEFINITION]: ['definition'],
@@ -153,10 +81,11 @@ export function validateKnowledgeItem(item, allItemsById = {}) {
   }
 
   // conceptCluster
+  const CLUSTER_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*(?:\.[a-zA-Z][a-zA-Z0-9_-]*)+$/;
   if (!item.conceptCluster || typeof item.conceptCluster !== 'string') {
     add('conceptCluster', 'conceptCluster is required');
-  } else if (!VALID_CONCEPT_CLUSTERS.has(item.conceptCluster)) {
-    add('conceptCluster', `conceptCluster "${item.conceptCluster}" is not in the phase-1 allowlist`);
+  } else if (!CLUSTER_PATTERN.test(item.conceptCluster)) {
+    add('conceptCluster', `conceptCluster "${item.conceptCluster}" must be a dotted, alphanumeric cluster identifier (e.g. "domain.subdomain")`);
   }
 
   // type

@@ -62,6 +62,7 @@ function buildConversationText({ prompt, promptStyle, contextType, conversationL
 function baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency }) {
   return {
     instanceId: makeInstanceId(templateId, item.id, seed),
+    templateId,
     topicKey: item.topicKey,
     knowledgeItemId: item.id,
     conceptCluster: item.conceptCluster,
@@ -433,8 +434,8 @@ function binaryTemplates() {
       archetype: QUESTION_ARCHETYPES.CALCULATION,
       matches: (item) => item.id === 'binary.decimalToBinary',
       supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null } = {}) => {
-        const calc = generateCalculationData(item, rng, { difficulty, contextType });
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null, recentValues = null } = {}) => {
+        const calc = generateCalculationData(item, rng, { difficulty, contextType, recentValues });
         return buildMcInstance({
           templateId: 'binary.decimalToBinary',
           item,
@@ -463,8 +464,8 @@ function binaryTemplates() {
       archetype: QUESTION_ARCHETYPES.CALCULATION,
       matches: (item) => item.id === 'binary.binaryToDecimal',
       supportedQuestionTypes: [QUESTION_ARCHETYPES.CALCULATION, QUESTION_ARCHETYPES.INPUT, QUESTION_ARCHETYPES.SELECT_BEST],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null } = {}) => {
-        const calc = generateCalculationData(item, rng, { difficulty, contextType });
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null, recentValues = null } = {}) => {
+        const calc = generateCalculationData(item, rng, { difficulty, contextType, recentValues });
         return buildMcInstance({
           templateId: 'binary.binaryToDecimal',
           item,
@@ -755,8 +756,8 @@ function makeCalculationTemplate(id, itemId, allowedQuestionTypes) {
     archetype: QUESTION_ARCHETYPES.CALCULATION,
     matches: (item) => item.id === itemId,
     supportedQuestionTypes: allowedQuestionTypes,
-    generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null } = {}) => {
-      const calc = generateCalculationData(item, rng, { difficulty, contextType });
+    generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0', difficulty = null, recentValues = null } = {}) => {
+      const calc = generateCalculationData(item, rng, { difficulty, contextType, recentValues });
       const family = item.data.calculationFamily;
       const target = item.data.target || 'mask';
       const learningObjective = family === 'subnetting' ? 'subnetting.calculation' : `binary.${family}`;
@@ -2393,6 +2394,432 @@ function ciscoStpTemplates() {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 9A.1 templates – Cisco VLAN practice (cisco-packet-tracer/vlan)
+// ---------------------------------------------------------------------------
+
+const vlanCliLeads = [
+  'Für den neuen Arbeitsplatz wurde mir ein VLAN genannt.',
+  'Kurze Frage zur VLAN-Konfiguration:',
+  'Ich bin mir bei den VLANs auf dem Switch nicht sicher.',
+];
+
+function ciscoVlanPracticeTemplates() {
+  return [
+    {
+      id: 'vlanCli.idRanges',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'vlanCli.idRanges',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.MAPPING],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const proto = rng.pick(item.data.ranges);
+        const directPrompt = `Aus welchem Bereich vergibst du in der Praxis fast immer deine VLAN-IDs?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, vlanCliLeads, rng)
+          : directPrompt;
+        const correct = 'Normal Range (1 - 1005)';
+        const distractors = item.data.ranges.filter((r) => r.name !== 'Normal Range').map((r) => `${r.name} (${r.ids})`);
+        const wrongOptionExplanations = {};
+        item.data.ranges.filter((r) => r.name !== 'Normal Range').forEach((r) => {
+          wrongOptionExplanations[`${r.name} (${r.ids})`] = `${r.name} wird ${r.usage} - im Alltag verwendest du den Normal Range.`;
+        });
+        return buildMcInstance({
+          templateId: 'vlanCli.idRanges',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'vlanCli.idRanges',
+          knowledgeFacet: 'vlanCli.idRanges.normalRange',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: vlanCliLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'vlanCli.defaultVlanBehavior',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'vlanCli.defaultVlanBehavior',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = 'Ein Switchport wurde noch nie konfiguriert. Welchem VLAN gehört er an?';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, vlanCliLeads, rng)
+          : directPrompt;
+        const correct = 'VLAN 1, dem nicht löschbaren Default VLAN.';
+        const distractors = [
+          'Keinem VLAN, bis eines konfiguriert wird.',
+          'Automatisch dem zuletzt angelegten VLAN.',
+          'VLAN 99, dem Standard-Management-VLAN.',
+        ];
+        const wrongOptionExplanations = {
+          'Keinem VLAN, bis eines konfiguriert wird.': 'Jeder Port ist immer einem VLAN zugeordnet - ohne explizite Konfiguration ist das VLAN 1.',
+          'Automatisch dem zuletzt angelegten VLAN.': 'Neue VLANs ändern nichts an bereits bestehenden Port-Zuordnungen.',
+          'VLAN 99, dem Standard-Management-VLAN.': 'VLAN 99 ist nur eine verbreitete Konvention für Management, kein technischer Standardwert - das echte Default VLAN ist VLAN 1.',
+        };
+        return buildMcInstance({
+          templateId: 'vlanCli.defaultVlanBehavior',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'support'],
+          rng,
+          learningObjective: 'vlanCli.defaultVlan',
+          knowledgeFacet: 'vlanCli.defaultVlan.membership',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: vlanCliLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'vlanCli.intraVsInterCommunication',
+      archetype: QUESTION_ARCHETYPES.SCENARIO,
+      matches: (item) => item.id === 'vlanCli.intraVsInterCommunication',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const sameVlan = rng.next() < 0.5;
+        const directPrompt = sameVlan
+          ? 'Zwei PCs stehen im selben VLAN. Was benötigen sie, um miteinander zu kommunizieren?'
+          : 'Zwei PCs stehen in unterschiedlichen VLANs am selben Switch. Was passiert ohne weitere Konfiguration?';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, ['Wenn Vertrieb und Personal am selben Switch hängen, warum sehen sie dann trotzdem nicht automatisch denselben Broadcast-Verkehr?', vlanCliLeads[2]], rng)
+          : directPrompt;
+        const correct = sameVlan
+          ? 'Nur die normale Layer-2-Vermittlung des Switches, kein Router nötig.'
+          : 'Nichts - dafür wird ein Layer-3-Gerät wie ein Router benötigt.';
+        const distractors = sameVlan
+          ? ['Sie benötigen zusätzlich einen Router.', 'Sie benötigen eine Trunk-Verbindung dazwischen.']
+          : ['Sie können ohne weitere Konfiguration normal kommunizieren.', 'Der Switch übersetzt automatisch zwischen den VLANs.'];
+        const wrongOptionExplanations = sameVlan ? {
+          'Sie benötigen zusätzlich einen Router.': 'Ein Router wird erst für die Kommunikation ZWISCHEN VLANs gebraucht, nicht innerhalb desselben VLANs.',
+          'Sie benötigen eine Trunk-Verbindung dazwischen.': 'Ein Trunk transportiert mehrere VLANs zwischen Geräten - innerhalb eines VLANs reicht normale Layer-2-Vermittlung.',
+        } : {
+          'Sie können ohne weitere Konfiguration normal kommunizieren.': 'Ein Switch leitet standardmäßig nichts zwischen VLANs weiter.',
+          'Der Switch übersetzt automatisch zwischen den VLANs.': 'Switches routen nicht - dafür wird ein separates Layer-3-Gerät benötigt.',
+        };
+        return buildMcInstance({
+          templateId: 'vlanCli.intraVsInterCommunication',
+          item,
+          archetype: QUESTION_ARCHETYPES.SCENARIO,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'support'],
+          rng,
+          learningObjective: 'vlanCli.communication',
+          knowledgeFacet: `vlanCli.communication.${sameVlan ? 'intra' : 'inter'}`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'vlanCli.createVerifyProcedure',
+      archetype: QUESTION_ARCHETYPES.ORDERING,
+      matches: (item) => item.id === 'vlanCli.createVerifyProcedure',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const items = item.data.steps.map((step, idx) => ({ id: `s${idx}`, label: step }));
+        const directPrompt = 'Bringe die Schritte zum Anlegen und Prüfen eines VLANs in die richtige Reihenfolge.';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, vlanCliLeads, rng)
+          : directPrompt;
+        return buildOrderingInstance({
+          templateId: 'vlanCli.createVerifyProcedure',
+          item,
+          archetype: QUESTION_ARCHETYPES.ORDERING,
+          seed,
+          prompt,
+          items,
+          correctOrderIds: items.map((it) => it.id),
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'vlanCli.procedure',
+          knowledgeFacet: 'vlanCli.procedure.createVerify',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: vlanCliLeads,
+        });
+      },
+    },
+    {
+      id: 'vlanCli.assignmentDependency',
+      archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+      matches: (item) => item.id === 'vlanCli.assignmentDependency',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const symptomEntry = rng.pick(item.data.symptoms);
+        const directPrompt = `Situation: "${symptomEntry.symptom}". Was ist die Ursache bzw. Antwort?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, ['Der neue Rechner aus der Buchhaltung hängt zwar am Switch, landet aber offenbar im falschen Netz.', vlanCliLeads[0]], rng)
+          : directPrompt;
+        const correct = symptomEntry.cause;
+        const siblings = item.data.symptoms.filter((s) => s.cause !== correct);
+        const distractors = siblings.map((s) => s.cause);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.cause] = `Das würde eher zu "${sib.symptom}" passen. Hier liegt aber "${symptomEntry.symptom}" vor.`;
+        }
+        return buildMcInstance({
+          templateId: 'vlanCli.assignmentDependency',
+          item,
+          archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'support'],
+          rng,
+          learningObjective: 'vlanCli.dependency',
+          knowledgeFacet: 'vlanCli.dependency.mustExistFirst',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
+          wrongOptionExplanations,
+        });
+      },
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9A.1 templates – Cisco Access-Port (cisco-packet-tracer/access-port)
+// ---------------------------------------------------------------------------
+
+const accessPortLeads = [
+  'Ich schließe gerade einen neuen Arbeitsplatz an.',
+  'Kurze Frage zum Switchport:',
+  'Ich sehe auf dem Switch zwei Ports mit völlig unterschiedlicher Konfiguration.',
+];
+
+function ciscoAccessPortTemplates() {
+  return [
+    {
+      id: 'accessPort.purpose',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'accessPort.purpose',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = 'Wie viele VLANs kann ein einzelner Access-Port gleichzeitig bedienen, und wie kommt der Frame beim Endgerät an?';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, accessPortLeads, rng)
+          : directPrompt;
+        const correct = 'Genau eines, ungetaggt.';
+        const distractors = [
+          'Beliebig viele, jeweils getaggt.',
+          'Genau eines, aber mit VLAN-Tag versehen.',
+          'Keines - dafür ist immer ein Trunk nötig.',
+        ];
+        const wrongOptionExplanations = {
+          'Beliebig viele, jeweils getaggt.': 'Das beschreibt einen Trunk-Port, nicht einen Access-Port.',
+          'Genau eines, aber mit VLAN-Tag versehen.': 'Auf einem Access-Port kommen Frames beim Endgerät ungetaggt an - das Endgerät "weiß" nichts von VLANs.',
+          'Keines - dafür ist immer ein Trunk nötig.': 'Ein Access-Port bedient sehr wohl ein VLAN - nur eben genau eines, nicht mehrere.',
+        };
+        return buildMcInstance({
+          templateId: 'accessPort.purpose',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'support'],
+          rng,
+          learningObjective: 'accessPort.purpose',
+          knowledgeFacet: 'accessPort.purpose.singleVlanUntagged',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: accessPortLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'accessPort.configCommands',
+      archetype: QUESTION_ARCHETYPES.ORDERING,
+      matches: (item) => item.id === 'accessPort.configCommands',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const items = item.data.steps.map((step, idx) => ({ id: `s${idx}`, label: step }));
+        const directPrompt = 'Bringe die Befehle zur Access-Port-Konfiguration in die richtige Reihenfolge.';
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, accessPortLeads, rng)
+          : directPrompt;
+        return buildOrderingInstance({
+          templateId: 'accessPort.configCommands',
+          item,
+          archetype: QUESTION_ARCHETYPES.ORDERING,
+          seed,
+          prompt,
+          items,
+          correctOrderIds: items.map((it) => it.id),
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'accessPort.procedure',
+          knowledgeFacet: 'accessPort.procedure.configure',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: accessPortLeads,
+        });
+      },
+    },
+    {
+      id: 'accessPort.rangeConfig',
+      archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+      matches: (item) => item.id === 'accessPort.rangeConfig',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const directPrompt = `Wozu dient "${item.data.command}"?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, accessPortLeads, rng)
+          : directPrompt;
+        const correct = item.data.effect;
+        const distractors = [
+          'Es legt automatisch für jeden ausgewählten Port ein eigenes VLAN an.',
+          'Es aktiviert Trunking auf allen ausgewählten Ports.',
+          'Es löscht die bisherige Konfiguration der ausgewählten Ports.',
+        ];
+        const wrongOptionExplanations = {
+          'Es legt automatisch für jeden ausgewählten Port ein eigenes VLAN an.': 'VLANs werden weiterhin separat mit "vlan <ID>" angelegt - "interface range" wählt nur mehrere Ports gleichzeitig aus.',
+          'Es aktiviert Trunking auf allen ausgewählten Ports.': 'Der Modus (Access/Trunk) wird weiterhin separat mit "switchport mode" gesetzt.',
+          'Es löscht die bisherige Konfiguration der ausgewählten Ports.': '"interface range" wendet nur die danach eingegebenen Befehle an, es löscht nichts automatisch.',
+        };
+        return buildMcInstance({
+          templateId: 'accessPort.rangeConfig',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.whenToUse,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: 'accessPort.range',
+          knowledgeFacet: 'accessPort.range.multiplePorts',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: accessPortLeads,
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'accessPort.whyNotTrunk',
+      archetype: QUESTION_ARCHETYPES.COMPARE,
+      matches: (item) => item.id === 'accessPort.whyNotTrunk',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.COMPARE],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const proto = rng.pick(item.data.items);
+        const directPrompt = `Warum ist "${proto.name}" der richtige Porttyp in diesem Fall?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, ['Ich sehe auf dem Switch zwei Ports mit völlig unterschiedlicher Konfiguration. Warum ist der Arbeitsplatz-Port Access und der Uplink Trunk?'], rng)
+          : directPrompt;
+        const sibling = item.data.items.find((p) => p.name !== proto.name);
+        const distractors = [sibling.reason];
+        const wrongOptionExplanations = { [sibling.reason]: `Das begründet "${sibling.name}", nicht "${proto.name}".` };
+        return buildMcInstance({
+          templateId: 'accessPort.whyNotTrunk',
+          item,
+          archetype: QUESTION_ARCHETYPES.COMPARE,
+          seed,
+          prompt,
+          correctValue: proto.reason,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'support', 'management'],
+          rng,
+          learningObjective: 'accessPort.accessVsTrunkApplication',
+          knowledgeFacet: 'accessPort.accessVsTrunkApplication.reasoning',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: ['Ich sehe auf dem Switch zwei Ports mit völlig unterschiedlicher Konfiguration. Warum ist der Arbeitsplatz-Port Access und der Uplink Trunk?'],
+          wrongOptionExplanations,
+        });
+      },
+    },
+    {
+      id: 'accessPort.misconfigurationDiagnosis',
+      archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+      matches: (item) => item.id === 'accessPort.misconfigurationDiagnosis',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const symptomEntry = rng.pick(item.data.symptoms);
+        const directPrompt = `Situation: "${symptomEntry.symptom}". Was ist die wahrscheinlichste Ursache?`;
+        const prompt = contextType === 'coworker_question'
+          ? withCoworkerLead(directPrompt, ['Der neue Rechner aus der Buchhaltung hängt zwar am Switch, landet aber offenbar im falschen Netz.'], rng)
+          : directPrompt;
+        const correct = symptomEntry.cause;
+        const siblings = item.data.symptoms.filter((s) => s.cause !== correct);
+        const distractors = siblings.map((s) => s.cause);
+        const wrongOptionExplanations = {};
+        for (const sib of siblings) {
+          wrongOptionExplanations[sib.cause] = `Das würde eher zu "${sib.symptom}" passen. Hier liegt aber "${symptomEntry.symptom}" vor.`;
+        }
+        return buildMcInstance({
+          templateId: 'accessPort.misconfigurationDiagnosis',
+          item,
+          archetype: QUESTION_ARCHETYPES.TROUBLESHOOT,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: item.data.description,
+          contextType,
+          speechLeadIn: null,
+          roleHints: ['technical', 'support'],
+          rng,
+          learningObjective: 'accessPort.troubleshooting',
+          knowledgeFacet: 'accessPort.troubleshooting.diagnosis',
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: [],
+          wrongOptionExplanations,
+        });
+      },
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -2406,6 +2833,8 @@ export const TEMPLATES = [
   ...sshTemplates(),
   ...ciscoBasicConfigTemplates(),
   ...ciscoStpTemplates(),
+  ...ciscoVlanPracticeTemplates(),
+  ...ciscoAccessPortTemplates(),
   ...phase7DefinitionTemplates(),
   ...phase7PropertyTemplates(),
   ...phase7CompareTemplates(),

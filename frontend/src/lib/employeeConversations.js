@@ -380,13 +380,14 @@ function normalizeConversationDifficulty(d) {
   return 'medium';
 }
 
-function generateQuestionFromCandidate(candidate, seed, contextType, difficulty) {
+function generateQuestionFromCandidate(candidate, seed, contextType, difficulty, history = null) {
   if (candidate.kind === 'knowledge') {
     const item = candidate.item;
     const question = generateQuestion(item.id, null, {
       seed,
       contextType,
       difficulty,
+      history,
     });
     if (!question.concept) {
       question.concept = question.learningObjective || question.conceptCluster || 'general';
@@ -422,12 +423,12 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
     const difficulty = normalizeConversationDifficulty(topicState?.currentDifficulty);
     const baseSeed = generateSeed(conversation, questionIndex);
 
-    let question = generateQuestionFromCandidate(selected, baseSeed, 'coworker_question', difficulty);
+    let question = generateQuestionFromCandidate(selected, baseSeed, 'coworker_question', difficulty, semanticHistory);
     if (!question || validateSolvability(question).length > 0) {
       const tried = new Set([selected.item?.id || selected.id]);
       for (const fallback of candidates.filter((c) => !tried.has(c.item?.id || c.id))) {
         const seed = `${baseSeed}-${fallback.item?.id || fallback.id}`;
-        const q = generateQuestionFromCandidate(fallback, seed, 'coworker_question', difficulty);
+        const q = generateQuestionFromCandidate(fallback, seed, 'coworker_question', difficulty, semanticHistory);
         if (q && validateSolvability(q).length === 0) {
           question = q;
           break;

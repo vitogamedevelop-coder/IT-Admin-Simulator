@@ -50,20 +50,27 @@ function baseLockedProgress() {
   return { version: 8, topics };
 }
 
-// Only unlocks the SSH topic (plus its prerequisites, so the real unlock
-// chain from academyTopics.js stays intact) - everything else stays locked
-// so a conversation is forced onto the SSH topic.
+// Only unlocks the SSH topic itself - everything else stays locked so a
+// conversation is forced onto the SSH topic.
+//
+// NOTE: this used to also mark SSH's Academy prerequisites (static-routing,
+// inter-vlan-routing, multilayer-switching) as 'available', under the
+// assumption that the "real unlock chain" needed them. That is unnecessary
+// and was actively harmful: employeeConversations.js's
+// isTopicUnlockedForConversations() reads a topic's OWN persisted status
+// directly (see academyProgress.js's getTopicProgress()) - it never
+// recomputes or requires prerequisite status. Marking prerequisites
+// 'available' just made them additional, real conversation-topic candidates:
+// 'cisco-packet-tracer/static-routing' has its own Knowledge Layer coverage
+// (ct.static.* items) and a CONVERSATION_TOPICS entry, so the balancer could
+// legitimately pick IT instead of SSH, making this test's "forced onto SSH"
+// premise intermittently false (this was the actual root cause of the
+// long-standing flakiness here, not any RNG/seeding bug in the balancer
+// itself). Only the topic actually under test should ever be 'available'.
 function onlySshUnlockedProgress() {
   const data = baseLockedProgress();
   const sshKey = topicKey('cisco-packet-tracer', 'ssh');
-  const prereqKeys = [
-    topicKey('cisco-packet-tracer', 'static-routing'),
-    topicKey('cisco-packet-tracer', 'inter-vlan-routing'),
-    topicKey('cisco-packet-tracer', 'multilayer-switching'),
-  ];
-  for (const key of [sshKey, ...prereqKeys]) {
-    data.topics[key].status = 'available';
-  }
+  data.topics[sshKey].status = 'available';
   return data;
 }
 
@@ -141,6 +148,42 @@ console.log('\ngetArchetypes() picks up the new questions through the existing g
   });
 }
 
+// The Knowledge Layer balancer legitimately picks ANY non-excluded SSH
+// knowledge item at random (weighted by mastery/recency, but not
+// deterministic across runs - conversationId is seeded from Date.now() +
+// Math.random() by design, see startEmployeeConversation()). Of the 9 SSH
+// items, 'ssh.configProcedure' (ordering) is excluded (EXCLUDED_KNOWLEDGE_ITEMS),
+// so the first question can legitimately be either 'mc' (7 items) or
+// 'matching' (1 item: ssh.verificationCommands) - asserting one fixed type
+// here would be asserting an implementation detail of the random draw, not
+// an actual product requirement. Build the correct/wrong answer generically
+// for whichever well-formed type shows up instead.
+const SUPPORTED_SSH_QUESTION_TYPES = ['mc', 'matching'];
+
+function correctAnswerFor(question) {
+  if (question.type === 'mc') return question.correctOptionId;
+  if (question.type === 'matching') {
+    return Object.fromEntries(question.correctPairs.map((p) => [p.leftId ?? p.left, p.rightId ?? p.right]));
+  }
+  throw new Error(`correctAnswerFor: unsupported question type "${question.type}"`);
+}
+
+function wrongAnswerFor(question) {
+  if (question.type === 'mc') {
+    return question.options.find((o) => o.id !== question.correctOptionId).id;
+  }
+  if (question.type === 'matching') {
+    // Swap every pairing so every left item is matched to the wrong right item.
+    const rightIds = question.correctPairs.map((p) => p.rightId ?? p.right);
+    return Object.fromEntries(question.correctPairs.map((p, i) => {
+      const leftKey = p.leftId ?? p.left;
+      const wrongRight = rightIds[(i + 1) % rightIds.length];
+      return [leftKey, wrongRight];
+    }));
+  }
+  throw new Error(`wrongAnswerFor: unsupported question type "${question.type}"`);
+}
+
 console.log('\nEnd-to-end: a real conversation can be forced onto the SSH topic and played');
 {
   withLocalStorage(() => {
@@ -149,18 +192,21 @@ console.log('\nEnd-to-end: a real conversation can be forced onto the SSH topic 
     const conv = startEmployeeConversation();
     test('a conversation starts when only the SSH topic (and its prerequisites) are unlocked', () => assert.ok(conv));
     test('the conversation topic is cisco-packet-tracer/ssh', () => assert.equal(conv.currentTopicKey, SSH_KEY));
-    test('the first question is a well-formed mc question', () => {
-      assert.equal(conv.question.type, 'mc');
-      assert.ok(conv.question.correctOptionId);
+    test('the first question is a well-formed mc or matching question', () => {
+      assert.ok(SUPPORTED_SSH_QUESTION_TYPES.includes(conv.question.type), `unexpected question type "${conv.question.type}"`);
+      if (conv.question.type === 'mc') assert.ok(conv.question.correctOptionId);
+      if (conv.question.type === 'matching') assert.ok(Array.isArray(conv.question.correctPairs) && conv.question.correctPairs.length > 0);
     });
 
-    const correctAnswer = conv.question.correctOptionId;
-    const result = evaluateEmployeeAnswer(conv, correctAnswer);
+    const result = evaluateEmployeeAnswer(conv, correctAnswerFor(conv.question));
     test('answering correctly is recognised as correct', () => assert.equal(result.correct, true));
     test('a correct answer awards practice score', () => assert.equal(result.scoreAwarded, true));
-
-    const conv2 = startEmployeeConversation();
-    const wrongResult = evaluateEmployeeAnswer(conv2, conv2.question.options.find((o) => o.id !== conv2.question.correctOptionId).id);
+  });
+  withLocalStorage(() => {
+    resetEmployeeConversations();
+    globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(onlySshUnlockedProgress()));
+    const conv = startEmployeeConversation();
+    const wrongResult = evaluateEmployeeAnswer(conv, wrongAnswerFor(conv.question));
     test('answering incorrectly triggers a Sam intervention', () => assert.ok(wrongResult.samStageDirection.length > 0));
   });
 }
@@ -174,7 +220,7 @@ console.log('\nSSH topic participates in normal session flow (advance/summary) w
     let turns = 0;
     let reachedSummary = false;
     while (turns < 10) {
-      const answer = conv.question.correctOptionId;
+      const answer = correctAnswerFor(conv.question);
       evaluateEmployeeAnswer(conv, answer);
       turns += 1;
       const next = advanceConversation(conv);

@@ -14,6 +14,7 @@ import { getKnowledgeItem, getAllKnowledgeItems } from './index.js';
 import { TEMPLATES, findTemplatesForItem } from './templates.js';
 import { selectCandidate, createBalancerState } from './semanticBalancer.js';
 import { getFacetCooldownInfo, gapSinceFacet } from './facetMastery.js';
+import { recentValuesForFamily } from './semanticHistory.js';
 
 export class QuestionGenerationError extends Error {
   constructor(message, knowledgeItemId, templateId) {
@@ -37,7 +38,7 @@ export class QuestionGenerationError extends Error {
  * @returns {object} Question Instance
  */
 export function generateQuestion(knowledgeItemId, templateId = null, options = {}) {
-  const { seed = '0', contextType = 'direct_question', archetype = null, difficulty = null } = options;
+  const { seed = '0', contextType = 'direct_question', archetype = null, difficulty = null, history = null } = options;
   const item = getKnowledgeItem(knowledgeItemId);
   if (!item) {
     throw new QuestionGenerationError(`Unknown Knowledge Item: ${knowledgeItemId}`, knowledgeItemId, templateId);
@@ -73,7 +74,8 @@ export function generateQuestion(knowledgeItemId, templateId = null, options = {
     ? candidates[0]
     : candidates[Math.floor(rng.next() * candidates.length)];
 
-  const instance = template.generate(item, allItemsById, rng, { contextType, seed, difficulty: effectiveDifficulty });
+  const recentValues = recentValuesForFamily(history, item.data?.calculationFamily, 24);
+  const instance = template.generate(item, allItemsById, rng, { contextType, seed, difficulty: effectiveDifficulty, recentValues });
   if (!instance || typeof instance !== 'object') {
     throw new QuestionGenerationError(`Template ${template.id} returned no instance`, knowledgeItemId, template.id);
   }
@@ -197,7 +199,7 @@ export function generateBalancedQuestion(state, options = {}) {
     throw new QuestionGenerationError(`No template could be chosen for item ${selected.id}`);
   }
 
-  return generateQuestion(selected.id, template.id, { seed, contextType, archetype, difficulty: itemDifficulty });
+  return generateQuestion(selected.id, template.id, { seed, contextType, archetype, difficulty: itemDifficulty, history: state.history });
 }
 
 /**

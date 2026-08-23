@@ -88,7 +88,7 @@ function semanticSignature(candidate) {
     questionArchetype: candidate.type || candidate.questionArchetype || null,
     templateId: candidate.templateId || null,
     calculationFamily: data.calculationFamily || null,
-    calculationTarget: data.target || null,
+    calculationTarget: data.target ?? data.calculationFamily ?? null,
     roleHints: candidate.roleHints || data.roleHints || null,
     prefixBucket: null, // populated after question generation if needed
     // For later question-instance level balancing we also keep raw params key:
