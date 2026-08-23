@@ -142,10 +142,36 @@ function runScenario(name, candidates, { n = 200, seedPrefix = 'audit' } = {}) {
       if (val != null) binaryValues.push(val);
     }
     if (q.conceptCluster && (q.conceptCluster.includes('tcpudp') || q.topicKey === 'fundamentals/tcp-udp')) {
-      tcpUdpItems.push({ id: q.knowledgeItemId, conceptCluster: q.conceptCluster });
+      tcpUdpItems.push({ id: q.knowledgeItemId, conceptCluster: q.conceptCluster, facet: q.knowledgeFacet });
     }
     if (q.topicKey === 'fundamentals/switching' || (q.conceptCluster && q.conceptCluster.includes('switch'))) {
-      deviceItems.push({ id: q.knowledgeItemId, conceptCluster: q.conceptCluster });
+      deviceItems.push({ id: q.knowledgeItemId, conceptCluster: q.conceptCluster, facet: q.knowledgeFacet });
+    }
+  }
+
+  const v2 = { exactWithin5: 0, exactWithin10: 0, sameItemWithin2: 0, sameItemWithin5: 0, sameFacetWithin3: 0, sameTemplateWithin5: 0 };
+  for (let i = 0; i < records.length; i += 1) {
+    const q = records[i];
+    if (q._error) continue;
+    const sig = exactSignature(q);
+    for (let j = i - 1; j >= Math.max(0, i - 10); j -= 1) {
+      const r = records[j];
+      if (r._error) continue;
+      const dist = i - j;
+      if (exactSignature(r) === sig) {
+        if (dist <= 5) v2.exactWithin5 += 1;
+        if (dist <= 10) v2.exactWithin10 += 1;
+      }
+      if (r.knowledgeItemId === q.knowledgeItemId) {
+        if (dist <= 2) v2.sameItemWithin2 += 1;
+        if (dist <= 5) v2.sameItemWithin5 += 1;
+      }
+      if (r.knowledgeFacet && r.knowledgeFacet === q.knowledgeFacet) {
+        if (dist <= 3) v2.sameFacetWithin3 += 1;
+      }
+      if (r.templateId && r.templateId === q.templateId) {
+        if (dist <= 5) v2.sameTemplateWithin5 += 1;
+      }
     }
   }
 
@@ -181,6 +207,14 @@ function runScenario(name, candidates, { n = 200, seedPrefix = 'audit' } = {}) {
     templateDistribution: distribution(templateCounts),
     binaryValues: binaryValueCounts,
     topBinaryRepeats,
+    v2Metrics: {
+      exactSemanticDuplicateWithin5: v2.exactWithin5,
+      exactSemanticDuplicateWithin10: v2.exactWithin10,
+      sameItemWithin2: v2.sameItemWithin2,
+      sameItemWithin5: v2.sameItemWithin5,
+      sameFacetWithin3: v2.sameFacetWithin3,
+      sameTemplateWithin5: v2.sameTemplateWithin5,
+    },
     tcpUdpCount: tcpUdpItems.length,
     tcpUdpItems: [...new Set(tcpUdpItems.map((x) => x.id))].slice(0, 10),
     deviceCount: deviceItems.length,

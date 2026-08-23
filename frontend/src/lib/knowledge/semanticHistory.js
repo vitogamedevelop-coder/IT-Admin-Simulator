@@ -27,6 +27,15 @@ export function createSemanticHistory({ longTerm = [], session = [] } = {}) {
   };
 }
 
+function normalizeExactValue(inst) {
+  const p = inst.calculationParams || {};
+  return p.value ?? p.decimal ?? p.prefix ?? p.ip ?? '';
+}
+
+export function buildExactSignature(inst) {
+  return `${inst.knowledgeItemId || ''}#${inst.templateId || ''}#${inst.questionArchetype || ''}#${normalizeExactValue(inst)}`;
+}
+
 export function buildHistoryRecord(questionInstance) {
   const inst = questionInstance || {};
   const params = inst.calculationParams || {};
@@ -41,6 +50,9 @@ export function buildHistoryRecord(questionInstance) {
     calculationFamily: params.calculationFamily || null,
     calculationTarget: params.target || null,
     calculationValue: params.value ?? params.decimal ?? params.prefix ?? null,
+    exactSignature: buildExactSignature(inst),
+    contextFamily: inst.contextFamily || null,
+    relatedTopicKeys: inst.relatedTopicKeys || null,
     prefix: params.prefix ?? null,
     difficulty: inst.difficulty || null,
     correct: inst.lastResult?.correct ?? null,

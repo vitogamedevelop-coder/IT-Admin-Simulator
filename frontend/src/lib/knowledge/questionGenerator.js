@@ -14,7 +14,7 @@ import { getKnowledgeItem, getAllKnowledgeItems } from './index.js';
 import { TEMPLATES, findTemplatesForItem } from './templates.js';
 import { selectCandidate, createBalancerState } from './semanticBalancer.js';
 import { getFacetCooldownInfo, gapSinceFacet } from './facetMastery.js';
-import { recentValuesForFamily } from './semanticHistory.js';
+import { recentValuesForFamily, buildExactSignature } from './semanticHistory.js';
 
 export class QuestionGenerationError extends Error {
   constructor(message, knowledgeItemId, templateId) {
@@ -112,13 +112,28 @@ function probeTemplateFacet(template, item, allItemsById, archetype, difficulty)
   }
 }
 
+function countRecent(session, keyFn, key, lookback) {
+  if (key == null) return 0;
+  return (session || []).slice(-lookback).filter((r) => keyFn(r) === key).length;
+}
+
+function isExactRecent(session, signature, lookback) {
+  return (session || []).slice(-lookback).some((r) => r.exactSignature === signature);
+}
+
 function weightedPickTemplate(templatesWithFacets, state, rng) {
   if (templatesWithFacets.length === 0) return null;
   if (templatesWithFacets.length === 1) return templatesWithFacets[0].template;
 
   const records = [...(state.history?.longTerm || []), ...(state.history?.session || [])];
+  const session = state.history?.session || [];
+  const lookback = 12;
   const weighted = templatesWithFacets.map(({ template, facet }) => {
     let weight = 1.0;
+    const templateCount = countRecent(session, (r) => r.templateId, template.id, lookback);
+    const facetCount = countRecent(session, (r) => r.knowledgeFacet, facet, lookback);
+    weight *= Math.pow(0.5, templateCount);
+    weight *= Math.pow(0.5, facetCount);
     if (facet) {
       const info = getFacetCooldownInfo(facet);
       if (info.score <= 0) {
@@ -140,6 +155,40 @@ function weightedPickTemplate(templatesWithFacets, state, rng) {
     roll -= w.weight;
   }
   return weighted[weighted.length - 1].template;
+}
+
+function pickTemplateWithRetry(templatesWithFacets, state, selected, allItemsById, {
+  seed, contextType, archetype, itemDifficulty,
+}) {
+  if (templatesWithFacets.length === 0) return null;
+  const usedTemplateIds = new Set();
+  let q = null;
+  let chosenTemplate = null;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const remaining = templatesWithFacets.filter(({ template }) => !usedTemplateIds.has(template.id));
+    const pool = remaining.length > 0 ? remaining : templatesWithFacets;
+    const templateRng = createRng(`${seed}|template-pick|${selected.id}|${attempt}`);
+    const template = weightedPickTemplate(pool, state, templateRng);
+    if (!template) break;
+    try {
+      const candidate = generateQuestion(selected.id, template.id, { seed, contextType, archetype, difficulty: itemDifficulty, history: state.history });
+      const sig = buildExactSignature(candidate);
+      if (!isExactRecent(state.history?.session, sig, 10)) {
+        q = candidate;
+        chosenTemplate = template;
+        break;
+      }
+    } catch {
+      // Generation failed for this template/seed; try next.
+    }
+    usedTemplateIds.add(template.id);
+  }
+  if (!q) {
+    const templateRng = createRng(`${seed}|template-pick|${selected.id}|final`);
+    chosenTemplate = weightedPickTemplate(templatesWithFacets, state, templateRng);
+    q = chosenTemplate ? generateQuestion(selected.id, chosenTemplate.id, { seed, contextType, archetype, difficulty: itemDifficulty, history: state.history }) : null;
+  }
+  return { q, template: chosenTemplate };
 }
 
 /**
@@ -189,17 +238,18 @@ export function generateBalancedQuestion(state, options = {}) {
   const itemDifficulty = difficulty || selected.difficulty;
   const templates = findTemplatesForItem(selected, archetype);
   const allItemsById = Object.fromEntries(getAllKnowledgeItems().map((i) => [i.id, i]));
-  const templateRng = createRng(`${seed}|template-pick|${selected.id}`);
   const templatesWithFacets = templates.map((t) => ({
     template: t,
     facet: probeTemplateFacet(t, selected, allItemsById, archetype, itemDifficulty),
   }));
-  const template = weightedPickTemplate(templatesWithFacets, state, templateRng);
-  if (!template) {
+  const { q, template } = pickTemplateWithRetry(templatesWithFacets, state, selected, allItemsById, {
+    seed, contextType, archetype, difficulty: itemDifficulty,
+  });
+  if (!q || !template) {
     throw new QuestionGenerationError(`No template could be chosen for item ${selected.id}`);
   }
 
-  return generateQuestion(selected.id, template.id, { seed, contextType, archetype, difficulty: itemDifficulty, history: state.history });
+  return q;
 }
 
 /**

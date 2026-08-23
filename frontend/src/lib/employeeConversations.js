@@ -1,3 +1,4 @@
+import { createRng } from './knowledge/random.js';
 import { ACADEMY_TOPICS, topicKey } from './academyTopics.js';
 import { getTopicProgress, getFullTopic } from './academyProgress.js';
 import { topicOverallProgress, isTopicMastered, applyConversationPractice } from './academyEngine.js';
@@ -8,6 +9,7 @@ import { SKILL_DIMENSION, SKILL_SOURCE, recordSkillEvent } from './skillTree.js'
 import { recordConversationResult, resetConversationMastery } from './conversationMastery.js';
 import {
   getAllKnowledgeItems,
+  getKnowledgeItem,
   generateQuestion,
   createSemanticHistory,
   pushHistoryRecord,
@@ -20,6 +22,7 @@ import {
   getAllFacetMasteryScores,
 } from './knowledge/index.js';
 import { validateSolvability } from './knowledge/validators.js';
+import { getLoreLeadIn } from './knowledge/contextFamilies.js';
 
 // =============================================================================
 // NEXUS Mitarbeitergespräche – adaptive Wiederholung im Flur (Phase 1I / 1I.2).
@@ -437,6 +440,17 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
       }
     }
     if (!question || validateSolvability(question).length > 0) return null;
+    if (question) {
+      const item = getKnowledgeItem(question.knowledgeItemId);
+      const loreRng = createRng(`${baseSeed}|lore`);
+      const lead = getLoreLeadIn(item, loreRng);
+      if (lead) {
+        question.loreLeadIn = lead;
+        const spacer = question.conversationText ? ' ' : '';
+        question.conversationText = `${lead}${spacer}${question.conversationText || question.text}`;
+        question.ttsText = question.conversationText;
+      }
+    }
     return question;
   }
 

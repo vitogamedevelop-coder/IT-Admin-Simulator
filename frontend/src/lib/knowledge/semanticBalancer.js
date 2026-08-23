@@ -17,6 +17,7 @@
 
 import { createRng } from './random.js';
 import { getFacetCooldownInfo, gapSinceFacet } from './facetMastery.js';
+import { getContextFamily, getRelatedContextFamilies } from './contextFamilies.js';
 
 // ---------------------------------------------------------------------------
 // Tunable weights – central, data-driven configuration.
@@ -32,15 +33,20 @@ export const DEFAULT_WEIGHTS = {
 
   // Cooldown penalties (multiply by these factors per recent occurrence)
   topicRepeatPenalty: 0.35,
-  clusterRepeatPenalty: 0.45,
-  itemRepeatPenalty: 0.08,
-  archetypeRepeatPenalty: 0.55,
-  templateRepeatPenalty: 0.25,
+  clusterRepeatPenalty: 0.5,
+  contextFamilyRepeatPenalty: 0.7,
+  itemRepeatPenalty: 0.45,
+  archetypeRepeatPenalty: 0.6,
+  templateRepeatPenalty: 0.5,
   learningObjectiveRepeatPenalty: 0.35,
-  knowledgeFacetRepeatPenalty: 0.2,
+  knowledgeFacetRepeatPenalty: 0.45,
   calcFamilyRepeatPenalty: 0.5,
   calcTargetRepeatPenalty: 0.55,
   prefixBucketRepeatPenalty: 0.6,
+
+  // Cross-topic relationship boost (additive, capped)
+  relationshipBoost: 0.2,
+  relationshipBoostCap: 0.6,
 
   // Window sizes for recent history considered "similar"
   sessionLookback: 15,
@@ -89,6 +95,8 @@ function semanticSignature(candidate) {
     templateId: candidate.templateId || null,
     calculationFamily: data.calculationFamily || null,
     calculationTarget: data.target ?? data.calculationFamily ?? null,
+    contextFamily: getContextFamily(candidate),
+    relatedTopicKeys: candidate.relatedTopicKeys || null,
     roleHints: candidate.roleHints || data.roleHints || null,
     prefixBucket: null, // populated after question generation if needed
     // For later question-instance level balancing we also keep raw params key:
@@ -173,6 +181,18 @@ function computeWeight(candidate, state, cfg) {
 
   const bucketCount = countRecent(session, (r) => r.prefixBucket, sig.prefixBucket, cfg.sessionLookback);
   weight *= Math.pow(cfg.prefixBucketRepeatPenalty, bucketCount);
+
+  const contextFamilyCount = countRecent(session, (r) => r.contextFamily, sig.contextFamily, cfg.sessionLookback);
+  weight *= Math.pow(cfg.contextFamilyRepeatPenalty, contextFamilyCount);
+
+  const relatedFamilies = new Set(getRelatedContextFamilies(sig.contextFamily));
+  const relatedMatches = new Set();
+  for (const r of session) {
+    if (relatedFamilies.has(r.contextFamily)) relatedMatches.add(r.contextFamily);
+    if (Array.isArray(sig.relatedTopicKeys) && sig.relatedTopicKeys.includes(r.topicKey)) relatedMatches.add(r.topicKey);
+  }
+  const relationshipBoost = Math.min(cfg.relationshipBoostCap, cfg.relationshipBoost * relatedMatches.size);
+  weight += relationshipBoost;
 
   // Facet-mastery adaptive cooldown.
   const allRecords = [...(state.history?.longTerm || []), ...(state.history?.session || [])];

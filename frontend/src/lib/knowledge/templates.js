@@ -24,6 +24,7 @@ import {
   buildMcOptions,
 } from './distractors.js';
 import { generateCalculationData } from './calculationGenerators.js';
+import { getContextFamily } from './contextFamilies.js';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -60,9 +61,12 @@ function buildConversationText({ prompt, promptStyle, contextType, conversationL
 }
 
 function baseInstance({ templateId, item, archetype, seed, prompt, contextType, speechLeadIn, roleHints, learningObjective, knowledgeFacet, promptStyle, contextDependency }) {
+  const contextFamily = getContextFamily(item);
   return {
     instanceId: makeInstanceId(templateId, item.id, seed),
     templateId,
+    contextFamily,
+    relatedTopicKeys: item.relatedTopicKeys || null,
     topicKey: item.topicKey,
     knowledgeItemId: item.id,
     conceptCluster: item.conceptCluster,
