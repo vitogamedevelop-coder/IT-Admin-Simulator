@@ -234,8 +234,9 @@ export const ACADEMY_TOPICS = [
   // 5. Active Directory – VirtualBox
   // ---------------------------------------------------------------------
   topic('active-directory-virtualbox', 'virtualbox-lab', 'VirtualBox-Lab', 'Aufbau der Windows-Server-Laborumgebung.'),
-  topic('active-directory-virtualbox', 'windows-server', 'Windows Server', 'Grundlegende Bedienung von Windows Server.', ['virtualbox-lab']),
-  topic('active-directory-virtualbox', 'domain', 'Domäne', 'Was eine Windows-Domäne ist und leistet.', ['windows-server']),
+  topic('active-directory-virtualbox', 'ad-foundation', 'Active Directory – Grundlagen', 'Verzeichnisdienste, Objekte/Attribute, zentrale Verwaltung, AD DS, DNS, Kerberos, LDAP, SMB/NTFS und Replikation.', ['virtualbox-lab']),
+  topic('active-directory-virtualbox', 'windows-server', 'Windows Server', 'Grundlegende Bedienung von Windows Server.', ['virtualbox-lab', 'ad-foundation']),
+  topic('active-directory-virtualbox', 'domain', 'Domäne', 'Was eine Windows-Domäne ist und leistet.', ['windows-server', 'ad-foundation']),
   // Corrected: Linux users/groups are NOT valid prerequisites for Active
   // Directory (different, unrelated user/group concepts). domain-controller
   // now only depends on the AD chain itself (windows-server -> domain) plus

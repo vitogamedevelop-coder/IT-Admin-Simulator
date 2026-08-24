@@ -1608,6 +1608,7 @@ const PHASE7_PREFIXES = new Set([
   'supernetting',
   'cisco',
   'security',
+  'ad',
 ]);
 
 function isPhase7Item(item) {
