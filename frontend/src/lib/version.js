@@ -14,7 +14,7 @@
  *
  * Keep this value in sync with frontend/package.json.
  */
-export const APP_VERSION = '1.33.1';
+export const APP_VERSION = '1.33.2';
 export const APP_NAME = 'IT-Admin Simulator';
 export const APP_SHORT_NAME = 'IT-Admin';
 export const APP_DESCRIPTION = 'Lerne IT-Administration spielerisch – Netzwerke, Security, Linux, Active Directory und mehr.';

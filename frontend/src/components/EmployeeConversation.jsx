@@ -65,13 +65,13 @@ function ConversationMc({ question, disabled, result, onAnswer }) {
             aria-pressed={state === 'selected'}
             aria-label={stateLabel || undefined}
             onClick={() => !isLocked && setSelected(opt.id)}
-            className={`flex items-center gap-2 text-left p-2.5 rounded-lg border text-sm transition-all ${border} ${bg} ${text} ${
+            className={`flex items-start flex-wrap gap-2 text-left p-2.5 rounded-lg border text-sm transition-all ${border} ${bg} ${text} ${
               !isLocked ? 'hover:bg-[#21262d]' : 'cursor-default'
             }`}>
             {icon && <span className="shrink-0">{icon}</span>}
-            <span className="flex-1 min-w-0">{opt.label}</span>
+            <span className="flex-1 min-w-0 break-words whitespace-normal">{opt.label}</span>
             {stateLabel && (
-              <span className="text-xs font-medium shrink-0">{stateLabel}</span>
+              <span className="text-xs font-medium shrink-0 ml-auto">{stateLabel}</span>
             )}
           </button>
         );
@@ -227,18 +227,15 @@ export default function EmployeeConversation({ conversation: initialConversation
             {transition && !question.conversationText && (
               <p className="text-sm text-[#8b949e] mt-1 italic">{transition}</p>
             )}
-            {question.conversationText ? (
-              <p className="text-sm text-[#c9d1d9] mt-1 whitespace-pre-line">
-                <span className="text-[#00f0ff]/80">„{question.conversationText}“</span>
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-[#c9d1d9] mt-1 whitespace-pre-line">{intro}</p>
-                <p className="text-sm text-[#c9d1d9] mt-2">
-                  <span className="text-[#00f0ff]/80">„{question.text}“</span>
-                </p>
-              </>
+            {question.loreLeadIn && (
+              <p className="text-sm text-[#c9d1d9] mt-1 whitespace-pre-line">{question.loreLeadIn}</p>
             )}
+            {question.context && (
+              <p className="text-sm text-[#8b949e] mt-1 whitespace-pre-line">{question.context}</p>
+            )}
+            <p className="text-sm text-[#c9d1d9] mt-2">
+              <span className="text-[#00f0ff]/80">„{question.coreQuestion || question.text || question.conversationText}“</span>
+            </p>
           </div>
         </div>
       </div>

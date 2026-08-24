@@ -401,6 +401,17 @@ function generateQuestionFromCandidate(candidate, seed, contextType, difficulty,
   return buildInstance(candidate.topicKey, candidate.archetype);
 }
 
+function splitIntoCoreAndContext(text) {
+  if (!text) return { core: '', context: '' };
+  const m = text.match(/^([\s\S]*?)(?:\s+)?([^?]*\?)\s*$/);
+  if (m) {
+    const core = m[2].trim();
+    const context = m[1].trim();
+    return { core, context };
+  }
+  return { core: text.trim(), context: '' };
+}
+
 function pickQuestionForTopic(key, topicState, session, history, options = {}) {
   const { conversation = null, questionIndex = 0, employee = null, topicsByKey = null } = options;
 
@@ -444,12 +455,22 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
       const item = getKnowledgeItem(question.knowledgeItemId);
       const loreRng = createRng(`${baseSeed}|lore`);
       const lead = getLoreLeadIn(item, loreRng);
+      const displayText = question.conversationText || question.text;
+      const { core, context } = splitIntoCoreAndContext(displayText);
+      question.coreQuestion = core;
+      question.context = context;
       if (lead) {
         question.loreLeadIn = lead;
-        const spacer = question.conversationText ? ' ' : '';
-        question.conversationText = `${lead}${spacer}${question.conversationText || question.text}`;
+        question.conversationText = `${lead}${context ? ` ${context}` : ''} ${core}`.trim();
+        question.ttsText = question.conversationText;
+      } else if (context) {
+        question.conversationText = `${context} ${core}`.trim();
+        question.ttsText = question.conversationText;
+      } else {
+        question.conversationText = core;
         question.ttsText = question.conversationText;
       }
+      question.text = core;
     }
     return question;
   }
