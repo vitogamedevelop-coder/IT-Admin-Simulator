@@ -45,6 +45,8 @@ import {
   SECURITY_TECHNICAL_MEASURES_TOPIC_KEY,
 } from './academyLessons/informationSecurity.js';
 import { buildAdFoundationLesson, AD_FOUNDATION_TOPIC_KEY } from './academyLessons/adFoundation.js';
+import { buildAdUserProfilesLesson, AD_USER_PROFILES_TOPIC_KEY } from './academyLessons/adUserProfiles.js';
+import { buildAdPermissionsLesson, AD_PERMISSIONS_TOPIC_KEY } from './academyLessons/adPermissions.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -326,6 +328,8 @@ export const LESSONS = {
   [SECURITY_THREATS_MALWARE_TOPIC_KEY]: buildInformationSecurityThreatsMalwareLesson(),
   [SECURITY_TECHNICAL_MEASURES_TOPIC_KEY]: buildInformationSecurityTechnicalMeasuresLesson(),
   [AD_FOUNDATION_TOPIC_KEY]: buildAdFoundationLesson(),
+  [AD_USER_PROFILES_TOPIC_KEY]: buildAdUserProfilesLesson(),
+  [AD_PERMISSIONS_TOPIC_KEY]: buildAdPermissionsLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

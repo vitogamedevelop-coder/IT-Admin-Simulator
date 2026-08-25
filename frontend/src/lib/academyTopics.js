@@ -235,6 +235,8 @@ export const ACADEMY_TOPICS = [
   // ---------------------------------------------------------------------
   topic('active-directory-virtualbox', 'virtualbox-lab', 'VirtualBox-Lab', 'Aufbau der Windows-Server-Laborumgebung.'),
   topic('active-directory-virtualbox', 'ad-foundation', 'Active Directory – Grundlagen', 'Verzeichnisdienste, Objekte/Attribute, zentrale Verwaltung, AD DS, DNS, Kerberos, LDAP, SMB/NTFS und Replikation.', ['virtualbox-lab']),
+  topic('active-directory-virtualbox', 'ad-user-profiles', 'Benutzerprofile', 'Benutzer- und Computerkonten, Profile, Ordnerumleitung, Home-Verzeichnis, UNC und Admin-Tier-Modell.', ['active-directory-virtualbox/ad-foundation']),
+  topic('active-directory-virtualbox', 'ad-permissions', 'Berechtigungsverwaltung', 'Gruppen, Gruppenbereiche, A-G-DL-P, A-G-G-P und das Least-Privilege-Prinzip.', ['active-directory-virtualbox/ad-user-profiles']),
   topic('active-directory-virtualbox', 'windows-server', 'Windows Server', 'Grundlegende Bedienung von Windows Server.', ['virtualbox-lab', 'ad-foundation']),
   topic('active-directory-virtualbox', 'domain', 'Domäne', 'Was eine Windows-Domäne ist und leistet.', ['windows-server', 'ad-foundation']),
   // Corrected: Linux users/groups are NOT valid prerequisites for Active

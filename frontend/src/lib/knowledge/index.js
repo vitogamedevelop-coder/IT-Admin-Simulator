@@ -31,6 +31,8 @@ import { NETWORK_BASICS_ITEMS } from './items/networkBasics.js';
 import { CISCO_THEORY_ITEMS } from './items/ciscoTheory.js';
 import { informationSecurityKnowledgeItems } from './items/informationSecurity.js';
 import { adFoundationKnowledgeItems } from './items/adFoundation.js';
+import { adUserProfilesKnowledgeItems } from './items/adUserProfiles.js';
+import { adPermissionsKnowledgeItems } from './items/adPermissions.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
@@ -90,6 +92,8 @@ const PILOT_ITEMS = [
   ...CISCO_THEORY_ITEMS,
   ...informationSecurityKnowledgeItems,
   ...adFoundationKnowledgeItems,
+  ...adUserProfilesKnowledgeItems,
+  ...adPermissionsKnowledgeItems,
 ];
 
 const REGISTRY = new Map(PILOT_ITEMS.map((item) => [item.id, item]));
