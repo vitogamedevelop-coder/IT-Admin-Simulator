@@ -346,6 +346,39 @@ function osiLayerTemplates() {
         });
       },
     },
+    {
+      id: 'osi.layer.pduToLayer',
+      archetype: QUESTION_ARCHETYPES.MAPPING,
+      matches: (item) => item.conceptCluster === 'osi.layers' && item.type === KNOWLEDGE_TYPES.MAPPING,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SELECT_BEST],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const current = layer(item);
+        const directPrompt = `Welche Dateneinheit gehört zur ${current.name}?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, NEUTRAL_LEADS, rng) : directPrompt;
+        const distractors = [...new Set(Object.values(allItemsById)
+          .filter((candidate) => candidate.conceptCluster === 'osi.layers' && candidate.id !== item.id)
+          .map((candidate) => candidate.data.pdu)
+          .filter((pdu) => pdu !== current.pdu))].slice(0, 3);
+        return buildMcInstance({
+          templateId: 'osi.layer.pduToLayer',
+          item,
+          archetype: QUESTION_ARCHETYPES.MAPPING,
+          seed,
+          prompt,
+          correctValue: current.pdu,
+          distractorValues: distractors,
+          explanation: `Die Dateneinheit der ${current.name} heißt ${current.pdu}.`,
+          contextType,
+          roleHints: ['technical'],
+          rng,
+          learningObjective: `osi.layer${current.layer}`,
+          knowledgeFacet: osiLayerObjective(item, 'pdu'),
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: NEUTRAL_LEADS,
+        });
+      },
+    },
   ];
 }
 

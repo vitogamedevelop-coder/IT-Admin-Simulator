@@ -71,6 +71,9 @@ function layerAnalogy(num) {
   return analogies[num - 1];
 }
 
+const ETHERNET_FRAME_SVG = `<svg viewBox="0 0 360 105" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="30" width="76" height="38" fill="#00f0ff" opacity="0.85"/><rect x="84" y="30" width="76" height="38" fill="#58a6ff" opacity="0.85"/><rect x="160" y="30" width="55" height="38" fill="#ffcc00" opacity="0.85"/><rect x="215" y="30" width="92" height="38" fill="#00ff66" opacity="0.7"/><rect x="307" y="30" width="45" height="38" fill="#ff7b72" opacity="0.85"/><text x="46" y="52" text-anchor="middle" fill="#07111f" font-size="10">Ziel-MAC</text><text x="122" y="52" text-anchor="middle" fill="#07111f" font-size="10">Quell-MAC</text><text x="187" y="52" text-anchor="middle" fill="#07111f" font-size="10">Typ</text><text x="261" y="52" text-anchor="middle" fill="#07111f" font-size="10">Daten</text><text x="329" y="52" text-anchor="middle" fill="#07111f" font-size="10">FCS</text><text x="180" y="91" text-anchor="middle" fill="#8b949e" font-size="10">Layer-2-Datenstruktur: Ethernet-Frame</text></svg>`;
+const ARP_SVG = `<svg viewBox="0 0 360 150" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="42" width="96" height="60" rx="8" fill="#0d2138" stroke="#00f0ff"/><text x="60" y="62" text-anchor="middle" fill="#00f0ff" font-size="11">PC A</text><text x="60" y="80" text-anchor="middle" fill="#c9d1d9" font-size="9">10.0.0.1</text><text x="60" y="94" text-anchor="middle" fill="#c9d1d9" font-size="9">MAC AAA</text><rect x="252" y="42" width="96" height="60" rx="8" fill="#0d2138" stroke="#00ff66"/><text x="300" y="62" text-anchor="middle" fill="#00ff66" font-size="11">PC B</text><text x="300" y="80" text-anchor="middle" fill="#c9d1d9" font-size="9">10.0.0.2</text><text x="300" y="94" text-anchor="middle" fill="#c9d1d9" font-size="9">MAC BBB</text><line x1="108" y1="58" x2="248" y2="58" stroke="#ffcc00" stroke-width="2"/><text x="178" y="48" text-anchor="middle" fill="#ffcc00" font-size="9">Broadcast: Wer hat 10.0.0.2?</text><line x1="252" y1="90" x2="112" y2="90" stroke="#00ff66" stroke-width="2"/><text x="180" y="112" text-anchor="middle" fill="#00ff66" font-size="9">Reply: 10.0.0.2 → MAC BBB</text><text x="180" y="137" text-anchor="middle" fill="#8b949e" font-size="10">IP-Ziel bekannt → MAC für lokalen Frame ermitteln</text></svg>`;
+const ENCAPSULATION_SVG = `<svg viewBox="0 0 380 190" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="16" y="24" fill="#c9d1d9" font-size="11">Anwendung</text><rect x="110" y="8" width="170" height="24" rx="4" fill="#00ff66" opacity="0.75"/><text x="195" y="24" text-anchor="middle" fill="#07111f" font-size="10">DATA</text><text x="16" y="62" fill="#c9d1d9" font-size="11">Layer 4</text><rect x="78" y="45" width="62" height="24" fill="#ffcc00"/><rect x="140" y="45" width="170" height="24" fill="#00ff66" opacity="0.75"/><text x="109" y="61" text-anchor="middle" fill="#07111f" font-size="9">TCP/UDP</text><text x="16" y="100" fill="#c9d1d9" font-size="11">Layer 3</text><rect x="50" y="82" width="52" height="24" fill="#58a6ff"/><rect x="102" y="82" width="208" height="24" fill="#00ff66" opacity="0.6"/><text x="76" y="98" text-anchor="middle" fill="#07111f" font-size="9">IP</text><text x="16" y="138" fill="#c9d1d9" font-size="11">Layer 2</text><rect x="30" y="119" width="58" height="24" fill="#00f0ff"/><rect x="88" y="119" width="222" height="24" fill="#00ff66" opacity="0.45"/><rect x="310" y="119" width="42" height="24" fill="#ff7b72"/><text x="59" y="135" text-anchor="middle" fill="#07111f" font-size="9">ETH</text><text x="331" y="135" text-anchor="middle" fill="#07111f" font-size="9">FCS</text><text x="16" y="175" fill="#c9d1d9" font-size="11">Layer 1</text><text x="110" y="175" fill="#00f0ff" font-size="11">010101… physikalisches Signal</text></svg>`;
 const OSI_SVG = `<svg viewBox="0 0 240 360" class="w-full h-auto max-h-72" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00f0ff"/><stop offset="100%" stop-color="#0055ff"/></linearGradient></defs><rect x="30" y="20" width="180" height="40" rx="6" fill="url(#g1)" opacity="0.9"/><text x="120" y="47" text-anchor="middle" fill="#0a1628" font-size="14" font-weight="bold">7 Anwendung</text><rect x="30" y="65" width="180" height="35" rx="6" fill="#00f0ff" opacity="0.8"/><text x="120" y="88" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">6 Darstellung</text><rect x="30" y="105" width="180" height="35" rx="6" fill="#00f0ff" opacity="0.7"/><text x="120" y="128" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">5 Sitzung</text><rect x="30" y="145" width="180" height="35" rx="6" fill="#00f0ff" opacity="0.6"/><text x="120" y="168" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">4 Transport</text><rect x="30" y="185" width="180" height="35" rx="6" fill="#00f0ff" opacity="0.5"/><text x="120" y="208" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">3 Vermittlung</text><rect x="30" y="225" width="180" height="35" rx="6" fill="#00f0ff" opacity="0.35"/><text x="120" y="248" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">2 Sicherung</text><rect x="30" y="265" width="180" height="35" rx="6" fill="#00f0ff" opacity="0.2"/><text x="120" y="288" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">1 Bitübertragung</text><text x="120" y="325" text-anchor="middle" fill="#c9d1d9" font-size="11">Sender: 7→1 kapseln · Empfänger: 1→7 entkapseln</text></svg>`;
 
 function explanation(id, title, style, blocks) {
@@ -101,7 +104,7 @@ function buildExplanations() {
   // Intro
   exps.push(explanation('intro-classic', 'Warum Schichtenmodelle?', 'classic', [
     { type: 'text', content: 'Netzwerke sind komplex. Schichtenmodelle zerlegen die Kommunikation in überschaubare Ebenen, damit Hersteller, Administratoren und Entwickler wissen, wer für welche Aufgabe zuständig ist.' },
-    { type: 'text', content: 'Das OSI-Modell ist ein Referenzmodell. Es beschreibt keine einzelne Software, sondern eine Denkhilfe. Reale Protokolle passen nicht immer exakt in eine Schicht – aber das Modell hilft, Fehler einzugrenzen.' },
+    { type: 'text', content: 'OSI steht für Open Systems Interconnection. Das OSI-Modell ist ein Referenzmodell: keine einzelne Software und keine Sammlung physisch getrennter Systeme, sondern eine Denkhilfe für Aufgaben und Fehlerbereiche. Reale Protokolle passen nicht immer exakt in nur eine Schicht.' },
     { type: 'diagram', content: OSI_SVG },
   ]));
 
@@ -122,6 +125,21 @@ function buildExplanations() {
       { type: 'question', id: `q-layer${layer.num}-intuitive`, question: q.question, options: q.options, correct: q.correct, explanation: q.explanation },
     ]));
   }
+
+  exps.push(explanation('layer2-frame-classic', 'Layer 2: Frame und Switch', 'classic', [
+    { type: 'text', content: 'Layer 2 strukturiert Daten als Frames und verwendet lokale MAC-Adressierung. Ein Ethernet-Frame trägt unter anderem Ziel-MAC, Quell-MAC, Type/Length, Nutzdaten und FCS zur Fehlererkennung.' },
+    { type: 'diagram', content: ETHERNET_FRAME_SVG },
+    { type: 'text', content: 'Ein Layer-2-Switch lernt die Quell-MAC eingehender Frames am jeweiligen Port (Learning). Ist die Ziel-MAC bekannt, leitet er gezielt weiter (Forwarding); ist sie unbekannt, verteilt er den Frame außer am Eingangsport (Flooding).' },
+    { type: 'text', content: 'Wenn mehrere Teilnehmer dasselbe Medium teilen, regeln Zugriffsverfahren das Senden. Token Passing vergibt kontrollierten Zugriff; CSMA/CD hört das Medium ab, erkennt Kollisionen und versucht es nach zufälliger Wartezeit erneut. CSMA/CA versucht Kollisionen zu vermeiden.' },
+    { type: 'question', facet: 'switch-learning', question: 'Die MAC-Tabelle ist leer und PC A sendet einen Frame. Welche Information lernt der Switch zuerst?', options: ['Quell-MAC von A und den Eingangsport', 'Ziel-IP und Standardgateway', 'TCP-Port des späteren Dienstes'], correct: 0, explanation: 'Ein Switch lernt aus der Quell-MAC eines eingehenden Frames, an welchem Port der Absender erreichbar ist.' },
+  ]));
+
+  exps.push(explanation('arp-classic', 'ARP: IP-Ziel, MAC für den Frame', 'classic', [
+    { type: 'text', content: 'Layer 3 kennt die logische Ziel-IP. Für einen lokalen Ethernet-Frame wird zusätzlich eine Ziel-MAC benötigt. ARP verbindet diese beiden Sichten, ohne MAC- und IP-Adresse gleichzusetzen.' },
+    { type: 'diagram', content: ARP_SVG },
+    { type: 'list', title: 'Grundablauf', items: ['ARP-Cache prüfen', 'bei fehlendem Eintrag ARP Request als Broadcast senden', 'passender Host antwortet mit seiner MAC-Adresse', 'IP-MAC-Zuordnung im Cache speichern', 'Ethernet-Frame kann lokal adressiert werden'] },
+    { type: 'question', facet: 'arp', question: 'Warum benötigt ein Rechner für lokale Ethernet-Kommunikation IP- und MAC-Adresse?', options: ['IP beschreibt das logische Ziel; MAC adressiert den lokalen Layer-2-Frame.', 'Beide Adressen erfüllen exakt dieselbe Aufgabe.', 'Ein Switch benötigt grundsätzlich nur die Ziel-IP.'], correct: 0, explanation: 'Layer 3 identifiziert das logische Zielnetz beziehungsweise den Host. Layer 2 benötigt für den lokalen Frame eine MAC-Adresse.' },
+  ]));
 
   // --- Layer 4 Deep-Dive: Three-Way Handshake ---
   exps.push(explanation('handshake-classic', 'TCP Three-Way Handshake', 'classic', [
@@ -192,6 +210,8 @@ function buildExplanations() {
   exps.push(explanation('encapsulation-classic', 'Kapselung und Entkapselung', 'classic', [
     { type: 'text', content: 'Beim Senden wandern Daten von Schicht 7 nach Schicht 1. Jede Schicht fügt ihre eigenen Steuerinformationen hinzu: Header, Trailer, Prüfsummen. Das nennt man Kapselung (Encapsulation).' },
     { type: 'text', content: 'Beim Empfangen passiert das Gegenteil: Schicht 1 liefert Bits an Schicht 2, die den Frame prüft, übergibt das Paket an Schicht 3 usw. Jede Schicht entfernt ihre Steuerinformationen – Entkapselung (Decapsulation).' },
+    { type: 'diagram', content: ENCAPSULATION_SVG },
+    { type: 'text', content: 'Vereinfacht entstehen dabei Daten → Segment beziehungsweise Datagramm → Paket → Frame → Bits beziehungsweise Signale. Jede Ebene ergänzt Informationen für ihre eigene Aufgabe.' },
     { type: 'list', title: 'Reihenfolge im Blick', items: [
       'Sender: Anwendung → Darstellung → Sitzung → Transport → Vermittlung → Sicherung → Bitübertragung',
       'Empfänger: Bitübertragung → Sicherung → Vermittlung → Transport → Sitzung → Darstellung → Anwendung',
@@ -280,6 +300,50 @@ function buildExercises() {
       correct: 2,
       explanation: 'Ein HTTP-500-Fehler wird von der Anwendung selbst erzeugt und liegt daher in der Anwendungsschicht (Schicht 7).',
     },
+    {
+      id: 'osi-encapsulation-order',
+      type: 'ordering',
+      question: 'Bringe die vereinfachten Dateneinheiten beim Senden in die richtige Reihenfolge.',
+      items: [
+        { id: 'data', label: 'Anwendungsdaten' },
+        { id: 'segment', label: 'Segment / Datagramm' },
+        { id: 'packet', label: 'IP-Paket' },
+        { id: 'frame', label: 'Ethernet-Frame' },
+        { id: 'bits', label: 'Bits / physikalisches Signal' },
+      ],
+      correctOrder: ['data', 'segment', 'packet', 'frame', 'bits'],
+      explanation: 'Jede Schicht ergänzt Informationen: Daten → Segment/Datagramm → Paket → Frame → Bits/Signal.',
+    },
+    {
+      id: 'osi-arp-order',
+      type: 'ordering',
+      question: 'Bringe den vereinfachten ARP-Ablauf in die richtige Reihenfolge.',
+      items: [
+        { id: 'cache', label: 'ARP-Cache prüfen' },
+        { id: 'request', label: 'ARP Request als Broadcast senden' },
+        { id: 'reply', label: 'Zielhost antwortet mit seiner MAC-Adresse' },
+        { id: 'store', label: 'IP-MAC-Zuordnung speichern' },
+        { id: 'frame', label: 'Ethernet-Frame lokal adressieren' },
+      ],
+      correctOrder: ['cache', 'request', 'reply', 'store', 'frame'],
+      explanation: 'ARP ermittelt zu einer bekannten IP die benötigte lokale MAC-Adresse.',
+    },
+    {
+      id: 'osi-switch-learning',
+      type: 'select-best',
+      question: 'Switch-Tabelle leer: A sendet an B. Was geschieht zuerst?',
+      options: ['Der Switch lernt Quell-MAC A am Eingangsport und floodet das unbekannte Ziel.', 'Der Switch berechnet anhand der Ziel-IP eine Route.', 'Der Switch verwirft jeden Frame mit unbekannter Ziel-MAC.'],
+      correct: 0,
+      explanation: 'Learning nutzt die Quell-MAC. Eine unbekannte Ziel-MAC führt zu Flooding; nach Bs Antwort kann gezielt weitergeleitet werden.',
+    },
+    {
+      id: 'osi-troubleshooting-gateway',
+      type: 'select-best',
+      question: 'Der lokale Link funktioniert, aber das konfigurierte Standardgateway ist falsch. Welche Schicht prüfst du zuerst?',
+      options: ['Layer 3 – Vermittlung', 'Layer 1 – Bitübertragung', 'Layer 6 – Darstellung'],
+      correct: 0,
+      explanation: 'IP-Konfiguration, Gateway und Routing gehören zur Layer-3-Einordnung.',
+    },
   ];
 }
 
@@ -365,6 +429,12 @@ function buildQuiz() {
       correct: 1,
       explanation: 'DHCP nutzt Port 67 (Server) und 68 (Client) zur automatischen IP-Vergabe.',
     },
+    { facet: 'pdu', question: 'Welche Zuordnung ist korrekt?', options: ['Layer 2 → Frame', 'Layer 3 → Port', 'Layer 1 → IP-Paket'], correct: 0, explanation: 'Layer 2 arbeitet mit Frames; Layer 3 mit Paketen und Layer 1 mit Bits beziehungsweise Signalen.' },
+    { facet: 'encapsulation', question: 'Warum wird ein IP-Paket zusätzlich in einen Ethernet-Frame verpackt?', options: ['Damit Layer 2 es mit lokalen MAC-Informationen über den konkreten Link übertragen kann.', 'Damit der Router den Browser startet.', 'Damit Layer 1 die Ziel-IP als Portnummer liest.'], correct: 0, explanation: 'Das IP-Paket trägt Layer-3-Informationen. Der lokale Link benötigt zusätzlich einen Layer-2-Frame mit MAC-Adressierung.' },
+    { facet: 'switch-learning', question: 'Ein normaler Layer-2-Switch entscheidet primär anhand welcher Information?', options: ['Ziel-MAC-Adresse im Frame', 'Ziel-IP-Adresse im Paket', 'HTTP-Statuscode'], correct: 0, explanation: 'Der Layer-2-Switch nutzt seine MAC-Tabelle und die Ziel-MAC des Frames.' },
+    { facet: 'arp', question: 'Welche Aufgabe erfüllt ARP im lokalen Ethernet-Kontext?', options: ['Zu einer bekannten IP die passende MAC-Adresse ermitteln', 'Eine TCP-Verbindung per Handshake aufbauen', 'Eine Route zwischen Ländern berechnen'], correct: 0, explanation: 'ARP verbindet die logische IP-Sicht mit der lokalen MAC-Adressierung für den Frame.' },
+    { facet: 'troubleshooting', question: 'Ein Kabel ist nicht eingesteckt. Wo beginnt die Fehlersuche?', options: ['Layer 1 – Physical', 'Layer 4 – Transport', 'Layer 7 – Application'], correct: 0, explanation: 'Physische Verbindung und Signalübertragung gehören zu Layer 1.' },
+    { facet: 'misconception-osi', question: 'Sind OSI-Schichten sieben physisch getrennte Systeme?', options: ['Nein, sie sind funktionale Ebenen eines Referenzmodells.', 'Ja, jede Schicht benötigt zwingend einen eigenen Server.', 'Ja, aber nur bei TCP.'], correct: 0, explanation: 'Das OSI-Modell strukturiert Aufgaben konzeptionell; es beschreibt keine sieben getrennten Geräte.' },
   ];
 }
 

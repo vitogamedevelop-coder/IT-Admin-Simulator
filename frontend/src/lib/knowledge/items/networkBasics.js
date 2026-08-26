@@ -196,7 +196,7 @@ const GRUNDBEGRIFFE_ITEMS = [
   {
     id: 'nb.grundbegriffe.ban',
     topicKey: GRUNDBEGRIFFE_TOPIC_KEY,
-    sourceTopicKey: KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY,
+    sourceTopicKey: GRUNDBEGRIFFE_TOPIC_KEY,
     sourceSection: 'netzausdehnung-classic',
     conceptCluster: 'grundbegriffe.networkSizes.definition',
     type: KNOWLEDGE_TYPES.DEFINITION,
@@ -218,7 +218,7 @@ const GRUNDBEGRIFFE_ITEMS = [
   {
     id: 'nb.grundbegriffe.pan',
     topicKey: GRUNDBEGRIFFE_TOPIC_KEY,
-    sourceTopicKey: KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY,
+    sourceTopicKey: GRUNDBEGRIFFE_TOPIC_KEY,
     sourceSection: 'netzausdehnung-classic',
     conceptCluster: 'grundbegriffe.networkSizes.definition',
     type: KNOWLEDGE_TYPES.DEFINITION,
@@ -306,7 +306,7 @@ const GRUNDBEGRIFFE_ITEMS = [
   {
     id: 'nb.grundbegriffe.gan',
     topicKey: GRUNDBEGRIFFE_TOPIC_KEY,
-    sourceTopicKey: KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY,
+    sourceTopicKey: GRUNDBEGRIFFE_TOPIC_KEY,
     sourceSection: 'netzausdehnung-classic',
     conceptCluster: 'grundbegriffe.networkSizes.definition',
     type: KNOWLEDGE_TYPES.DEFINITION,
@@ -441,7 +441,7 @@ const GRUNDBEGRIFFE_ITEMS = [
   {
     id: 'nb.grundbegriffe.internetIntranet',
     topicKey: GRUNDBEGRIFFE_TOPIC_KEY,
-    sourceTopicKey: KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY,
+    sourceTopicKey: GRUNDBEGRIFFE_TOPIC_KEY,
     sourceSection: 'internet-intranet-classic',
     conceptCluster: 'grundbegriffe.internetIntranet.compare',
     type: KNOWLEDGE_TYPES.COMPARE,
@@ -461,7 +461,7 @@ const GRUNDBEGRIFFE_ITEMS = [
   {
     id: 'nb.grundbegriffe.ganInternetMisconception',
     topicKey: GRUNDBEGRIFFE_TOPIC_KEY,
-    sourceTopicKey: KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY,
+    sourceTopicKey: GRUNDBEGRIFFE_TOPIC_KEY,
     sourceSection: 'internet-intranet-classic',
     conceptCluster: 'grundbegriffe.networkSizes.misconception',
     type: KNOWLEDGE_TYPES.PROPERTY,
