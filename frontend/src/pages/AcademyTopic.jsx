@@ -4,7 +4,7 @@ import { CheckCircle2, Lock } from 'lucide-react';
 import { findTopic, topicKey, TOPIC_STATUS } from '../lib/academyTopics';
 import { getFullTopic } from '../lib/academyProgress';
 import {
-  applyMentorLesson, applyQuiz,
+  applyMentorLesson, applyQuiz, applyMiniExercise, applyConversationPractice,
   recordContentSeen, topicOverallProgress,
 } from '../lib/academyEngine';
 import { LESSONS, getTopicScoreDimensions } from '../lib/academyLessonData';
@@ -18,6 +18,7 @@ import BackBar from '../components/BackBar';
 import { useAppBack, pushBackHandler } from '../lib/useAppBack';
 import SpeakButton from '../components/SpeakButton';
 import { stop as stopSpeech } from '../lib/speechSynthesis';
+import { BASICS_BEATS, pickDiverseBasicsQuestions } from '../lib/academyLessons/grundbegriffe';
 
 // -----------------------------------------------------------------------
 // "Grundbegriffe" has a small custom mini-lesson (guided Sam dialogue). All
@@ -47,20 +48,82 @@ function PlaceholderLesson({ title }) {
 // / Kommunikationsarten / Betriebsarten (both only briefly introduced here -
 // the "Kommunikations- und Übertragungsarten" topic goes deeper later).
 // -----------------------------------------------------------------------
-const BASICS_BEATS = [
-  { type: 'say', text: 'Fangen wir ganz vorne an: Ein Netzwerk verbindet mehrere Geräte, damit sie miteinander Daten austauschen können.' },
-  { type: 'say', text: 'Ohne Netzwerk müsstest du jede Datei einzeln von Hand übertragen. Mit einem Netzwerk könnt ihr Dateien, Drucker und Dienste gemeinsam nutzen - genau deshalb setzen Unternehmen Netzwerke ein.', endOfSection: true },
-  { type: 'question', prompt: 'Warum setzen Unternehmen Netzwerke ein?', options: ['Damit jedes Gerät unabhängig von den anderen läuft', 'Damit Ressourcen wie Dateien und Drucker gemeinsam genutzt werden können'], correct: 1, explanation: 'Netzwerke verbinden Geräte, damit Ressourcen gemeinsam genutzt werden können.' },
-  { type: 'say', text: 'Ein Netzwerk stellt Dienste bereit - zum Beispiel eine Dateifreigabe, einen Drucker oder E-Mail. Ein Dienst ist einfach eine Funktion, die ein Gerät im Netzwerk anbietet.' },
-  { type: 'say', text: 'Damit sich zwei Geräte überhaupt verstehen, brauchen sie eine gemeinsame Sprache - ein Protokoll. Ein Protokoll legt fest, wie Daten aufgebaut und ausgetauscht werden.' },
-  { type: 'say', text: 'Zwei der wichtigsten Protokolle - TCP und UDP - lernst du gleich im eigenen Thema im Detail. Hier reicht erstmal: Ein Protokoll ist ein Regelwerk für die Kommunikation.', endOfSection: true },
-  { type: 'question', prompt: 'Was ist ein Protokoll am ehesten?', options: ['Ein physisches Netzwerkkabel', 'Ein Regelwerk für die Kommunikation zwischen Geräten'], correct: 1, explanation: 'Ein Protokoll definiert die Regeln, nach denen Geräte Daten austauschen.' },
-  { type: 'say', text: 'Kommunikation kann unterschiedlich ablaufen: Unicast (eins zu eins), Broadcast (an alle) oder Multicast (an eine bestimmte Gruppe). Die Details dazu gehen wir später im Thema „Kommunikations- und Übertragungsarten“ durch.' },
-  { type: 'say', text: 'Und es gibt die Betriebsart: Simplex (nur eine Richtung), Halbduplex (abwechselnd in beide Richtungen) oder Vollduplex (gleichzeitig in beide Richtungen). Auch das vertiefen wir dort weiter.', endOfSection: true },
-  { type: 'question', prompt: 'Ein Videoanruf, bei dem beide Seiten gleichzeitig sprechen und hören können, ist ein Beispiel für...', options: ['Simplex', 'Vollduplex'], correct: 1, explanation: 'Bei Vollduplex können beide Seiten gleichzeitig senden und empfangen, wie bei einem Videoanruf.' },
-];
 
-function GrundbegriffeLesson({ onDone }) {
+function BasicsVisual({ type }) {
+  if (type === 'network') return (
+    <div className="mt-3 rounded-lg border border-[#00f0ff]/30 bg-[#07111f] p-3 text-center text-xs text-[#c9d1d9]">
+      <div className="grid grid-cols-3 items-center gap-2"><span>PC</span><span className="text-[#00f0ff]">↔ Netzwerk ↔</span><span>Server</span></div>
+      <div className="mt-2 text-[#00ff66]">gemeinsame Ressource · Information · Dienst</div>
+    </div>
+  );
+  if (type === 'service-protocol') return (
+    <div className="mt-3 rounded-lg border border-[#00f0ff]/30 bg-[#07111f] p-3 text-xs text-[#c9d1d9]">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
+        <div><div className="font-bold text-[#00ff66]">WEB-DIENST</div><div>angebotene Funktion</div></div>
+        <div className="text-[#00f0ff]">↔</div>
+        <div><div className="font-bold text-[#ffcc00]">HTTP</div><div>Kommunikationsregeln</div></div>
+      </div>
+      <div className="mt-2 text-center text-[#8b949e]">Dienst = WAS? · Protokoll = nach welchen REGELN?</div>
+    </div>
+  );
+  if (type === 'communication-axes') return (
+    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+      <div className="rounded-lg border border-[#00f0ff]/30 bg-[#07111f] p-3"><div className="font-bold text-[#00f0ff]">Vermittlungsart</div><div>leitungsvermittelt</div><div>paketvermittelt</div></div>
+      <div className="rounded-lg border border-[#ffcc00]/30 bg-[#07111f] p-3"><div className="font-bold text-[#ffcc00]">Verbindungsverhalten</div><div>verbindungsorientiert</div><div>verbindungslos</div></div>
+      <div className="col-span-2 text-center text-[#00ff66]">Zwei unterschiedliche Eigenschaften – nicht gleichsetzen.</div>
+    </div>
+  );
+  return null;
+}
+
+function BasicsPractice({ mode, onDone }) {
+  const questions = useMemo(() => pickDiverseBasicsQuestions(), []);
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const shuffled = useMemo(() => questions.map((q) => shuffleOptions(q.options, q.correct)), [questions]);
+  const question = questions[index];
+  const current = shuffled[index];
+  const finished = index >= questions.length;
+
+  function answer(optionIndex) {
+    if (selected !== null) return;
+    setSelected(optionIndex);
+    if (optionIndex === current.correct) {
+      if (mode === 'interview') applyConversationPractice('fundamentals', 'grundbegriffe');
+      else applyMiniExercise('fundamentals', 'grundbegriffe');
+    }
+  }
+
+  if (finished) return (
+    <div className="cyber-card p-4">
+      <div className="text-xs text-[#00ff66]">Sam Richter · {mode === 'interview' ? 'Fachgespräch' : 'Praxis'}</div>
+      <p className="mt-2 text-sm text-[#c9d1d9]">„Die Runde deckt bewusst verschiedene Kernbegriffe ab. Entscheidend ist, dass du Dienst, Protokoll und die beiden Kommunikationsachsen nicht vermischst.“</p>
+      <button onClick={onDone} className="cyber-btn mt-3 w-full py-2 text-sm">Fertig</button>
+    </div>
+  );
+
+  const isCorrect = selected !== null && selected === current.correct;
+  const prompt = mode === 'interview' ? `„${question.question}“` : question.question;
+  return (
+    <div className="cyber-card p-4">
+      <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">{mode === 'interview' ? 'Sam · Fachgespräch' : 'Praxis'} · {index + 1}/{questions.length}</div>
+      <p className="mt-2 text-sm font-bold text-white">{prompt}</p>
+      <div className="mt-3 flex flex-col gap-2">
+        {current.options.map((option, optionIndex) => (
+          <button key={option} onClick={() => answer(optionIndex)} disabled={selected !== null} className="cyber-btn-outline w-full px-3 py-2 text-left text-sm">{option}</button>
+        ))}
+      </div>
+      {selected !== null && (
+        <>
+          <p className={`mt-3 text-xs ${isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]'}`}>{isCorrect ? 'Richtig. ' : 'Nicht ganz. '}{question.explanation}</p>
+          <button onClick={() => { setSelected(null); setIndex((value) => value + 1); }} className="cyber-btn mt-3 w-full py-2 text-sm">Weiter</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function GrundbegriffeLesson({ mode = 'theory', onDone }) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(null);
   const [finished, setFinished] = useState(false);
@@ -80,6 +143,8 @@ function GrundbegriffeLesson({ onDone }) {
   useEffect(() => {
     if (finished) recordContentSeen('fundamentals', 'grundbegriffe', 100);
   }, [finished]);
+
+  if (mode === 'practice' || mode === 'interview') return <BasicsPractice mode={mode} onDone={onDone} />;
 
   function advance() {
     stopSpeech().catch(() => {});
@@ -144,6 +209,7 @@ function GrundbegriffeLesson({ onDone }) {
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Sam erklärt · {index + 1}/{BASICS_BEATS.length}</div>
       <p className="text-sm text-[#c9d1d9] mt-2">{beat.text}</p>
+      {beat.visual && <BasicsVisual type={beat.visual} />}
       <div className="flex items-center justify-between mt-3">
         <SpeakButton text={beat.text} />
         <button onClick={advance} className="cyber-btn py-2 px-4 text-sm">Weiter</button>
@@ -182,7 +248,7 @@ function ModeButton({ icon, title, description, onClick, disabled }) {
 }
 
 function AcademyEntryCard({
-  topic, isBasicsTopic, isTcpUdpFamily, hasPractice, hasInterview,
+  topic, isTcpUdpFamily, hasPractice, hasInterview,
   onTheory, onPractice, onInterview, onBack, onPlacement,
 }) {
   const portrait = characterAsset('sam');
@@ -220,14 +286,14 @@ function AcademyEntryCard({
           title="Praxis"
           description="Starte direkt eine zufällige Übungsrunde ohne Theorie."
           onClick={onPractice}
-          disabled={isBasicsTopic || !hasPractice}
+          disabled={!hasPractice}
         />
         <ModeButton
           icon="🎤"
           title="Fachgespräch"
           description="Beantworte offene Fragen und erkläre Zusammenhänge frei."
           onClick={onInterview}
-          disabled={isBasicsTopic || !hasInterview}
+          disabled={!hasInterview}
         />
         <button onClick={onBack} className="w-full text-xs text-[#8b949e] py-1 flex items-center justify-center gap-1">
           ← Zur Themenübersicht
@@ -279,8 +345,8 @@ export default function AcademyTopic() {
   const isBasicsTopic = topic.topicId === 'grundbegriffe' && topic.categoryId === 'fundamentals';
   const hasLessonRunner = !!LESSONS[topicKey(categoryId, topicId)];
   const questionPool = hasLessonRunner ? collectQuestionsFromLesson(LESSONS[topicKey(categoryId, topicId)], topicId) : [];
-  const hasPractice = questionPool.length > 0;
-  const hasInterview = questionPool.length > 0;
+  const hasPractice = isBasicsTopic || questionPool.length > 0;
+  const hasInterview = isBasicsTopic || questionPool.length > 0;
   const scoreDimensions = getTopicScoreDimensions(categoryId, topicId);
   const scoreCols = [scoreDimensions.theory, scoreDimensions.practice, scoreDimensions.retention].filter(Boolean).length;
 
@@ -307,7 +373,7 @@ export default function AcademyTopic() {
   }
 
   function renderLesson() {
-    if (isBasicsTopic) return <GrundbegriffeLesson onDone={closeLesson} />;
+    if (isBasicsTopic) return <GrundbegriffeLesson mode={activeSection} onDone={closeLesson} />;
     if (hasLessonRunner) {
       return (
         <LessonRunner
@@ -353,7 +419,6 @@ export default function AcademyTopic() {
       ) : !activeSection ? (
         <AcademyEntryCard
           topic={topic}
-          isBasicsTopic={isBasicsTopic}
           isTcpUdpFamily={isTcpUdpTopic}
           hasPractice={hasPractice}
           hasInterview={hasInterview}

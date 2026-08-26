@@ -347,7 +347,7 @@ export function getTopicScoreDimensions(categoryId, topicId) {
   const key = topicKey(categoryId, topicId);
   // Special interactive mini lessons that do not use the generic LessonRunner.
   if (categoryId === 'fundamentals' && topicId === 'grundbegriffe') {
-    return { theory: true, practice: false, retention: false };
+    return { theory: true, practice: true, retention: false };
   }
   const lesson = LESSONS[key];
   if (!lesson) return { theory: false, practice: false, retention: false };
