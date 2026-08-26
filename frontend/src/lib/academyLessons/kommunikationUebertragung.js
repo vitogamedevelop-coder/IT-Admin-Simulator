@@ -14,6 +14,7 @@ export const KOMMUNIKATION_UEBERTRAGUNG_TOPIC_KEY = topicKey('fundamentals', 'ko
 const UNICAST_SVG = `<svg viewBox="0 0 200 100" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="50" r="10" fill="#00f0ff"/><circle cx="170" cy="50" r="10" fill="#c9d1d9"/><line x1="40" y1="50" x2="160" y2="50" stroke="#00f0ff" stroke-width="2" marker-end="url(#a1)"/><defs><marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#00f0ff"/></marker></defs><text x="30" y="75" fill="#8b949e" font-size="10" text-anchor="middle">Sender</text><text x="170" y="75" fill="#8b949e" font-size="10" text-anchor="middle">Ein Empfänger</text></svg>`;
 const BROADCAST_SVG = `<svg viewBox="0 0 200 120" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="60" r="10" fill="#00f0ff"/><circle cx="170" cy="20" r="8" fill="#c9d1d9"/><circle cx="170" cy="60" r="8" fill="#c9d1d9"/><circle cx="170" cy="100" r="8" fill="#c9d1d9"/><line x1="40" y1="60" x2="162" y2="24" stroke="#00f0ff" stroke-width="2"/><line x1="40" y1="60" x2="162" y2="60" stroke="#00f0ff" stroke-width="2"/><line x1="40" y1="60" x2="162" y2="96" stroke="#00f0ff" stroke-width="2"/><text x="30" y="85" fill="#8b949e" font-size="10" text-anchor="middle">Sender</text><text x="170" y="115" fill="#8b949e" font-size="10" text-anchor="middle">Alle im Netz</text></svg>`;
 const MULTICAST_SVG = `<svg viewBox="0 0 200 120" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="60" r="10" fill="#00f0ff"/><circle cx="170" cy="30" r="8" fill="#00ff66"/><circle cx="170" cy="90" r="8" fill="#00ff66"/><circle cx="170" cy="60" r="8" fill="#3a3f4b" opacity="0.5"/><line x1="40" y1="60" x2="162" y2="33" stroke="#00f0ff" stroke-width="2"/><line x1="40" y1="60" x2="162" y2="87" stroke="#00f0ff" stroke-width="2"/><text x="30" y="85" fill="#8b949e" font-size="10" text-anchor="middle">Sender</text><text x="170" y="110" fill="#8b949e" font-size="10" text-anchor="middle">Nur die Gruppe</text></svg>`;
+const NETWORK_SCOPE_SVG = `<svg viewBox="0 0 360 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="8" width="348" height="164" rx="12" fill="#00f0ff" opacity="0.08" stroke="#00f0ff"/><text x="336" y="26" text-anchor="end" fill="#00f0ff" font-size="11">GAN · global</text><rect x="28" y="32" width="304" height="126" rx="10" fill="#58a6ff" opacity="0.09" stroke="#58a6ff"/><text x="314" y="50" text-anchor="end" fill="#58a6ff" font-size="11">WAN · Regionen/Länder</text><rect x="52" y="56" width="256" height="88" rx="9" fill="#ffcc00" opacity="0.09" stroke="#ffcc00"/><text x="290" y="74" text-anchor="end" fill="#ffcc00" font-size="11">MAN · Stadt</text><rect x="78" y="80" width="204" height="52" rx="8" fill="#00ff66" opacity="0.1" stroke="#00ff66"/><text x="264" y="98" text-anchor="end" fill="#00ff66" font-size="11">LAN · Gebäude/Gelände</text><circle cx="130" cy="112" r="14" fill="#c9d1d9"/><text x="130" y="116" text-anchor="middle" fill="#07111f" font-size="9">Person</text><text x="156" y="110" fill="#c9d1d9" font-size="10">BAN · körpernah</text><text x="156" y="124" fill="#c9d1d9" font-size="10">PAN · persönliche Geräte</text></svg>`;
 
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
@@ -70,8 +71,38 @@ function buildExplanations() {
     ] },
   ]));
 
+  exps.push(explanation('netzausdehnung-classic', '3. Netzausdehnung: BAN bis GAN', 'classic', [
+    { type: 'text', content: 'Netze lassen sich nach ihrem typischen räumlichen oder organisatorischen Umfang einordnen. Die Kategorien sind Orientierungshilfen für Einsatzbereiche – keine mathematisch festen Kilometergrenzen.' },
+    { type: 'diagram', content: NETWORK_SCOPE_SVG },
+    { type: 'table', headers: ['Kürzel', 'Bezeichnung', 'Typischer Kontext'], rows: [
+      ['BAN', 'Body Area Network', 'Sensoren und Kommunikationsgeräte am oder im Körper einer Person'],
+      ['PAN', 'Personal Area Network', 'Persönliche Geräte in unmittelbarer Umgebung, etwa über USB oder Bluetooth'],
+      ['LAN', 'Local Area Network', 'Räumlich begrenzter Bereich wie Etage, Gebäude, Gelände oder Organisation'],
+      ['MAN', 'Metropolitan Area Network', 'Stadt oder vergleichbar großes urbanes Gebiet'],
+      ['WAN', 'Wide Area Network', 'Verbindung von LANs oder MANs über Regionen, Länder oder Kontinente'],
+      ['GAN', 'Global Area Network', 'Globale Verbindung mehrerer WANs ohne feste geografische Begrenzung'],
+    ] },
+    { type: 'text', content: 'BAN bleibt körpernah: Vitalwertsensoren für Blutdruck, Puls, Herzwerte oder Sauerstoffsättigung gehören zu einer Person. PAN verbindet dagegen persönliche Geräte in ihrer unmittelbaren Umgebung – zum Beispiel Smartphone, Bluetooth-Headset oder USB-Gerät.' },
+    { type: 'text', content: 'Vom NEXUS-Büro zum Standortverbund wächst der Kontext: Ein Gebäude oder Gelände ist typischerweise LAN, ein stadtweites System MAN und die Verbindung weit entfernter Standorte WAN. GAN beschreibt eine globale Verbindung mehrerer WANs; satellitengestützte Netze wie Inmarsat sind mögliche Beispiele.' },
+    { type: 'question', facet: 'scope-scenario', question: 'Mehrere NEXUS-Standorte in verschiedenen Ländern werden miteinander verbunden. Welche Kategorie passt am besten?', options: ['WAN', 'LAN', 'BAN'], correct: 0, explanation: 'Ein WAN verbindet räumlich weit entfernte Netze beziehungsweise Standorte über Regionen oder Länder hinweg.' },
+  ]));
+
+  exps.push(explanation('netzausdehnung-intuitive', '3. Netzausdehnung: BAN bis GAN', 'intuitive', [
+    { type: 'text', content: 'Denk vom persönlichen Umfeld nach außen: körpernahe Sensoren (BAN), persönliche Geräte (PAN), NEXUS-Gebäude (LAN), Stadtgebiet (MAN), weit entfernte Standorte (WAN), globale Verbindung mehrerer WANs (GAN).' },
+  ]));
+
+  exps.push(explanation('internet-intranet-classic', '4. Internet und Intranet', 'classic', [
+    { type: 'text', content: 'Das Internet verbindet weltweit viele eigenständige Netzwerke miteinander. Es kann als Global Area Network betrachtet werden, doch nicht jedes GAN ist automatisch das Internet.' },
+    { type: 'text', content: 'Ein Intranet ist ein abgegrenztes Informationsnetz für den internen Gebrauch einer Organisation. Das interne NEXUS-Portal kann Webtechnik, Datenbanken, Kommunikation und Schulungsangebote bereitstellen, ohne dadurch eine öffentlich erreichbare Internetseite zu sein.' },
+    { type: 'table', headers: ['Bereich', 'Kennzeichen', 'NEXUS-Beispiel'], rows: [
+      ['Internet', 'weltweiter öffentlicher Netzwerkverbund', 'öffentlich erreichbare Webseiten'],
+      ['Intranet', 'interner Informations- und Netzwerkbereich einer Organisation', 'Mitarbeiterportal nur innerhalb von NEXUS'],
+    ] },
+    { type: 'question', facet: 'internet-intranet', question: 'Das Mitarbeiterportal ist nur innerhalb von NEXUS erreichbar, läuft aber im Browser. Wie wird es eingeordnet?', options: ['Intranet', 'automatisch Internet', 'Body Area Network'], correct: 0, explanation: 'Browser- und Webtechnik machen ein Angebot nicht automatisch öffentlich. Der abgegrenzte interne Organisationsbereich ist ein Intranet.' },
+  ]));
+
   // --- 3. Ausbreitungsarten ---
-  exps.push(explanation('ausbreitung-classic', '3. Ausbreitungsarten', 'classic', [
+  exps.push(explanation('ausbreitung-classic', '5. Signalausbreitung', 'classic', [
     { type: 'text', content: 'Die Ausbreitungsart beschreibt, WIE sich ein Signal im Übertragungsmedium fortbewegt - geführt entlang eines physischen Leiters oder ungeführt (frei) durch den Raum.' },
     { type: 'list', title: 'Die zwei Grund-Ausbreitungsarten', items: [
       'Geführte (leitungsgebundene) Ausbreitung: Das Signal läuft entlang eines physischen Mediums - Kupferkabel (elektrische Signale) oder Glasfaser (Lichtimpulse).',
@@ -85,12 +116,12 @@ function buildExplanations() {
     { type: 'text', content: 'Praxisbeispiel: Ein WLAN-Signal wird schwächer, je weiter man sich vom Router entfernt (Dämpfung), und kann durch dicke Wände zusätzlich abgeschwächt werden.' },
   ]));
 
-  exps.push(explanation('ausbreitung-intuitive', '3. Ausbreitungsarten', 'intuitive', [
+  exps.push(explanation('ausbreitung-intuitive', '5. Signalausbreitung', 'intuitive', [
     { type: 'text', content: 'Geführte Ausbreitung ist wie Wasser in einem Schlauch: Es folgt exakt dem vorgegebenen Weg. Ungeführte Ausbreitung ist wie ein Ruf im Raum: Er breitet sich in alle Richtungen aus und wird mit der Entfernung leiser.' },
   ]));
 
   // --- 4. Übertragungsmedien ---
-  exps.push(explanation('medien-classic', '4. Übertragungsmedien', 'classic', [
+  exps.push(explanation('medien-classic', '6. Übertragungsmedien', 'classic', [
     { type: 'text', content: 'Das Übertragungsmedium ist der physische Träger, über den Signale tatsächlich übertragen werden.' },
     { type: 'table', headers: ['Medium', 'Signalart', 'Vorteil', 'Nachteil'], rows: [
       ['Kupferkabel (z. B. Twisted-Pair)', 'Elektrische Signale', 'Günstig, einfach zu verlegen', 'Störanfällig, begrenzte Reichweite/Bandbreite'],
@@ -101,7 +132,7 @@ function buildExplanations() {
     { type: 'text', content: 'Merksatz: "Kupfer = günstig und elektrisch, Glasfaser = schnell und Licht, Funk = frei aber geteilt."' },
   ]));
 
-  exps.push(explanation('medien-intuitive', '4. Übertragungsmedien', 'intuitive', [
+  exps.push(explanation('medien-intuitive', '6. Übertragungsmedien', 'intuitive', [
     { type: 'list', title: 'Eselsbrücken', items: [
       'Kupfer → elektrische Signale → wie eine klassische Stromleitung.',
       'Glasfaser → Licht → wie ein Lichtstrahl, der durch ein Glasrohr geschickt wird.',
@@ -113,7 +144,9 @@ function buildExplanations() {
     { type: 'list', title: 'Die wichtigsten Punkte', items: [
       'Kommunikationsarten: Unicast (1-zu-1), Broadcast (1-zu-alle), Multicast (1-zu-Gruppe).',
       'Betriebsarten: Simplex (eine Richtung), Halbduplex (abwechselnd), Vollduplex (gleichzeitig beide Richtungen).',
-      'Ausbreitungsarten: geführt (leitungsgebunden, z. B. Kupfer/Glasfaser) oder ungeführt (drahtlos, z. B. Funk).',
+      'Netzausdehnung: BAN/PAN (persönlich), LAN (lokal), MAN (Stadt), WAN (weite Entfernungen), GAN (global).',
+      'Internet verbindet Netzwerke weltweit; ein Intranet ist ein interner Organisationsbereich.',
+      'Signalausbreitung: geführt (leitungsgebunden, z. B. Kupfer/Glasfaser) oder ungeführt (drahtlos, z. B. Funk).',
       'Übertragungsmedien: Kupferkabel (elektrisch), Glasfaser (Licht), Funk (elektromagnetische Wellen).',
     ] },
   ]));
@@ -160,6 +193,41 @@ function buildExercises() {
       answers: ['ungeführt', 'ungefuehrt', 'drahtlos'],
       explanation: 'Man spricht von "ungeführter" (oder drahtloser) Ausbreitung, im Gegensatz zur geführten Ausbreitung entlang eines Kabels.',
     },
+    {
+      id: 'network-scope-acronyms',
+      type: 'matching',
+      question: 'Ordne die Kürzel ihren ausgeschriebenen Bezeichnungen zu.',
+      pairs: [
+        { left: 'BAN', leftLabel: 'BAN', right: 'Body Area Network' },
+        { left: 'PAN', leftLabel: 'PAN', right: 'Personal Area Network' },
+        { left: 'LAN', leftLabel: 'LAN', right: 'Local Area Network' },
+        { left: 'MAN', leftLabel: 'MAN', right: 'Metropolitan Area Network' },
+        { left: 'WAN', leftLabel: 'WAN', right: 'Wide Area Network' },
+        { left: 'GAN', leftLabel: 'GAN', right: 'Global Area Network' },
+      ],
+      explanation: 'Die Kürzel benennen typische Netzkontexte von körpernah bis global.',
+    },
+    {
+      id: 'network-scope-scenarios',
+      type: 'matching',
+      question: 'Ordne die NEXUS-Situationen der passenden Netzkategorie zu.',
+      pairs: [
+        { left: 'Vitalwertsensoren am Körper', leftLabel: 'Vitalwertsensoren am Körper', right: 'BAN' },
+        { left: 'Smartphone und Bluetooth-Headset', leftLabel: 'Smartphone und Bluetooth-Headset', right: 'PAN' },
+        { left: 'Arbeitsplätze im NEXUS-Hauptgebäude', leftLabel: 'Arbeitsplätze im NEXUS-Hauptgebäude', right: 'LAN' },
+        { left: 'Stadtweites Verkehrsleitsystem', leftLabel: 'Stadtweites Verkehrsleitsystem', right: 'MAN' },
+        { left: 'Standorte in verschiedenen Ländern', leftLabel: 'Standorte in verschiedenen Ländern', right: 'WAN' },
+      ],
+      explanation: 'Entscheidend ist der typische räumliche beziehungsweise organisatorische Kontext, nicht eine starre Kilometergrenze.',
+    },
+    {
+      id: 'internet-intranet-scenario',
+      type: 'select-best',
+      question: 'Ein NEXUS-Portal läuft im Browser, ist aber ausschließlich für Mitarbeiter im internen Organisationsnetz erreichbar. Was ist es?',
+      options: ['Intranet', 'automatisch öffentliches Internet', 'GAN, weil ein Browser verwendet wird'],
+      correct: 0,
+      explanation: 'Ein Intranet ist ein interner Informations- und Netzwerkbereich. Die verwendete Webtechnik macht ihn nicht automatisch öffentlich.',
+    },
   ];
 }
 
@@ -177,6 +245,14 @@ function buildQuiz() {
     { question: 'Welches Übertragungsmedium ist am störanfälligsten gegenüber elektromagnetischen Feldern?', options: ['Glasfaser', 'Kupferkabel', 'Beide gleich stark', 'Keines von beiden'], correct: 1, explanation: 'Kupferkabel übertragen elektrische Signale und sind dadurch anfälliger für elektromagnetische Störungen als Glasfaser.' },
     { question: 'Welches Übertragungsmedium benötigt keine physische Verkabelung zwischen Sender und Empfänger?', options: ['Kupferkabel', 'Glasfaser', 'Funk', 'Koaxialkabel'], correct: 2, explanation: 'Funk überträgt Signale drahtlos als elektromagnetische Wellen.' },
     { question: 'Ein Administrator plant eine Verbindung zwischen zwei Serverräumen über mehrere hundert Meter mit maximaler Bandbreite und Störunanfälligkeit. Welches Medium ist am besten geeignet?', options: ['Kupferkabel', 'Glasfaser', 'WLAN', 'Bluetooth'], correct: 1, explanation: 'Glasfaser bietet hohe Bandbreite über große Distanzen und ist gegen elektromagnetische Störungen unempfindlich.' },
+    { facet: 'acronym', question: 'Wofür steht BAN?', options: ['Body Area Network', 'Building Access Network', 'Broad Area Network'], correct: 0, explanation: 'BAN steht für Body Area Network und beschreibt körpernahe Geräte oder Sensoren einer Person.' },
+    { facet: 'ban-pan', question: 'Ein Patient trägt Sensoren für Puls und Sauerstoffsättigung direkt am Körper. Welche Kategorie passt?', options: ['BAN', 'PAN', 'LAN'], correct: 0, explanation: 'Körpernahe medizinische Sensorik gehört zum Body Area Network. Ein PAN verbindet dagegen persönliche Geräte in unmittelbarer Umgebung.' },
+    { facet: 'scope-scenario', question: 'Alle Arbeitsplätze in einem NEXUS-Gebäude nutzen gemeinsame Ressourcen. Welche Kategorie passt typischerweise?', options: ['LAN', 'MAN', 'WAN'], correct: 0, explanation: 'Ein räumlich begrenztes Gebäude- oder Geländenetz ist typischerweise ein Local Area Network.' },
+    { facet: 'scope-compare', question: 'Was unterscheidet MAN und WAN am besten?', options: ['MAN beschreibt typischerweise ein Stadtgebiet, WAN verbindet Netze über große geografische Entfernungen.', 'MAN ist immer drahtlos, WAN immer kabelgebunden.', 'WAN besteht nur aus einzelnen Computern und verbindet keine Netze.'], correct: 0, explanation: 'MAN ordnet man einem urbanen Gebiet zu; WAN verbindet LANs oder MANs über Regionen, Länder oder Kontinente.' },
+    { facet: 'wan-gan', question: 'Welche Aussage zu GAN und Internet ist korrekt?', options: ['Das Internet kann als GAN betrachtet werden, aber nicht jedes GAN ist automatisch das Internet.', 'Jedes GAN ist definitionsgemäß das öffentliche Internet.', 'Ein GAN darf keine WANs miteinander verbinden.'], correct: 0, explanation: 'GAN bezeichnet einen globalen Netzverbund. Das Internet ist ein Beispiel, aber nicht die einzig mögliche globale Netzstruktur.' },
+    { facet: 'internet-intranet', question: 'Welche Aussage beschreibt ein Intranet?', options: ['Ein interner Informations- und Netzwerkbereich einer Organisation', 'Das Internet ohne aktive Verbindung', 'Jede weltweit öffentlich erreichbare Webseite'], correct: 0, explanation: 'Ein Intranet stellt interne Informationen und Dienste für eine abgegrenzte Organisation bereit.' },
+    { facet: 'misconception', question: 'Ein LAN muss zwingend auf einen einzelnen Raum begrenzt sein. Stimmt das?', options: ['Nein, es kann beispielsweise eine Etage, ein Gebäude oder ein Gelände umfassen.', 'Ja, mehrere Räume ergeben automatisch ein MAN.', 'Ja, sonst ist es immer ein WAN.'], correct: 0, explanation: 'LAN beschreibt einen räumlich begrenzten lokalen Bereich, aber keine starre Ein-Raum-Grenze.' },
+    { facet: 'transfer', question: 'NEXUS verbindet sein Hauptgebäude mit einem weit entfernten Standort in einem anderen Land. Was wird dabei typischerweise aufgebaut?', options: ['Eine WAN-Verbindung zwischen lokalen Netzen', 'Ein einziges BAN', 'Nur ein größeres PAN'], correct: 0, explanation: 'Ein WAN verbindet räumlich weit entfernte Netze beziehungsweise Standorte.' },
   ];
 }
 
@@ -184,7 +260,9 @@ function buildSummary() {
   return [
     'Kommunikationsarten: Unicast (1-zu-1), Broadcast (1-zu-alle), Multicast (1-zu-Gruppe).',
     'Betriebsarten: Simplex, Halbduplex, Vollduplex - abhängig von der möglichen Übertragungsrichtung.',
-    'Ausbreitungsarten: geführt (Kabel) vs. ungeführt (drahtlos/Funk).',
+    'Netzausdehnung: BAN, PAN, LAN, MAN, WAN und GAN beschreiben typische Kontexte von körpernah bis global.',
+    'Internet ist ein weltweiter Netzwerkverbund; Intranet bezeichnet einen internen Organisationsbereich.',
+    'Signalausbreitung: geführt (Kabel) vs. ungeführt (drahtlos/Funk).',
     'Übertragungsmedien: Kupfer (elektrisch), Glasfaser (Licht), Funk (elektromagnetische Wellen).',
   ];
 }

@@ -179,8 +179,8 @@ function runUntilItem(itemId) {
   assertTrue(item, 'Network scope order item exists');
   const q = generateQuestion(item.id, null, { contextType: 'coworker_question', seed: '0' });
   assertEqual(q.type, 'ordering', 'Network scope order is ordering');
-  assertArrayEqual(q.correctOrderLabels, ['PAN', 'LAN', 'MAN', 'WAN'], 'Network scope order is PAN→LAN→MAN→WAN');
-  console.log('✅ Network scope ordering correct: PAN → LAN → MAN → WAN');
+  assertArrayEqual(q.correctOrderLabels, ['BAN / PAN', 'LAN', 'MAN', 'WAN', 'GAN'], 'Network scope order is BAN/PAN→LAN→MAN→WAN→GAN');
+  console.log('✅ Network scope ordering correct: BAN/PAN → LAN → MAN → WAN → GAN');
 }
 
 // ---------------------------------------------------------------------------
@@ -193,11 +193,13 @@ function runUntilItem(itemId) {
   const q = generateQuestion(item.id, null, { contextType: 'coworker_question', seed: '0' });
   assertEqual(q.type, 'matching', 'Network scope mapping is matching');
   const pairs = Object.fromEntries(q.correctPairLabels.map((p) => [p.left, p.right]));
+  assertTrue(pairs.BAN, 'BAN pair present');
   assertTrue(pairs.PAN, 'PAN pair present');
   assertTrue(pairs.LAN, 'LAN pair present');
   assertTrue(pairs.MAN, 'MAN pair present');
   assertTrue(pairs.WAN, 'WAN pair present');
-  console.log('✅ Network scope matching pairs present for PAN/LAN/MAN/WAN');
+  assertTrue(pairs.GAN, 'GAN pair present');
+  console.log('✅ Network scope matching pairs present for BAN/PAN/LAN/MAN/WAN/GAN');
 }
 
 // ---------------------------------------------------------------------------
