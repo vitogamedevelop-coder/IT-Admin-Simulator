@@ -413,9 +413,9 @@ const TOPOLOGY_DATA = {
   ring: {
     name: 'Ring',
     tagline: 'Jedes Gerät ist mit genau zwei Nachbarn verbunden und bildet einen Kreis.',
-    description: 'In einer Ring-Topologie ist jedes Gerät mit genau zwei anderen verbunden; Daten laufen in eine Richtung um den Kreis.',
-    resilience: 'Mittel bis niedrig: ein Single-Ring fällt bei einem Fehler aus.',
-    cost: 'Mittel: weniger Kabel als Stern, aber Token-Management notwendig.',
+    description: 'In einer Ring-Topologie ist jedes Gerät mit zwei Nachbarn zu einer geschlossenen Struktur verbunden; Token-Passing ist eine Eigenschaft klassischer Token-Ring-Technik, nicht jeder denkbaren Ringstruktur.',
+    resilience: 'Ein einfacher Ring kann durch eine Unterbrechung gestört werden; redundante Ringvarianten können die Auswirkung begrenzen.',
+    cost: 'Der Aufwand hängt von Ringtechnik und eingesetzter Redundanz ab.',
     scalability: 'Befriedigend für kleine bis mittlere Netze; bei vielen Stationen steigt die Latenz pro Umlauf.',
     useCases: 'Token-Ring-Netze und FDDI als Glasfaser-Ring.',
     distractorDescriptions: [
@@ -455,10 +455,10 @@ const TOPOLOGY_DATA = {
   mesh: {
     name: 'Vermascht',
     tagline: 'Jedes wichtige Gerät ist mit mehreren anderen direkt verbunden.',
-    description: 'In einer vermaschten Topologie gibt es viele direkte Verbindungen zwischen den Knoten.',
-    resilience: 'Sehr hoch: Solange ein alternativer Pfad existiert, bleibt das Netz erreichbar.',
-    cost: 'Hoch: viele Leitungen, Switche/Router und Routing-Protokolle erforderlich.',
-    scalability: 'Gut für definierte Bereiche, aber voll vermaschte Netze wachsen quadratisch im Aufwand.',
+    description: 'In einer vermaschten Topologie besitzt jeder Knoten Verbindungen zu mehreren anderen; teilvermascht verbindet nicht jeden direkt mit jedem, vollvermascht dagegen schon.',
+    resilience: 'Mehrere alternative Verbindungen können eine hohe Ausfallsicherheit ermöglichen.',
+    cost: 'Mehr direkte Verbindungen erhöhen den Verkabelungs-, Komponenten- und Verwaltungsaufwand.',
+    scalability: 'Teilvermaschung begrenzt den Aufwand; Vollvermaschung wird mit jedem zusätzlichen Knoten deutlich aufwendiger.',
     useCases: 'Internet-Backbone, Rechenzentren und kritische Infrastrukturen.',
     distractorDescriptions: [
       'Alle Geräte hängen an einem einzigen gemeinsamen Kabelstrang.',
@@ -469,6 +469,90 @@ const TOPOLOGY_DATA = {
 };
 
 const TOPOLOGIE_ITEMS = [
+  {
+    id: 'nb.topologien.definition',
+    topicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceTopicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceSection: 'intro-classic',
+    conceptCluster: 'topologien.definition',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    data: {
+      term: 'Netzwerk-Topologie',
+      definition: 'Die Struktur und Anordnung eines Netzwerks – also wie Teilnehmer und Verbindungen organisiert sind.',
+      description: 'Topologie beschreibt die Struktur eines Netzwerks.',
+      distractorDefinitions: [
+        'Ausschließlich die Datenrate einer Internetverbindung.',
+        'Eine Liste aller IP-Adressen ohne Informationen zu Verbindungen.',
+        'Nur die räumliche Größe eines Netzwerks.',
+      ],
+    },
+    siblings: [],
+    roleHints: ['technical', 'support'],
+  },
+  {
+    id: 'nb.topologien.physicalLogical',
+    topicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceTopicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceSection: 'physical-logical-classic',
+    conceptCluster: 'topologien.physicalLogical.compare',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    data: {
+      compareOn: 'description',
+      items: [
+        { name: 'physische Topologie', description: 'Reale Kabel, Geräte und hardwareseitige Verbindungen.' },
+        { name: 'logische Topologie', description: 'Der tatsächlich genutzte Daten- oder Signalweg durch das Netzwerk.' },
+      ],
+      description: 'Physischer Aufbau und logischer Datenfluss können voneinander abweichen.',
+    },
+    siblings: [],
+    roleHints: ['technical'],
+  },
+  {
+    id: 'nb.topologien.criteriaMapping',
+    topicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceTopicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceSection: 'criteria-classic',
+    conceptCluster: 'topologien.criteria.mapping',
+    type: KNOWLEDGE_TYPES.MAPPING,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.MAPPING],
+    data: {
+      subject: 'Bewertungskriterien',
+      pairs: [
+        { key: 'Aufwand', value: 'Zeit, Verkabelung und notwendige Komponenten' },
+        { key: 'Skalierbarkeit', value: 'Möglichkeit, Teilnehmer oder Zweige zu ergänzen' },
+        { key: 'Kapazität', value: 'Übertragungsmöglichkeiten und mögliche Engpässe' },
+        { key: 'Ausfallsicherheit', value: 'Auswirkung gestörter Kabel, Geräte oder Verteiler' },
+      ],
+      description: 'Die vier Kriterien bilden ein gemeinsames Vergleichsraster, ohne eine absolute Bestenliste zu erzwingen.',
+    },
+    siblings: [],
+    roleHints: ['technical', 'management'],
+  },
+  {
+    id: 'nb.topologien.meshTypes',
+    topicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceTopicKey: TOPOLOGIEN_TOPIC_KEY,
+    sourceSection: 'mesh-classic',
+    conceptCluster: 'topologien.mesh.compare',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    data: {
+      compareOn: 'description',
+      items: [
+        { name: 'Teilvermaschung', description: 'Mehrere direkte Verbindungen, aber nicht jeder Teilnehmer ist direkt mit jedem anderen verbunden.' },
+        { name: 'Vollvermaschung', description: 'Jeder Teilnehmer besitzt eine direkte Verbindung zu jedem anderen Teilnehmer.' },
+      ],
+      description: 'Mehr direkte Verbindungen können Redundanz erhöhen, steigern aber zugleich Aufwand und Komplexität.',
+    },
+    siblings: [],
+    roleHints: ['technical', 'management'],
+  },
   ...Object.entries(TOPOLOGY_DATA).map(([key, topo]) => ({
     id: `nb.topologien.${key}`,
     topicKey: TOPOLOGIEN_TOPIC_KEY,

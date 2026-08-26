@@ -57,34 +57,38 @@ const diagramSvg = {
   mesh: `<svg viewBox="0 0 200 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="35" r="8" fill="#c9d1d9"/><circle cx="140" cy="35" r="8" fill="#c9d1d9"/><circle cx="40" cy="85" r="8" fill="#c9d1d9"/><circle cx="100" cy="85" r="8" fill="#c9d1d9"/><circle cx="160" cy="85" r="8" fill="#c9d1d9"/><line x1="60" y1="35" x2="140" y2="35" stroke="#8b949e" stroke-width="2"/><line x1="60" y1="35" x2="40" y2="85" stroke="#8b949e" stroke-width="2"/><line x1="60" y1="35" x2="100" y2="85" stroke="#8b949e" stroke-width="2"/><line x1="140" y1="35" x2="100" y2="85" stroke="#8b949e" stroke-width="2"/><line x1="140" y1="35" x2="160" y2="85" stroke="#8b949e" stroke-width="2"/><line x1="40" y1="85" x2="100" y2="85" stroke="#8b949e" stroke-width="2"/><line x1="100" y1="85" x2="160" y2="85" stroke="#8b949e" stroke-width="2"/><line x1="40" y1="85" x2="160" y2="85" stroke="#8b949e" stroke-width="2" opacity="0.4"/><line x1="60" y1="35" x2="160" y2="85" stroke="#8b949e" stroke-width="2" opacity="0.4"/><line x1="140" y1="35" x2="40" y2="85" stroke="#8b949e" stroke-width="2" opacity="0.4"/></svg>`,
 };
 
+const physicalLogicalSvg = `<svg viewBox="0 0 320 150" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="80" y="18" text-anchor="middle" fill="#00f0ff" font-size="12">PHYSISCH</text><circle cx="30" cy="70" r="12" fill="#c9d1d9"/><rect x="68" y="58" width="24" height="24" rx="3" fill="#00f0ff"/><circle cx="130" cy="45" r="12" fill="#c9d1d9"/><circle cx="130" cy="95" r="12" fill="#c9d1d9"/><line x1="42" y1="70" x2="68" y2="70" stroke="#8b949e" stroke-width="2"/><line x1="92" y1="65" x2="118" y2="48" stroke="#8b949e" stroke-width="2"/><line x1="92" y1="76" x2="118" y2="92" stroke="#8b949e" stroke-width="2"/><text x="240" y="18" text-anchor="middle" fill="#ffcc00" font-size="12">LOGISCHER DATENWEG</text><circle cx="190" cy="70" r="12" fill="#c9d1d9"/><rect x="228" y="58" width="24" height="24" rx="3" fill="#00f0ff"/><circle cx="290" cy="45" r="12" fill="#c9d1d9"/><circle cx="290" cy="95" r="12" fill="#c9d1d9"/><path d="M202 70 H228 L278 92" fill="none" stroke="#ffcc00" stroke-width="3" marker-end="url(#arrow)"/><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#ffcc00"/></marker></defs><text x="80" y="135" text-anchor="middle" fill="#8b949e" font-size="10">reale Verbindungen</text><text x="240" y="135" text-anchor="middle" fill="#8b949e" font-size="10">tatsächlich genutzter Weg</text></svg>`;
+
 const topologies = {
   bus: {
     name: 'Bus',
     tagline: 'Alle Geräte hängen an einem einzigen Kabelstrang.',
-    description: 'Bei einer Bus-Topologie sind alle Geräte an ein gemeinsames Übertragungsmedium angeschlossen. Daten werden als Signal an alle Teilnehmer gesendet; jeder prüft, ob die Nachricht für ihn bestimmt ist.',
-    advantages: ['Einfach und kostengünstig bei wenigen Geräten', 'Leicht zu erweitern, solange das Kabel noch Reichweite bietet', 'Geringer Kabelaufwand in kleinen Netzen'],
-    disadvantages: ['Ein Kabelbruch legt das gesamte Netz lahm', 'Kollisionen nehmen mit mehr Geräten stark zu', 'Schwer zu diagnostizieren, wenn das Backbone defekt ist'],
-    useCases: ['Historisch in klassischen Ethernet-Netzen mit Koaxialkabel (10BASE2, 10BASE5)', 'Kleine Laboraufbauten', 'Einfache I2C-/Sensornetzwerke in der Elektronik'],
-    resilience: 'Niedrig: ein einzelner Fehler im Backbone unterbricht die Kommunikation für alle.',
-    cost: 'Sehr günstig bei wenigen Teilnehmern, aber Terminatoren und exakte Kabellängen sind wichtig.',
-    scalability: 'Schlecht: ab etwa 20-30 aktiven Geräten steigen Kollisionen und die Leistung sinkt.',
+    description: 'Bei einer Bus-Topologie teilen sich alle Geräte ein gemeinsames Übertragungsmedium. Signale breiten sich entlang des passiven Busses aus und werden mit der Entfernung schwächer; Repeater können die Reichweite erweitern. Bei klassischen elektrischen Busstrukturen verhindern Abschlusswiderstände störende Signalreflexionen.',
+    advantages: ['Einfach und kostengünstig bei wenigen Geräten', 'Geringer Kabelaufwand in kleinen Netzen', 'Ein gemeinsames Medium verbindet alle Teilnehmer'],
+    disadvantages: ['Eine Störung des Hauptmediums kann das gesamte Netz beeinträchtigen', 'Die gemeinsam genutzte Kapazität wird bei mehr Datenverkehr zum Engpass', 'Fehler am gemeinsamen Medium sind schwer einzugrenzen'],
+    useCases: ['Feldbusse und Automatisierung', 'Automobil- und Schienenfahrzeugtechnik', 'Flug- und Raumfahrt', 'Historische Ethernet-Netze mit Koaxialkabel'],
+    resilience: 'Niedrig: Eine Störung des gemeinsamen Hauptmediums kann viele oder alle Teilnehmer betreffen.',
+    cost: 'Bei wenigen Teilnehmern geringer Verkabelungsaufwand; Terminierung und gegebenenfalls Repeater erhöhen den technischen Aufwand.',
+    scalability: 'Begrenzt: Reichweite, Teilnehmerzahl und gemeinsam genutztes Medium setzen der Erweiterung Grenzen.',
+    capacity: 'Die Teilnehmer teilen sich die verfügbare Übertragungskapazität des gemeinsamen Mediums; die konkrete Leistung hängt von der eingesetzten Technik ab.',
     example: 'Ein altes Büronetzwerk aus den 1990ern, bei dem alle PCs an einem Koaxialkabel hängen.',
     questions: [
       { question: 'Was passiert in einer reinen Bus-Topologie, wenn das Hauptkabel durchtrennt wird?', options: ['Das Netz bleibt funktionsfähig.', 'Alle Geräte verlieren die Verbindung.', 'Nur die angeschlossenen Endgeräte sind betroffen.'], correct: 1, explanation: 'Der Bus bildet ein gemeinsames Medium. Ein Bruch unterbricht die Kommunikation für alle Teilnehmer.' },
-      { question: 'Warum skaliert der Bus bei vielen Geräten schlecht?', options: ['Weil er zu viele Kabel braucht', 'Weil Kollisionen zunehmen und die effektive Datenrate sinkt', 'Weil die Spannung zu hoch wird'], correct: 1, explanation: 'Je mehr Geräte senden, desto häufiger treten Kollisionen auf - das Netz muss wiederholt auf das Medium warten.' },
+      { facet: 'capacity', question: 'Warum kann ein Bus bei vielen aktiven Teilnehmern zum Engpass werden?', options: ['Weil alle Teilnehmer die Kapazität des gemeinsamen Mediums teilen', 'Weil jeder Teilnehmer eine eigene exklusive Leitung besitzt', 'Weil Abschlusswiderstände zusätzliche Daten erzeugen'], correct: 0, explanation: 'Alle Teilnehmer nutzen dasselbe Medium. Wie stark sich das auswirkt, hängt von der konkreten Bustechnik und ihrem Zugriffsverfahren ab.' },
     ],
     mnemonic: 'Bus = Backbone: Ein einziger Weg, der bei einem Bruch allen den Weg versperrt.',
   },
   ring: {
     name: 'Ring',
     tagline: 'Jedes Gerät ist mit genau zwei Nachbarn verbunden und bildet einen Kreis.',
-    description: 'In einer Ring-Topologie ist jedes Gerät mit genau zwei anderen verbunden. Daten laufen in eine Richtung (oder in beiden bei Dual Ring) um den Kreis, bis sie das Ziel erreichen. Token-Passing regelt, wer gerade senden darf.',
-    advantages: ['Keine Kollisionen dank Token-Passing', 'Vorhersagbare Laufzeit pro Station', 'Gleichberechtigter Zugriff für alle Teilnehmer'],
-    disadvantages: ['Ein Ausfall einer Station oder Leitung unterbricht den Ring', 'Jede Station muss jedes Paket weiterleiten', 'Hinzufügen/Entfernen von Geräten erfordert kurzzeitig den Ring aufzubrechen'],
-    useCases: ['Token Ring-Netze (IEEE 802.5)', 'FDDI als Glasfaser-Ring für Backbone-Verbindungen', 'Einige industrielle Netze mit Redundanzprotokollen'],
-    resilience: 'Mittel bis niedrig: ein Single-Ring fällt bei einem Fehler aus. Dual Ring oder Redundanzprotokolle wie RSTP können helfen.',
-    cost: 'Mittel: weniger Kabel als Stern/Vollvermaschung, aber Switches/MAUs und Token-Management sind notwendig.',
-    scalability: 'Befriedigend für kleine bis mittlere Netze; bei vielen Stationen steigt die Latenz pro Umlauf.',
+    description: 'In einer Ring-Topologie ist jedes Gerät mit genau zwei Nachbarn zu einer geschlossenen Struktur verbunden. Wie der Sendezugriff geregelt wird, hängt von der eingesetzten Technik ab; klassische Token-Ring-Netze verwenden dafür Token-Passing.',
+    advantages: ['Geschlossene, klar nachvollziehbare Struktur', 'Token-Passing kann in klassischen Token-Ring-Netzen Kollisionen vermeiden', 'Dual-Ring-Varianten können einen zusätzlichen Weg bereitstellen'],
+    disadvantages: ['Im einfachen Ring kann eine Unterbrechung die Kommunikation des gesamten Rings stören', 'Daten durchlaufen je nach Technik mehrere Stationen', 'Änderungen an der Struktur können zusätzlichen Aufwand verursachen'],
+    useCases: ['Klassische Token-Ring-Netze (IEEE 802.5)', 'FDDI als Glasfaser-Ring', 'Industrielle Ringstrukturen mit geeigneten Redundanzmechanismen'],
+    resilience: 'Beim einfachen Ring kann eine Unterbrechung den Kreis aufbrechen; redundante Ringvarianten können die Auswirkung begrenzen.',
+    cost: 'Der Aufwand hängt von Ringtechnik und Redundanz ab; ein zusätzlicher Gegenring benötigt weitere Verbindungen und Komponenten.',
+    scalability: 'Zusätzliche Stationen erweitern den Ring, können aber Laufweg, Umbauaufwand und Fehlerabhängigkeiten erhöhen.',
+    capacity: 'Die nutzbare Kapazität hängt von der Ringtechnik und dem Zugriffsverfahren ab; die Ringform allein legt keine feste Datenrate fest.',
     example: 'Ein klassisches Token-Ring-Netz in einer Bankfiliale aus den 1990ern.',
     questions: [
       { question: 'Wie verhindert Token Ring Kollisionen?', options: ['Durch höhere Spannung', 'Durch einen Token, den nur der Besitzer senden darf', 'Durch kürzere Kabel'], correct: 1, explanation: 'Der Token kreist im Ring. Nur wer den Token besitzt, darf senden - so gibt es keine Kollisionen.' },
@@ -101,8 +105,9 @@ const topologies = {
     useCases: ['Fast alle modernen Ethernet-LANs', 'Büroetagen mit RJ45-Anschlüssen', 'WLAN mit zentraler Router/Firewall'],
     resilience: 'Hoch für Endgeräte-Links, niedrig für das zentrale Gerät. Redundante Switche oder Stack-Technologie verbessern die Ausfallsicherheit.',
     cost: 'Niedrig bis mittel: Standard-Switche und Patchkabel sind sehr günstig, aber viele Kabel verlaufen in einem Stern zum Verteilerschrank.',
-    scalability: 'Sehr gut: Switche lassen sich stapeln und verbinden, solange genug Ports verfügbar sind.',
-    example: 'Ein typisches Büro-LAN, bei dem jeder PC über ein eigenes Kabel mit dem Switches im Serverschrank verbunden ist.',
+    scalability: 'Neue Teilnehmer lassen sich typischerweise über freie Anschlüsse oder zusätzliche Verteiler ergänzen; die konkrete Grenze hängt von Komponenten und Planung ab.',
+    capacity: 'Eigene Teilnehmerleitungen vermeiden ein gemeinsam genutztes Hauptkabel; die tatsächliche Kapazität hängt von Links und zentralem Verteiler ab.',
+    example: 'Ein typisches Büro-LAN, bei dem jeder PC über ein eigenes Kabel mit dem Switch im Serverschrank verbunden ist.',
     questions: [
       { question: 'Was ist der Hauptvorteil der Stern-Topologie gegenüber dem Bus?', options: ['Sie braucht weniger Kabel', 'Ein einzelner Kabelfehler betrifft meist nur ein Gerät', 'Sie funktioniert ohne zentrales Gerät'], correct: 1, explanation: 'Im Stern hat jedes Endgerät einen eigenen Link zum Switch. Ein defektes Kabel isoliert nur dieses Gerät.' },
       { question: 'Was ist bei einem klassischen Stern der größte Schwachpunkt?', options: ['Die Endgeräte', 'Der zentrale Switch/Router', 'Die Stromversorgung der Endgeräte'], correct: 1, explanation: 'Wenn der zentrale Verteiler ausfällt, sind alle Endgeräte vom Netz getrennt.' },
@@ -112,14 +117,15 @@ const topologies = {
   tree: {
     name: 'Baum',
     tagline: 'Mehrere Sterne werden über weitere Sterne miteinander verbunden.',
-    description: 'Eine Baum-Topologie entsteht, wenn mehrere Stern-Netze über Switche oder Router miteinander verbunden werden. Sie bildet eine Hierarchie aus Verteilern - typisch für größere Unternehmensnetze.',
-    advantages: ['Kombiniert Vorteile des Sterns mit guter Skalierbarkeit', 'Klare Hierarchie erleichtert Planung und Fehlersuche', 'Einfache Erweiterung um weitere Etagen oder Standorte'],
+    description: 'Eine Baum-Topologie verbindet mehrere Sternstrukturen hierarchisch. Von einer Wurzel führen Uplinks zu Verteilern und Unterverteilungen, an denen weitere Teilnehmer oder Zweige angeschlossen sind.',
+    advantages: ['Hierarchie aus Wurzel, Verteilern und Unterverteilungen erleichtert die Strukturierung', 'Einzelne Zweige lassen sich gezielt erweitern', 'Störungen in einem unteren Zweig können lokal begrenzt bleiben'],
     disadvantages: ['Wurzelswitch-Ausfall beeinträchtigt mehrere Bereiche', 'Komplexere Konfiguration als ein einzelner Stern', 'Überlastung an Aggregationsswitchen möglich'],
     useCases: ['Mehrstöckige Firmengebäude', 'Campus-Netze mit Kern-, Verteilungs- und Zugriffsebene', 'Netzwerke mit mehreren Standorten und zentralem Backbone'],
     resilience: 'Mittel: Fehler in einem Blatt bleiben dort lokal, aber die Wurzel oder Backbone-Links beeinträchtigen viele Geräte.',
     cost: 'Mittel bis hoch: mehr Switche, aber durch Standardkomponenten beherrschbar.',
-    scalability: 'Sehr gut: Bäume lassen sich durch zusätzliche Ebenen und Verbindungen beliebig vergrößern.',
-    example: 'Ein vierstöckiges Bürogebäude: Jede Etage ist ein Stern, alle Etagen-Switche hängen am zentralen Kern-Switch im Keller.',
+    scalability: 'Weitere Zweige und Unterverteilungen lassen sich ergänzen; obere Verteiler und Uplinks müssen für das Wachstum passend ausgelegt sein.',
+    capacity: 'Uplinks und höher gelegene Verteiler bündeln den Verkehr mehrerer Zweige und können abhängig von ihrer Auslegung zum Engpass werden.',
+    example: 'Ein vierstöckiges Bürogebäude: Jede Etage ist ein Stern, alle Etagen-Switche hängen per Uplink am zentralen Verteiler.',
     questions: [
       { question: 'Aus welcher Grundtopologie setzt sich ein Baum typischerweise zusammen?', options: ['Aus mehreren Ringen', 'Aus mehreren Sternen, die hierarchisch verbunden sind', 'Aus mehreren Bus-Leitungen'], correct: 1, explanation: 'Ein Baum ist eine Hierarchie aus Sternen, die über weitere Switche miteinander verbunden sind.' },
       { question: 'Wo wirkt sich ein Ausfall im Baum am stärksten aus?', options: ['Nur am ausgefallenen Endgerät', 'An der Wurzel oder den Backbone-Links', 'Nur an Blatt-Switchen'], correct: 1, explanation: 'Die Wurzel und Backbone-Links verbinden große Teile des Baums. Ihr Ausfall beeinträchtigt viele Geräte.' },
@@ -129,14 +135,15 @@ const topologies = {
   mesh: {
     name: 'Vermascht',
     tagline: 'Jedes wichtige Gerät ist mit mehreren anderen direkt verbunden.',
-    description: 'In einer vermaschten Topologie gibt es viele direkte Verbindungen zwischen den Knoten. Jedes wichtige Gerät kennt mehrere Pfade zum Ziel - Routing-Protokolle wählen den besten Weg aus und reagieren automatisch auf Ausfälle.',
-    advantages: ['Hohe Ausfallsicherheit durch redundante Pfade', 'Automatische Umleitung bei Leitungs- oder Geräteausfällen', 'Hohe Verfügbarkeit für kritische Anwendungen'],
-    disadvantages: ['Sehr viele Verbindungen und hoher Kabelaufwand', 'Komplexe Konfiguration und Fehlersuche', 'Teuer, besonders im Vollvermaschungs-Fall'],
+    description: 'In einer vermaschten Topologie besitzt jeder Knoten direkte Verbindungen zu mehreren anderen. Teilvermascht bedeutet, dass nicht jeder mit jedem direkt verbunden ist; bei einer Vollvermaschung besitzt jeder Knoten eine direkte Verbindung zu jedem anderen.',
+    advantages: ['Mehrere Verbindungen können alternative Wege und hohe Ausfallsicherheit schaffen', 'Eine einzelne gestörte Verbindung muss nicht alle Kommunikation unterbrechen', 'Der Redundanzgrad lässt sich durch Teil- oder Vollvermaschung anpassen'],
+    disadvantages: ['Mehr direkte Verbindungen erhöhen Verkabelungs-, Komponenten- und Verwaltungsaufwand', 'Fehlersuche und Planung werden komplexer', 'Vollvermaschung wächst mit jedem zusätzlichen Knoten stark im Aufwand'],
     useCases: ['Internet-Backbone und Rechenzentren', 'WLAN-Mesh-Netze für große Flächenabdeckung', 'Kritische Infrastrukturen wie Krankenhäuser oder Energienetze'],
     resilience: 'Sehr hoch: Solange ein alternativer Pfad existiert, bleibt das Netz erreichbar.',
     cost: 'Hoch: viele Leitungen, Switche/Router und Routing-Protokolle erforderlich.',
-    scalability: 'Gut für definierte Bereiche, aber voll vermaschte Netze wachsen quadratisch im Aufwand. Teilmeshes sind daher üblich.',
-    example: 'Ein Rechenzentrum, in dem jeder Core-Switch mit jedem anderen verbunden ist und automatisch Ausfälle umgeht.',
+    scalability: 'Teilvermaschung begrenzt den Verbindungsaufwand; Vollvermaschung wird mit jedem zusätzlichen Knoten deutlich aufwendiger.',
+    capacity: 'Mehrere direkte Wege können zusätzliche Übertragungsmöglichkeiten schaffen; die nutzbare Kapazität hängt jedoch von Links und Steuerung ab.',
+    example: 'Kritische NEXUS-Verteiler sind teilvermascht: Wichtige Knoten haben alternative Verbindungen, ohne dass jeder Knoten mit jedem direkt verbunden ist.',
     questions: [
       { question: 'Warum ist eine vermaschte Topologie besonders ausfallsicher?', options: ['Weil sie weniger Kabel braucht', 'Weil redundante Pfade den Ausfall einzelner Leitungen oder Geräte auffangen', 'Weil alle Geräte gleichzeitig senden'], correct: 1, explanation: 'Mehrere Pfade zwischen den Knoten ermöglichen Umleitungen, wenn ein Weg ausfällt.' },
       { question: 'Was ist der Hauptnachteil einer vollständigen Vermaschung?', options: ['Zu geringe Geschwindigkeit', 'Hoher Kabel- und Verwaltungsaufwand', 'Zu einfache Fehlersuche'], correct: 1, explanation: 'Vollvermaschte Netze wachsen quadratisch im Verbindungsaufwand und sind aufwendig zu verwalten.' },
@@ -176,7 +183,7 @@ function buildExplanationForTopology(key, topology, style) {
       { type: 'text', content: `Visueller Fokus: ${topology.name}` },
       { type: 'diagram', content: diagramSvg[key] },
       { type: 'text', content: topology.tagline },
-      { type: 'list', title: 'Worauf du achten solltest', items: [topology.resilience, topology.scalability, topology.cost] }
+      { type: 'list', title: 'Worauf du achten solltest', items: [topology.cost, topology.scalability, topology.capacity, topology.resilience] }
     );
   } else if (style === 'mnemonic') {
     blocks.push(
@@ -204,9 +211,36 @@ function buildTopologienLesson() {
     id: 'intro-classic',
     style: 'classic',
     blocks: [
-      { type: 'text', content: 'Netzwerk-Topologien beschreiben, wie Geräte in einem Netzwerk miteinander verbunden sind. Sie sind das „Skelett“ eines Netzes.' },
-      { type: 'text', content: 'Die fünf grundlegenden Topologien sind Bus, Ring, Stern, Baum und Vermascht. Jede hat eigene Stärken, Schwächen und typische Einsatzgebiete.' },
-      { type: 'text', content: 'In dieser Lektion lernst du alle fünf anhand von Beschreibungen, Diagrammen, Beispielen und Merksätzen kennen.' },
+      { type: 'text', content: 'Eine Netzwerk-Topologie beschreibt die Struktur und Anordnung eines Netzwerks – also wie seine Teilnehmer und Verbindungen organisiert sind.' },
+      { type: 'text', content: 'Die fünf grundlegenden Strukturen Bus, Ring, Stern, Baum und Vermascht bringen unterschiedliche Stärken, Schwächen und Einsatzmöglichkeiten mit.' },
+      { type: 'question', facet: 'definition', question: 'Was beschreibt eine Netzwerk-Topologie?', options: ['Die Struktur und Anordnung eines Netzwerks', 'Ausschließlich die Geschwindigkeit einer Internetverbindung', 'Nur die IP-Adressen der Teilnehmer'], correct: 0, explanation: 'Topologie bezeichnet die Struktur beziehungsweise Anordnung von Teilnehmern und Verbindungen.' },
+    ],
+  });
+
+  explanations.push({
+    id: 'physical-logical-classic',
+    style: 'classic',
+    blocks: [
+      { type: 'text', content: 'Die physische Topologie zeigt die realen Kabel, Geräte und hardwareseitigen Verbindungen. Die logische Topologie beschreibt dagegen, welchen Weg Daten oder Signale tatsächlich durch das Netzwerk nehmen.' },
+      { type: 'diagram', content: physicalLogicalSvg },
+      { type: 'text', content: 'Beide Sichten können voneinander abweichen: Aus der sichtbaren Verkabelung allein folgt nicht automatisch, welchen Datenweg das System tatsächlich nutzt.' },
+      { type: 'question', facet: 'physical-logical', question: 'Welche Frage beantwortet die logische Topologie?', options: ['Wie Daten oder Signale tatsächlich durch das Netzwerk verlaufen', 'Welche Kabel physisch in der Wand liegen', 'Wie teuer die Geräte beim Einkauf waren'], correct: 0, explanation: 'Die logische Topologie betrachtet den Daten- oder Signalweg; die physische Topologie betrachtet reale Verbindungen und Geräte.' },
+    ],
+  });
+
+  explanations.push({
+    id: 'criteria-classic',
+    style: 'classic',
+    blocks: [
+      { type: 'text', content: 'Sam legt den NEXUS-Netzplan auf den Tisch: „Ein Name allein reicht nicht. Bewerte jede Struktur nach Aufwand, Skalierbarkeit, Kapazität und Ausfallsicherheit.“' },
+      { type: 'table', headers: ['Kriterium', 'Leitfrage'], rows: [
+        ['Aufwand', 'Wie viel Zeit, Verkabelung und welche Komponenten braucht der Aufbau?'],
+        ['Skalierbarkeit', 'Wie einfach lässt sich die Struktur um weitere Teilnehmer oder Zweige erweitern?'],
+        ['Kapazität', 'Wo werden Übertragungsmöglichkeiten geteilt oder gebündelt, und welche Komponenten können begrenzen?'],
+        ['Ausfallsicherheit', 'Welche Teilnehmer sind betroffen, wenn ein Kabel, Gerät oder Verteiler ausfällt?'],
+      ] },
+      { type: 'text', content: 'Diese Kriterien sind kein starres Ranking. Die konkrete Technik, Dimensionierung und Redundanz entscheiden mit – eine Topologie ist nicht automatisch in jeder Situation die beste.' },
+      { type: 'question', facet: 'criteria', question: 'Welches Kriterium prüft, wie sich ein Netzwerk um weitere Teilnehmer erweitern lässt?', options: ['Skalierbarkeit', 'Ausfallsicherheit', 'Topologiename'], correct: 0, explanation: 'Skalierbarkeit beschreibt, wie gut sich eine Struktur erweitern lässt.' },
     ],
   });
 
@@ -233,34 +267,53 @@ function buildTopologienLesson() {
 
   const quiz = [
     {
+      facet: 'identification',
       question: 'Welche Topologie wird oft in modernen Ethernet-LANs eingesetzt, weil jeder PC einen eigenen Link zum zentralen Gerät hat?',
       options: ['Bus', 'Ring', 'Stern', 'Vermascht'],
       correct: 2,
       explanation: 'Im Stern hat jedes Endgerät einen eigenen Link zum Switch - das ist das Standardmodell moderner Büro-LANs.',
     },
     {
-      question: 'Welche Topologie ist besonders ausfallsicher, weil mehrere redundante Pfade zwischen den Knoten existieren?',
+      facet: 'resilience',
+      question: 'Welche Topologie bietet durch mehrere alternative Verbindungen grundsätzlich hohe Ausfallsicherheit?',
       options: ['Bus', 'Baum', 'Ring', 'Vermascht'],
       correct: 3,
       explanation: 'Vermaschte Topologien bieten redundante Pfade. Wenn ein Weg ausfällt, kann der Verkehr umgeleitet werden.',
     },
     {
+      facet: 'hierarchy',
       question: 'Welche Topologie entsteht, wenn mehrere Sterne hierarchisch miteinander verbunden werden?',
       options: ['Baum', 'Bus', 'Ring', 'Vollvermascht'],
       correct: 0,
       explanation: 'Ein Baum ist eine Hierarchie aus mehreren Stern-Netzen, typisch für größere Unternehmensnetze.',
     },
     {
-      question: 'Bei welcher Topologie wird ein Token verwendet, um zu regeln, welches Gerät gerade senden darf?',
+      facet: 'ring-context',
+      question: 'Bei welcher klassischen Netzwerktechnik wird ein Token verwendet, um zu regeln, welches Gerät gerade senden darf?',
       options: ['Bus', 'Ring', 'Stern', 'Baum'],
       correct: 1,
       explanation: 'Token Ring verwendet Token-Passing, um Kollisionen zu vermeiden und den Sendezugriff zu regeln.',
     },
     {
+      facet: 'bus',
       question: 'Welche Aussage über die Bus-Topologie ist korrekt?',
-      options: ['Sie skaliert sehr gut mit vielen Geräten.', 'Ein Kabelbruch legt das gesamte Netz lahm.', 'Sie benötigt immer einen zentralen Switch.'],
-      correct: 1,
-      explanation: 'Der Bus basiert auf einem gemeinsamen Kabel. Ein Bruch unterbricht die Verbindung für alle Teilnehmer.',
+      options: ['Alle Teilnehmer teilen sich ein gemeinsames Übertragungsmedium.', 'Jeder Teilnehmer braucht eine eigene Leitung zum zentralen Switch.', 'Sie ist automatisch vollvermascht.'],
+      correct: 0,
+      explanation: 'Der Bus basiert auf einem gemeinsamen Medium. Eine Störung dieses Hauptmediums kann deshalb viele Teilnehmer betreffen.',
+    },
+    {
+      facet: 'physical-logical',
+      question: 'Physisch hängen mehrere PCs an zentralen Verteilern. Was lässt sich daraus über den logischen Datenweg ableiten?',
+      options: ['Er muss nicht einfach dem offensichtlichsten physischen Weg entsprechen.', 'Er ist immer mit der sichtbaren Verkabelung identisch.', 'Es gibt ohne Vollvermaschung keinen logischen Datenweg.'],
+      correct: 0,
+      explanation: 'Physische Topologie beschreibt reale Verbindungen, logische Topologie den tatsächlich genutzten Daten- oder Signalweg.',
+    },
+    {
+      facet: 'tradeoff',
+      question: 'Warum ist eine Vollvermaschung nicht automatisch für jedes Netzwerk die beste Wahl?',
+      options: ['Hohe Redundanz steht einem stark steigenden Verbindungs- und Verwaltungsaufwand gegenüber.', 'Sie besitzt grundsätzlich keine alternativen Wege.', 'Sie kann nur aus zwei Teilnehmern bestehen.'],
+      correct: 0,
+      explanation: 'Vollvermaschung maximiert direkte Verbindungen, erhöht dadurch aber Aufwand und Komplexität. Die passende Struktur hängt von den Anforderungen ab.',
     },
   ];
 
@@ -281,6 +334,22 @@ function buildTopologienLesson() {
           right: topologies[key].tagline,
         })),
         explanation: 'Jeder Name beschreibt die typische Struktur der Topologie.',
+      },
+      {
+        id: 'topo-nexus-failure',
+        type: 'select-best',
+        question: 'Im neuen NEXUS-Büro besitzt jeder Arbeitsplatz eine eigene Leitung zum zentralen Switch. Nur das Kabel eines Arbeitsplatzes fällt aus. Welche Auswirkung ist typisch?',
+        options: ['Nur dieser Arbeitsplatz verliert zunächst die Verbindung.', 'Alle Arbeitsplätze verlieren zwingend die Verbindung.', 'Die Struktur wird automatisch vollvermascht.'],
+        correct: 0,
+        explanation: 'In der Sterntopologie betrifft der Ausfall einer einzelnen Teilnehmerleitung zunächst den angeschlossenen Arbeitsplatz. Der zentrale Verteiler bleibt dagegen ein kritischer gemeinsamer Punkt.',
+      },
+      {
+        id: 'topo-nexus-tradeoff',
+        type: 'select-best',
+        question: 'NEXUS benötigt alternative Verbindungen zwischen kritischen Verteilern, will aber nicht jeden Verteiler mit jedem direkt verbinden. Welche Wahl beschreibt diesen Trade-off?',
+        options: ['Teilvermaschung', 'Vollvermaschung', 'Ein einzelner passiver Bus'],
+        correct: 0,
+        explanation: 'Eine Teilvermaschung schafft gezielt Redundanz, begrenzt aber den Verbindungsaufwand gegenüber einer Vollvermaschung.',
       },
     ],
     quiz,

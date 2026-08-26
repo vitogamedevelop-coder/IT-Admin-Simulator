@@ -1541,7 +1541,22 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
 // so every practice/interview run gets a different combination.
 function pickRandomQuestions(pool, count) {
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, shuffled.length));
+  const tagged = shuffled.filter((question) => question.facet);
+  if (!tagged.length) return shuffled.slice(0, Math.min(count, shuffled.length));
+  const selected = [];
+  const usedFacets = new Set();
+  for (const question of tagged) {
+    if (usedFacets.has(question.facet)) continue;
+    selected.push(question);
+    usedFacets.add(question.facet);
+    if (selected.length === count) return selected;
+  }
+  for (const question of shuffled) {
+    if (selected.includes(question)) continue;
+    selected.push(question);
+    if (selected.length === count) break;
+  }
+  return selected;
 }
 
 // ---------- Praxis (practice quiz) ----------

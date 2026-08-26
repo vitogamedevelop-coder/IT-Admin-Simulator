@@ -87,7 +87,7 @@ function unlockAllTopics() {
 function runUntilItem(itemId) {
   resetEmployeeConversations();
   unlockAllTopics();
-  for (let i = 0; i < 300; i += 1) {
+  for (let i = 0; i < 1000; i += 1) {
     const conv = startEmployeeConversation();
     if (!conv) throw new Error('could not start conversation');
     let safety = 0;
