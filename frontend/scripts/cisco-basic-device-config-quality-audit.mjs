@@ -47,11 +47,23 @@ function covers(text, ...phrases) {
   return phrases.some((p) => t.includes(p.toLowerCase()));
 }
 
+function stringifyBlock(block) {
+  if (!block) return '';
+  if (typeof block.content === 'string') return block.content;
+  if (Array.isArray(block.content)) return block.content.join(' ');
+  if (typeof block.content === 'object' && block.content !== null) return JSON.stringify(block.content);
+  if (typeof block.title === 'string') return block.title;
+  if (block.rows || block.headers) return JSON.stringify({ headers: block.headers || [], rows: block.rows || [] });
+  if (Array.isArray(block.items)) return block.items.join(' ');
+  if (Array.isArray(block.options)) return block.options.join(' ');
+  return '';
+}
+
 const allTexts = [
-  ...(lesson?.explanations || []).flatMap((e) => e.blocks.map((b) => b.content || b.title || JSON.stringify(b.rows || b.items || b.options || []))).join(' '),
-  ...(lesson?.exercises || []).map((e) => `${e.id} ${e.question} ${e.explanation}`).join(' '),
-  ...(lesson?.quiz || []).map((q) => `${q.question} ${q.explanation}`).join(' '),
-  ...(lesson?.cliTasks || []).map((t) => `${t.prompt} ${t.explanation}`).join(' '),
+  ...(lesson?.explanations || []).flatMap((e) => e.blocks.map(stringifyBlock)),
+  ...(lesson?.exercises || []).map((e) => `${e.id} ${e.question} ${e.explanation}`),
+  ...(lesson?.quiz || []).map((q) => `${q.question} ${q.explanation}`),
+  ...(lesson?.cliTasks || []).map((t) => `${t.prompt} ${t.explanation}`),
 ].join(' ');
 
 if (covers(allTexts, 'no ', 'no-')) coverage.no.configure = true;
