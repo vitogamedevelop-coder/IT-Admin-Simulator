@@ -12,6 +12,12 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_SSH_TOPIC_KEY = topicKey('cisco-packet-tracer', 'ssh');
 
+const SSH_DEPENDENCY_SVG = `<svg viewBox="0 0 200 360" class="w-full h-auto max-h-80" xmlns="http://www.w3.org/2000/svg"><text x="100" y="20" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">SSH-Setup Kette</text><rect x="50" y="35" width="100" height="25" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="100" y="52" text-anchor="middle" fill="#c9d1d9" font-size="9">Hostname</text><polygon points="100,65 95,75 105,75" fill="#00f0ff"/><rect x="50" y="80" width="100" height="25" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="100" y="97" text-anchor="middle" fill="#c9d1d9" font-size="9">Domain Name</text><polygon points="100,110 95,120 105,120" fill="#00f0ff"/><rect x="50" y="125" width="100" height="25" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="100" y="142" text-anchor="middle" fill="#c9d1d9" font-size="9">Local User</text><polygon points="100,155 95,165 105,165" fill="#00f0ff"/><rect x="50" y="170" width="100" height="25" rx="4" fill="#00f0ff" opacity="0.9"/><text x="100" y="187" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">RSA Key</text><polygon points="100,200 95,210 105,210" fill="#00f0ff"/><rect x="50" y="215" width="100" height="25" rx="4" fill="#00f0ff" opacity="0.9"/><text x="100" y="232" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">SSHv2</text><polygon points="100,245 95,255 105,255" fill="#00f0ff"/><rect x="50" y="260" width="100" height="25" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="100" y="277" text-anchor="middle" fill="#c9d1d9" font-size="9">VTY + login local</text><polygon points="100,290 95,300 105,300" fill="#00f0ff"/><rect x="50" y="305" width="100" height="25" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="100" y="322" text-anchor="middle" fill="#c9d1d9" font-size="9">transport input ssh</text><polygon points="100,335 95,345 105,345" fill="#00f0ff"/><text x="100" y="358" text-anchor="middle" fill="#8b949e" font-size="8">Management-IP erreichbar</text></svg>`;
+
+const SSH_VS_TELNET_SVG = `<svg viewBox="0 0 340 140" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><text x="80" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Telnet</text><rect x="20" y="40" width="120" height="50" rx="5" fill="#ff7b72" opacity="0.35" stroke="#ff7b72" stroke-width="2"/><text x="80" y="58" text-anchor="middle" fill="#ff7b72" font-size="9">TCP 23</text><text x="80" y="75" text-anchor="middle" fill="#ff7b72" font-size="8">Klartext</text><text x="80" y="92" text-anchor="middle" fill="#ff7b72" font-size="8">unsicher</text><text x="260" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">SSH</text><rect x="200" y="40" width="120" height="50" rx="5" fill="#00f0ff" opacity="0.9"/><text x="260" y="58" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">TCP 22</text><text x="260" y="75" text-anchor="middle" fill="#0a1628" font-size="8">verschlüsselt</text><text x="260" y="92" text-anchor="middle" fill="#0a1628" font-size="8">sicher</text><rect x="140" y="105" width="60" height="25" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="170" y="122" text-anchor="middle" fill="#c9d1d9" font-size="8">Router/Switch</text></svg>`;
+
+const SSH_L2_SVI_SVG = `<svg viewBox="0 0 340 220" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">L2-Switch Management per SVI</text><rect x="20" y="60" width="80" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="78" text-anchor="middle" fill="#c9d1d9" font-size="8">Admin-PC</text><text x="60" y="93" text-anchor="middle" fill="#8b949e" font-size="7">192.168.99.x</text><rect x="130" y="120" width="80" height="45" rx="4" fill="#00f0ff" opacity="0.9"/><text x="170" y="138" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">L2-Switch</text><text x="170" y="156" text-anchor="middle" fill="#0a1628" font-size="8">Vlan99: 192.168.99.2</text><rect x="240" y="60" width="80" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="78" text-anchor="middle" fill="#c9d1d9" font-size="8">Router</text><text x="280" y="93" text-anchor="middle" fill="#8b949e" font-size="7">Gateway 192.168.99.1</text><line x1="100" y1="75" x2="130" y2="130" stroke="#00f0ff" stroke-width="2"/><line x1="210" y1="142" x2="240" y2="85" stroke="#00f0ff" stroke-width="2"/><text x="170" y="95" text-anchor="middle" fill="#8b949e" font-size="8">VLAN 99 Trunk</text><text x="170" y="185" text-anchor="middle" fill="#8b949e" font-size="8">ip default-gateway 192.168.99.1</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -36,6 +42,11 @@ function buildExplanations() {
     { type: 'question', question: 'Ein Administrator meldet sich über Telnet an einem Router an, um das Passwort zu ändern. Warum ist das problematisch?', options: ['Telnet ist zu langsam für Konfigurationsänderungen', 'Telnet überträgt Benutzername und Passwort unverschlüsselt im Klartext - jeder, der den Datenverkehr mitlesen kann, sieht die Zugangsdaten', 'Telnet funktioniert nicht mit Cisco-Geräten', 'Telnet benötigt zwingend eine grafische Oberfläche'], correct: 1, explanation: 'Telnet verschlüsselt nichts. Ein Angreifer, der den Verkehr mitlesen kann (z. B. per Sniffing im selben Segment), sieht Login und Passwort direkt im Klartext.' },
   ]));
 
+  exps.push(explanation('telnet-vs-ssh-visual', 'Telnet vs. SSH im Vergleich', 'visual', [
+    { type: 'diagram', content: SSH_VS_TELNET_SVG },
+    { type: 'text', content: 'Telnet (TCP 23) überträgt alles im Klartext - Zugangsdaten und Konfigurationsbefehle sind für jeden im selben Segment sichtbar. SSH (TCP 22) verschlüsselt die gesamte Verbindung und ist deshalb der Standard für Fernwartung.' },
+  ]));
+
   exps.push(explanation('ssh-version-classic', 'SSH Version 1 vs. Version 2', 'classic', [
     { type: 'text', content: 'SSH existiert in zwei Versionen. SSHv1 hat bekannte Sicherheitsschwächen und sollte nicht mehr verwendet werden. Auf Cisco-Geräten muss SSHv2 explizit aktiviert werden, sonst akzeptiert der Router/Switch je nach IOS-Version ggf. auch das unsichere SSHv1.' },
     { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
@@ -57,6 +68,11 @@ function buildExplanations() {
       '9. SSH-Zugriff testen.',
       '10. Konfiguration verifizieren (show-Befehle).',
     ] },
+  ]));
+
+  exps.push(explanation('ssh-dependency-visual', 'SSH-Abhängigkeiten', 'visual', [
+    { type: 'diagram', content: SSH_DEPENDENCY_SVG },
+    { type: 'text', content: 'Die SSH-Konfiguration ist eine Kette aus Voraussetzungen: Hostname und Domain Name müssen vor dem RSA-Schlüssel existieren; VTY-Lines brauchen einen lokalen Benutzer; und erst "transport input ssh" schließt Telnet aus.' },
   ]));
 
   exps.push(explanation('befehle-classic', 'Die einzelnen Befehle', 'classic', [
@@ -109,6 +125,11 @@ function buildExplanations() {
     { type: 'question', question: 'Warum konfigurieren wir die Management-IP eines Layer-2-Switches auf "interface vlan 99" und nicht einfach auf einem normalen Access-Port?', options: ['Weil Access-Ports keine IP-Adressen unterstützen und ein separates Management-VLAN die Verwaltung vom produktiven Datenverkehr trennt und unabhängig von einzelnen Ports erreichbar bleibt', 'Weil VLAN 99 immer automatisch die Management-VLAN-ID ist', 'Weil ein L2-Switch sonst nicht bootet', 'Es gibt keinen Unterschied, beide Varianten sind identisch'], correct: 0, explanation: 'Ein L2-Switch hat keine IP je Access-Port - eine SVI in einem eigenen Management-VLAN trennt die Verwaltung sauber vom Nutzdatenverkehr und ist unabhängig von einem einzelnen physischen Port erreichbar.' },
   ]));
 
+  exps.push(explanation('l2-management-visual', 'L2-Switch: Management-SVI und Default Gateway', 'visual', [
+    { type: 'diagram', content: SSH_L2_SVI_SVG },
+    { type: 'text', content: 'Ein L2-Switch bekommt für Fernwartung eine SVI in einem Management-VLAN. Soll das Management außerhalb des lokalen VLANs erreichbar sein, ist zusätzlich ein "ip default-gateway" nötig - im Gegensatz zu einem routenden L3-Gerät, das eine Default Route verwendet.' },
+  ]));
+
   exps.push(explanation('gemeinsamkeiten-classic', 'Router, L2-Switch, Multilayer-Switch: Gemeinsamkeiten und Unterschiede', 'classic', [
     { type: 'text', content: 'Die SSH-Grundkonfiguration (Hostname, Domain, enable secret, Benutzer, RSA-Key, SSH v2, VTY-Lines) ist auf allen drei Gerätetypen IDENTISCH. Der einzige Unterschied liegt darin, WIE die IP-Erreichbarkeit hergestellt wird.' },
     { type: 'table', headers: ['Gerät', 'IP-Erreichbarkeit über'], rows: [
@@ -122,16 +143,20 @@ function buildExplanations() {
     { type: 'table', headers: ['Symptom', 'Mögliche Ursache'], rows: [
       ['"% Please configure a hostname other than Router/Switch"', 'Kein individueller Hostname vergeben - Voraussetzung für crypto key generate rsa.'],
       ['crypto key generate rsa lässt sich nicht ausführen', 'Hostname oder Domain Name fehlt.'],
+      ['show ip ssh zeigt "SSH disabled"', 'RSA-Schlüssel fehlt oder SSHv2 wurde nicht aktiviert.'],
       ['SSH-Client verweigert die Verbindung', 'SSH ist gar nicht aktiv - meist fehlt "ip ssh version 2" oder der RSA-Key.'],
       ['Verbindung per Ping klappt, SSH-Login aber nicht', 'Auf den VTY-Lines fehlt "login local" oder "transport input ssh", oder der lokale Benutzer fehlt.'],
       ['Gerät per Ping gar nicht erreichbar', 'Management-IP/SVI fehlt, ist falsch konfiguriert oder administrativ "down" (kein "no shutdown").'],
+      ['SSH aus gleichem VLAN klappt, aus anderem Netz nicht (L2-Switch)', 'Für Fernzugriff über ein anderes Netz fehlt "ip default-gateway" oder es ist falsch.'],
+      ['Telnet funktioniert trotz SSH-Konfiguration weiterhin', 'Auf den VTY-Lines fehlt "transport input ssh" - SSH allein schließt Telnet nicht aus.'],
     ] },
     { type: 'question', question: 'Der Router ist per Ping erreichbar, aber der SSH-Login funktioniert nicht. Auf den VTY-Lines fehlt "login local". Was musst du konfigurieren?', options: ['ip ssh version 2 erneut eingeben', 'Unter "line vty 0 15" den Befehl "login local" eintragen, damit die lokale Benutzerdatenbank für die Anmeldung verwendet wird', 'Den Router neu starten', 'transport input telnet eintragen'], correct: 1, explanation: 'Ohne "login local" weiß die VTY-Line nicht, wie sie den Login prüfen soll - der lokal angelegte Benutzer wird dafür erst mit "login local" aktiviert.' },
   ]));
 
   exps.push(explanation('verifizierung-classic', 'SSH verifizieren', 'classic', [
     { type: 'table', headers: ['Befehl', 'Wofür'], rows: [
-      ['show ip ssh', 'Zeigt die aktive SSH-Version und den Verbindungsstatus.'],
+      ['show ip ssh', 'Zeigt die aktive SSH-Version und den Verbindungsstatus (SSH enabled / disabled).'],
+      ['show crypto key mypubkey rsa', 'Zeigt, ob ein RSA-Schlüsselpaar existiert.'],
       ['show ssh', 'Zeigt aktuell bestehende SSH-Sitzungen.'],
       ['show running-config | include vty', 'Prüft schnell die VTY-Konfiguration innerhalb der laufenden Konfiguration.'],
       ['show ip interface brief', 'Prüft, ob die Management-Schnittstelle/SVI "up" und mit der richtigen IP konfiguriert ist.'],
@@ -143,9 +168,10 @@ function buildExplanations() {
       'Telnet (Port 23) ist unverschlüsselt und unsicher, SSH (Port 22) verschlüsselt die Verbindung.',
       'Immer SSH Version 2 verwenden: "ip ssh version 2".',
       'Reihenfolge: Hostname → Domain Name → enable secret → Benutzer → RSA-Key → SSH v2 → IP-Erreichbarkeit → VTY (login local, transport input ssh).',
-      'Ein L2-Switch braucht für die Fernwartung eine SVI in einem eigenen Management-VLAN, da er selbst keine IP je Port hat und nicht routet.',
+      'Ein L2-Switch braucht für die Fernwartung eine SVI in einem eigenen Management-VLAN, da er selbst keine IP je Port hat und nicht routet. Für Erreichbarkeit aus anderen Netzen zusätzlich "ip default-gateway".',
       'Die SSH-Grundkonfiguration ist auf Router, L2-Switch und MLS identisch - nur die IP-Erreichbarkeit unterscheidet sich.',
-      'Verifizieren mit "show ip ssh", "show ssh", "show ip interface brief".',
+      '"transport input ssh" ist nötig, um Telnet auf den VTY-Lines auszuschließen - SSH allein tut das nicht automatisch.',
+      'Verifizieren mit "show ip ssh", "show crypto key mypubkey rsa", "show ssh", "show running-config | include vty", "show ip interface brief".',
     ] },
   ]));
 
@@ -215,6 +241,46 @@ function buildExercises() {
       expectedLines: ['ssh -l admin 192.168.100.254'],
       explanation: 'Der SSH-Client-Befehl lautet "ssh -l <Benutzer> <IP-Adresse>".',
     },
+    {
+      id: 'ssh-show-disabled-select',
+      type: 'select-best',
+      question: 'Du führst "show ip ssh" aus und siehst, dass SSH disabled ist. Was prüfst du zuerst?',
+      options: ['Ob ein RSA-Schlüssel existiert und "ip ssh version 2" gesetzt ist', 'Ob das Gerät neu gestartet werden muss', 'Ob das Passwort richtig ist', 'Ob ein Konsolenkabel angeschlossen ist'],
+      correct: 0,
+      explanation: 'SSH ist erst aktiv, wenn ein RSA-Schlüssel vorhanden und SSHv2 aktiviert ist.',
+    },
+    {
+      id: 'ssh-telnet-still-allowed-select',
+      type: 'select-best',
+      question: 'SSH funktioniert, aber ein Kollege meldet, dass Telnet auf dem Gerät immer noch funktioniert. Was wurde wahrscheinlich vergessen?',
+      options: ['ip ssh version 2', 'transport input ssh auf den VTY-Lines', 'crypto key generate rsa', 'username admin secret'],
+      correct: 1,
+      explanation: 'SSH allein schließt Telnet nicht aus. Erst "transport input ssh" auf den VTY-Lines beschränkt den Zugriff auf SSH.',
+    },
+    {
+      id: 'ssh-default-gateway-select',
+      type: 'select-best',
+      question: 'Ein L2-Switch ist im lokalen Management-VLAN per SSH erreichbar, aber nicht aus einem anderen Netz. Was fehlt vermutlich?',
+      options: ['ip default-gateway', 'ip routing', 'Eine statische Route', 'Ein neuer RSA-Key'],
+      correct: 0,
+      explanation: 'Ein reiner L2-Switch routet nicht. Für Erreichbarkeit aus anderen Netzen braucht er ein "ip default-gateway".',
+    },
+    {
+      id: 'ssh-crypto-key-verify-select',
+      type: 'select-best',
+      question: 'Welcher Befehl zeigt dir, ob auf dem Gerät ein RSA-Schlüsselpaar vorhanden ist?',
+      options: ['show ip ssh', 'show crypto key mypubkey rsa', 'show running-config', 'show users'],
+      correct: 1,
+      explanation: '"show crypto key mypubkey rsa" zeigt den öffentlichen Teil des RSA-Schlüssels - ein guter Indikator dafür, ob ein Schlüssel existiert.',
+    },
+    {
+      id: 'ssh-zeroize-select',
+      type: 'select-best',
+      question: 'Ein veralteter oder falscher RSA-Schlüssel soll entfernt und neu erzeugt werden. Welcher Befehl löscht den alten Schlüssel?',
+      options: ['no crypto key', 'crypto key zeroize rsa', 'delete rsa', 'clear crypto key'],
+      correct: 1,
+      explanation: '"crypto key zeroize rsa" entfernt die bestehenden RSA-Schlüssel, danach kann ein neuer Schlüssel erzeugt werden.',
+    },
   ];
 }
 
@@ -226,6 +292,11 @@ function buildQuiz() {
     { question: 'Was bewirkt "transport input ssh" auf den VTY-Lines?', options: ['Aktiviert Telnet zusätzlich zu SSH', 'Erlaubt auf den VTY-Lines ausschließlich SSH-Verbindungen, Telnet wird blockiert', 'Löscht alle VTY-Lines', 'Aktiviert SSH Version 1'], correct: 1, explanation: '"transport input ssh" lässt nur noch SSH als Zugangsprotokoll auf den VTY-Lines zu.' },
     { question: 'Warum braucht ein reiner Layer-2-Switch für die Fernwartung eine SVI statt einer IP auf einem Access-Port?', options: ['Access-Ports können generell keine IP-Adressen haben, und eine SVI in einem eigenen Management-VLAN trennt die Verwaltung vom produktiven Datenverkehr', 'Weil SVIs schneller sind als Access-Ports', 'Weil ein L2-Switch sonst nicht bootet', 'Es gibt keinen Unterschied'], correct: 0, explanation: 'Ein L2-Switch besitzt keine IP je Port - die Management-Erreichbarkeit läuft über eine SVI in einem eigenen VLAN.' },
     { question: 'Was ist der Unterschied bei der SSH-Grundkonfiguration zwischen Router, L2-Switch und Multilayer-Switch?', options: ['Es gibt keinen - die Befehle für Hostname, Domain, Benutzer, RSA-Key, SSH v2 und VTY sind identisch, nur die Art der IP-Erreichbarkeit unterscheidet sich', 'Nur der Router kann SSH', 'L2-Switches brauchen kein enable secret', 'Multilayer-Switches benötigen kein RSA-Schlüsselpaar'], correct: 0, explanation: 'Die SSH-Grundkonfiguration ist auf allen drei Gerätetypen gleich - unterschiedlich ist nur die IP-Erreichbarkeit (physisches Interface vs. SVI).' },
+    { question: 'SSH wurde eingerichtet, aber "show ip ssh" zeigt "SSH disabled". Was ist die wahrscheinlichste Ursache?', options: ['VTY-Lines fehlen', 'RSA-Schlüssel fehlt oder SSHv2 wurde nicht aktiviert', 'Das Passwort ist falsch', 'Das Interface ist zu langsam'], correct: 1, explanation: 'SSH ist erst aktiv, wenn ein RSA-Schlüssel existiert und "ip ssh version 2" gesetzt ist.' },
+    { question: 'Ein L2-Switch ist im gleichen VLAN per SSH erreichbar, aber nicht aus einem anderen Netz. Was fehlt?', options: ['ip routing', 'ip default-gateway', 'Eine neue VTY-Line', 'crypto key generate rsa'], correct: 1, explanation: 'Ein reiner L2-Switch kann nicht routen und braucht für Erreichbarkeit aus anderen Netzen ein Default Gateway.' },
+    { question: 'Warum reicht es nicht, nur SSH zu konfigurieren, um Telnet zu deaktivieren?', options: ['SSH deaktiviert Telnet automatisch', 'Man muss zusätzlich "transport input ssh" auf den VTY-Lines setzen', 'Telnet läuft auf einem anderen Gerät', 'Telnet ist ein Hardware-Feature'], correct: 1, explanation: 'Erst "transport input ssh" auf den VTY-Lines schließt Telnet aus. SSH allein tut das nicht automatisch.' },
+    { question: 'Welcher Befehl zeigt an, ob ein RSA-Schlüsselpaar auf dem Gerät existiert?', options: ['show ip ssh', 'show crypto key mypubkey rsa', 'show ssh', 'show users'], correct: 1, explanation: '"show crypto key mypubkey rsa" listet den öffentlichen RSA-Schlüssel und zeigt so die Existenz eines Schlüssels an.' },
+    { question: 'Ein RSA-Schlüssel soll gelöscht und neu erzeugt werden. Welcher Befehl löscht den Schlüssel?', options: ['no crypto key', 'crypto key zeroize rsa', 'delete rsa', 'clear ssh'], correct: 1, explanation: '"crypto key zeroize rsa" entfernt die bestehenden RSA-Schlüssel vom Gerät.' },
   ];
 }
 
@@ -255,6 +326,21 @@ function buildCliTasks() {
       prompt: 'Sam: "Zeig mir kurz, welche SSH-Version aktiv ist und ob schon jemand verbunden ist."',
       expectedLines: [['show ip ssh', 'sh ip ssh']],
       explanation: '"show ip ssh" zeigt die aktive Version und den Verbindungsstatus.',
+    },
+    {
+      prompt: 'Sam: "Prüfe, ob auf dem Gerät ein RSA-Schlüsselpaar existiert."',
+      expectedLines: ['show crypto key mypubkey rsa'],
+      explanation: '"show crypto key mypubkey rsa" zeigt den öffentlichen RSA-Schlüssel - ein Indikator, dass ein Schlüsselpaar vorhanden ist.',
+    },
+    {
+      prompt: 'Sam: "Lösche den alten RSA-Schlüssel, damit du später einen neuen erzeugen kannst."',
+      expectedLines: ['crypto key zeroize rsa'],
+      explanation: '"crypto key zeroize rsa" entfernt die bestehenden RSA-Schlüssel.',
+    },
+    {
+      prompt: 'Sam: "Ein L2-Switch soll aus einem anderen Netz per SSH erreichbar sein. Sein Management-Gateway ist 192.168.99.1."',
+      expectedLines: ['ip default-gateway 192.168.99.1'],
+      explanation: 'Ein reiner L2-Switch braucht für Erreichbarkeit aus anderen Netzen ein "ip default-gateway".',
     },
   ];
 }
