@@ -31,6 +31,7 @@ import { ciscoTrunkKnowledgeItems } from './items/ciscoTrunk.js';
 import { ciscoRouterBasicsKnowledgeItems } from './items/ciscoRouterBasics.js';
 import { ciscoStaticRoutingKnowledgeItems } from './items/ciscoStaticRouting.js';
 import { ciscoInterVlanRoutingKnowledgeItems } from './items/ciscoInterVlanRouting.js';
+import { ciscoMultilayerSwitchingKnowledgeItems } from './items/ciscoMultilayerSwitching.js';
 import { NETWORK_BASICS_ITEMS } from './items/networkBasics.js';
 import { CISCO_THEORY_ITEMS } from './items/ciscoTheory.js';
 import { informationSecurityKnowledgeItems } from './items/informationSecurity.js';
@@ -96,6 +97,7 @@ const PILOT_ITEMS = [
   ...ciscoRouterBasicsKnowledgeItems,
   ...ciscoStaticRoutingKnowledgeItems,
   ...ciscoInterVlanRoutingKnowledgeItems,
+  ...ciscoMultilayerSwitchingKnowledgeItems,
   ...NETWORK_BASICS_ITEMS,
   ...CISCO_THEORY_ITEMS,
   ...informationSecurityKnowledgeItems,
