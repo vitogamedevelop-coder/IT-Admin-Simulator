@@ -100,19 +100,16 @@ export const ACADEMY_TOPICS = [
   topic('fundamentals', 'subnetting', 'Subnetting', 'Netzwerke in kleinere Subnetze aufteilen.', ['ipv4', 'binary-system', 'subnet-masks']),
   topic('fundamentals', 'vlsm', 'VLSM', 'Variable Subnetzmasken für unterschiedlich große Subnetze.', ['subnetting']),
   topic('fundamentals', 'supernetting', 'Supernetting', 'Mehrere Netze zu einem größeren zusammenfassen.', ['vlsm']),
-  topic('fundamentals', 'ports', 'Ports', 'Wie Ports Dienste auf einem Host unterscheiden.', ['tcp-ip-model']),
-  topic('fundamentals', 'transport-protocols', 'Transportprotokolle', 'Aufgabe der Transportschicht im TCP/IP-Modell.', ['tcp-ip-model']),
-  // Merged (Milestone C5.3) from the three previously separate topics "TCP",
-  // "UDP" and "TCP vs. UDP" into one topic - see academyLessons/tcpUdp.js.
-  // academyProgress.js migrates any pre-existing progress under the old
-  // topicIds into this one.
-  topic('fundamentals', 'tcp-udp', 'TCP & UDP', 'Verbindungsorientiert vs. verbindungslos, Zuverlässigkeit, Reihenfolge, Fehlerkontrolle und der Three-Way Handshake.', ['transport-protocols']),
-  topic('fundamentals', 'dns', 'DNS', 'Namensauflösung von Domainnamen zu IP-Adressen.', ['ports']),
-  topic('fundamentals', 'dhcp', 'DHCP', 'Automatische Vergabe von IP-Konfigurationen.', ['ports']),
+  // TCP & UDP absorbieren die ehemaligen Platzhalter "Ports" und
+  // "Transportprotokolle": Ports, Protokoll-Ports und Transport-Grundlagen
+  // werden hier in einem durchgängigen Lernflow behandelt. DNS und DHCP bauen
+  // darauf auf.
+  topic('fundamentals', 'tcp-udp', 'TCP & UDP', 'Verbindungsorientiert vs. verbindungslos, Zuverlässigkeit, Reihenfolge, Fehlerkontrolle und der Three-Way Handshake.', ['tcp-ip-model']),
+  topic('fundamentals', 'dns', 'DNS', 'Namensauflösung von Domainnamen zu IP-Adressen.', ['tcp-udp']),
+  topic('fundamentals', 'dhcp', 'DHCP', 'Automatische Vergabe von IP-Konfigurationen.', ['tcp-udp']),
   topic('fundamentals', 'routing', 'Routing', 'Wie Pakete zwischen Netzwerken weitergeleitet werden.', ['ipv4']),
   topic('fundamentals', 'switching', 'Switching', 'Wie Switches Datenverkehr im lokalen Netz vermitteln.', ['grundbegriffe']),
   topic('fundamentals', 'vlan-basics', 'VLAN-Grundlagen', 'Logische Trennung eines physischen Netzwerks.', ['switching']),
-  topic('fundamentals', 'inter-vlan-routing', 'Inter-VLAN Routing', 'Router-on-a-Stick, Subinterfaces, 802.1Q, Gateways und Layer-2-/Layer-3-Unterschiede.', ['routing', 'vlan-basics']),
 
   // ---------------------------------------------------------------------
   // 2. Cisco – Packet Tracer

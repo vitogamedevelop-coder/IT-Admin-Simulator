@@ -1095,13 +1095,19 @@ export const CONVERSATION_TOPICS = {
     introPool: [
       'Wann nimmt man TCP, wann UDP?',
       'Mein VoIP-Anruf ruckelt. Hat das mit dem Transportprotokoll zu tun?',
+      'Mein Browser ruft eine Seite ab. Wie weiß der Server, welche Anwendung antworten soll?',
+      'Warum reicht eine IP-Adresse allein nicht für eine Verbindung aus?',
     ],
-    samHelp: 'TCP ist verbindungsorientiert, zuverlässig und reihenfolgetreu (Three-Way Handshake, ACKs, Wiederholung). UDP ist verbindungslos, schneller, aber unzuverlässig – gut für Streaming, VoIP, DNS.',
+    samHelp: 'TCP ist verbindungsorientiert, zuverlässig und reihenfolgetreu (Three-Way Handshake, ACKs, Wiederholung). UDP ist verbindungslos, schneller, aber unzuverlässig – gut für Streaming, VoIP, DNS. IP-Adressen identifizieren Hosts, Port-Nummern identifizieren Dienste auf einem Host. Bekannte Ports: HTTP 80, HTTPS 443, DNS 53, SSH 22, DHCP 67/68. TCP- und UDP-Header tragen jeweils Quell- und Zielport.',
     questions: [
       { id: 'tp-1', difficulty: 'easy', text: 'Welches Protokoll ist zuverlässig und verbindungsorientiert?', options: ['UDP', 'TCP', 'ICMP', 'ARP'], correct: 1, explanation: 'TCP baut eine Verbindung auf, bestätigt Empfang und sorgt für korrekte Reihenfolge.' },
       { id: 'tp-2', difficulty: 'medium', text: 'Wie viele Pakete umfasst der TCP-Three-Way-Handshake?', options: ['2', '3', '4', '5'], correct: 1, explanation: 'SYN, SYN-ACK, ACK – insgesamt drei Pakete.' },
       { id: 'tp-3', difficulty: 'medium', text: 'Für welche Anwendung ist UDP typisch besser geeignet?', options: ['Datei-Download', 'E-Mail', 'VoIP/Video-Streaming', 'Webseitenaufruf'], correct: 2, explanation: 'UDP hat weniger Overhead und akzeptiert gelegentliche Paketverluste, was für Echtzeit-Anwendungen ideal ist.' },
       { id: 'tp-4', difficulty: 'hard', text: 'Was passiert, wenn ein TCP-Segment verloren geht?', options: ['Nichts', 'Der Sender wiederholt es nach Timeout', 'Der Empfänger ignoriert es', 'Das nächste Segment ersetzt es'], correct: 1, explanation: 'TCP erkennt fehlende ACKs und sendet das betroffene Segment erneut.' },
+      { id: 'port-1', difficulty: 'easy', text: 'Wozu dienen Port-Nummern?', options: ['MAC-Adressen vergeben', 'Dienste auf einem Host unterscheiden', 'Den Gateway festlegen', 'Subnetze bilden'], correct: 1, explanation: 'Port-Nummern ermöglichen es, mehrere Dienste auf einer IP-Adresse zu betreiben.' },
+      { id: 'port-2', difficulty: 'easy', text: 'Welcher Port wird typischerweise für HTTP verwendet?', options: ['21', '53', '80', '443'], correct: 2, explanation: 'HTTP verwendet standardmäßig TCP-Port 80; HTTPS verwendet 443.' },
+      { id: 'port-3', difficulty: 'medium', text: 'Welcher Dienst nutzt typischerweise UDP-Port 53?', options: ['HTTP', 'DNS', 'SMTP', 'SSH'], correct: 1, explanation: 'DNS-Anfragen werden oft über UDP-Port 53 gesendet (TCP für größere Antworten).' },
+      { id: 'port-4', difficulty: 'medium', text: 'Warum reicht eine IP-Adresse allein nicht für eine TCP-Verbindung?', options: ['Weil Ports optional sind', 'Weil auch Quell- und Zielport bekannt sein müssen', 'Weil MAC-Adressen fehlen', 'Weil DNS nicht funktioniert'], correct: 1, explanation: 'Eine TCP-Verbindung besteht aus Quell-IP:Port und Ziel-IP:Port; beides ist nötig.' },
     ],
   },
   [topicKey('fundamentals', 'switching')]: {
@@ -1134,24 +1140,9 @@ export const CONVERSATION_TOPICS = {
       { id: 'vlan-4', difficulty: 'medium', text: 'Was passiert, wenn zwei Hosts im selben VLAN aber unterschiedlichen IP-Subnetzen sind?', options: ['Sie kommunizieren normal', 'Sie können nicht direkt kommunizieren', 'Der Switch verweigert die Verbindung', 'Das VLAN wird deaktiviert'], correct: 1, explanation: 'VLAN und IP-Subnetz müssen zusammenpassen; unterschiedliche Subnetze brauchen einen Router/L3-Switch.' },
     ],
   },
-  [topicKey('fundamentals', 'ports')]: {
-    title: 'Ports',
-    relatedTopics: [topicKey('fundamentals', 'tcp-ip-model'), topicKey('fundamentals', 'tcp-udp')],
-    introPool: [
-      'Mein Browser ruft eine Seite ab. Wie weiß der Server, welche Anwendung antworten soll?',
-      'Warum reicht eine IP-Adresse allein nicht für eine Verbindung aus?',
-    ],
-    samHelp: 'IP-Adressen identifizieren Hosts, Port-Nummern identifizieren Dienste auf einem Host. Bekannte Ports: HTTP 80, HTTPS 443, DNS 53, SSH 22, DHCP 67/68. TCP- und UDP-Header tragen jeweils Quell- und Zielport.',
-    questions: [
-      { id: 'port-1', difficulty: 'easy', text: 'Wozu dienen Port-Nummern?', options: ['MAC-Adressen vergeben', 'Dienste auf einem Host unterscheiden', 'Den Gateway festlegen', 'Subnetze bilden'], correct: 1, explanation: 'Port-Nummern ermöglichen es, mehrere Dienste auf einer IP-Adresse zu betreiben.' },
-      { id: 'port-2', difficulty: 'easy', text: 'Welcher Port wird typischerweise für HTTP verwendet?', options: ['21', '53', '80', '443'], correct: 2, explanation: 'HTTP verwendet standardmäßig TCP-Port 80; HTTPS verwendet 443.' },
-      { id: 'port-3', difficulty: 'medium', text: 'Welcher Dienst nutzt typischerweise UDP-Port 53?', options: ['HTTP', 'DNS', 'SMTP', 'SSH'], correct: 1, explanation: 'DNS-Anfragen werden oft über UDP-Port 53 gesendet (TCP für größere Antworten).' },
-      { id: 'port-4', difficulty: 'medium', text: 'Warum reicht eine IP-Adresse allein nicht für eine TCP-Verbindung?', options: ['Weil Ports optional sind', 'Weil auch Quell- und Zielport bekannt sein müssen', 'Weil MAC-Adressen fehlen', 'Weil DNS nicht funktioniert'], correct: 1, explanation: 'Eine TCP-Verbindung besteht aus Quell-IP:Port und Ziel-IP:Port; beides ist nötig.' },
-    ],
-  },
   [topicKey('fundamentals', 'routing')]: {
     title: 'Routing',
-    relatedTopics: [topicKey('fundamentals', 'ipv4'), topicKey('fundamentals', 'tcp-ip-model'), topicKey('fundamentals', 'inter-vlan-routing')],
+    relatedTopics: [topicKey('fundamentals', 'ipv4'), topicKey('fundamentals', 'tcp-ip-model')],
     introPool: [
       'Warum antwortet ein Host in einem anderen Netz nicht auf meinen Ping?',
       'Wie entscheidet ein Router, wohin ein Paket geschickt wird?',
@@ -1164,9 +1155,12 @@ export const CONVERSATION_TOPICS = {
       { id: 'route-4', difficulty: 'medium', text: 'Was ist der Default Gateway?', options: ['Der schnellste Router im Internet', 'Der Router, den ein Host für fremde Netze verwendet', 'Das lokale Subnetz', 'Ein DNS-Server'], correct: 1, explanation: 'Der Default Gateway ist der Router, an den ein Host Pakete sendet, deren Ziel nicht im lokalen Subnetz liegt.' },
     ],
   },
-  [topicKey('fundamentals', 'inter-vlan-routing')]: {
-    title: 'Inter-VLAN Routing',
-    relatedTopics: [topicKey('fundamentals', 'routing'), topicKey('fundamentals', 'vlan-basics')],
+  // Der aus den Fundamentals entfernte Platzhalter "Inter-VLAN Routing" lebt
+  // fachlich in der Cisco-Lektion "Router on a Stick" weiter. Die
+  // Gesprächsfragen werden daher dem Cisco-Topic zugeordnet.
+  [topicKey('cisco-packet-tracer', 'inter-vlan-routing')]: {
+    title: 'Router on a Stick',
+    relatedTopics: [topicKey('cisco-packet-tracer', 'trunk'), topicKey('cisco-packet-tracer', 'router-basics')],
     introPool: [
       'Wie können Geräte in unterschiedlichen VLANs miteinander kommunizieren?',
       'Router-on-a-Stick – wie funktioniert das eigentlich?',

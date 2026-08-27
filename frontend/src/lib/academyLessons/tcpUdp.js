@@ -126,7 +126,7 @@ function buildExplanations() {
   ]));
 
   // ---------------------------------------------------------------------
-  // 6. Ports (kurzer Bezug, vertieft im eigenen Thema "Ports")
+  // 6. Ports im TCP/UDP-Kontext
   // ---------------------------------------------------------------------
   exps.push(explanation('ports-classic', 'TCP/UDP und Ports', 'classic', [
     { type: 'text', content: 'Sowohl TCP als auch UDP nutzen Portnummern (0-65535), um innerhalb eines Geräts den richtigen Dienst zu adressieren. Ein Socket besteht aus IP-Adresse + Port + Protokoll (TCP oder UDP).' },
