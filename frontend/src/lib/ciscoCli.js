@@ -70,6 +70,8 @@ function expandKnownAbbreviations(line) {
   // show vlan brief, interface fa0/1, ...) - re-checked once more afterwards
   // so e.g. "sh run" first becomes "show run" and then "show running-config".
   if (/^sh\s/.test(line)) return expandKnownAbbreviations(line.replace(/^sh\s/, 'show '));
+  if (/^show int\s/.test(line)) return expandKnownAbbreviations(line.replace(/^show int\s/, 'show interfaces '));
+  if (/^sw\s/.test(line)) return expandKnownAbbreviations(line.replace(/^sw\s/, 'switchport '));
   if (/^int\s/.test(line)) return expandKnownAbbreviations(line.replace(/^int\s/, 'interface '));
   return line;
 }

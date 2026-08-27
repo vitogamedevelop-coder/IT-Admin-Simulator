@@ -16,6 +16,8 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_VLAN_TOPIC_KEY = topicKey('cisco-packet-tracer', 'vlan');
 
+const VLAN_SEGMENTATION_SVG = `<svg viewBox="0 0 320 200" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><rect x="90" y="20" width="140" height="40" rx="6" fill="#00f0ff" opacity="0.9"/><text x="160" y="46" text-anchor="middle" fill="#0a1628" font-size="12" font-weight="bold">Switch</text><rect x="20" y="100" width="80" height="70" rx="6" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="125" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">VLAN 10</text><text x="60" y="145" text-anchor="middle" fill="#8b949e" font-size="9">PC A</text><text x="60" y="160" text-anchor="middle" fill="#8b949e" font-size="9">PC B</text><rect x="120" y="100" width="80" height="70" rx="6" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="125" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">VLAN 20</text><text x="160" y="145" text-anchor="middle" fill="#8b949e" font-size="9">PC C</text><text x="160" y="160" text-anchor="middle" fill="#8b949e" font-size="9">PC D</text><rect x="220" y="100" width="80" height="70" rx="6" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="260" y="125" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">VLAN 30</text><text x="260" y="145" text-anchor="middle" fill="#8b949e" font-size="9">Server</text><line x1="120" y1="60" x2="60" y2="100" stroke="#8b949e" stroke-width="2"/><line x1="160" y1="60" x2="160" y2="100" stroke="#8b949e" stroke-width="2"/><line x1="200" y1="60" x2="260" y2="100" stroke="#8b949e" stroke-width="2"/></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -28,6 +30,11 @@ function buildExplanations() {
   // ---------------------------------------------------------------------
   exps.push(explanation('intro-classic', 'VLANs auf einem echten Switch', 'classic', [
     { type: 'text', content: 'In "VLAN-Grundlagen" und in "Grundkonfiguration" hast du bereits gesehen, was ein VLAN ist und wie du eines mit "vlan <ID>" anlegst. In dieser Lektion vertiefst du das: VLAN-ID-Bereiche, das Default VLAN, wie Kommunikation innerhalb und zwischen VLANs abläuft - und vor allem viel aktive CLI-Praxis.' },
+  ]));
+
+  exps.push(explanation('segmentation-visual', 'Ein Switch – mehrere logische Netze', 'visual', [
+    { type: 'diagram', content: VLAN_SEGMENTATION_SVG },
+    { type: 'text', content: 'Derselbe physische Switch kann mehrere logische Broadcastdomänen enthalten. Geräte im selben VLAN können direkt kommunizieren, Geräte in unterschiedlichen VLANs benötigen dafür ein Layer-3-Gerät.' },
   ]));
 
   // ---------------------------------------------------------------------
@@ -157,6 +164,14 @@ function buildExercises() {
       expectedLines: ['vlan 20', 'name Gaeste', 'exit', 'vlan 30', 'name Produktion', 'exit'],
       explanation: 'Für jedes weitere VLAN wiederholst du dasselbe Muster: vlan anlegen, benennen, exit.',
     },
+    {
+      id: 'vlan-missing-dependency-select',
+      type: 'select-best',
+      question: 'Du gibst "switchport access vlan 40" ein, aber "show vlan brief" zeigt kein VLAN 40. Was ist die wahrscheinlichste Ursache?',
+      options: ['Der Befehl ist falsch geschrieben', 'VLAN 40 wurde noch nicht angelegt', 'Der Port ist falsch ausgewählt', 'VLAN 40 darf nicht als Access-VLAN verwendet werden'],
+      correct: 1,
+      explanation: 'Ein VLAN muss zuerst mit "vlan <ID>" angelegt werden, bevor es einem Port zugewiesen werden kann.',
+    },
   ];
 }
 
@@ -167,6 +182,7 @@ function buildQuiz() {
     { question: 'Ein Switchport wurde noch nie konfiguriert. In welchem VLAN befindet er sich?', options: ['In keinem VLAN', 'VLAN 99', 'VLAN 1 (Default VLAN)', 'Er ist automatisch ein Trunk'], correct: 2, explanation: 'Jeder Port gehört ohne explizite Konfiguration automatisch zum Default VLAN 1.' },
     { question: 'Zwei PCs stehen in unterschiedlichen VLANs (10 und 20) am selben Switch. Was passiert ohne weitere Konfiguration?', options: ['Sie können normal kommunizieren', 'Der Switch übersetzt automatisch zwischen den VLANs', 'Sie können NICHT kommunizieren, da dafür ein Layer-3-Gerät nötig ist', 'Beide werden automatisch in VLAN 1 verschoben'], correct: 2, explanation: 'Ohne Router oder Multilayer-Switch gibt es keine Kommunikation zwischen unterschiedlichen VLANs.' },
     { question: 'Welche Befehlsfolge legt VLAN 40 mit dem Namen "Server" korrekt an?', options: ['vlan 40 → interface vlan 40 → name Server', 'vlan 40 → name Server → exit', 'name Server → vlan 40 → exit', 'interface vlan 40 → vlan 40 → name Server'], correct: 1, explanation: 'Erst das VLAN mit "vlan 40" anlegen, dann mit "name Server" benennen, danach den Modus mit "exit" verlassen.' },
+    { question: 'Ein Trunk-Port erscheint in "show vlan brief" nicht unter einem bestimmten VLAN. Was sagt das?', options: ['Der Port ist defekt', 'Trunk-Ports werden in "show vlan brief" nicht wie Access-Ports einzelnen VLANs zugeordnet', 'Das VLAN existiert nicht', 'Der Trunk ist abgeschaltet'], correct: 1, explanation: '"show vlan brief" zeigt Access-Port-Zuweisungen. Für Trunk-Details nutzt man "show interfaces trunk".' },
   ];
 }
 

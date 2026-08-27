@@ -10,6 +10,8 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_ACCESS_PORT_TOPIC_KEY = topicKey('cisco-packet-tracer', 'access-port');
 
+const ACCESS_VS_TRUNK_SVG = `<svg viewBox="0 0 340 200" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Access vs Trunk</text><rect x="120" y="40" width="100" height="40" rx="6" fill="#00f0ff" opacity="0.9"/><text x="170" y="66" text-anchor="middle" fill="#0a1628" font-size="12" font-weight="bold">Switch</text><rect x="10" y="120" width="80" height="60" rx="6" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="50" y="145" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">PC A</text><text x="50" y="165" text-anchor="middle" fill="#8b949e" font-size="9">VLAN 10</text><line x1="120" y1="75" x2="90" y2="130" stroke="#8b949e" stroke-width="2"/><text x="75" y="105" text-anchor="middle" fill="#8b949e" font-size="9">Access</text><rect x="120" y="120" width="80" height="60" rx="6" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="145" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">PC B</text><text x="160" y="165" text-anchor="middle" fill="#8b949e" font-size="9">VLAN 20</text><line x1="170" y1="80" x2="160" y2="120" stroke="#8b949e" stroke-width="2"/><text x="140" y="105" text-anchor="middle" fill="#8b949e" font-size="9">Access</text><rect x="230" y="120" width="80" height="60" rx="6" fill="#00f0ff" opacity="0.5" stroke="#00f0ff" stroke-width="2"/><text x="270" y="145" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">Switch 2</text><text x="270" y="165" text-anchor="middle" fill="#0a1628" font-size="9">VLAN 10,20</text><line x1="220" y1="75" x2="270" y2="120" stroke="#00f0ff" stroke-width="3"/><text x="255" y="105" text-anchor="middle" fill="#00f0ff" font-size="9">Trunk</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -27,6 +29,11 @@ function buildExplanations() {
       'Überträgt Frames für genau EIN VLAN - und zwar ungetaggt. Das Endgerät selbst "weiß" nichts von VLANs.',
       'Ist der Port-Typ für praktisch jeden normalen Benutzer-Anschluss - im Gegensatz zum Trunk-Port, der mehrere VLANs zwischen Switches transportiert (siehe nächste Lektion).',
     ] },
+  ]));
+
+  exps.push(explanation('access-vs-trunk-visual', 'Access vs Trunk im Überblick', 'visual', [
+    { type: 'diagram', content: ACCESS_VS_TRUNK_SVG },
+    { type: 'text', content: 'PC A und PC B bekommen jeweils einen Access-Port für genau ihr VLAN. Zur Verbindung zwischen zwei Switches wird ein Trunk genutzt, der beide VLANs getaggt transportiert.' },
   ]));
 
   exps.push(explanation('cli-classic', 'Einen Port als Access-Port konfigurieren', 'classic', [
@@ -113,6 +120,21 @@ function buildExercises() {
       expectedLines: ['interface range fa0/1-10', 'switchport mode access', 'switchport access vlan 10'],
       explanation: '"interface range" wendet die folgenden Befehle auf alle ausgewählten Ports gleichzeitig an.',
     },
+    {
+      id: 'access-port-trunk-mistake-select',
+      type: 'select-best',
+      question: 'Ein PC an fa0/5 soll VLAN 20 erreichen, aber "show interfaces switchport" zeigt "Administrative Mode: trunk". Was ist zu tun?',
+      options: ['Den PC neu starten', 'Den Port als Access-Port konfigurieren und VLAN 20 zuweisen', 'Das VLAN 20 löschen und neu anlegen', 'Ein Trunk-Kabel verwenden'],
+      correct: 1,
+      explanation: 'Ein Endgeräte-Port muss "switchport mode access" erhalten und einem VLAN zugewiesen werden, damit das Gerät im richtigen VLAN landet.',
+    },
+    {
+      id: 'access-port-verify-cli',
+      type: 'cli-input',
+      question: 'Ein PC an FastEthernet0/8 soll im VLAN 30 sein. Konfiguriere den Port und verifiziere anschließend mit "show vlan brief".',
+      expectedLines: ['interface fa0/8', 'switchport mode access', 'switchport access vlan 30', 'show vlan brief'],
+      explanation: 'Konfiguriere den Port, prüfe dann mit "show vlan brief", ob der Port korrekt zugewiesen wurde.',
+    },
   ];
 }
 
@@ -123,6 +145,8 @@ function buildQuiz() {
     { question: 'Welcher Befehl zeigt am schnellsten, welche Ports welchem VLAN zugewiesen sind?', options: ['show running-config', 'show vlan brief', 'show interfaces trunk', 'show ip interface brief'], correct: 1, explanation: '"show vlan brief" listet VLANs mit ihren zugewiesenen Ports kompakt auf.' },
     { question: 'Was bewirkt "interface range fa0/1-10"?', options: ['Es löscht die Konfiguration der Ports 1-10', 'Es wählt die Ports 1 bis 10 gleichzeitig zur weiteren Konfiguration aus', 'Es erstellt automatisch VLAN 1 bis 10', 'Es aktiviert Trunking auf allen Ports'], correct: 1, explanation: 'Damit lassen sich mehrere Ports gleichzeitig konfigurieren, ohne jeden einzeln durchzugehen.' },
     { question: '"switchport access vlan 25" zeigt keine Wirkung. Was ist die wahrscheinlichste Ursache?', options: ['Der Port ist defekt', 'VLAN 25 wurde noch nicht angelegt', 'Der Befehl ist falsch geschrieben', 'Access-Ports unterstützen keine geraden VLAN-IDs'], correct: 1, explanation: 'Ein VLAN muss vor der Zuweisung existieren.' },
+    { question: 'Ein Port zeigt "Administrative Mode: trunk". Warum ist das für einen einzelnen PC-Port falsch?', options: ['Trunks sind generell verboten', 'Ein PC-Port sollte Access sein und genau ein VLAN transportieren', 'Trunk-Ports können keine IP-Adressen haben', 'Access-Ports sind schneller'], correct: 1, explanation: 'Ein Access-Port ist für ein einzelnes Endgerät gedacht; ein Trunk transportiert mehrere VLANs.' },
+    { question: 'Welcher Befehl zeigt detailliert, ob ein Port Access oder Trunk ist?', options: ['show vlan brief', 'show interfaces switchport', 'show interfaces trunk', 'show ip interface brief'], correct: 1, explanation: '"show interfaces switchport" zeigt den administrativen Modus und das zugewiesene VLAN eines Ports.' },
   ];
 }
 

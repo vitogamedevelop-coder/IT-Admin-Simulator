@@ -1173,6 +1173,55 @@ export const CONVERSATION_TOPICS = {
       { id: 'ivr-4', difficulty: 'hard', text: 'Was passiert, wenn ein Subinterface heruntergefahren ist?', options: ['Nur dieses VLAN kann nicht geroutet werden', 'Alle VLANs werden ausfallen', 'Der Switch-Uplink wird deaktiviert', 'Nichts'], correct: 0, explanation: 'Ein shutdown auf einem Subinterface unterbricht das Routing für genau das zugehörige VLAN.' },
     ],
   },
+  [topicKey('cisco-packet-tracer', 'vlan')]: {
+    title: 'Cisco VLAN – Anlegen und Verwalten',
+    relatedTopics: [topicKey('fundamentals', 'vlan-basics'), topicKey('cisco-packet-tracer', 'access-port')],
+    introPool: [
+      'Wie lege ich ein VLAN auf einem Cisco-Switch an?',
+      'Was ist der Unterschied zwischen Normal Range und Extended Range?',
+      'Wieso ist VLAN 1 besonders?',
+    ],
+    samHelp: 'Ein VLAN auf einem Cisco-Switch anlegen: "configure terminal" → "vlan <ID>" → "name <Name>" → "exit". VLAN 1 ist das Default VLAN und existiert automatisch. VLAN-IDs aus dem Normal Range (1-1005) werden in der Praxis fast immer verwendet. Innerhalb eines VLANs vermittelt der Switch auf Layer 2; zwischen VLANs ist ein Router oder Multilayer-Switch nötig.',
+    questions: [
+      { id: 'cisco-vlan-1', difficulty: 'easy', text: 'Welcher Befehl legt VLAN 50 mit dem Namen "Buchhaltung" an?', options: ['vlan 50 name Buchhaltung', 'vlan 50 → name Buchhaltung', 'interface vlan 50 → name Buchhaltung', 'create vlan 50 Buchhaltung'], correct: 1, explanation: 'Mit "vlan 50" wechselst du in den VLAN-Konfigurationsmodus, dort benennst du das VLAN mit "name Buchhaltung".' },
+      { id: 'cisco-vlan-2', difficulty: 'medium', text: 'Welche VLAN-IDs solltest du in der Praxis normalerweise verwenden?', options: ['1002 - 1005', '1 - 1005 (Normal Range)', '1006 - 4094', 'Es ist egal'], correct: 1, explanation: 'Der Normal Range (1-1005) ist der praxisübliche Bereich, meist zweistellige, gut merkbare Nummern.' },
+      { id: 'cisco-vlan-3', difficulty: 'medium', text: 'Ein Port wurde nie konfiguriert. In welchem VLAN befindet er sich?', options: ['In VLAN 99', 'In VLAN 1', 'In keinem VLAN', 'Im Management-VLAN'], correct: 1, explanation: 'Jeder Switchport gehört im Auslieferungszustand automatisch zum Default VLAN 1.' },
+      { id: 'cisco-vlan-4', difficulty: 'hard', text: 'Zwei PCs stecken am selben Switch, einer in VLAN 10, der andere in VLAN 20. Was brauchen sie, um miteinander zu kommunizieren?', options: ['Nur den Switch', 'Einen Router oder Multilayer-Switch', 'Einen Trunk', 'Ein größeres VLAN'], correct: 1, explanation: 'Ein Switch leitet standardmäßig nicht zwischen VLANs weiter; dafür braucht es ein Layer-3-Gerät.' },
+    ],
+  },
+  [topicKey('cisco-packet-tracer', 'access-port')]: {
+    title: 'Cisco Access-Port',
+    relatedTopics: [topicKey('cisco-packet-tracer', 'vlan'), topicKey('cisco-packet-tracer', 'trunk')],
+    introPool: [
+      'Wie bringe ich einen PC in ein bestimmtes VLAN?',
+      'Access vs Trunk – wann verwende ich was?',
+      'Welche typischen Fehler gibt es bei Access-Ports?',
+    ],
+    samHelp: 'Ein Access-Port verbindet ein einzelnes Endgerät mit genau einem VLAN: "interface <Port>" → "switchport mode access" → "switchport access vlan <ID>". Mehrere Ports gleichzeitig konfiguriert man mit "interface range". Kontrolle mit "show vlan brief" oder "show interfaces switchport". Häufigster Fehler: das VLAN existiert noch nicht oder der Port wurde versehentlich als Trunk konfiguriert.',
+    questions: [
+      { id: 'cisco-access-1', difficulty: 'easy', text: 'Wie viele VLANs bedient ein Access-Port?', options: ['Beliebig viele', 'Genau eines', 'Maximal zwei', 'Keines'], correct: 1, explanation: 'Ein Access-Port ist für genau ein VLAN gedacht.' },
+      { id: 'cisco-access-2', difficulty: 'medium', text: 'Ein PC an fa0/5 soll VLAN 20 gehören. Welche Befehle sind nötig?', options: ['interface fa0/5 → switchport mode trunk → switchport access vlan 20', 'interface fa0/5 → switchport mode access → switchport access vlan 20', 'interface fa0/5 → vlan 20', 'vlan 20 → interface fa0/5'], correct: 1, explanation: 'Access-Modus setzen und dann das VLAN zuweisen.' },
+      { id: 'cisco-access-3', difficulty: 'medium', text: '"switchport access vlan 30" zeigt keine Wirkung. Was prüfst du zuerst?', options: ['Ob das VLAN existiert', 'Ob der PC eingeschaltet ist', 'Ob das Kabel zu lang ist', 'Ob der Switch neu starten muss'], correct: 0, explanation: 'Ein VLAN muss zuerst mit "vlan <ID>" angelegt sein, bevor es einem Port zugewiesen werden kann.' },
+      { id: 'cisco-access-4', difficulty: 'medium', text: 'Was ist der Vorteil von "interface range fa0/1-10"?', options: ['Es erstellt VLANs 1-10', 'Es wählt mehrere Ports gleichzeitig aus', 'Es aktiviert Trunking', 'Es löscht die Ports'], correct: 1, explanation: '"interface range" ermöglicht dieselbe Konfiguration für mehrere Ports ohne jeden einzeln zu wiederholen.' },
+    ],
+  },
+  [topicKey('cisco-packet-tracer', 'trunk')]: {
+    title: 'Cisco Trunk',
+    relatedTopics: [topicKey('cisco-packet-tracer', 'access-port'), topicKey('cisco-packet-tracer', 'inter-vlan-routing')],
+    introPool: [
+      'Wozu braucht man einen Trunk?',
+      'Was ist das Native VLAN?',
+      'Warum reicht "allowed" nicht automatisch für "active"?',
+    ],
+    samHelp: 'Ein Trunk transportiert mehrere VLANs über eine Leitung und taggt Frames mit 802.1Q. Konfiguration: "interface <Port>" → "switchport mode trunk" → optional "switchport trunk allowed vlan <Liste>". "switchport trunk allowed vlan 10,20" ersetzt die Liste; mit "add" ergänzt man, mit "remove" entfernt man. Das Native VLAN (Standard VLAN 1) wird ungetaggt übertragen; beide Trunk-Enden müssen übereinstimmen. Verifizieren mit "show interfaces trunk".',
+    questions: [
+      { id: 'cisco-trunk-1', difficulty: 'medium', text: 'Wozu dient ein 802.1Q-Tag?', options: ['Verschlüsselung', 'Priorisierung', 'Kennzeichnung der VLAN-ID auf einem Trunk', 'MAC-Adressersetzung'], correct: 2, explanation: 'Das 802.1Q-Tag enthält die VLAN-ID, damit der empfangende Switch den Frame dem richtigen VLAN zuordnen kann.' },
+      { id: 'cisco-trunk-2', difficulty: 'medium', text: 'Was ist das Native VLAN auf einem Trunk?', options: ['Das VLAN mit der höchsten ID', 'Das einzige VLAN, dessen Frames ungetaggt bleiben', 'Das VLAN für Broadcasts', 'Ein reserviertes Management-VLAN'], correct: 1, explanation: 'Frames des Native VLANs werden auf einem Trunk ohne 802.1Q-Tag übertragen.' },
+      { id: 'cisco-trunk-3', difficulty: 'hard', text: 'Der Trunk erlaubt VLAN 30, aber "show interfaces trunk" zeigt es nicht als aktiv. Was fehlt?', options: ['Das Native VLAN', 'VLAN 30 existiert auf diesem Switch nicht', 'Der Trunk ist down', 'DTP ist deaktiviert'], correct: 1, explanation: '"allowed" bedeutet, dass das VLAN auf dem Trunk erlaubt ist. "active" bedeutet, dass es auch auf dem Switch existiert.' },
+      { id: 'cisco-trunk-4', difficulty: 'hard', text: 'Was ist der Unterschied zwischen "switchport trunk allowed vlan 10,20" und "... add 30"?', options: ['Keiner', 'Der erste Befehl ersetzt die Liste, der zweite ergänzt', 'Der erste ergänzt, der zweite ersetzt', 'Beide löschen VLAN 30'], correct: 1, explanation: 'Ohne "add" wird die erlaubte Liste ersetzt. Mit "add" wird VLAN 30 zur bestehenden Liste hinzugefügt.' },
+      { id: 'cisco-trunk-5', difficulty: 'medium', text: 'Warum sollte man Access- und Trunk-Modi explizit konfigurieren statt DTP zu vertrauen?', options: ['DTP funktioniert nie', 'DTP-Defaults können je nach Plattform variieren', 'Trunks funktionieren nur ohne DTP', 'DTP ist veraltet'], correct: 1, explanation: 'DTP-Verhalten hängt von Switch-Modell und IOS ab; explizite Modi sind vorhersagbarer.' },
+    ],
+  },
   [topicKey('fundamentals', 'kommunikation-uebertragung')]: {
     title: 'Kommunikations- und Übertragungsarten',
     relatedTopics: [topicKey('fundamentals', 'grundbegriffe'), topicKey('fundamentals', 'osi-model')],

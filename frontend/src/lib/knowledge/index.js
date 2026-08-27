@@ -27,6 +27,7 @@ import { ciscoBasicConfigKnowledgeItems } from './items/ciscoBasicConfig.js';
 import { ciscoStpKnowledgeItems } from './items/ciscoStp.js';
 import { ciscoVlanPracticeKnowledgeItems } from './items/ciscoVlanPractice.js';
 import { ciscoAccessPortKnowledgeItems } from './items/ciscoAccessPort.js';
+import { ciscoTrunkKnowledgeItems } from './items/ciscoTrunk.js';
 import { NETWORK_BASICS_ITEMS } from './items/networkBasics.js';
 import { CISCO_THEORY_ITEMS } from './items/ciscoTheory.js';
 import { informationSecurityKnowledgeItems } from './items/informationSecurity.js';
@@ -88,6 +89,7 @@ const PILOT_ITEMS = [
   ...ciscoStpKnowledgeItems,
   ...ciscoVlanPracticeKnowledgeItems,
   ...ciscoAccessPortKnowledgeItems,
+  ...ciscoTrunkKnowledgeItems,
   ...NETWORK_BASICS_ITEMS,
   ...CISCO_THEORY_ITEMS,
   ...informationSecurityKnowledgeItems,
