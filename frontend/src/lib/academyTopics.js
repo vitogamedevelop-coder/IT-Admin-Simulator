@@ -153,17 +153,14 @@ export const ACADEMY_TOPICS = [
   // STP is about redundant switch-to-switch links, which builds directly on
   // trunk knowledge.
   topic('cisco-packet-tracer', 'stp', 'Spanning Tree Protocol (PVST+)', 'Schleifen und Broadcast-Storms in redundanten Switch-Netzen verhindern, Root Bridge, Portrollen und Path Cost bestimmen.', ['trunk']),
+  // DHCP Relay is part of the Layer-3 gateway configuration and is placed
+  // right after the three routing scenarios (physical interface, Router on a
+  // Stick, MLS/SVI) and before the edge-security topics.
+  topic('cisco-packet-tracer', 'dhcp', 'DHCP Relay', 'DHCP-Anfragen über Router-/Switch-Grenzen weiterleiten und das richtige Layer-3-Interface für ip helper-address bestimmen.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching', 'fundamentals/dhcp']),
   topic('cisco-packet-tracer', 'acl', 'Access Control Lists', 'Datenverkehr anhand von Regeln filtern.', ['router-basics']),
   topic('cisco-packet-tracer', 'packet-filter', 'Paketfilter', 'Statische und dynamische Paketfilter, Stateless vs. Stateful, Cisco CBAC / ip inspect.', ['acl']),
   topic('cisco-packet-tracer', 'nat', 'NAT', 'Private Adressen auf öffentliche Adressen übersetzen.', ['router-basics']),
   topic('cisco-packet-tracer', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche im Netzwerk anhand der passenden show-Befehle.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
-  // Added (Milestone C7 part 2): DHCP Relay on Cisco devices - the practical
-  // skill of determining the correct Layer-3 interface for "ip helper-
-  // address" across all three routing scenarios already covered (physical
-  // router interface, Router on a Stick subinterface, MLS SVI). Depends on
-  // the same device chain as ssh/troubleshooting plus the conceptual
-  // fundamentals/dhcp topic (DORA process, why DHCP exists).
-  topic('cisco-packet-tracer', 'dhcp', 'DHCP Relay', 'DHCP-Anfragen über Router-/Switch-Grenzen weiterleiten und das richtige Layer-3-Interface für ip helper-address bestimmen.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching', 'fundamentals/dhcp']),
 
   // ---------------------------------------------------------------------
   // 3. Informationssicherheit
