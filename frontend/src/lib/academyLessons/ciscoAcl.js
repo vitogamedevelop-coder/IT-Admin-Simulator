@@ -11,6 +11,14 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_ACL_TOPIC_KEY = topicKey('cisco-packet-tracer', 'acl');
 
+const ACL_PIPELINE_SVG = `<svg viewBox="0 0 320 260" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">ACL Verarbeitung: First Match + Implicit Deny</text><rect x="110" y="35" width="100" height="28" rx="4" fill="#00f0ff" opacity="0.25" stroke="#00f0ff" stroke-width="2"/><text x="160" y="54" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">PAKET</text><polygon points="160,68 155,78 165,78" fill="#00f0ff"/><rect x="30" y="85" width="260" height="30" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="105" text-anchor="middle" fill="#c9d1d9" font-size="8">ACE 10 prüfen → Match? permit/deny → STOP</text><polygon points="160,120 155,130 165,130" fill="#00f0ff"/><rect x="30" y="135" width="260" height="30" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="155" text-anchor="middle" fill="#c9d1d9" font-size="8">ACE 20 prüfen → Match? permit/deny → STOP</text><polygon points="160,170 155,180 165,180" fill="#00f0ff"/><rect x="30" y="185" width="260" height="30" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="205" text-anchor="middle" fill="#c9d1d9" font-size="8">ACE 30 prüfen → Match? permit/deny → STOP</text><polygon points="160,220 155,230 165,230" fill="#ff7b72"/><rect x="70" y="235" width="180" height="20" rx="4" fill="#ff7b72" opacity="0.35" stroke="#ff7b72" stroke-width="2"/><text x="160" y="249" text-anchor="middle" fill="#ff7b72" font-size="8">kein Match → implicit deny</text></svg>`;
+
+const ACL_IN_OUT_SVG = `<svg viewBox="0 0 340 180" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">in / out aus Sicht des Router-Interfaces</text><rect x="120" y="60" width="100" height="70" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="88" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">ROUTER</text><text x="170" y="105" text-anchor="middle" fill="#0a1628" font-size="8">g0/0</text><rect x="20" y="70" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">CLIENT</text><rect x="240" y="70" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">SERVER</text><line x1="100" y1="85" x2="120" y2="85" stroke="#00f0ff" stroke-width="2"/><polygon points="112,80 112,90 120,85" fill="#00f0ff"/><text x="110" y="75" text-anchor="middle" fill="#00f0ff" font-size="7">in</text><line x1="220" y1="95" x2="240" y2="95" stroke="#00f0ff" stroke-width="2"/><polygon points="232,90 232,100 240,95" fill="#00f0ff"/><text x="230" y="115" text-anchor="middle" fill="#00f0ff" font-size="7">out</text><text x="170" y="160" text-anchor="middle" fill="#8b949e" font-size="8">Richtungen beziehen sich immer auf das Interface, nicht auf den Client</text></svg>`;
+
+const ACL_PLACEMENT_SVG = `<svg viewBox="0 0 340 200" class="w-full h-auto max-h-56" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">ACL-Platzierung</text><rect x="20" y="80" width="70" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="55" y="100" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Quelle</text><rect x="130" y="70" width="80" height="55" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="95" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">Router</text><text x="170" y="112" text-anchor="middle" fill="#0a1628" font-size="8">Extended ACL</text><rect x="250" y="80" width="70" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="285" y="100" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Ziel</text><line x1="90" y1="95" x2="130" y2="95" stroke="#00f0ff" stroke-width="2"/><line x1="210" y1="95" x2="250" y2="95" stroke="#00f0ff" stroke-width="2"/><text x="110" y="120" text-anchor="middle" fill="#8b949e" font-size="7">quellnah</text><rect x="130" y="140" width="80" height="25" rx="3" fill="#00f0ff" opacity="0.25" stroke="#00f0ff" stroke-width="1"/><text x="170" y="156" text-anchor="middle" fill="#c9d1d9" font-size="7">Standard ACL eher zielnah</text></svg>`;
+
+const ACL_VTY_SVG = `<svg viewBox="0 0 320 180" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">VTY-Zugriff absichern</text><rect x="20" y="70" width="90" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="65" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Admin-PC</text><rect x="130" y="60" width="80" height="60" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="85" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">Router</text><text x="170" y="100" text-anchor="middle" fill="#0a1628" font-size="7">line vty 0 15</text><text x="170" y="113" text-anchor="middle" fill="#0a1628" font-size="7">access-class 10 in</text><rect x="130" y="135" width="80" height="25" rx="3" fill="#00f0ff" opacity="0.25" stroke="#00f0ff" stroke-width="1"/><text x="170" y="151" text-anchor="middle" fill="#c9d1d9" font-size="7">ACL 10: 192.168.99.0/24</text><line x1="110" y1="85" x2="130" y2="90" stroke="#00f0ff" stroke-width="2"/><line x1="210" y1="90" x2="240" y2="90" stroke="#ff7b72" stroke-width="2" stroke-dasharray="5,3"/><text x="250" y="93" text-anchor="start" fill="#ff7b72" font-size="7">nicht erlaubte Quellen blockiert</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -40,6 +48,11 @@ function buildExplanations() {
     { type: 'text', content: 'Der Host 192.168.10.10 wird NICHT blockiert, weil permit any bereits zuerst trifft.' },
     { type: 'text', content: 'Am Ende jeder ACL steht automatisch eine unsichtbare Regel: deny any bzw. bei Extended ACLs deny ip any any. Das nennt man implicit deny. Wenn kein permit trifft, wird der Verkehr verworfen.' },
     { type: 'question', question: 'Warum ist permit any notwendig, nachdem man einzelne Hosts denied hat?', options: ['Damit die ACL funktioniert', 'Damit der restliche Verkehr erlaubt wird, bevor implicit deny greift', 'Damit der Router schneller ist', 'Weil deny sonst nicht ausgewertet wird'], correct: 1, explanation: 'Ohne permit any würde der implizite deny any am Ende den gesamten restlichen Verkehr blockieren.' },
+  ]));
+
+  exps.push(explanation('first-match-visual', 'ACL-Verarbeitung: First Match + Implicit Deny', 'visual', [
+    { type: 'diagram', content: ACL_PIPELINE_SVG },
+    { type: 'text', content: 'Cisco prüft die Regeln von oben nach unten. Das erste passende Match gewinnt und stoppt die Auswertung. Wenn keine Regel passt, greift der unsichtbare implicit deny am Ende.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -143,6 +156,11 @@ function buildExplanations() {
     { type: 'question', question: 'Ein Paket kommt von einem Client am g0/0 an und soll zum Server ins Internet weitergeleitet werden. Wo filtert ip access-group 110 in?', options: ['Beim Verlassen des Routers', 'Beim Eintreffen auf g0/0', 'Auf dem Client', 'Im Switch'], correct: 1, explanation: 'in bedeutet: Paket kommt auf dem Interface in den Router hinein.' },
   ]));
 
+  exps.push(explanation('bind-visual', 'ACL-Richtung: in vs out', 'visual', [
+    { type: 'diagram', content: ACL_IN_OUT_SVG },
+    { type: 'text', content: '"in" filtert Verkehr, der über das Interface in den Router hineinkommt. "out" filtert Verkehr, der den Router über das Interface verlässt. Die Richtung ist immer aus Sicht des Router-Interfaces, nicht aus Sicht des Clients.' },
+  ]));
+
   // ---------------------------------------------------------------------------
   // 8. Position der ACL
   // ---------------------------------------------------------------------------
@@ -150,6 +168,11 @@ function buildExplanations() {
     { type: 'text', content: 'Die Platzierung hängt vom Typ und vom Datenfluss ab. Eine Standard ACL filtert nur nach Source, also platziert man sie typischerweise näher am Ziel. Eine Extended ACL kann spezifischer filtern und wird daher oft näher an der Quelle platziert.' },
     { type: 'text', content: 'Beispiel-Topologie: Client (192.168.10.0/24) → Router → Server (10.10.10.10). Ein Extended ACL-Eintrag, der HTTP aus dem Client-Netz zum Server erlaubt, könnte auf dem Router-Interface Richtung Client (g0/0) als inbound gebunden werden, um den Verkehr direkt an der Quelle zu filtern.' },
     { type: 'question', question: 'Warum kann eine Extended ACL oft näher an der Quelle platziert werden als eine Standard ACL?', options: ['Weil sie schneller ist', 'Weil sie neben Source auch Destination, Protokoll und Port filtern kann und daher präziser ist', 'Weil Extended ACLs keine Wildcard brauchen', 'Weil Standard ACLs keine Richtung haben'], correct: 1, explanation: 'Extended ACLs filtern präziser, deshalb blockieren sie typischerweise nicht mehr Verkehr als beabsichtigt.' },
+  ]));
+
+  exps.push(explanation('position-visual', 'ACL-Platzierung: Standard vs Extended', 'visual', [
+    { type: 'diagram', content: ACL_PLACEMENT_SVG },
+    { type: 'text', content: 'Standard ACLs kennen nur die Quelle und sollten deshalb typischerweise näher am Ziel platziert werden, damit sie nicht ungewollten Verkehr auf dem Weg blockieren. Extended ACLs sind präziser und können daher näher an der Quelle eingesetzt werden.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -178,6 +201,11 @@ function buildExplanations() {
     ] },
     { type: 'text', content: 'Wichtig: An einem Interface heißt es ip access-group, an VTY-Lines heißt es access-class.' },
     { type: 'question', question: 'Welcher Befehl bindet eine ACL an die VTY-Lines?', options: ['ip access-group', 'access-class', 'ip access-list', 'line vty access'], correct: 1, explanation: 'An VTY-Lines wird access-class <ACL> in verwendet, nicht ip access-group.' },
+  ]));
+
+  exps.push(explanation('vty-visual', 'VTY-Zugriff mit access-class einschränken', 'visual', [
+    { type: 'diagram', content: ACL_VTY_SVG },
+    { type: 'text', content: 'An VTY-Lines wird nicht ip access-group verwendet, sondern access-class. Damit schränkst du SSH/Telnet-Zugriffe auf bestimmte Quellnetze ein - ein wichtiges Verbindungsstück zum SSH-Topic.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -393,6 +421,42 @@ function buildExercises() {
       options: ['0.0.0.0 255.255.255.255', '10.0.0.5 0.0.0.0', '10.0.0.0 0.0.0.255', 'any'], correct: 1,
       explanation: 'host <IP> bedeutet, dass alle Bits passen müssen, also Wildcard 0.0.0.0.',
     },
+    {
+      id: 'acl-wrong-direction-select',
+      type: 'select-best',
+      question: 'Eine ACL 110 wurde erstellt und korrekt geschrieben, zeigt aber keine Wirkung. "show ip interface g0/0" zeigt keine gebundene ACL. "show running-config" zeigt "ip access-group 110 in" unter "interface g0/1". Was ist wahrscheinlich falsch?',
+      options: ['ACL ist falsch geschrieben', 'ACL wurde an ein falsches Interface gebunden', 'implicit deny greift', 'Richtung ist grundsätzlich egal'],
+      correct: 1,
+      explanation: 'ACLs müssen am richtigen Interface und in der richtigen Richtung gebunden werden.',
+    },
+    {
+      id: 'acl-zero-matches-select',
+      type: 'select-best',
+      question: 'Eine ACL-Regel, die erwartungsgemäß Traffic treffen sollte, zeigt "0 matches". Was ist ein sinnvoller erster Diagnoseschritt?',
+      options: ['Sofort den Router neu starten', 'Prüfen, ob die ACL am richtigen Interface und in der richtigen Richtung gebunden ist und der Match wirklich korrekt definiert ist', 'ACL löschen und neu anlegen, ohne zu prüfen'], correct: 1,
+      explanation: '0 matches deutet darauf hin, dass das Paket die Regel gar nicht erreicht - entweder wegen falscher Platzierung/Richtung oder weil der Match falsch ist.',
+    },
+    {
+      id: 'acl-rule-order-select',
+      type: 'select-best',
+      question: 'In welcher Reihenfolge müssen diese Regeln stehen, um HTTP aus 192.168.10.0/24 zu Server 10.10.10.10 zu erlauben und allen anderen Verkehr zu 10.10.10.10 zu verbieten?\n1) permit tcp 192.168.10.0 0.0.0.255 host 10.10.10.10 eq 80\n2) deny ip any host 10.10.10.10\n3) permit ip any any',
+      options: ['1, 3, 2', '1, 2, 3', '2, 1, 3', '3, 1, 2'], correct: 1,
+      explanation: 'Erst die spezifische Erlaubnis, dann das spezifische Verbot. permit ip any any darf nicht vor dem deny stehen.',
+    },
+    {
+      id: 'acl-implicit-deny-select',
+      type: 'select-best',
+      question: 'Eine ACL enthält nur "access-list 10 deny host 192.168.10.10". Was passiert mit 192.168.10.20?',
+      options: ['Er wird erlaubt, weil nur ein Host verboten wurde', 'Er wird verworfen, weil am Ende jeder ACL implicit deny wirkt', 'Er wird gepingt', 'Es kommt auf die Richtung an'], correct: 1,
+      explanation: 'Wenn es kein permit gibt, greift der unsichtbare implicit deny am Ende und verwirft alles andere.',
+    },
+    {
+      id: 'acl-standard-vs-extended-select',
+      type: 'select-best',
+      question: 'Ein Administrator will allen ausgehenden Telnet-Verkehr aus 192.168.10.0/24 verbieten. Welcher ACL-Typ ist nötig?',
+      options: ['Standard ACL', 'Extended ACL', 'VTY access-class', 'Named ACL'], correct: 1,
+      explanation: 'Telnet läuft auf TCP 23 und erfordert die Filterung nach Protokoll, Source, Destination und Port - das ist Aufgabe einer Extended ACL.',
+    },
   ];
 }
 
@@ -413,6 +477,10 @@ function buildQuiz() {
     { question: 'Welche Sequenznummer ist sinnvoll, um zwischen ACE 10 und ACE 20 eine Regel einzufügen?', options: ['5', '15', '25', '20'], correct: 1, explanation: '15 liegt zwischen 10 und 20 und passt in den Standard-10er-Abstand.' },
     { question: 'Welche Wildcard Mask gehört zu 10.0.0.0/30?', options: ['0.0.0.255', '0.0.0.3', '0.0.3.255', '255.255.255.252'], correct: 1, explanation: '/30 = 255.255.255.252, invertiert = 0.0.0.3.' },
     { question: 'Ein Paket trifft auf keine Regel. Was passiert?', options: ['permit any', 'implicit deny', 'Router fragt nach', 'Es wird weitergeleitet'], correct: 1, explanation: 'Am Ende jeder ACL wirkt ein unsichtbarer deny any / deny ip any any.' },
+    { question: 'Eine korrekt geschriebene ACL zeigt keine Wirkung. "show ip interface g0/0" zeigt keine Binding. Was fehlt wahrscheinlich?', options: ['Ein permit any-Eintrag', 'Die ACL wurde nicht an das richtige Interface/Richtung gebunden', 'Die ACL-Nummer ist falsch', 'implicit deny'], correct: 1, explanation: 'ACLs müssen mit ip access-group an ein Interface/Richtung gebunden werden, sonst wirken sie nicht.' },
+    { question: 'Eine erwartete ACL-Regel zeigt 0 matches. Was ist ein typischer Grund?', options: ['Die ACL ist nicht an Interface/Richtung gebunden oder der Match trifft nicht', 'Der Router hat keine CPU', 'implicit deny', 'Die Sequenznummer ist zu hoch'], correct: 0, explanation: '0 matches deutet darauf hin, dass das Paket die Regel nicht erreicht - oft liegt das an falscher Bindung/Richtung oder einem falschen Match.' },
+    { question: 'Was ist der Unterschied zwischen "ip access-group" und "access-class"?', options: ['Keiner', 'ip access-group bindet an Interfaces, access-class bindet an VTY-Lines', 'access-class ist für Interfaces, ip access-group für VTYs', 'beide sind identisch'], correct: 1, explanation: 'ip access-group gilt für Interface-Traffic, access-class für Management-Zugriff auf VTY-Lines.' },
+    { question: 'Warum sollte "permit ip any any" nicht vor spezifischen "deny"-Regeln stehen?', options: ['Weil es dann früher matcht und die denies nie greifen', 'Weil die ACL sonst langsamer wird', 'Weil es einen Syntaxfehler verursacht', 'Weil implicit deny trotzdem zuerst kommt'], correct: 0, explanation: 'First Match Wins: permit any matcht fast alles und die nachfolgenden denies werden nie erreicht.' },
   ];
 }
 
@@ -470,6 +538,16 @@ function buildCliTasks() {
         'deny any',
       ],
       explanation: 'Named Standard ACL im ACL-Konfigurationsmodus mit permit und deny any.',
+    },
+    {
+      prompt: 'Sam: "Prüfe, ob auf g0/0 eine ACL gebunden ist und in welcher Richtung."',
+      expectedLines: [['show ip interface g0/0', 'sh ip int g0/0']],
+      explanation: '"show ip interface <IF>" zeigt die inbound/outbound gebundenen ACLs.',
+    },
+    {
+      prompt: 'Sam: "Zeige mir alle IPv4-ACLs mit ihren Match-Zählern an."',
+      expectedLines: [['show ip access-lists', 'sh ip access-lists']],
+      explanation: '"show ip access-lists" listet alle IPv4-ACLs mit Regeln und Match-Zählern.',
     },
   ];
 }

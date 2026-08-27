@@ -1327,6 +1327,32 @@ export const CONVERSATION_TOPICS = {
       { id: 'ospf-conv-9', difficulty: 'hard', text: 'Warum reicht "show running-config" allein nicht, um funktionierendes OSPF zu beweisen?', options: ['Weil die Konfiguration nur zeigt, was eingestellt ist, nicht ob Nachbarn und Routen wirklich funktionieren', 'Weil show running-config keine Wildcard-Masken anzeigt', 'Weil der Befehl OSPF deaktiviert'], correct: 0, explanation: 'Configured ≠ functioning. show ip ospf neighbor, show ip route ospf und show ip protocols zeigen den tatsächlichen Betriebszustand.' },
     ],
   },
+  [topicKey('cisco-packet-tracer', 'acl')]: {
+    title: 'Access Control Lists',
+    relatedTopics: [
+      topicKey('cisco-packet-tracer', 'router-basics'),
+      topicKey('cisco-packet-tracer', 'multilayer-switching'),
+      topicKey('cisco-packet-tracer', 'ssh'),
+      topicKey('cisco-packet-tracer', 'nat'),
+    ],
+    introPool: [
+      'Eine ACL ist korrekt geschrieben, aber funktioniert nicht. Woran liegt das?',
+      'Warum ist die Reihenfolge in einer ACL so entscheidend?',
+      'Wann nutzt man Standard-ACLs, wann Extended-ACLs?',
+    ],
+    samHelp: 'ACLs arbeiten nach First Match, dann Stop. Am Ende jeder ACL wirkt implicit deny. Standard ACLs filtern nur nach Source, Extended ACLs auch nach Protokoll, Destination und Port. ACLs müssen mit ip access-group an ein Interface/Richtung gebunden werden, VTY-Zugriffe dagegen mit access-class. Verifizieren mit show access-lists, show ip access-lists und show ip interface.',
+    questions: [
+      { id: 'acl-conv-1', difficulty: 'easy', text: 'Was bedeutet "First Match" bei einer ACL?', options: ['Alle Regeln werden geprüft und am Ende entschieden', 'Die erste passende Regel gewinnt und stoppt die Auswertung', 'Die letzte Regel gewinnt immer'], correct: 1, explanation: 'Sobald eine Regel passt, wird die Aktion ausgeführt und die restlichen Regeln übersprungen.' },
+      { id: 'acl-conv-2', difficulty: 'easy', text: 'Was passiert, wenn ein Paket auf keine ACL-Regel passt?', options: ['Es wird erlaubt', 'Es wird verworfen', 'Der Router fragt den Admin'], correct: 1, explanation: 'Am Ende jeder ACL wirkt ein unsichtbarer deny any / deny ip any any.' },
+      { id: 'acl-conv-3', difficulty: 'medium', text: 'Eine ACL ist korrekt geschrieben, aber zeigt keine Wirkung. Was prüfst du zuerst?', options: ['Ob sie an das richtige Interface/Richtung gebunden ist', 'Ob die Nummer im richtigen Bereich liegt', 'Ob implicit deny deaktiviert ist'], correct: 0, explanation: 'Eine ACL wirkt erst, wenn sie mit ip access-group oder access-class gebunden wird.' },
+      { id: 'acl-conv-4', difficulty: 'medium', text: 'Wo liegt der Unterschied zwischen "ip access-group" und "access-class"?', options: ['Keiner', 'ip access-group bindet an Interfaces, access-class an VTY-Lines', 'access-class ist nur für Standard ACLs'], correct: 1, explanation: 'Interface-Traffic wird mit ip access-group gefiltert, Management-Zugriff auf VTYs mit access-class.' },
+      { id: 'acl-conv-5', difficulty: 'medium', text: 'Warum sollte "permit ip any any" nicht vor spezifischen deny-Regeln stehen?', options: ['Weil es dann fast alles erlaubt und die denies nie erreicht werden', 'Weil es einen Syntaxfehler ergibt', 'Weil implicit deny trotzdem zuerst kommt'], correct: 0, explanation: 'First Match: permit any trifft fast alles, bevor deny-Regeln geprüft werden.' },
+      { id: 'acl-conv-6', difficulty: 'hard', text: 'Ein erwarteter Datenfluss wird blockiert. "show access-lists" zeigt 0 matches für die vermutete Regel. Was sagt das?', options: ['Die Regel matcht nicht, möglicherweise ist Binding/Richtung/Match falsch', 'Der Router ist defekt', 'Implicit deny ist ausgeschaltet'], correct: 0, explanation: '0 matches deutet darauf hin, dass das Paket die Regel nicht erreicht - typische Ursachen sind falsche Bindung/Richtung oder ein falscher Match.' },
+      { id: 'acl-conv-7', difficulty: 'hard', text: 'Wann brauchst du zwingend eine Extended ACL statt einer Standard ACL?', options: ['Wenn du nach Quell-IP filtern willst', 'Wenn du nach Ziel-IP, Protokoll oder Port filtern willst', 'Wenn du die ACL benennen willst'], correct: 1, explanation: 'Extended ACLs können Source, Destination, Protokoll und Port prüfen. Standard ACLs nur Source.' },
+      { id: 'acl-conv-8', difficulty: 'hard', text: 'Aus Sicht eines Router-Interfaces bedeutet "in", dass das Paket...', options: ['...den Router über das Interface verlässt', '...auf diesem Interface in den Router hineinkommt', '...vom Client zum Server geschickt wird'], correct: 1, explanation: 'in/out beziehen sich immer auf das Router-Interface, nicht auf den Client. in = hinein in den Router.' },
+      { id: 'acl-conv-9', difficulty: 'hard', text: 'Warum sollte eine Standard ACL eher näher am Ziel platziert werden?', options: ['Weil sie schneller ist', 'Weil sie nur nach Source filtern und sonst ungewollt viel Verkehr blockieren könnte', 'Weil Extended ACLs keine Richtung haben'], correct: 1, explanation: 'Da Standard ACLs nur die Quelle kennen, könnten sie nahe der Quelle zu viel blockieren. Deshalb zielnäher platzieren.' },
+    ],
+  },
   [topicKey('fundamentals', 'vlsm')]: {
     title: 'VLSM',
     relatedTopics: [topicKey('fundamentals', 'subnetting'), topicKey('fundamentals', 'supernetting')],
