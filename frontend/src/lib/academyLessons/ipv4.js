@@ -1,10 +1,12 @@
 import { topicKey } from '../academyTopics.js';
 import { decimalToBinaryOctet } from '../networking/ipv4Math.js';
+import { decimalToIpv4Binary, ipv4BinaryToDecimal } from '../networking/numberSystems.js';
 
 const EXAMPLE_IP = '192.168.10.25';
 
 const IP_SVG = `<svg viewBox="0 0 400 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="200" y="22" text-anchor="middle" fill="#c9d1d9" font-size="12">IPv4-Adresse: 192.168.10.25</text><g stroke="#00f0ff" stroke-width="2" fill="none"><rect x="10" y="40" width="85" height="55" rx="6"/><rect x="110" y="40" width="85" height="55" rx="6"/><rect x="210" y="40" width="85" height="55" rx="6"/><rect x="310" y="40" width="85" height="55" rx="6"/></g><text x="52" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">192</text><text x="152" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">168</text><text x="252" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">10</text><text x="352" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">25</text><text x="95" y="115" text-anchor="middle" fill="#8b949e" font-size="10">1. Oktett</text><text x="195" y="115" text-anchor="middle" fill="#8b949e" font-size="10">2. Oktett</text><text x="295" y="115" text-anchor="middle" fill="#8b949e" font-size="10">3. Oktett</text><text x="395" y="115" text-anchor="middle" fill="#8b949e" font-size="10">4. Oktett</text></svg>`;
 
+const IPV6_SVG = `<svg viewBox="0 0 440 125" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="220" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12">IPv6 vollständig: acht Blöcke × 16 Bit = 128 Bit</text><g fill="#00f0ff" fill-opacity="0.12" stroke="#00f0ff"><rect x="8" y="38" width="48" height="34" rx="4"/><rect x="62" y="38" width="48" height="34" rx="4"/><rect x="116" y="38" width="48" height="34" rx="4"/><rect x="170" y="38" width="48" height="34" rx="4"/><rect x="224" y="38" width="48" height="34" rx="4"/><rect x="278" y="38" width="48" height="34" rx="4"/><rect x="332" y="38" width="48" height="34" rx="4"/><rect x="386" y="38" width="48" height="34" rx="4"/></g><g fill="#c9d1d9" font-size="9" text-anchor="middle"><text x="32" y="59">2001</text><text x="86" y="59">0db8</text><text x="140" y="59">0000</text><text x="194" y="59">0000</text><text x="248" y="59">0000</text><text x="302" y="59">ff00</text><text x="356" y="59">0042</text><text x="410" y="59">8329</text></g><text x="220" y="98" text-anchor="middle" fill="#00ff66" font-size="11">Hexadezimal: 0–9 und A–F · 4 Hexzeichen pro Block</text><text x="220" y="116" text-anchor="middle" fill="#8b949e" font-size="10">Komprimierungsregeln werden hier noch nicht vertieft.</text></svg>`;
 const PREFIX_SVG = `<svg viewBox="0 0 420 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="210" y="22" text-anchor="middle" fill="#c9d1d9" font-size="12">192.168.10.25/24 – Netzanteil orange, Hostanteil grau</text><g transform="translate(10,35)"><rect x="0" y="0" width="240" height="45" rx="4" fill="#00f0ff" fill-opacity="0.35" stroke="#00f0ff" stroke-width="2"/><rect x="240" y="0" width="80" height="45" rx="4" fill="#8b949e" fill-opacity="0.25" stroke="#8b949e" stroke-width="2"/><text x="120" y="28" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">24 Bit Netzanteil</text><text x="280" y="28" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">8 Bit Host</text></g><text x="210" y="105" text-anchor="middle" fill="#8b949e" font-size="11">/24 bedeutet: die ersten 24 Bit beschreiben das Netz.</text></svg>`;
 
 function explanation(id, title, style, blocks) {
@@ -17,6 +19,27 @@ function buildExplanations() {
   exps.push(explanation('intro-classic', 'Was ist eine IPv4-Adresse?', 'classic', [
     { type: 'text', content: 'Eine IPv4-Adresse kennzeichnet eine Netzwerkschnittstelle innerhalb eines IP-Netzes. Ein Gerät kann mehrere Schnittstellen und damit mehrere Adressen haben; Adressen können sich auch ändern.' },
     { type: 'text', content: 'Für den Anfang reicht das Bild eines PCs mit einer Adresse. Merke dir aber: technisch gehört die Adresse zur Schnittstelle, nicht zwingend zum Gerät.' },
+  ]));
+
+  exps.push(explanation('ip-role-classic', 'IP-Adresse und MAC-Adresse', 'classic', [
+    { type: 'text', content: 'Eine IP-Adresse ist eine logische Adresse auf OSI-Layer 3. Sie hilft, ein Ziel in einem IP-Netz zu erreichen und ermöglicht Weiterleitungsentscheidungen über Netzwerkgrenzen hinweg.' },
+    { type: 'table', headers: ['Adresse', 'Ebene', 'Grundaufgabe'], rows: [
+      ['MAC-Adresse', 'Layer 2', 'lokale Adressierung eines Frames auf dem konkreten Link'],
+      ['IP-Adresse', 'Layer 3', 'logische und netzübergreifende Adressierung'],
+    ] },
+    { type: 'text', content: 'Ein System kann mehrere Netzwerkschnittstellen und mehrere IP-Adressen besitzen. Router verwenden IP-Informationen, um Daten zum logischen Ziel weiterzuleiten.' },
+    { type: 'question', facet: 'ip-vs-mac', question: 'Warum benötigt ein Rechner eine IP-Adresse, obwohl er bereits eine MAC-Adresse besitzt?', options: ['IP ermöglicht logische und netzübergreifende Adressierung; MAC adressiert lokal auf Layer 2.', 'Beide Adressen erfüllen exakt dieselbe Aufgabe.', 'Eine IP-Adresse wird ausschließlich als Portnummer verwendet.'], correct: 0, explanation: 'MAC und IP gehören zu unterschiedlichen Ebenen und erfüllen unterschiedliche Adressierungsaufgaben.' },
+  ]));
+
+  exps.push(explanation('ip-versions-classic', 'IPv4 und IPv6', 'classic', [
+    { type: 'table', headers: ['Version', 'Länge', 'Typische Darstellung'], rows: [
+      ['IPv4', '32 Bit', 'vier dezimale Oktette in Punktnotation, z. B. 192.168.10.25'],
+      ['IPv6', '128 Bit', 'acht Blöcke mit je vier Hexadezimalstellen in vollständiger Schreibweise'],
+    ] },
+    { type: 'diagram', content: IPV6_SVG },
+    { type: 'text', content: 'IPv4 besitzt 2^32 mögliche Bitkombinationen, IPv6 2^128. Entscheidend ist nicht die ausgeschriebene riesige Zahl, sondern der Zusammenhang: mehr Bits ermöglichen einen wesentlich größeren möglichen Adressraum.' },
+    { type: 'text', content: 'IPv4 wird für Menschen meist dezimal dargestellt, arbeitet darunter aber mit Bits. IPv6 nutzt Hexadezimalzeichen, weil jeweils vier Bits kompakt durch eine Hexadezimalstelle dargestellt werden können.' },
+    { type: 'question', facet: 'ipv4-ipv6', question: 'Welche Zuordnung ist korrekt?', options: ['IPv4: 32 Bit und Dezimalpunktschreibweise; IPv6: 128 Bit und Hexadezimalblöcke', 'IPv4: 128 Bit; IPv6: 32 Bit', 'IPv4 und IPv6 besitzen beide vier 32-Bit-Blöcke'], correct: 0, explanation: 'IPv4 umfasst insgesamt 32 Bit. IPv6 umfasst 128 Bit und wird typischerweise hexadezimal dargestellt.' },
   ]));
 
   exps.push(explanation('structure-classic', 'Aufbau einer IPv4-Adresse', 'classic', [
@@ -133,6 +156,34 @@ function buildExercises() {
       options: ['192.168.1.1', '127.0.0.1', '10.0.0.1', '169.254.1.1'],
       correct: 1,
       explanation: '127.0.0.1 ist der bekannteste Loopback.',
+    },
+    {
+      id: 'ipv4-vs-ipv6',
+      type: 'matching',
+      question: 'Ordne die Eigenschaften der passenden IP-Version zu.',
+      pairs: [
+        { left: '32 Bit', leftLabel: '32 Bit', right: 'IPv4' },
+        { left: 'Dezimalpunktschreibweise', leftLabel: 'Dezimalpunktschreibweise', right: 'IPv4' },
+        { left: '128 Bit', leftLabel: '128 Bit', right: 'IPv6' },
+        { left: 'Hexadezimale Blöcke', leftLabel: 'Hexadezimale Blöcke', right: 'IPv6' },
+      ],
+      explanation: 'IPv4 verwendet 32 Bit in vier dezimalen Oktetten. IPv6 verwendet 128 Bit und eine hexadezimale Blockdarstellung.',
+    },
+    {
+      id: 'ipv4-to-binary',
+      type: 'input',
+      question: 'Schreibe 192.168.1.10 als vier binäre 8-Bit-Gruppen mit Punkten.',
+      answers: [decimalToIpv4Binary('192.168.1.10')],
+      placeholder: 'xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx',
+      explanation: '192=11000000, 168=10101000, 1=00000001 und 10=00001010.',
+    },
+    {
+      id: 'binary-to-ipv4',
+      type: 'input',
+      question: 'Wandle 11000000.10101000.00000001.00001010 in IPv4-Dezimalpunktschreibweise um.',
+      answers: [ipv4BinaryToDecimal('11000000.10101000.00000001.00001010')],
+      placeholder: 'xxx.xxx.xxx.xxx',
+      explanation: 'Die vier Oktette ergeben 192.168.1.10.',
     },
     {
       id: 'ipv4-difficulty-drill',

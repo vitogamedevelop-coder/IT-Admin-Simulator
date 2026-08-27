@@ -20,6 +20,61 @@ export const ipv4SubnettingKnowledgeItems = [
   // IPv4 structure & properties
   // ---------------------------------------------------------------------------
   {
+    id: 'ipv4.definition',
+    topicKey: IPV4_TOPIC_KEY,
+    sourceTopicKey: IPV4_TOPIC_KEY,
+    sourceSection: 'ip-role-classic',
+    conceptCluster: 'ipv4.basics.definition',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    data: {
+      term: 'IP-Adresse',
+      definition: 'Eine logische Adresse einer Netzwerkschnittstelle auf OSI-Layer 3, die netzübergreifende Adressierung und Weiterleitung ermöglicht.',
+      description: 'Ein System kann mehrere Schnittstellen und IP-Adressen besitzen; Router verwenden IP-Informationen für Weiterleitungsentscheidungen.',
+      distractorDefinitions: ['Eine ausschließlich lokale Layer-2-Adresse für Ethernet-Frames.', 'Eine Portnummer zur Auswahl eines Dienstes.', 'Eine physische Seriennummer des gesamten Computers.'],
+    },
+    siblings: [],
+  },
+  {
+    id: 'ipv4.ipVsMac',
+    topicKey: IPV4_TOPIC_KEY,
+    sourceTopicKey: IPV4_TOPIC_KEY,
+    sourceSection: 'ip-role-classic',
+    conceptCluster: 'ipv4.basics.ipVsMac',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    data: {
+      compareOn: 'description',
+      items: [
+        { name: 'MAC-Adresse', description: 'Lokale Layer-2-Adressierung eines Frames auf dem konkreten Link.' },
+        { name: 'IP-Adresse', description: 'Logische Layer-3-Adressierung für Kommunikation über Netzwerkgrenzen hinweg.' },
+      ],
+      description: 'MAC und IP ergänzen sich und erfüllen nicht dieselbe Aufgabe.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ipv4.ipVersions',
+    topicKey: IPV4_TOPIC_KEY,
+    sourceTopicKey: IPV4_TOPIC_KEY,
+    sourceSection: 'ip-versions-classic',
+    conceptCluster: 'ipv4.basics.versions',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    data: {
+      compareOn: 'description',
+      items: [
+        { name: 'IPv4', description: '32 Bit, vier 8-Bit-Oktette, menschenlesbar meist in Dezimalpunktschreibweise.' },
+        { name: 'IPv6', description: '128 Bit, vollständig acht Blöcke mit je vier Hexadezimalstellen.' },
+      ],
+      description: 'Mehr Bits ermöglichen bei IPv6 einen wesentlich größeren möglichen Adressraum; zeitabhängige Verbreitungszahlen sind kein Lernziel.',
+    },
+    siblings: [],
+  },
+  {
     id: 'ipv4.structure',
     topicKey: IPV4_TOPIC_KEY,
     sourceTopicKey: IPV4_TOPIC_KEY,

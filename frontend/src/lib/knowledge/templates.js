@@ -1631,6 +1631,8 @@ function sshTemplates() {
 
 const PHASE7_PREFIXES = new Set([
   'grundbegriffe',
+  'binary',
+  'ipv4',
   'topologien',
   'kommunikation',
   'tcpudp',

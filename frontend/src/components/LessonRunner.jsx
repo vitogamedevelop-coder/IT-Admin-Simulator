@@ -19,6 +19,9 @@ import {
   calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems,
 } from '../lib/networking/ipv4Math';
 import {
+  decimalToBinary, binaryToDecimal, decimalToHex, hexToDecimal, binaryToHex, hexToBinary,
+} from '../lib/networking/numberSystems';
+import {
   generateQuestion, generateSubnettingQuestion, generateExamQuestions,
   checkAnswer, getRandomTip, DIFFICULTY_NAMES, DIFFICULTY_LABELS,
 } from '../lib/academyLessons/ipv4Generator';
@@ -226,6 +229,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     if (ex.type === 'guided-subnetting') return <GuidedSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'adaptive-subnetting') return <AdaptiveSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'difficulty-drill') return <DifficultyDrillExercise key={stateKey} exercise={ex} categoryId={categoryId} topicId={topicId} onComplete={() => completeExercise(stateKey)} />;
+    if (ex.type === 'adaptive-number-systems') return <AdaptiveNumberSystemsExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
     return null;
   }
 
@@ -1532,6 +1536,89 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
       {savedExamsPassed.includes(difficultyLevel) && difficultyLevel >= 2 && (
         <button onClick={onComplete} className="cyber-btn w-full mt-3 py-2 text-sm">Übung abschließen</button>
       )}
+    </div>
+  );
+}
+
+function createNumberSystemsChallenge(level) {
+  const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const easyTypes = ['decimal-binary', 'binary-decimal'];
+  const mediumTypes = [...easyTypes, 'binary-hex', 'hex-binary', 'decimal-hex', 'hex-decimal'];
+  const hardTypes = [...mediumTypes, 'ipv4-binary'];
+  const types = level === 0 ? easyTypes : level === 1 ? mediumTypes : hardTypes;
+  const type = types[random(0, types.length - 1)];
+  const max = level === 0 ? 15 : 255;
+  const value = random(level === 0 ? 1 : 16, max);
+  if (type === 'decimal-binary') {
+    const width = level === 0 ? 4 : 8;
+    const answer = decimalToBinary(value, width);
+    return { prompt: `Wandle ${value} dezimal in ${width} Bit Binär um.`, answer, explanation: `${value} nutzt die gesetzten Stellenwerte ${[128, 64, 32, 16, 8, 4, 2, 1].filter((bit) => bit <= 2 ** (width - 1) && (value & bit)).join(' + ')} → ${answer}.` };
+  }
+  if (type === 'binary-decimal') {
+    const width = level === 0 ? 4 : 8;
+    const binary = decimalToBinary(value, width);
+    return { prompt: `Wandle ${binary} binär in Dezimal um.`, answer: String(binaryToDecimal(binary)), explanation: `Gesetzte Stellenwerte addieren sich zu ${value}.` };
+  }
+  if (type === 'binary-hex') {
+    const binary = decimalToBinary(value, 8);
+    return { prompt: `Wandle ${binary.match(/.{4}/g).join(' ')} binär in Hexadezimal um.`, answer: binaryToHex(binary), explanation: `${binary.slice(0, 4)} und ${binary.slice(4)} werden getrennt in Hexzeichen übersetzt: ${binaryToHex(binary)}.` };
+  }
+  if (type === 'hex-binary') {
+    const hex = decimalToHex(value).padStart(2, '0');
+    return { prompt: `Wandle ${hex} hexadezimal in acht Bit Binär um.`, answer: hexToBinary(hex), explanation: `Jedes Hexzeichen entspricht vier Bits: ${hexToBinary(hex)}.` };
+  }
+  if (type === 'decimal-hex') return { prompt: `Wandle ${value} dezimal in Hexadezimal um.`, answer: decimalToHex(value), explanation: `${value} dezimal entspricht ${decimalToHex(value)} hexadezimal.` };
+  if (type === 'hex-decimal') {
+    const hex = decimalToHex(value);
+    return { prompt: `Wandle ${hex} hexadezimal in Dezimal um.`, answer: String(hexToDecimal(hex)), explanation: `${hex} hexadezimal entspricht ${value} dezimal.` };
+  }
+  const ip = `${random(1, 223)}.${random(0, 255)}.${random(0, 255)}.${random(1, 254)}`;
+  return { prompt: `Wandle ${ip} in vier binäre 8-Bit-Gruppen um.`, answer: ip.split('.').map((octet) => decimalToBinary(Number(octet), 8)).join('.'), explanation: 'Jedes der vier Dezimaloktette wird einzeln in acht Bit umgerechnet.' };
+}
+
+function AdaptiveNumberSystemsExercise({ exercise, onComplete }) {
+  const [level, setLevel] = useState(0);
+  const [challenge, setChallenge] = useState(() => createNumberSystemsChallenge(0));
+  const [input, setInput] = useState('');
+  const [feedback, setFeedback] = useState(null);
+  const [correct, setCorrect] = useState(0);
+  const [correctStreak, setCorrectStreak] = useState(0);
+  const [wrongStreak, setWrongStreak] = useState(0);
+
+  function check() {
+    if (feedback) {
+      setInput('');
+      setFeedback(null);
+      setChallenge(createNumberSystemsChallenge(level));
+      return;
+    }
+    const normalizedInput = input.replace(/\s/g, '').toUpperCase();
+    const normalizedAnswer = challenge.answer.replace(/\s/g, '').toUpperCase();
+    const ok = normalizedInput === normalizedAnswer || (/^\d+$/.test(normalizedAnswer) && Number(normalizedInput) === Number(normalizedAnswer));
+    if (ok) {
+      const nextStreak = correctStreak + 1;
+      const nextLevel = nextStreak >= 3 ? Math.min(2, level + 1) : level;
+      setCorrect((value) => value + 1);
+      setCorrectStreak(nextStreak >= 3 ? 0 : nextStreak);
+      setWrongStreak(0);
+      setLevel(nextLevel);
+      setFeedback({ ok: true, text: `Richtig. ${challenge.explanation}${nextLevel > level ? ' Die nächste Stufe ist freigeschaltet.' : ''}` });
+    } else {
+      const nextWrong = wrongStreak + 1;
+      setWrongStreak(nextWrong >= 2 ? 0 : nextWrong);
+      setCorrectStreak(0);
+      if (nextWrong >= 2) setLevel((value) => Math.max(0, value - 1));
+      setFeedback({ ok: false, text: `Noch nicht. Richtig ist ${challenge.answer}. ${challenge.explanation}` });
+    }
+  }
+
+  return (
+    <div className="cyber-card p-4">
+      <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">{exercise.title} · Stufe {level + 1}/3 · {correct}/5 richtig</div>
+      <p className="mt-2 text-sm font-bold text-white">{challenge.prompt}</p>
+      <input value={input} onChange={(event) => setInput(event.target.value)} disabled={!!feedback} className="mt-3 w-full rounded border border-[#00f0ff]/30 bg-black/30 px-3 py-2 text-sm text-white focus:border-[#00f0ff] focus:outline-none" placeholder="Ergebnis eingeben" />
+      {feedback && <p className={`mt-3 text-xs ${feedback.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}`}>{feedback.text}</p>}
+      {correct >= 5 ? <button onClick={onComplete} className="cyber-btn mt-3 w-full py-2 text-sm">Trainer abschließen</button> : <button onClick={check} className="cyber-btn mt-3 w-full py-2 text-sm">{feedback ? 'Ähnliche Aufgabe' : 'Prüfen'}</button>}
     </div>
   );
 }

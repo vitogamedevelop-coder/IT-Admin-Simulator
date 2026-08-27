@@ -104,7 +104,7 @@ for (const ex of inputExercises) {
 
 // Also check all other lessons for the same bug
 for (const [key, lesson] of Object.entries(LESSONS)) {
-  for (const ex of lesson.exercises) {
+  for (const ex of lesson.exercises || []) {
     if (ex.type === 'input' && ex.placeholder && ex.answers) {
       const isAnswer = ex.answers.some(a =>
         String(a).trim().toLowerCase() === String(ex.placeholder).trim().toLowerCase()
@@ -145,9 +145,9 @@ const CHAIN = [
   { cat: 'fundamentals', topic: 'grundbegriffe', unlocks: ['topologien', 'kommunikation-uebertragung'] },
   { cat: 'fundamentals', topic: 'topologien', unlocks: ['osi-model'] },
   { cat: 'fundamentals', topic: 'osi-model', unlocks: ['tcp-ip-model'] },
+  { cat: 'fundamentals', topic: 'binary-system', unlocks: ['ipv4', 'subnet-masks'] },
   { cat: 'fundamentals', topic: 'tcp-ip-model', unlocks: ['ipv4'] },
   { cat: 'fundamentals', topic: 'ipv4', unlocks: ['subnet-masks'] },
-  { cat: 'fundamentals', topic: 'binary-system', unlocks: ['subnet-masks'] },
   { cat: 'fundamentals', topic: 'subnet-masks', unlocks: ['subnetting'] },
   { cat: 'fundamentals', topic: 'subnetting', unlocks: ['vlsm'] },
   { cat: 'fundamentals', topic: 'vlsm', unlocks: ['supernetting'] },

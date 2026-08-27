@@ -1,8 +1,10 @@
 import { topicKey } from '../academyTopics.js';
 import { decimalToBinaryOctet, binaryOctetToDecimal } from '../networking/ipv4Math.js';
+import { binaryToHex, hexToBinary, decimalToHex, hexToDecimal } from '../networking/numberSystems.js';
 
 const BIT_VALUES = [128, 64, 32, 16, 8, 4, 2, 1];
 
+const HEX_SVG = `<svg viewBox="0 0 400 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="200" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12">Vier Bits entsprechen einer Hexadezimalstelle</text><rect x="30" y="40" width="150" height="42" rx="6" fill="#00f0ff" opacity="0.2" stroke="#00f0ff"/><text x="105" y="67" text-anchor="middle" fill="#00f0ff" font-size="18">1010</text><text x="200" y="67" text-anchor="middle" fill="#ffcc00" font-size="18">=</text><rect x="220" y="40" width="150" height="42" rx="6" fill="#00ff66" opacity="0.2" stroke="#00ff66"/><text x="295" y="67" text-anchor="middle" fill="#00ff66" font-size="18">A</text><text x="200" y="106" text-anchor="middle" fill="#8b949e" font-size="11">1010 1111 1111 1110 → A F F E</text></svg>`;
 const BIT_SVG = `<svg viewBox="0 0 400 110" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="200" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12">Acht Bits = ein Oktett</text><g fill="#00f0ff" stroke="#00f0ff" stroke-width="2"><rect x="10" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/><rect x="60" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/><rect x="110" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/><rect x="160" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/><rect x="210" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/><rect x="260" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/><rect x="310" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/><rect x="360" y="35" width="40" height="45" rx="4" fill-opacity="0.1"/></g><text x="30" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">128</text><text x="80" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">64</text><text x="130" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">32</text><text x="180" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">16</text><text x="230" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">8</text><text x="280" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">4</text><text x="330" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">2</text><text x="380" y="65" text-anchor="middle" fill="#c9d1d9" font-size="14" font-weight="bold">1</text><text x="200" y="95" text-anchor="middle" fill="#8b949e" font-size="11">Jedes Bit ist ein Schalter mit festem Wert.</text></svg>`;
 
 function explanation(id, title, style, blocks) {
@@ -43,6 +45,23 @@ function buildExplanations() {
 
   exps.push(explanation('why-binary-classic', 'Warum acht Bit?', 'classic', [
     { type: 'text', content: 'IPv4 verwendet vier Oktette. Jedes Oktett hat acht Bit, also insgesamt 32 Bit. Weil acht Bit Werte von 0 bis 255 darstellen können, passt die Notation gut zu dezimalen Punkten wie 192.168.10.25.' },
+  ]));
+
+  exps.push(explanation('number-systems-classic', 'Zahlensysteme im Überblick', 'classic', [
+    { type: 'table', headers: ['System', 'Basis', 'Zeichen', 'Netzwerkbezug'], rows: [
+      ['Dezimal', '10', '0–9', 'menschenlesbare IPv4-Oktette'],
+      ['Binär', '2', '0 und 1', 'technische Bitdarstellung'],
+      ['Hexadezimal', '16', '0–9 und A–F', 'kompakte Darstellung langer Bitfolgen, etwa bei IPv6'],
+      ['Oktal', '8', '0–7', 'ergänzendes Zahlensystem mit geringerer Priorität'],
+    ] },
+    { type: 'text', content: 'A bis F entsprechen im Hexadezimalsystem den Dezimalwerten 10 bis 15. Eine Hexadezimalstelle fasst genau vier Binärbits zusammen.' },
+    { type: 'diagram', content: HEX_SVG },
+  ]));
+
+  exps.push(explanation('hex-conversion-classic', 'Binär und Hexadezimal umrechnen', 'classic', [
+    { type: 'text', content: 'Teile eine Binärzahl von rechts in Vierergruppen. Jede Gruppe wird zu einem Hexzeichen: 1010 = A und 1111 = F. Umgekehrt wird jedes Hexzeichen wieder zu genau vier Bits.' },
+    { type: 'list', title: 'Beispiele', items: [`10101111 = ${binaryToHex('10101111')}`, `AFFE = ${hexToBinary('AFFE')}`, `42 dezimal = ${decimalToHex(42)} hexadezimal`, `2A hexadezimal = ${hexToDecimal('2A')} dezimal`] },
+    { type: 'text', content: 'Der sichere Lernweg darf über Binär führen: Dezimal → Binär → Hexadezimal und zurück. Groß- oder Kleinschreibung ändert den Hexwert nicht.' },
   ]));
 
   exps.push(explanation('summary-classic', 'Zusammenfassung', 'classic', [
@@ -112,6 +131,12 @@ function buildExercises() {
       correctOrder: BIT_VALUES.map((v) => `v${v}`),
       explanation: 'Die Reihe lautet: 128, 64, 32, 16, 8, 4, 2, 1.',
     },
+    {
+      id: 'number-systems-adaptive',
+      type: 'adaptive-number-systems',
+      title: 'Adaptiver Zahlensystem-Trainer',
+      explanation: 'Rechne selbst. Nach drei richtigen Antworten steigt die Schwierigkeit; nach zwei Fehlern wird sie reduziert.',
+    },
   ];
 }
 
@@ -122,6 +147,10 @@ function buildQuiz() {
     { question: 'Was ergibt 11111111?', options: ['0', '128', '255', '256'], correct: 2, explanation: 'Alle acht Bits gesetzt ergeben 255.' },
     { question: 'Was ergibt 00000000?', options: ['255', '128', '0', '1'], correct: 2, explanation: 'Kein Bit gesetzt ergibt 0.' },
     { question: 'Welche Binärdarstellung hat die Dezimalzahl 224?', options: ['11100000', '11000000', '11110000', '10100000'], correct: 0, explanation: '128+64+32 = 224, also 11100000.' },
+    { facet: 'number-system', question: 'Welche Zeichen verwendet das Hexadezimalsystem?', options: ['0–9 und A–F', 'nur 0 und 1', 'nur 0–7'], correct: 0, explanation: 'Hexadezimal hat Basis 16: 0–9 sowie A=10 bis F=15.' },
+    { facet: 'binary-hex', question: 'Wie viele Binärbits entsprechen einer Hexadezimalstelle?', options: ['4', '8', '16'], correct: 0, explanation: 'Vier Bits stellen 16 Kombinationen dar und entsprechen damit genau einer Hexadezimalstelle.' },
+    { facet: 'hex-conversion', question: 'Welche Hexadezimaldarstellung entspricht 1010 1111?', options: ['AF', 'A7', 'BF'], correct: 0, explanation: '1010 = A und 1111 = F, zusammen AF.' },
+    { facet: 'octal', question: 'Welche Ziffer ist im Oktalsystem nicht erlaubt?', options: ['8', '7', '0'], correct: 0, explanation: 'Das Oktalsystem hat Basis 8 und verwendet ausschließlich die Ziffern 0 bis 7.' },
   ];
 }
 
@@ -131,7 +160,9 @@ function buildSummary() {
     'Die Stellenwerte lauten 128, 64, 32, 16, 8, 4, 2, 1.',
     'Gesetzte Bits werden addiert.',
     'Ein Oktett kann Werte von 0 bis 255 darstellen.',
-    'Diese Umrechnung ist die Grundlage für Subnetzmasken.',
+    'Diese Umrechnung ist die Grundlage für IPv4 und spätere Subnetzmasken.',
+    'Dezimal nutzt Basis 10, Binär Basis 2, Hexadezimal Basis 16 und Oktal Basis 8.',
+    'Vier Binärbits entsprechen einer Hexadezimalstelle; A bis F stehen für 10 bis 15.',
   ];
 }
 
