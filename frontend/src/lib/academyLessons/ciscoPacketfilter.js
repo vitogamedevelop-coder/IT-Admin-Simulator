@@ -9,6 +9,14 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_PACKETFILTER_TOPIC_KEY = topicKey('cisco-packet-tracer', 'packet-filter');
 
+const PF_STATELESS_SVG = `<svg viewBox="0 0 340 220" class="w-full h-auto max-h-56" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Stateless Filter: Request und Reply getrennt</text><rect x="20" y="80" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="105" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Client</text><rect x="240" y="80" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="105" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Server</text><rect x="135" y="75" width="70" height="50" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="95" text-anchor="middle" fill="#0a1628" font-size="8" font-weight="bold">Router</text><text x="170" y="110" text-anchor="middle" fill="#0a1628" font-size="7">ACL stateless</text><line x1="100" y1="90" x2="135" y2="90" stroke="#00f0ff" stroke-width="2"/><polygon points="125,85 125,95 135,90" fill="#00f0ff"/><text x="117" y="80" text-anchor="middle" fill="#8b949e" font-size="7">HTTP req</text><line x1="205" y1="90" x2="240" y2="90" stroke="#00f0ff" stroke-width="2"/><polygon points="230,85 230,95 240,90" fill="#00f0ff"/><text x="170" y="135" text-anchor="middle" fill="#c9d1d9" font-size="9">Antwort braucht eigene ACL-Regel</text><line x1="240" y1="115" x2="135" y2="115" stroke="#ff7b72" stroke-width="2" stroke-dasharray="5,3"/><polygon points="145,110 145,120 135,115" fill="#ff7b72"/><text x="190" y="130" text-anchor="middle" fill="#ff7b72" font-size="7">HTTP reply</text><text x="170" y="175" text-anchor="middle" fill="#c9d1d9" font-size="9">Filter kennt keinen Verbindungszustand</text><text x="170" y="195" text-anchor="middle" fill="#8b949e" font-size="8">KEIN SESSION STATE</text></svg>`;
+
+const PF_SPI_SVG = `<svg viewBox="0 0 340 240" class="w-full h-auto max-h-60" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Stateful Inspection: Session merkt Antwort</text><rect x="20" y="80" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="105" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Client</text><rect x="240" y="80" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="105" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Server</text><rect x="135" y="70" width="70" height="60" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="90" text-anchor="middle" fill="#0a1628" font-size="8" font-weight="bold">Router</text><text x="170" y="105" text-anchor="middle" fill="#0a1628" font-size="7">ACL + SPI</text><rect x="145" y="115" width="50" height="12" rx="2" fill="#ffcc00" opacity="0.9"/><text x="170" y="124" text-anchor="middle" fill="#0a1628" font-size="6" font-weight="bold">Session</text><line x1="100" y1="90" x2="135" y2="90" stroke="#00f0ff" stroke-width="2"/><polygon points="125,85 125,95 135,90" fill="#00f0ff"/><text x="117" y="80" text-anchor="middle" fill="#8b949e" font-size="7">HTTP req</text><line x1="205" y1="90" x2="240" y2="90" stroke="#00f0ff" stroke-width="2"/><polygon points="230,85 230,95 240,90" fill="#00f0ff"/><line x1="240" y1="120" x2="205" y2="120" stroke="#00f0ff" stroke-width="2"/><polygon points="215,115 215,125 205,120" fill="#00f0ff"/><text x="222" y="140" text-anchor="middle" fill="#00f0ff" font-size="7">HTTP reply</text><text x="170" y="175" text-anchor="middle" fill="#c9d1d9" font-size="9">Antwort passt zur gespeicherten Session</text><text x="170" y="195" text-anchor="middle" fill="#c9d1d9" font-size="9">und wird temporär erlaubt</text><text x="170" y="220" text-anchor="middle" fill="#8b949e" font-size="8">Timeout / Verbindungsende → Session weg</text></svg>`;
+
+const PF_BINDING_SVG = `<svg viewBox="0 0 340 200" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">ACL + SPI: entgegengesetzte Flussrichtung</text><rect x="20" y="70" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="95" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">LAN</text><rect x="240" y="70" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="95" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">WAN</text><rect x="130" y="55" width="80" height="70" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="75" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">Router</text><text x="170" y="90" text-anchor="middle" fill="#0a1628" font-size="7">g0/1</text><line x1="100" y1="85" x2="130" y2="85" stroke="#00f0ff" stroke-width="2"/><polygon points="120,80 120,90 130,85" fill="#00f0ff"/><line x1="210" y1="85" x2="240" y2="85" stroke="#00f0ff" stroke-width="2"/><polygon points="230,80 230,90 240,85" fill="#00f0ff"/><text x="170" y="35" text-anchor="middle" fill="#ffcc00" font-size="8">SPI: out (beobachtet ausgehenden Verkehr)</text><text x="170" y="150" text-anchor="middle" fill="#ff7b72" font-size="8">ACL: in (blockiert eingehenden Verkehr grundsätzlich)</text></svg>`;
+
+const PF_ESTABLISHED_SVG = `<svg viewBox="0 0 320 180" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">established prüft TCP-Flags, speichert aber keinen State</text><rect x="40" y="70" width="100" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="90" y="95" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Server</text><text x="90" y="120" text-anchor="middle" fill="#8b949e" font-size="7">ACK/RST erlaubt</text><rect x="200" y="70" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="240" y="95" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Internet</text><line x1="140" y1="85" x2="200" y2="85" stroke="#ffcc00" stroke-width="2"/><polygon points="190,80 190,90 200,85" fill="#ffcc00"/><text x="170" y="80" text-anchor="middle" fill="#ffcc00" font-size="7">ACK</text><text x="160" y="150" text-anchor="middle" fill="#c9d1d9" font-size="9">Keine echten Session-State</text><text x="160" y="170" text-anchor="middle" fill="#ff7b72" font-size="8">established ≠ Stateful Inspection</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -41,6 +49,11 @@ function buildExplanations() {
     ] },
     { type: 'text', content: 'Diese ACL erlaubt HTTP aus dem internen Netz und blockiert alles andere. Jede Regel wird isoliert betrachtet.' },
     { type: 'question', question: 'Worauf basiert ein statischer Paketfilter auf Cisco-Geräten in diesem Lehrgang?', options: ['Routen', 'ACLs', 'NAT', 'Spanning Tree'], correct: 1, explanation: 'Statische Paketfilter in diesem Lehrgang werden über ACLs realisiert.' },
+  ]));
+
+  exps.push(explanation('stateless-visual', 'Stateless Filter: Request und Reply getrennt', 'visual', [
+    { type: 'diagram', content: PF_STATELESS_SVG },
+    { type: 'text', content: 'Ein stateless Filter entscheidet pro Paket isoliert. Die HTTP-Anfrage wird anhand der ACL erlaubt, die Antwort benötigt eine separate Regel - der Filter weiß nicht, dass sie zur gleichen Verbindung gehört.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -102,6 +115,11 @@ function buildExplanations() {
     { type: 'text', content: 'Der entscheidende Unterschied ist nicht „mehr Regeln“, sondern die Session-Verwaltung.' },
   ]));
 
+  exps.push(explanation('stateful-visual', 'Stateful Inspection: Session merkt Antwort', 'visual', [
+    { type: 'diagram', content: PF_SPI_SVG },
+    { type: 'text', content: 'Beim Stateful Inspection speichert der Router den Zustand der ausgehenden Anfrage. Passt die Antwort zu dieser Session, wird sie temporär erlaubt. Nach Timeout oder Verbindungsende verschwindet die Session wieder.' },
+  ]));
+
   // ---------------------------------------------------------------------------
   // 7. Cisco CBAC / ip inspect
   // ---------------------------------------------------------------------------
@@ -117,6 +135,21 @@ function buildExplanations() {
     ] },
     { type: 'text', content: 'Wichtig: ip inspect überwacht den erlaubten ausgehenden Verkehr und erstellt temporäre Einträge für den passenden Rückverkehr. Eine ACL wird weiterhin benötigt, um den ausgehenden Verkehr grundsätzlich zu erlauben.' },
     { type: 'question', question: 'Wofür steht CBAC?', options: ['Cisco Basic Access Control', 'Context-Based Access Control', 'Cisco Border Access Control', 'Core-Based Access Control'], correct: 1, explanation: 'CBAC steht für Context-Based Access Control - klassische Cisco IOS Stateful Inspection.' },
+  ]));
+
+  exps.push(explanation('established-classic', 'Das established-Keyword', 'classic', [
+    { type: 'text', content: 'In Extended ACLs kann man TCP-Paketen mit dem Keyword established erlauben, wenn sie ACK- oder RST-Flags gesetzt haben. Das ist praktisch, um Antwortverkehr zu ermöglichen, ohne jeden möglichen Quellport öffnen zu müssen.' },
+    { type: 'text', content: 'Wichtig: established prüft lediglich TCP-Flags. Es speichert keine echte Verbindungstabelle und weiß nicht, ob die fragliche Verbindung tatsächlich aktiv war. Das ist keine vollständige Stateful Inspection.' },
+    { type: 'list', title: 'Vergleich', items: [
+      'established: Flag-basierte Annäherung, kein gespeicherter State.',
+      'CBAC / ip inspect: Merkt sich Sessions und erlaubt passenden Rückverkehr temporär.',
+    ] },
+    { type: 'question', question: 'Was ist der wichtigste Unterschied zwischen established und echter Stateful Inspection?', options: ['established speichert Sessions, CBAC nicht', 'established prüft TCP-Flags, CBAC verwaltet echte Session-Zustände', 'established funktioniert nur bei UDP'], correct: 1, explanation: 'established ist ein Flag-Check in ACLs; Stateful Inspection merkt sich Verbindungen und erlaubt passenden Rückverkehr temporär.' },
+  ]));
+
+  exps.push(explanation('established-visual', 'established: Flag-Check, kein Session State', 'visual', [
+    { type: 'diagram', content: PF_ESTABLISHED_SVG },
+    { type: 'text', content: 'established erlaubt TCP-Pakete mit ACK/RST-Flags, ohne einen echten Verbindungszustand zu speichern. Das ist praktisch, aber keine Stateful Inspection.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -135,6 +168,11 @@ function buildExplanations() {
     ] },
     { type: 'text', content: 'Die ACL erlaubt HTTP aus dem internen Netz. ip inspect merkt sich die Sitzungen und lässt die Antwortpakete automatisch zurückkommen.' },
     { type: 'question', question: 'Welche Aufgabe hat die ACL im Zusammenspiel mit ip inspect?', options: ['Sie ersetzt ip inspect', 'Sie legt fest, welcher ausgehende Verkehr grundsätzlich erlaubt ist', 'Sie speichert die Sitzungen', 'Sie verifiziert den Rückverkehr'], correct: 1, explanation: 'Die ACL erlaubt den gewünschten ausgehenden Verkehr; ip inspect speichert den Zustand und erlaubt den Rückverkehr.' },
+  ]));
+
+  exps.push(explanation('binding-visual', 'ACL + SPI Binding-Richtung', 'visual', [
+    { type: 'diagram', content: PF_BINDING_SVG },
+    { type: 'text', content: 'ip inspect überwacht typischerweise den ausgehenden Verkehr (out) und merkt sich die Sessions. Eine ACL blockiert typischerweise eingehenden Verkehr (in), damit unerwünschter Traffic früh abgewiesen wird. Beide beziehen sich auf dasselbe Interface, aber auf entgegengesetzte Richtungen.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -156,7 +194,9 @@ function buildExplanations() {
     { type: 'text', content: 'Nach der Konfiguration musst du prüfen, ob die ACL und die Inspection Rule korrekt gesetzt sind und ob aktive Sitzungen existieren.' },
     { type: 'table', headers: ['Befehl', 'Was zeigt er?'], rows: [
       ['show ip inspect config', 'Konfigurierte Inspection Rules und deren Richtungen.'],
+      ['show ip inspect interfaces', 'Auf welchen Interfaces SPI in welcher Richtung aktiv ist.'],
       ['show ip inspect sessions', 'Aktive, inspizierte Sitzungen.'],
+      ['show ip inspect statistics', 'Session-Anzahl, inspizierte Pakete und Timeouts.'],
       ['show access-lists', 'Alle ACLs mit Regeln und Match-Zählern.'],
       ['show ip interface g0/1', 'Gebundene ACL und Inspection auf dem Interface.'],
       ['show running-config', 'Gesamte Konfiguration.'],
@@ -325,6 +365,41 @@ function buildExercises() {
       ],
       explanation: 'Stateless basiert auf ACLs, Stateful merkt sich Verbindungen; beide müssen an Interfaces/VTYs gebunden werden.',
     },
+    {
+      id: 'packetfilter-established-select',
+      type: 'select-best',
+      question: 'Eine Extended ACL enthält "permit tcp any any established". Was gilt?',
+      options: ['Das ist echte Stateful Inspection mit Session-Tabelle', 'Es werden TCP-Pakete mit ACK/RST erlaubt, ohne dass echte Sessions gespeichert werden', 'Es funktioniert auch für UDP'], correct: 1,
+      explanation: 'established prüft TCP-Flags, speichert aber keine echte Verbindungstabelle. Es ist keine vollständige Stateful Inspection.',
+    },
+    {
+      id: 'packetfilter-inspect-undefined-select',
+      type: 'select-best',
+      question: 'Ein Router zeigt "%Inspect name INTERNET is not defined". Was fehlt?',
+      options: ['Die Inspection Rule wurde nicht mit "ip inspect name ..." erstellt', 'Die ACL fehlt', 'Das Interface ist down'], correct: 0,
+      explanation: 'Bevor "ip inspect INTERNET" an ein Interface gebunden werden kann, muss die Rule "INTERNET" definiert sein.',
+    },
+    {
+      id: 'packetfilter-wrong-protocol-select',
+      type: 'select-best',
+      question: 'Die Inspection Rule enthält nur "ip inspect name INTERNET tcp". Ein Client nutzt DNS über UDP. Was passiert?',
+      options: ['DNS funktioniert normal', 'Keine UDP-Session wird inspiziert; der Rückverkehr bleibt blockiert, falls keine ACL ihn erlaubt', 'tcp-Rule übernimmt UDP'], correct: 1,
+      explanation: 'ip inspect muss das Protokoll explizit enthalten. Für UDP muss auch "ip inspect name INTERNET udp" konfiguriert sein.',
+    },
+    {
+      id: 'packetfilter-direction-select',
+      type: 'select-best',
+      question: 'Warum sollte ip inspect typischerweise in der Richtung des ausgehenden Verkehrs gebunden werden?',
+      options: ['Weil nur so die initiierten Sessions erfasst werden', 'Weil ACLs nur outbound funktionieren', 'Weil eingehender Verkehr nie inspiziert wird'], correct: 0,
+      explanation: 'SPI muss die ausgehende Anfrage sehen, um den passenden Rückverkehr zuzulassen. Daher liegt es in Flussrichtung der Anfrage.',
+    },
+    {
+      id: 'packetfilter-expired-session-select',
+      type: 'select-best',
+      question: 'Eine SPI-Session ist abgelaufen. Was passiert mit dem Rückverkehr zu dieser Session?',
+      options: ['Er wird weiter erlaubt', 'Er wird blockiert, weil keine temporäre Session mehr existiert', 'Er wird automatisch an eine ACL delegiert'], correct: 1,
+      explanation: 'Stateful-Einträge sind temporär. Nach Timeout oder Verbindungsende verschwinden sie, und der Rückverkehr muss wieder einer festen Regel folgen.',
+    },
   ];
 }
 
@@ -342,6 +417,11 @@ function buildQuiz() {
     { question: 'Welcher Befehl zeigt aktive Inspection-Sitzungen?', options: ['show ip interface', 'show ip inspect sessions', 'show ip access-lists', 'show running-config'], correct: 1, explanation: 'show ip inspect sessions zeigt aktive, inspizierte Verbindungen.' },
     { question: 'Wie lange bleiben dynamische Stateful-Einträge bestehen?', options: ['Für immer', 'Solange die Verbindung aktiv ist bzw. bis zum Timeout', 'Nur eine Sekunde', 'Bis zum nächsten Reboot'], correct: 1, explanation: 'Stateful-Einträge sind temporär und verschwinden nach Verbindungsende oder Timeout.' },
     { question: 'Was bedeutet cbac?', options: ['Cisco Basic Access Control', 'Context-Based Access Control', 'Core Border Access Control', 'Cisco Backup Access Control'], correct: 1, explanation: 'CBAC = Context-Based Access Control, die klassische Cisco IOS Stateful Inspection.' },
+    { question: 'Was ist der Hauptunterschied zwischen established und echter Stateful Inspection?', options: ['established speichert Sessions, CBAC nicht', 'established prüft TCP-Flags, CBAC verwaltet Session-Zustände', 'established funktioniert nur bei UDP'], correct: 1, explanation: 'established ist ein Flag-Check in ACLs; CBAC merkt sich Sessions und erlaubt passenden Rückverkehr temporär.' },
+    { question: 'Warum muss SPI in Flussrichtung der ausgehenden Anfrage liegen?', options: ['Weil nur so die initiierte Session erfasst wird', 'Weil eingehende Pakete nicht inspiziert werden können', 'Weil ACLs nur outbound funktionieren'], correct: 0, explanation: 'SPI muss die ausgehende Verbindung sehen, um den passenden Rückverkehr temporär zuzulassen.' },
+    { question: 'Was passiert, wenn eine SPI-Session abgelaufen ist?', options: ['Rückverkehr wird weiter erlaubt', 'Rückverkehr wird blockiert, weil die temporäre Session fehlt', 'Session bleibt für immer aktiv'], correct: 1, explanation: 'Stateful-Einträge sind temporär und enden mit Timeout oder Verbindungsende.' },
+    { question: 'Ein Client kann nach außen surfen, aber DNS über UDP funktioniert nicht. Was könnte fehlen?', options: ['Die ACL erlaubt kein TCP', 'Die Inspection Rule enthält nicht udp', 'Das Interface ist down'], correct: 1, explanation: 'ip inspect muss das Protokoll explizit enthalten. Für DNS über UDP muss auch udp inspiziert werden.' },
+    { question: 'Wozu dient "show ip inspect config"?', options: ['Zeigt aktive Sitzungen', 'Zeigt konfigurierte Inspection Rules und Bindungen', 'Zeigt die Routingtabelle'], correct: 1, explanation: 'show ip inspect config zeigt definierte Inspection Rules, Protokolle und Interface-Bindungen.' },
   ];
 }
 
@@ -390,6 +470,16 @@ function buildCliTasks() {
       ],
       explanation: 'Mit show ip inspect config prüft man, ob die Inspection Rule auf dem richtigen Interface und in der richtigen Richtung aktiv ist.',
     },
+    {
+      prompt: 'Sam: "Zeige mir, auf welchen Interfaces SPI in welcher Richtung aktiv ist."',
+      expectedLines: [['show ip inspect interfaces', 'sh ip inspect interfaces']],
+      explanation: 'show ip inspect interfaces listet die Interfaces mit angewandten Inspection Rules.',
+    },
+    {
+      prompt: 'Sam: "Zeige mir an, ob auf g0/1 eine ACL und eine Inspection Rule gebunden sind."',
+      expectedLines: [['show ip interface g0/1', 'sh ip int g0/1']],
+      explanation: 'show ip interface zeigt inbound/outbound ACLs und Inspection Rules auf einem Interface.',
+    },
   ];
 }
 
@@ -406,9 +496,10 @@ export function buildCiscoPacketfilterLesson() {
       'Dynamisch/Stateful berücksichtigt Verbindungszustände und erlaubt passenden Rückverkehr.',
       'Cisco CBAC: ip inspect name <NAME> tcp/udp und ip inspect <NAME> in/out am Interface.',
       'ACL und ip inspect arbeiten zusammen: ACL erlaubt, ip inspect merkt sich die Session.',
+      'established in ACLs prüft TCP-Flags, ist aber keine echte Stateful Inspection.',
       'Dynamische Einträge sind temporär und enden mit der Verbindung/dem Timeout.',
-      'Verifizieren: show ip inspect config, show ip inspect sessions, show access-lists, show ip interface.',
-      'Fehlersuche: ACL-Reihenfolge, fehlende Inspection, falsches Interface/Richtung, fehlendes Protokoll.',
+      'Verifizieren: show ip inspect config, show ip inspect interfaces, show ip inspect sessions, show ip inspect statistics, show access-lists, show ip interface.',
+      'Fehlersuche: ACL-Reihenfolge, fehlende Inspection, falsches Interface/Richtung, fehlendes Protokoll, Session abgelaufen.',
     ],
   };
 }

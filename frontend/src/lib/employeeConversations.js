@@ -1353,6 +1353,31 @@ export const CONVERSATION_TOPICS = {
       { id: 'acl-conv-9', difficulty: 'hard', text: 'Warum sollte eine Standard ACL eher näher am Ziel platziert werden?', options: ['Weil sie schneller ist', 'Weil sie nur nach Source filtern und sonst ungewollt viel Verkehr blockieren könnte', 'Weil Extended ACLs keine Richtung haben'], correct: 1, explanation: 'Da Standard ACLs nur die Quelle kennen, könnten sie nahe der Quelle zu viel blockieren. Deshalb zielnäher platzieren.' },
     ],
   },
+  [topicKey('cisco-packet-tracer', 'packet-filter')]: {
+    title: 'Packet Filter / Stateful Inspection',
+    relatedTopics: [
+      topicKey('cisco-packet-tracer', 'acl'),
+      topicKey('cisco-packet-tracer', 'router-basics'),
+      topicKey('cisco-packet-tracer', 'nat'),
+    ],
+    introPool: [
+      'Was ist eigentlich der Unterschied zwischen einem stateless und einem stateful Paketfilter?',
+      'Warum reicht eine ACL allein oft nicht für ausgehenden und zurückkommenden Verkehr?',
+      'Warum ist "established" keine echte Stateful Inspection?',
+    ],
+    samHelp: 'Ein stateless Paketfilter prüft jedes Paket isoliert gegen ACL-Regeln - das ist das Thema ACL. Packet Filter geht einen Schritt weiter: ein stateful Filter merkt sich initiierte Verbindungen und erlaubt passenden Rückverkehr temporär. Cisco CBAC verwendet dafür ip inspect. WICHTIG: established in einer ACL prüft nur TCP-Flags, speichert aber keine echten Sessions.',
+    questions: [
+      { id: 'pf-conv-1', difficulty: 'easy', text: 'Was ist der entscheidende Unterschied zwischen stateless und stateful Paketfilter?', options: ['Stateless ist schneller, stateful langsamer', 'Stateless prüft jedes Paket isoliert, stateful kennt Verbindungszustände', 'Stateless verwendet ACLs, stateful verwendet keine ACLs'], correct: 1, explanation: 'Stateless wertet jedes Paket für sich anhand von Regeln; stateful merkt sich initiierte Verbindungen und erlaubt passenden Rückverkehr temporär.' },
+      { id: 'pf-conv-2', difficulty: 'easy', text: 'Was ist das Hauptproblem eines statischen Paketfilters beim Rückverkehr?', options: ['Er ist zu langsam', 'Er weiß nicht, dass ein eingehendes Antwortpaket zu einer erlaubten Anfrage gehört', 'Er unterstützt keine TCP-Ports'], correct: 1, explanation: 'Weil der stateless Filter keine Verbindungen speichert, kann er Antwortpakete nicht automatisch der vorherigen Anfrage zuordnen.' },
+      { id: 'pf-conv-3', difficulty: 'medium', text: 'Was bewirkt "ip inspect name INTERNET tcp"?', options: ['Es blockiert TCP-Verkehr', 'Es erstellt eine Inspection Rule, die TCP-Verbindungen überwacht', 'Es ersetzt die ACL'], correct: 1, explanation: 'ip inspect name definiert eine Inspection Rule für ein Protokoll; sie muss später an ein Interface gebunden werden.' },
+      { id: 'pf-conv-4', difficulty: 'medium', text: 'Was ist der Unterschied zwischen "established" in einer ACL und echter Stateful Inspection?', options: ['Keiner', 'established prüft TCP-Flags, Stateful Inspection merkt sich echte Sessions', 'established funktioniert nur bei UDP'], correct: 1, explanation: 'established ist ein ACL-Flag-Check; CBAC/ip inspect verwaltet eine Session-State und erlaubt passenden Rückverkehr temporär.' },
+      { id: 'pf-conv-5', difficulty: 'medium', text: 'Warum wird SPI typischerweise in Flussrichtung der ausgehenden Anfrage gebunden?', options: ['Weil eingehender Verkehr nicht inspiziert werden darf', 'Weil nur so die initiierte Session erfasst werden kann', 'Weil ACLs nur outbound funktionieren'], correct: 1, explanation: 'SPI muss die ausgehende Verbindung sehen, um den passenden Rückverkehr temporär zuzulassen.' },
+      { id: 'pf-conv-6', difficulty: 'hard', text: 'Ein Client kann HTTP (TCP 80) nach draußen nutzen, aber DNS über UDP nicht. Was könnte fehlen?', options: ['Die ACL erlaubt kein TCP', 'Die Inspection Rule enthält nicht udp', 'Das Interface ist down'], correct: 1, explanation: 'ip inspect muss das Protokoll explizit enthalten. Für DNS über UDP muss auch "ip inspect name INTERNET udp" konfiguriert sein.' },
+      { id: 'pf-conv-7', difficulty: 'hard', text: 'Welcher Show-Befehl zeigt aktive SPI-Sessions?', options: ['show ip inspect config', 'show ip inspect sessions', 'show access-lists'], correct: 1, explanation: 'show ip inspect sessions listet die aktiven, inspizierten Verbindungen.' },
+      { id: 'pf-conv-8', difficulty: 'hard', text: 'Was passiert mit einer temporären SPI-Freigabe, wenn die Verbindung endet?', options: ['Sie bleibt für immer aktiv', 'Sie verschwindet nach Timeout oder Verbindungsende', 'Sie wird zu einer statischen ACL'], correct: 1, explanation: 'Stateful-Einträge sind temporär. Nach Verbindungsende oder Timeout entfernt der Router sie wieder.' },
+      { id: 'pf-conv-9', difficulty: 'hard', text: 'Warum ersetzt SPI die ACL nicht vollständig?', options: ['Weil die ACL die Baseline-Policy definiert, die SPI ergänzt', 'Weil SPI keine Regeln kennt', 'Weil ACLs schneller sind'], correct: 0, explanation: 'Die ACL legt fest, welcher Verkehr grundsätzlich erlaubt ist; SPI merkt sich daraus resultierende Sessions und erlaubt passenden Rückverkehr.' },
+    ],
+  },
   [topicKey('fundamentals', 'vlsm')]: {
     title: 'VLSM',
     relatedTopics: [topicKey('fundamentals', 'subnetting'), topicKey('fundamentals', 'supernetting')],
