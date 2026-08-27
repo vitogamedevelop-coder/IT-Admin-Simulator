@@ -1,0 +1,191 @@
+// =============================================================================
+// Knowledge Items – Cisco DHCP Relay
+//
+// Source: frontend/src/lib/academyLessons/ciscoDhcp.js
+// =============================================================================
+
+import { topicKey } from '../../academyTopics.js';
+import { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from '../types.js';
+
+export const CISCO_DHCP_TOPIC_KEY = topicKey('cisco-packet-tracer', 'dhcp');
+
+export const ciscoDhcpKnowledgeItems = [
+  {
+    id: 'ciscoDhcp.relayPurpose',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'problem-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.RELATION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    data: {
+      problem: 'DHCP Discover ist ein Broadcast, der von Routern normalerweise nicht in andere Netze weitergeleitet wird.',
+      solution: 'Ein DHCP Relay Agent nimmt den Broadcast entgegen und leitet ihn als Unicast an den DHCP-Server weiter.',
+      description: 'DHCP Relay überbrückt die Broadcast-Grenze zwischen Client-Netz und entferntem DHCP-Server.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.helperPlacement',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'wo-vs-welche-ip-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.RELATION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+    data: {
+      rule: 'ip helper-address <DHCP-Server-IP> wird auf dem Layer-3-Interface konfiguriert, das Gateway des Client-Netzes ist.',
+      why: 'Dort kommt der DHCP-Broadcast aus dem Client-Netz an; nur hier kann der Router ihn an den Server weiterleiten.',
+      description: 'Der Helper gehört auf das clientseitige L3-Interface, nicht auf das Server-Interface oder einen L2-Port.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.helperVsGatewayIp',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'wo-vs-welche-ip-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+    data: {
+      helperAddress: 'IP-Adresse des DHCP-Servers, z. B. 10.0.0.2',
+      defaultRouterInPool: 'Gateway-IP des Client-Netzes, z. B. 192.168.10.1',
+      description: 'ip helper-address zeigt auf den DHCP-Server; das Default Gateway im DHCP-Pool ist das Gateway des Client-Netzes.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.placementVariations',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'szenario-a-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    data: {
+      items: [
+        { scenario: 'Physisches Routerinterface', placement: 'interface Gi0/0' },
+        { scenario: 'Router-on-a-Stick', placement: 'interface Gi0/0.10' },
+        { scenario: 'Multilayer-Switch', placement: 'interface vlan 10' },
+      ],
+      common: 'In allen Fällen steht der Helper auf dem Gateway-Interface des Client-Netzes.',
+      description: 'Die Platzierung des Helpers ändert sich je nach Topologie, das Prinzip bleibt gleich.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.multiVlan',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'szenario-b-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.RELATION,
+    difficulty: DIFFICULTY.HARD,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+    data: {
+      rule: 'Jedes Client-VLAN braucht einen eigenen ip helper-address auf seinem Gateway-Interface.',
+      example: 'Für VLAN 10 und VLAN 20, beide mit DHCP-Clients, muss auf fa0/0.10 und fa0/0.20 jeweils ein Helper stehen.',
+      description: 'Ein Helper auf einem Interface hilft nur dem Client-Netz, das an diesem Interface anliegt.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.routingDependency',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'routing-dependency-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.RELATION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+    data: {
+      rule: 'DHCP Relay setzt funktionierendes Routing zum DHCP-Server voraus.',
+      check: 'show ip route muss eine Route zum Netz des DHCP-Servers zeigen.',
+      description: 'Der Relay-Agent kann den Server nur erreichen, wenn ein Layer-3-Pfad existiert.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.verify',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'verifizierung-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.MAPPING,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.SELECT_BEST],
+    data: {
+      mapping: [
+        { command: 'show ip interface brief', purpose: 'Prüft, ob das Gateway-Interface des Clientnetzes up ist' },
+        { command: 'show ip interface <Interface>', purpose: 'Zeigt die konfigurierte Helper-Adresse auf diesem Interface' },
+        { command: 'show running-config | include helper', purpose: 'Listet alle ip helper-address-Einträge' },
+        { command: 'show ip route', purpose: 'Prüft Erreichbarkeit des DHCP-Server-Netzes' },
+      ],
+      description: 'Mit diesen Befehlen lässt sich DHCP Relay konfigurieren und prüfen.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.troubleshooting',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'troubleshooting-classic',
+    conceptCluster: 'dhcp.relay',
+    type: KNOWLEDGE_TYPES.TROUBLESHOOT,
+    difficulty: DIFFICULTY.HARD,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    data: {
+      symptoms: [
+        { symptom: 'Client bekommt keine IP', cause: 'Helper fehlt auf dem Gateway-Interface des Client-Netzes' },
+        { symptom: 'Client bekommt weiterhin keine IP', cause: 'Helper steht auf dem falschen Interface' },
+        { symptom: 'Client bekommt falsches Gateway/Subnetz', cause: 'Falsche Default-Router- oder Netzwerkkonfiguration im DHCP-Pool' },
+        { symptom: 'Nur ein VLAN funktioniert', cause: 'Helper fehlt auf dem Gateway-Interface des anderen VLANs' },
+        { symptom: 'Helper korrekt, aber keine Lease', cause: 'Routing zum DHCP-Server fehlt' },
+      ],
+      description: 'DHCP-Relay-Probleme lassen sich über Interface-Platzierung, IP-Adresse, Routing und Pool-Konfiguration eingrenzen.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.optionalServer',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'optional-classic',
+    conceptCluster: 'dhcp.server',
+    type: KNOWLEDGE_TYPES.PROCEDURE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.ORDERING],
+    data: {
+      steps: [
+        'ip dhcp excluded-address <IP>',
+        'ip dhcp pool <Name>',
+        'network <Netzwerk> <Maske>',
+        'default-router <Gateway-IP>',
+        'dns-server <DNS-IP>',
+      ],
+      description: 'Ein Cisco-Gerät kann optional selbst als DHCP-Server arbeiten; excluded-address verhindert doppelte Vergabe wichtiger IPs.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'ciscoDhcp.optionalClient',
+    topicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceTopicKey: CISCO_DHCP_TOPIC_KEY,
+    sourceSection: 'optional-classic',
+    conceptCluster: 'dhcp.client',
+    type: KNOWLEDGE_TYPES.PROPERTY,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
+    data: {
+      command: 'ip address dhcp',
+      purpose: 'Konfiguriert ein Interface so, dass es selbst per DHCP eine Adresse bezieht.',
+      description: 'Ein Cisco-Gerät kann auf einem L3-Interface auch DHCP-Client spielen.',
+    },
+    siblings: [],
+  },
+];

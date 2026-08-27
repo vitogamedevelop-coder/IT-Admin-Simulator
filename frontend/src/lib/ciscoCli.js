@@ -76,6 +76,10 @@ function expandKnownAbbreviations(line) {
   if (/^show ip int\s/.test(line)) return expandKnownAbbreviations(line.replace(/^show ip int\s/, 'show ip interface '));
   if (/^sw\s/.test(line)) return expandKnownAbbreviations(line.replace(/^sw\s/, 'switchport '));
   if (/^int\s/.test(line)) return expandKnownAbbreviations(line.replace(/^int\s/, 'interface '));
+  // "show run" (or "sh run") followed by a pipe or any other suffix expands to "show running-config ...".
+  if (/^(?:show|sh)\s+run\b/.test(line)) {
+    return line.replace(/^(?:show|sh)\s+run\b/, 'show running-config');
+  }
   return line;
 }
 

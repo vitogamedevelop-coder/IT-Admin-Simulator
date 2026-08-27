@@ -1275,6 +1275,32 @@ export const CONVERSATION_TOPICS = {
       { id: 'ssh-conv-9', difficulty: 'medium', text: '"show ip ssh" meldet "SSH disabled". Was sind die zwei wahrscheinlichsten Ursachen?', options: ['RSA-Schlüssel fehlt und/oder SSHv2 wurde nicht aktiviert', 'VTY-Lines fehlen', 'Das Passwort ist falsch', 'Das Kabel ist defekt'], correct: 0, explanation: 'SSH ist erst aktiv, wenn ein RSA-Schlüssel existiert und "ip ssh version 2" gesetzt ist. Fehlende VTY-Konfiguration verhindert dagegen keinen erfolgreichen SSH-Dienst, sondern das Login.' },
     ],
   },
+  [topicKey('cisco-packet-tracer', 'dhcp')]: {
+    title: 'DHCP Relay',
+    relatedTopics: [
+      topicKey('cisco-packet-tracer', 'router-basics'),
+      topicKey('cisco-packet-tracer', 'inter-vlan-routing'),
+      topicKey('cisco-packet-tracer', 'multilayer-switching'),
+      topicKey('fundamentals', 'dhcp'),
+    ],
+    introPool: [
+      'Clients bekommen keine IP aus einem entfernten Netz. Woran liegt das wohl?',
+      'Was macht ein DHCP Relay Agent eigentlich konkret auf einem Cisco-Gerät?',
+      'Wo genau gehört "ip helper-address" hin?',
+    ],
+    samHelp: 'DHCP Discover ist ein Broadcast, den Router normalerweise nicht weiterleiten. "ip helper-address" nimmt diesen Broadcast auf dem clientseitigen Gateway-Interface entgegen und leitet ihn als Unicast an den DHCP-Server weiter. Das Relay gehört auf das Gateway-Interface des Client-Netzes - physisches Interface, Subinterface oder SVI - und zeigt immer auf die IP-Adresse des DHCP-Servers.',
+    questions: [
+      { id: 'dhcp-conv-1', difficulty: 'easy', text: 'Ein Client sendet DHCP Discover als Broadcast. Warum kommt diese Anfrage nicht bei einem DHCP-Server in einem anderen Netz an?', options: ['Weil der DHCP-Server Broadcasts blockiert', 'Weil Router Broadcasts normalerweise nicht in andere Netze weiterleiten', 'Weil der Client die Server-IP nicht kennt', 'Weil DHCP nur im gleichen VLAN funktioniert'], correct: 1, explanation: 'Router trennen Broadcast-Domänen. DHCP Discover ist ein Broadcast und wird nicht automatisch ins andere Netz weitergeleitet.' },
+      { id: 'dhcp-conv-2', difficulty: 'medium', text: 'Auf welchem Interface wird "ip helper-address" typischerweise konfiguriert?', options: ['Auf dem Interface Richtung DHCP-Server', 'Auf dem Layer-3-Interface, das Gateway des Client-Netzes ist', 'Global im Config-Modus', 'Auf einem L2-Switch-Access-Port'], correct: 1, explanation: 'Der Helper muss dort sitzen, wo die DHCP-Broadcasts aus dem Client-Netz ankommen - also auf dem clientseitigen Gateway-Interface.' },
+      { id: 'dhcp-conv-3', difficulty: 'medium', text: 'Was bedeutet der Wert hinter "ip helper-address"?', options: ['Die eigene Gateway-IP des Interfaces', 'Die IP-Adresse des DHCP-Servers', 'Die Broadcast-Adresse des Client-Netzes', 'Die Subnetzmaske des Client-Netzes'], correct: 1, explanation: '"ip helper-address" zeigt auf die IP-Adresse des DHCP-Servers, an den der Relay-Agent die Anfrage weiterleiten soll.' },
+      { id: 'dhcp-conv-4', difficulty: 'hard', text: 'Ein Router-on-a-Stick bedient VLAN 10 und VLAN 20. Beide sollen den zentralen DHCP-Server 10.0.0.2 nutzen. Auf welchen Interfaces muss "ip helper-address" stehen?', options: ['Nur auf fa0/0.10', 'Nur auf fa0/0.20', 'Auf fa0/0.10 und fa0/0.20', 'Auf dem physischen fa0/0'], correct: 2, explanation: 'Jedes Client-VLAN braucht auf seinem Subinterface einen eigenen Helper. Ein einzelner Helper reicht nicht für alle VLANs.' },
+      { id: 'dhcp-conv-5', difficulty: 'hard', text: 'Der Helper ist korrekt konfiguriert, aber Clients bekommen trotzdem keine IP. "show ip route" zeigt keine Route zum Netz 10.0.0.0/24, in dem der DHCP-Server liegt. Was fehlt?', options: ['Ein zweiter DHCP-Server im Client-Netz', 'Eine funktionierende Route zum DHCP-Server-Netz', 'Ein neuer Helper auf dem Server-Interface', 'Die Subnetzmaske des Clients ist falsch'], correct: 1, explanation: 'DHCP Relay setzt voraus, dass der Relay-Agent den DHCP-Server routingmäßig erreichen kann. Ohne passende Route klappt die Weiterleitung nicht.' },
+      { id: 'dhcp-conv-6', difficulty: 'hard', text: 'Ein Multilayer-Switch hat SVIs für VLAN 10 (Clients) und VLAN 20 (Server). Der Helper "ip helper-address 10.0.0.2" steht auf "interface vlan 20". Was ist das Problem?', options: ['Der DHCP-Server ist ausgefallen', 'Der Helper steht auf der falschen SVI - er muss auf interface vlan 10, dem Gateway des Client-VLANs, konfiguriert werden', 'VLAN 10 muss gelöscht werden', 'Die Subnetzmaske des DHCP-Servers ist falsch'], correct: 1, explanation: 'Der Helper gehört auf das Gateway-Interface DES CLIENT-NETZES. Auf VLAN 20 kommt kein DHCP-Broadcast aus VLAN 10 an.' },
+      { id: 'dhcp-conv-7', difficulty: 'medium', text: 'Welchen Unterschied macht "show ip dhcp binding" im Vergleich zu "show ip dhcp pool"?', options: ['binding zeigt vergebene Leases, pool zeigt Poolstatus und verfügbare Adressen', 'binding zeigt Poolstatus, pool zeigt vergebene Leases', 'Beide zeigen das Gleiche', 'binding zeigt nur statische Reservierungen'], correct: 0, explanation: '"show ip dhcp binding" listet aktive Leases; "show ip dhcp pool" zeigt Poolstatistiken wie verfügbare und vergebenen Adressen.' },
+      { id: 'dhcp-conv-8', difficulty: 'hard', text: 'Ein Client bekommt eine IP, aber kann andere Netze nicht erreichen. Was ist die wahrscheinlichste Ursache im DHCP-Pool?', options: ['Falsche DNS-Server-Adresse', 'Falsches Default Gateway', 'Falsche DHCP-Server-IP', 'Der Helper fehlt'], correct: 1, explanation: 'Wenn der Client eine Lease bekommt, funktionieren Helper und Server grundsätzlich. Kann er andere Netze nicht erreichen, stimmt meist das vom Pool vergebene Default Gateway nicht.' },
+      { id: 'dhcp-conv-9', difficulty: 'hard', text: 'Warum sollte die Gateway-IP eines Netzes im DHCP-Pool ausgeschlossen werden?', options: ['Damit sie nicht dynamisch an einen Client vergeben wird', 'Weil Gateways keine IP-Adressen brauchen', 'Damit der Pool kleiner bleibt', 'Weil DHCP-Server Gateways ablehnen'], correct: 0, explanation: 'Wichtige statische Adressen wie das Default Gateway dürfen nicht dynamisch vergeben werden; daher werden sie mit "ip dhcp excluded-address" ausgeschlossen.' },
+    ],
+  },
   [topicKey('fundamentals', 'vlsm')]: {
     title: 'VLSM',
     relatedTopics: [topicKey('fundamentals', 'subnetting'), topicKey('fundamentals', 'supernetting')],
