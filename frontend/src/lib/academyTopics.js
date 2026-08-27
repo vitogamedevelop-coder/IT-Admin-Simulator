@@ -134,6 +134,10 @@ export const ACADEMY_TOPICS = [
   // content-less former "ip-configuration" placeholder (also removed) into
   // one combined lesson - see academyLessons/ciscoBasicDeviceConfiguration.js.
   topic('cisco-packet-tracer', 'basic-device-configuration', 'Grundkonfiguration & IP-Konfiguration', 'Ein neues Gerät grundlegend einrichten: CLI-Modi, Passwörter, lokale Benutzer, sowie eine IP-Adresse auf einer Schnittstelle vergeben und aktivieren.', ['grundlagen']),
+  // SSH is taught as a direct extension of basic device configuration
+  // (Block 1.5) so it sits right after basic-device-configuration and before
+  // any Layer-2/Layer-3 specialisation.
+  topic('cisco-packet-tracer', 'ssh', 'Fernwartung mit SSH', 'Cisco-Geräte (Router, L2-Switch, Multilayer-Switch) sicher per SSH statt Telnet aus der Ferne administrieren.', ['basic-device-configuration']),
   topic('cisco-packet-tracer', 'vlan', 'VLAN', 'VLANs auf einem Switch anlegen und zuweisen.', ['fundamentals/switching', 'fundamentals/ipv4', 'fundamentals/vlan-basics']),
   topic('cisco-packet-tracer', 'access-port', 'Access-Port', 'Einen Switchport einem einzelnen VLAN zuweisen.', ['vlan']),
   topic('cisco-packet-tracer', 'trunk', 'Trunk', 'Mehrere VLANs über eine Verbindung transportieren.', ['vlan']),
@@ -153,10 +157,6 @@ export const ACADEMY_TOPICS = [
   topic('cisco-packet-tracer', 'packet-filter', 'Paketfilter', 'Statische und dynamische Paketfilter, Stateless vs. Stateful, Cisco CBAC / ip inspect.', ['acl']),
   topic('cisco-packet-tracer', 'nat', 'NAT', 'Private Adressen auf öffentliche Adressen übersetzen.', ['router-basics']),
   topic('cisco-packet-tracer', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche im Netzwerk anhand der passenden show-Befehle.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
-  // Added (Milestone C7): remote management via SSH on router, L2 switch (via
-  // management SVI) and multilayer switch - depends on the same chain as
-  // troubleshooting so all three device scenarios are already unlocked.
-  topic('cisco-packet-tracer', 'ssh', 'Fernwartung mit SSH', 'Cisco-Geräte (Router, L2-Switch, Multilayer-Switch) sicher per SSH statt Telnet aus der Ferne administrieren.', ['static-routing', 'inter-vlan-routing', 'multilayer-switching']),
   // Added (Milestone C7 part 2): DHCP Relay on Cisco devices - the practical
   // skill of determining the correct Layer-3 interface for "ip helper-
   // address" across all three routing scenarios already covered (physical
