@@ -404,7 +404,7 @@ export default function AcademyTopic() {
         {topic.description && <p className="text-xs text-[#8b949e] mt-2">{topic.description}</p>}
         {!locked && (
           <div className={`grid gap-3 mt-3 text-center ${scoreCols === 1 ? 'grid-cols-1' : scoreCols === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-            {scoreDimensions.theory && <div><div className="text-[9px] text-[#8b949e]">Theorie</div><div className="text-sm text-[#00f0ff] font-bold">{topic.theoryScore}%</div></div>}
+            {scoreDimensions.theory && <div><div className="text-[9px] text-[#8b949e]">Theorie</div><div className="text-sm text-[#00f0ff] font-bold">{(topic.theoryCompletion ?? topic.theoryScore) ?? 0}%</div></div>}
             {scoreDimensions.practice && <div><div className="text-[9px] text-[#8b949e]">Praxis</div><div className="text-sm text-[#00f0ff] font-bold">{topic.practiceScore}%</div></div>}
             {scoreDimensions.retention && <div><div className="text-[9px] text-[#8b949e]">Festigung</div><div className="text-sm text-[#00f0ff] font-bold">{topic.retentionScore}%</div></div>}
           </div>

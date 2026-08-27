@@ -203,7 +203,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
   // check (reusing the section's own inline question if it has one, or a
   // generic self-assessment otherwise) before moving on.
   function advanceSection() {
-    recordSectionCompletion(categoryId, topicId, currentSectionId, currentExplanation.title || '');
+    recordSectionCompletion(categoryId, topicId, currentSectionId, currentExplanation.title || '', sectionIds.length);
     setSectionCheckQuestion(findSectionCheckQuestion(currentSectionId));
     setSectionCheckAnswer(null);
     setPhase('section-check');

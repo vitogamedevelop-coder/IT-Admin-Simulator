@@ -37,7 +37,12 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // removed outright (content-less placeholders, never had any lesson) -
 // any pre-existing progress under those topicIds is simply dropped by the
 // generic "topic no longer in catalog" handling below, same as usual.
-const STATE_VERSION = 8;
+// v9 (DHCP + Progression-Überarbeitung): introduces theoryCompletion so a
+// full theory pass is recorded as 100 % theory progress independently of the
+// smaller knowledge-check bumps stored in theoryScore. Existing saves are
+// migrated: a previously completed lesson (contentSeenPercent 100 or
+// lessonCompletions >= 1) becomes theoryCompletion 100.
+const STATE_VERSION = 9;
 
 // Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
 // advanced status across a group of legacy topics being merged into one.
@@ -100,6 +105,7 @@ function defaultProgressForTopic(topicDef) {
     unlockedTools: [...topicDef.unlockedTools],
     relatedMissions: [...topicDef.relatedMissions],
     relatedSideMissions: [...topicDef.relatedSideMissions],
+    theoryCompletion: 0,
     startedAt: null,
     lastCompletedSectionId: null,
     lastCompletedSectionTitle: null,
@@ -152,6 +158,19 @@ function migrateProgress(saved) {
     // old save doesn't know about simply keep their default.
     if (!merged.topics[key]) return;
     const migrated = { ...merged.topics[key], ...value };
+    // v9: seed theoryCompletion from existing progress. A topic that already
+    // completed its full theory run is marked as 100 % theory complete; an
+    // in-progress topic inherits whatever content-seen value was already
+    // recorded. This never reduces an existing 100 % value.
+    if (value.theoryCompletion === undefined || value.theoryCompletion === null) {
+      if ((value.contentSeenPercent || 0) >= 100 || (value.lessonCompletions || 0) >= 1) {
+        migrated.theoryCompletion = 100;
+      } else if (typeof value.contentSeenPercent === 'number' && value.contentSeenPercent > 0) {
+        migrated.theoryCompletion = value.contentSeenPercent;
+      } else {
+        migrated.theoryCompletion = 0;
+      }
+    }
     // v5: normalize legacy score values to a clean 0-100 integer range.
     // Older saves might have stored fractional 0-1 values or accidentally
     // inflated numbers. Values <=1 are treated as fractions and scaled; all

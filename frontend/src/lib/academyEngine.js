@@ -44,10 +44,18 @@ export function clampScore(value) {
   return Math.max(SCORE_MIN, Math.min(SCORE_MAX, Math.round(value)));
 }
 
+// Helper for the theory dimension: a dedicated completion value (0-100) takes
+// precedence over the older fine-grained theoryScore so that a full theory
+// pass is always represented as 100 % theory progress.
+function topicTheoryCompletion(topic) {
+  return topic?.theoryCompletion ?? topic?.theoryScore ?? 0;
+}
+
 // Simple weighted overall competency value (0-100) derived from the three
 // separate scores - never stored, always computed on demand.
 export function overallScore(topic) {
-  return clampScore(topic.theoryScore * 0.3 + topic.practiceScore * 0.4 + topic.retentionScore * 0.3);
+  const theory = topicTheoryCompletion(topic);
+  return clampScore(theory * 0.3 + topic.practiceScore * 0.4 + topic.retentionScore * 0.3);
 }
 
 function rankOf(status) {
@@ -66,12 +74,13 @@ function upgradeStatus(current, candidate) {
 export function computeNextStatus(progress) {
   if (progress.status === TOPIC_STATUS.LOCKED) return progress.status;
   let next = progress.status;
+  const theoryCompleted = topicTheoryCompletion(progress);
   const { theoryScore, practiceScore, retentionScore, appliedCount, repetitionCount } = progress;
 
   if (theoryScore >= ACADEMY_THRESHOLDS.started.minAnyScore || practiceScore >= ACADEMY_THRESHOLDS.started.minAnyScore) {
     next = upgradeStatus(next, TOPIC_STATUS.STARTED);
   }
-  if (theoryScore >= ACADEMY_THRESHOLDS.learned.minTheoryScore) {
+  if (theoryCompleted >= 100 || theoryScore >= ACADEMY_THRESHOLDS.learned.minTheoryScore) {
     next = upgradeStatus(next, TOPIC_STATUS.LEARNED);
   }
   if (rankOf(next) >= rankOf(TOPIC_STATUS.LEARNED)
@@ -253,7 +262,10 @@ export function recordContentSeen(categoryId, topicId, percent) {
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return null;
   const normalized = clampScore(percent);
   if ((progress.contentSeenPercent || 0) >= normalized) return progress;
-  updateTopicProgress(categoryId, topicId, { contentSeenPercent: normalized });
+  updateTopicProgress(categoryId, topicId, {
+    contentSeenPercent: normalized,
+    theoryCompletion: Math.max(progress.theoryCompletion || 0, normalized),
+  });
   return topicProgressAfter(topicKey(categoryId, topicId));
 }
 
@@ -268,11 +280,19 @@ export function recordLessonCompletion(categoryId, topicId, style) {
     lastExplanationStyle: style,
     lessonCompletions: (scored.lessonCompletions || 0) + 1,
     contentSeenPercent: 100,
+    theoryCompletion: 100,
   });
-  // Refresh unlocks now that lessonCompletions >= 1 and contentSeenPercent = 100.
-  // This ensures dependents are unlocked immediately after a single completion,
-  // even if applyMentorLesson's earlier refreshUnlocks didn't trigger them.
+  // Recalculate status now that theoryCompletion is 100 %, then refresh
+  // unlocks so dependents are promoted immediately after a full theory pass.
   const data = readAcademyProgress();
+  const current = data.topics[key];
+  const nextStatus = computeNextStatus(current);
+  if (nextStatus !== current.status) {
+    const previousStatus = current.status;
+    current.status = nextStatus;
+    writeAcademyProgress(data);
+    emitAcademyUnlockEvent({ categoryId, topicId, previousStatus, status: nextStatus });
+  }
   const unlocked = refreshUnlocks(data);
   if (unlocked.length > 0) {
     writeAcademyProgress(data);
@@ -281,21 +301,43 @@ export function recordLessonCompletion(categoryId, topicId, style) {
   return topicProgressAfter(key);
 }
 
+// Practice-mastery curve: turns a run's percentage of correct answers into a
+// progress gain. Runs below 50 % yield no gain, runs above 50 % grow faster
+// than linear, and a perfect run adds a capped perfect-streak bonus.
+// Never returns a negative value.
+export function computePracticeGain(percent, perfectStreak = 0) {
+  if (percent < 50) return 0;
+  const n = (percent - 50) / 50; // 0..1 within the rewarded range
+  // Quadratic curve: 4 points at 50 %, ~8 at 80 %, 16 at 100 %
+  const base = Math.round(4 + 12 * n * n);
+  let bonus = 0;
+  if (percent === 100 && perfectStreak > 0) {
+    bonus = Math.min(perfectStreak * 2, 6); // 1x 100 % → +2, 2x → +4, 3x+ → +6 cap
+  }
+  return base + bonus;
+}
+
 // Records a full quiz result: attempts, perfect runs, best/last score.
 // Awards retention points for a perfect run; theory points for a passing run
 // are intentionally not added here to avoid double-counting per-question scoring.
+// In addition, the run's overall performance now feeds into practiceScore as a
+// cumulative mastery gain (stronger runs give more, weaker runs give little or
+// nothing, never negative).
 export function recordQuizResult(categoryId, topicId, { total, correct }) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return null;
   const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
   const perfect = correct === total && total > 0;
-  const nextStreak = perfect ? (progress.quizPerfectStreak || 0) + 1 : 0;
+  const previousStreak = progress.quizPerfectStreak || 0;
+  const nextStreak = perfect ? previousStreak + 1 : Math.max(0, previousStreak - 1);
+  const practiceGain = computePracticeGain(percent, perfect ? nextStreak : previousStreak);
   const patch = {
     quizAttempts: (progress.quizAttempts || 0) + 1,
     quizPerfectCount: (progress.quizPerfectCount || 0) + (perfect ? 1 : 0),
     quizPerfectStreak: nextStreak,
     quizBestScore: Math.max(progress.quizBestScore || 0, percent),
     quizLastScore: percent,
+    practiceScore: clampScore((progress.practiceScore || 0) + practiceGain),
   };
   if (perfect) {
     patch.retentionScore = clampScore((progress.retentionScore || 0) + ACTIVITY_SCORE_DELTAS.quizRetention.retention);
@@ -341,17 +383,27 @@ export function recordLessonStart(categoryId, topicId) {
 }
 
 // Records that a specific lesson section was completed. Idempotent per
-// sectionId so repeated navigation does not award points.
-export function recordSectionCompletion(categoryId, topicId, sectionId, sectionTitle) {
+// sectionId so repeated navigation does not award points. If totalSections is
+// supplied, theoryCompletion/contentSeenPercent are updated to reflect the
+// fraction of sections actually completed (e.g. 5/10 → 50 %). Already-completed
+// values are never reduced.
+export function recordSectionCompletion(categoryId, topicId, sectionId, sectionTitle, totalSections = 0) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return progress;
-  if (progress.completedSectionIds.includes(sectionId)) return progress;
   const key = topicKey(categoryId, topicId);
-  updateTopicProgress(categoryId, topicId, {
-    completedSectionIds: [...progress.completedSectionIds, sectionId],
+  const alreadyCompleted = progress.completedSectionIds.includes(sectionId);
+  const completedIds = alreadyCompleted ? progress.completedSectionIds : [...progress.completedSectionIds, sectionId];
+  const patch = {
+    completedSectionIds: completedIds,
     lastCompletedSectionId: sectionId,
     lastCompletedSectionTitle: sectionTitle || null,
-  });
+  };
+  if (totalSections > 0) {
+    const seen = Math.round((completedIds.length / totalSections) * 100);
+    patch.contentSeenPercent = Math.max(progress.contentSeenPercent || 0, seen);
+    patch.theoryCompletion = Math.max(progress.theoryCompletion || 0, seen);
+  }
+  updateTopicProgress(categoryId, topicId, patch);
   return topicProgressAfter(key);
 }
 
