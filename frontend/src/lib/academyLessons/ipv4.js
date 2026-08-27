@@ -1,5 +1,7 @@
 import { topicKey } from '../academyTopics.js';
-import { decimalToBinaryOctet } from '../networking/ipv4Math.js';
+import {
+  decimalToBinaryOctet, prefixToSubnetMask, calculateJumpSize,
+} from '../networking/ipv4Math.js';
 import { decimalToIpv4Binary, ipv4BinaryToDecimal } from '../networking/numberSystems.js';
 
 const EXAMPLE_IP = '192.168.10.25';
@@ -7,6 +9,8 @@ const EXAMPLE_IP = '192.168.10.25';
 const IP_SVG = `<svg viewBox="0 0 400 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="200" y="22" text-anchor="middle" fill="#c9d1d9" font-size="12">IPv4-Adresse: 192.168.10.25</text><g stroke="#00f0ff" stroke-width="2" fill="none"><rect x="10" y="40" width="85" height="55" rx="6"/><rect x="110" y="40" width="85" height="55" rx="6"/><rect x="210" y="40" width="85" height="55" rx="6"/><rect x="310" y="40" width="85" height="55" rx="6"/></g><text x="52" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">192</text><text x="152" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">168</text><text x="252" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">10</text><text x="352" y="75" text-anchor="middle" fill="#c9d1d9" font-size="18" font-weight="bold">25</text><text x="95" y="115" text-anchor="middle" fill="#8b949e" font-size="10">1. Oktett</text><text x="195" y="115" text-anchor="middle" fill="#8b949e" font-size="10">2. Oktett</text><text x="295" y="115" text-anchor="middle" fill="#8b949e" font-size="10">3. Oktett</text><text x="395" y="115" text-anchor="middle" fill="#8b949e" font-size="10">4. Oktett</text></svg>`;
 
 const IPV6_SVG = `<svg viewBox="0 0 440 125" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="220" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12">IPv6 vollständig: acht Blöcke × 16 Bit = 128 Bit</text><g fill="#00f0ff" fill-opacity="0.12" stroke="#00f0ff"><rect x="8" y="38" width="48" height="34" rx="4"/><rect x="62" y="38" width="48" height="34" rx="4"/><rect x="116" y="38" width="48" height="34" rx="4"/><rect x="170" y="38" width="48" height="34" rx="4"/><rect x="224" y="38" width="48" height="34" rx="4"/><rect x="278" y="38" width="48" height="34" rx="4"/><rect x="332" y="38" width="48" height="34" rx="4"/><rect x="386" y="38" width="48" height="34" rx="4"/></g><g fill="#c9d1d9" font-size="9" text-anchor="middle"><text x="32" y="59">2001</text><text x="86" y="59">0db8</text><text x="140" y="59">0000</text><text x="194" y="59">0000</text><text x="248" y="59">0000</text><text x="302" y="59">ff00</text><text x="356" y="59">0042</text><text x="410" y="59">8329</text></g><text x="220" y="98" text-anchor="middle" fill="#00ff66" font-size="11">Hexadezimal: 0–9 und A–F · 4 Hexzeichen pro Block</text><text x="220" y="116" text-anchor="middle" fill="#8b949e" font-size="10">Komprimierungsregeln werden hier noch nicht vertieft.</text></svg>`;
+const MASK_SVG = `<svg viewBox="0 0 430 135" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="215" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12">Dieselbe Subnetzmaske in drei Darstellungen</text><text x="20" y="52" fill="#8b949e" font-size="10">Binär</text><text x="110" y="52" fill="#00f0ff" font-size="11">11111111.11111111.11111100.00000000</text><text x="20" y="82" fill="#8b949e" font-size="10">Dezimal</text><text x="110" y="82" fill="#00ff66" font-size="12">255.255.252.0</text><text x="20" y="112" fill="#8b949e" font-size="10">CIDR</text><text x="110" y="112" fill="#ffcc00" font-size="13">/22 = 22 zusammenhängende Netzbits</text></svg>`;
+const ADDRESS_ROLE_SVG = `<svg viewBox="0 0 430 125" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="215" y="18" text-anchor="middle" fill="#c9d1d9" font-size="11">Beispiel 192.168.1.0/24</text><rect x="15" y="38" width="82" height="45" rx="6" fill="#ffcc00" opacity="0.8"/><rect x="97" y="38" width="236" height="45" fill="#00ff66" opacity="0.35"/><rect x="333" y="38" width="82" height="45" rx="6" fill="#ff7b72" opacity="0.8"/><text x="56" y="58" text-anchor="middle" fill="#07111f" font-size="9">NETZ-ID</text><text x="56" y="72" text-anchor="middle" fill="#07111f" font-size="9">192.168.1.0</text><text x="215" y="58" text-anchor="middle" fill="#c9d1d9" font-size="9">HOSTADRESSEN</text><text x="215" y="72" text-anchor="middle" fill="#c9d1d9" font-size="9">192.168.1.1 – 192.168.1.254</text><text x="374" y="58" text-anchor="middle" fill="#07111f" font-size="9">BROADCAST</text><text x="374" y="72" text-anchor="middle" fill="#07111f" font-size="9">192.168.1.255</text><text x="215" y="108" text-anchor="middle" fill="#8b949e" font-size="10">Hostbits 0 → Netz-ID · dazwischen Hosts · Hostbits 1 → Broadcast</text></svg>`;
 const PREFIX_SVG = `<svg viewBox="0 0 420 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="210" y="22" text-anchor="middle" fill="#c9d1d9" font-size="12">192.168.10.25/24 – Netzanteil orange, Hostanteil grau</text><g transform="translate(10,35)"><rect x="0" y="0" width="240" height="45" rx="4" fill="#00f0ff" fill-opacity="0.35" stroke="#00f0ff" stroke-width="2"/><rect x="240" y="0" width="80" height="45" rx="4" fill="#8b949e" fill-opacity="0.25" stroke="#8b949e" stroke-width="2"/><text x="120" y="28" text-anchor="middle" fill="#0a1628" font-size="13" font-weight="bold">24 Bit Netzanteil</text><text x="280" y="28" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">8 Bit Host</text></g><text x="210" y="105" text-anchor="middle" fill="#8b949e" font-size="11">/24 bedeutet: die ersten 24 Bit beschreiben das Netz.</text></svg>`;
 
 function explanation(id, title, style, blocks) {
@@ -55,6 +59,19 @@ function buildExplanations() {
     { type: 'text', content: 'Bei 192.168.10.25/24 sind die ersten 24 Bit der Netzanteil und die letzten 8 Bit der Hostanteil. /24 ist der CIDR-Präfix.' },
   ]));
 
+  exps.push(explanation('mask-representations-classic', 'Subnetzmaske und CIDR', 'classic', [
+    { type: 'text', content: 'Die Subnetzmaske trennt Netz- und Hostanteil. Zusammenhängende 1-Bits markieren den Netzanteil, die folgenden 0-Bits den Hostanteil. CIDR schreibt die Anzahl der Netzbits kompakt als Präfixlänge.' },
+    { type: 'diagram', content: MASK_SVG },
+    { type: 'question', facet: 'mask-cidr', question: 'Was bedeutet /22?', options: ['22 zusammenhängende Netzbits', '22 Hosts', '22 Oktette'], correct: 0, explanation: '/22 ist die Präfixlänge: Die ersten 22 Bit gehören zum Netzanteil.' },
+  ]));
+
+  exps.push(explanation('address-roles-classic', 'Netz-ID, Hosts und Broadcast', 'classic', [
+    { type: 'text', content: 'Sind alle Hostbits 0, beschreibt die Adresse das Netz selbst: die Netz-ID. Sind alle Hostbits 1, ist es die Broadcastadresse dieses Netzes. Die normalen Hostadressen liegen dazwischen.' },
+    { type: 'diagram', content: ADDRESS_ROLE_SVG },
+    { type: 'text', content: 'Im dargestellten /24-Beispiel ist .0 die Netz-ID, .1 bis .254 sind Hostadressen und .255 ist der Broadcast. Bei anderen Präfixen liegen die Grenzen an anderen Stellen.' },
+    { type: 'question', facet: 'address-role', question: 'Welche Rolle hat 192.168.1.255 im Netz 192.168.1.0/24?', options: ['Broadcastadresse', 'Netz-ID', 'normale Hostadresse'], correct: 0, explanation: 'Bei /24 sind im letzten Oktett alle Hostbits 1; damit ist .255 der Broadcast dieses Netzes.' },
+  ]));
+
   exps.push(explanation('prefix-classic', 'CIDR-Präfix', 'classic', [
     { type: 'text', content: 'Der Präfix nach dem Schrägstrich sagt, wie viele Bits zum Netzanteil gehören. Er reicht von /0 bis /32. Je größer der Präfix, desto kleiner der Hostbereich.' },
     { type: 'list', title: 'Beispiele', items: [
@@ -75,14 +92,34 @@ function buildExplanations() {
     ] },
   ]));
 
-  exps.push(explanation('private-classic', 'Private IPv4-Bereiche', 'classic', [
+  exps.push(explanation('classful-classic', 'Historische Netzklassen', 'classic', [
+    { type: 'text', content: 'Früher teilte man IPv4-Adressen in starre Klassen ein: A für sehr große, B für mittlere und C für kleinere Netze; D diente Multicast und E reservierten beziehungsweise experimentellen Zwecken.' },
+    { type: 'text', content: 'Diese feste Einteilung verschwendete Adressraum. Moderne Netze verwenden deshalb classless CIDR mit flexiblen Präfixlängen. Eine Adresse, die mit 192 beginnt, bedeutet heute nicht automatisch /24.' },
+    { type: 'question', facet: 'classful-cidr', question: 'Warum löste CIDR die starre klassenbasierte Einteilung weitgehend ab?', options: ['Flexible Präfixe nutzen Adressraum bedarfsgerechter.', 'CIDR macht jede Adresse automatisch privat.', 'CIDR ersetzt IP-Adressen durch MAC-Adressen.'], correct: 0, explanation: 'Starre Klassen passten oft schlecht zum tatsächlichen Bedarf. CIDR ermöglicht flexible Netzgrößen.' },
+  ]));
+
+  exps.push(explanation('jump-intro-classic', 'Sprungweite als Brücke zum Subnetting', 'classic', [
+    { type: 'text', content: 'Die Sprungweite ist der Abstand zwischen zwei aufeinanderfolgenden Netz-IDs im relevanten Oktett. Sie hilft, Netzgrenzen zu erkennen; die vollständige Netzplanung folgt im Subnetting.' },
+    { type: 'table', headers: ['Präfix', 'Maske', 'Sprungweite', 'Netzstarts im letzten Oktett'], rows: [
+      ['/27', '255.255.255.224', '32', '0, 32, 64, 96, 128, 160, 192, 224'],
+    ] },
+    { type: 'text', content: '/27 lässt fünf Hostbits. Damit umfasst jeder Block 2^5 = 32 Adressen; die nächste Netz-ID beginnt 32 Werte später.' },
+    { type: 'question', facet: 'block-size', question: 'Welche Sprungweite besitzt /27 im letzten Oktett?', options: ['32', '27', '255'], correct: 0, explanation: 'Fünf Hostbits ergeben 2^5 = 32 Adressen pro Block und damit eine Sprungweite von 32.' },
+  ]));
+
+  exps.push(explanation('private-classic', 'Private und besondere IPv4-Bereiche', 'classic', [
     { type: 'text', content: 'Private Adressen werden in internen Netzen verwendet und werden im öffentlichen Internet normalerweise nicht direkt geroutet. NAT übersetzt sie gegebenenfalls.' },
     { type: 'list', title: 'Private Bereiche', items: [
       '10.0.0.0/8',
       '172.16.0.0/12',
       '192.168.0.0/16',
     ] },
-    { type: 'text', content: '127.0.0.0/8 ist der Loopback-Bereich, typisch 127.0.0.1. 169.254.0.0/16 ist Link-Local/APIPA und deutet oft darauf hin, dass kein DHCP erreichbar war.' },
+    { type: 'text', content: '127.0.0.0/8 ist der Loopback-Bereich, typisch 127.0.0.1: Der Rechner spricht seinen eigenen TCP/IP-Stack an. 169.254.0.0/16 ist Link-Local/APIPA und kann entstehen, wenn keine manuelle Adresse gesetzt ist und kein DHCP-Server erreicht wird.' },
+    { type: 'table', headers: ['Adresse/Bereich', 'Bedeutung'], rows: [
+      ['255.255.255.255', 'Limited Broadcast im lokalen Netzsegment – nicht das gesamte Internet'],
+      ['0.0.0.0/0', 'umfasst den gesamten IPv4-Adressraum und wird im Routing als Default Route verwendet'],
+    ] },
+    { type: 'question', facet: 'apipa-troubleshooting', question: 'Ein NEXUS-PC zeigt plötzlich 169.254.43.12. Was prüfst du zuerst?', options: ['DHCP-Erreichbarkeit und IP-Konfiguration', 'ob der Browser Port 443 nutzt', 'ob die MAC-Adresse ein Broadcast ist'], correct: 0, explanation: '169.254.x.x ist eine Link-Local-/APIPA-Adresse und häufig ein Hinweis, dass keine reguläre DHCP-Adresse bezogen wurde.' },
   ]));
 
   exps.push(explanation('summary-classic', 'Zusammenfassung', 'classic', [
@@ -186,6 +223,45 @@ function buildExercises() {
       explanation: 'Die vier Oktette ergeben 192.168.1.10.',
     },
     {
+      id: 'ipv4-mask-cidr-22',
+      type: 'input',
+      question: 'Welche Dezimalmaske entspricht /22?',
+      answers: [prefixToSubnetMask(22).decimal],
+      placeholder: 'xxx.xxx.xxx.xxx',
+      explanation: '/22 setzt 22 Netzbits: 11111111.11111111.11111100.00000000 = 255.255.252.0.',
+    },
+    {
+      id: 'ipv4-address-role-24',
+      type: 'matching',
+      question: 'Ordne die Adressen im Netz 192.168.1.0/24 ihrer Rolle zu.',
+      pairs: [
+        { left: '192.168.1.0', leftLabel: '192.168.1.0', right: 'Netz-ID' },
+        { left: '192.168.1.42', leftLabel: '192.168.1.42', right: 'Hostadresse' },
+        { left: '192.168.1.255', leftLabel: '192.168.1.255', right: 'Broadcast' },
+      ],
+      explanation: 'Alle Hostbits 0 ergeben die Netz-ID, alle Hostbits 1 den Broadcast; normale Hosts liegen dazwischen.',
+    },
+    {
+      id: 'ipv4-special-addresses',
+      type: 'matching',
+      question: 'Ordne die besonderen Adressen ihrer Bedeutung zu.',
+      pairs: [
+        { left: '127.0.0.1', leftLabel: '127.0.0.1', right: 'Loopback / eigener Rechner' },
+        { left: '169.254.4.10', leftLabel: '169.254.4.10', right: 'APIPA / Link-Local' },
+        { left: '255.255.255.255', leftLabel: '255.255.255.255', right: 'Limited Broadcast' },
+        { left: '0.0.0.0/0', leftLabel: '0.0.0.0/0', right: 'gesamter Adressraum / Default Route' },
+      ],
+      explanation: 'Jeder Bereich besitzt eine eigene Funktion und ist nicht als normale öffentliche Hostadresse zu behandeln.',
+    },
+    {
+      id: 'ipv4-jump-size-27',
+      type: 'input',
+      question: 'Welche Sprungweite besitzt /27 im letzten Oktett?',
+      answers: [String(calculateJumpSize(27))],
+      placeholder: 'Blockgröße',
+      explanation: '/27 lässt fünf Hostbits: 2^5 = 32 Adressen pro Block.',
+    },
+    {
       id: 'ipv4-difficulty-drill',
       type: 'difficulty-drill',
       generator: 'ipv4',
@@ -201,17 +277,26 @@ function buildQuiz() {
     { question: 'Was legt der CIDR-Präfix fest?', options: ['Die MAC-Adresse', 'Anzahl der Netzbits', 'Die Portnummer', 'Das Betriebssystem'], correct: 1, explanation: 'Der Präfix gibt an, wie viele Bits zum Netzanteil gehören.' },
     { question: 'Welcher Bereich ist privat?', options: ['8.8.8.0/24', '172.16.0.0/12', '203.0.113.0/24', '1.1.1.0/24'], correct: 1, explanation: '172.16.0.0/12 ist einer der drei privaten IPv4-Bereiche.' },
     { question: 'Was beschreibt /32?', options: ['Ein ganzes Netz', 'Eine einzelne Adresse', 'Einen Broadcast', 'Einen Router'], correct: 1, explanation: '/32 beschreibt genau eine einzelne IPv4-Adresse.' },
-    { question: 'Welche Adresse deutet oft auf fehlenden DHCP hin?', options: ['127.0.0.1', '169.254.x.x', '192.168.1.1', '10.0.0.1'], correct: 1, explanation: '169.254.0.0/16 ist der Link-Local-/APIPA-Bereich.' },
+    { facet: 'apipa', question: 'Welche Adresse deutet oft auf fehlenden DHCP hin?', options: ['127.0.0.1', '169.254.x.x', '192.168.1.1', '10.0.0.1'], correct: 1, explanation: '169.254.0.0/16 ist der Link-Local-/APIPA-Bereich.' },
+    { facet: 'network-host', question: 'Was identifiziert der Hostanteil?', options: ['einen Teilnehmer innerhalb des Netzes', 'immer das gesamte Internet', 'die Länge einer MAC-Adresse'], correct: 0, explanation: 'Der Netzanteil beschreibt das Netz; der Hostanteil unterscheidet Teilnehmer darin.' },
+    { facet: 'cidr', question: 'Welche Aussage zu /24 stimmt?', options: ['Die ersten 24 Bit sind Netzbits.', 'Das Netz besitzt exakt 24 Hosts.', 'Die Adresse enthält 24 Oktette.'], correct: 0, explanation: 'CIDR nennt die Anzahl zusammenhängender Netzbits.' },
+    { facet: 'address-role', question: 'Was entsteht, wenn alle Hostbits 0 sind?', options: ['Netz-ID', 'Broadcast', 'erste Hostadresse'], correct: 0, explanation: 'Alle Hostbits 0 kennzeichnen das Netz selbst.' },
+    { facet: 'limited-broadcast', question: 'Was beschreibt 255.255.255.255?', options: ['Limited Broadcast im lokalen Netzsegment', 'Broadcast an jeden Rechner im Internet', 'Loopback des eigenen Rechners'], correct: 0, explanation: 'Der Limited Broadcast bleibt auf das lokale Netzsegment beschränkt.' },
+    { facet: 'default-route', question: 'Wie wird 0.0.0.0/0 typischerweise im Routing eingeordnet?', options: ['Default Route für alle nicht spezifischer bekannten Ziele', 'Loopback-Adresse', 'private Hostadresse'], correct: 0, explanation: '/0 umfasst den gesamten IPv4-Adressraum und dient als Standardroute.' },
+    { facet: 'classful-cidr', question: 'Welche Aussage zur historischen Klasse C ist heute korrekt?', options: ['Die Klassen sind historisch; moderne Netzgrößen bestimmt der CIDR-Präfix.', 'Jede Adresse ab 192 besitzt zwingend /24.', 'CIDR verwendet ausschließlich Klasse C.'], correct: 0, explanation: 'Moderne classless Netze verwenden flexible Präfixe statt starrer Klassen.' },
+    { facet: 'block-size', question: 'Warum beträgt die Sprungweite bei /27 im letzten Oktett 32?', options: ['Fünf Hostbits ergeben 2^5 = 32 Adressen pro Block.', '/27 bedeutet immer 27 Hosts.', 'Die Maske besitzt 32 Oktette.'], correct: 0, explanation: '32 Adressen liegen in jedem /27-Block; Netz-IDs beginnen daher bei 0, 32, 64 und so weiter.' },
   ];
 }
 
 function buildSummary() {
   return [
     'IPv4-Adressen haben 32 Bit in vier Oktetten.',
-    'Der Präfix legt Netz- und Hostanteil fest.',
+    'Subnetzmaske und CIDR-Präfix legen die Grenze zwischen Netz- und Hostanteil fest.',
+    'Hostbits 0 ergeben die Netz-ID, Hostbits 1 den Broadcast; normale Hostadressen liegen dazwischen.',
     'Private Bereiche: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16.',
-    '/32 ist eine einzelne Adresse, /0 der gesamte Raum.',
-    'Loopback: 127.0.0.1, APIPA: 169.254.x.x.',
+    '/32 ist eine einzelne Adresse, 0.0.0.0/0 umfasst als Default Route den gesamten Adressraum.',
+    'Loopback: 127.0.0.1, APIPA: 169.254.x.x, Limited Broadcast: 255.255.255.255.',
+    'Sprungweiten markieren den Abstand zwischen Netz-IDs und bereiten auf Subnetting vor.',
   ];
 }
 

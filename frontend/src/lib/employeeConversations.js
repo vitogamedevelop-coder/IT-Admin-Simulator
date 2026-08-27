@@ -996,7 +996,7 @@ export const CONVERSATION_TOPICS = {
     ],
   },
   [topicKey('fundamentals', 'ipv4')]: {
-    title: 'IPv4',
+    title: 'IP-Adressen',
     relatedTopics: [topicKey('fundamentals', 'binary-system'), topicKey('fundamentals', 'subnet-masks')],
     introPool: [
       'Mein Praktikant verwechselt IPv4 und IPv6 ständig. Was sind die wichtigsten IPv4-Eigenschaften?',
@@ -1008,6 +1008,10 @@ export const CONVERSATION_TOPICS = {
       { id: 'ipv4-2', difficulty: 'medium', text: 'Welche Adresse liegt im privaten Bereich?', options: ['8.8.8.8', '172.32.0.1', '192.168.10.5', '127.0.0.1'], correct: 2, explanation: '192.168.0.0/16 ist ein privater IPv4-Bereich. 127.0.0.1 ist Loopback, 8.8.8.8 öffentlich.' },
       { id: 'ipv4-3', difficulty: 'medium', text: 'Was ist die Loopback-Adresse?', options: ['0.0.0.0', '127.0.0.1', '255.255.255.255', '10.0.0.1'], correct: 1, explanation: '127.0.0.1 dient als Loopback, um den eigenen Rechner anzusprechen.' },
       { id: 'ipv4-4', difficulty: 'hard', text: 'Welcher Adresstyp identifiziert alle Hosts in einem Subnetz?', options: ['Netz-ID', 'Host-ID', 'Broadcast', 'Gateway'], correct: 2, explanation: 'Die Broadcast-Adresse spricht alle Hosts im selben Subnetz an (letzte Adresse des Subnetzes).' },
+      { id: 'ipv4-5', difficulty: 'medium', text: 'Was sagt mir /24 eigentlich?', options: ['Die ersten 24 Bit gehören zum Netzanteil', 'Das Netz besitzt genau 24 Hosts', 'Die Adresse besteht aus 24 Oktetten'], correct: 0, explanation: 'Die CIDR-Präfixlänge nennt die Anzahl zusammenhängender Netzbits.' },
+      { id: 'ipv4-6', difficulty: 'hard', text: 'Warum kann die Netz-ID normalerweise keinem PC zugewiesen werden?', options: ['Sie beschreibt das Netz selbst, weil alle Hostbits 0 sind', 'Sie ist immer eine öffentliche Adresse', 'Sie enthält keine Netzbits'], correct: 0, explanation: 'Die Netz-ID bezeichnet den gesamten Netzblock und keine einzelne Hostschnittstelle.' },
+      { id: 'ipv4-7', difficulty: 'medium', text: 'Ein NEXUS-PC hat plötzlich 169.254.12.88. Was vermutest du zuerst?', options: ['APIPA nach fehlgeschlagenem DHCP-Bezug', 'erfolgreiche öffentliche Adressierung', 'Loopback-Test'], correct: 0, explanation: '169.254.0.0/16 ist Link-Local/APIPA und häufig ein Hinweis auf fehlende DHCP-Erreichbarkeit.' },
+      { id: 'ipv4-8', difficulty: 'hard', text: 'Beginnt jede moderne Adresse mit 192 automatisch ein /24-Netz der Klasse C?', options: ['Nein, moderne Netzgrößen bestimmt der CIDR-Präfix', 'Ja, die erste Zahl bestimmt immer den Präfix', 'Ja, aber nur bei privaten Adressen'], correct: 0, explanation: 'Klassenbasierte Adressierung ist historisch. Heute bestimmt die explizite Präfixlänge die Netzgröße.' },
     ],
   },
   [topicKey('fundamentals', 'subnet-masks')]: {
