@@ -1,116 +1,261 @@
 // =============================================================================
-// Knowledge Items – PortFast, BPDU Guard, Native VLAN (Phase 9A)
+// Knowledge Items – Cisco STP / PVST+ / PortFast / BPDU Guard
 //
-// Source: frontend/src/lib/academyLessons/ciscoStp.js (PortFast/BPDU Guard
-// section) and ciscoTrunk.js (Native VLAN section). Closes the P1 Knowledge-
-// Layer gaps identified by the Cisco Coverage Audit:
-//   A) PortFast + BPDU Guard had Academy theory but no knowledge items.
-//   B) Native VLAN had Academy theory + CLI state but no knowledge items.
+// Source: frontend/src/lib/academyLessons/ciscoStp.js
 //
-// Cisco primary-source facts encoded here (verified against Cisco IOS
-// documentation, not just course notes):
-//   - PortFast is for ports connected to end devices; it must NOT be enabled
-//     on switch-to-switch uplinks (that could allow a forwarding loop to form
-//     before STP would normally have blocked it).
-//   - BPDU Guard puts a port into err-disable the moment it receives ANY BPDU
-//     - it is a hard trigger, not a warning.
-//   - The Native VLAN carries a trunk's UNTAGGED traffic. It is independent
-//     from the access VLAN of any access port and from the trunk's allowed-
-///    VLAN list.
+// Scope note: this file covers PVST+ specifics: Root Bridge election,
+// Bridge ID / System-ID-Extension, port roles, port states, path cost,
+// PortFast, BPDU Guard, err-disabled and verification commands.
 // =============================================================================
 
 import { topicKey } from '../../academyTopics.js';
 import { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from '../types.js';
 
-export const STP_TOPIC_KEY = topicKey('cisco-packet-tracer', 'stp');
-export const TRUNK_TOPIC_KEY = topicKey('cisco-packet-tracer', 'trunk');
+export const CISCO_STP_TOPIC_KEY = topicKey('cisco-packet-tracer', 'stp');
 
 export const ciscoStpKnowledgeItems = [
   {
-    id: 'stp.portfastPurpose',
-    topicKey: STP_TOPIC_KEY,
-    sourceTopicKey: STP_TOPIC_KEY,
+    id: 'stp.loopProblem',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'problem-classic',
+    conceptCluster: 'stp.loop',
+    type: KNOWLEDGE_TYPES.RELATION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    roleHints: ['technical', 'support'],
+    data: {
+      problem: 'Redundante Layer-2-Verbindungen ohne Loop-Schutz führen zu Broadcast-Storms, MAC-Instabilität und Mehrfachzustellung.',
+      solution: 'STP blockiert gezielt Ports, um eine schleifenfreie Baumstruktur zu erzeugen, während die physische Redundanz erhalten bleibt.',
+      description: 'STP verhindert Layer-2-Loops, ohne redundante Verbindungen entfernen zu müssen.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.bridgeId',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'bridge-id-classic',
+    conceptCluster: 'stp.rootBridge',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.MAPPING],
+    roleHints: ['technical'],
+    data: {
+      components: [
+        'Bridge Priority (0-61440, nur in 4096er-Schritten)',
+        'System-ID-Extension (VLAN-ID bei PVST+)',
+        'MAC-Adresse (Tie-Breaker)',
+      ],
+      rule: 'Die niedrigste Bridge ID gewinnt. Bei Gleichstand der Priority entscheidet die kleinste MAC-Adresse.',
+      description: 'Die Bridge ID besteht aus Priority, VLAN-Anteil und MAC-Adresse. Niedrigster Wert wird Root Bridge.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.pvst',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'pvst-classic',
+    conceptCluster: 'stp.pvst',
+    type: KNOWLEDGE_TYPES.PROPERTY,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    roleHints: ['technical'],
+    data: {
+      name: 'Per-VLAN Spanning Tree Plus',
+      keyIdea: 'Jedes VLAN erhält einen eigenen Spanning Tree.',
+      consequence: 'Blockierte Ports und Root Bridges können pro VLAN unterschiedlich sein - Lastverteilung und Redundanz pro VLAN.',
+      description: 'PVST+ berechnet pro VLAN einen eigenen Spanning Tree, sodass jede VLAN eigene Root- und Portrollen haben kann.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.portRoles',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'portrollen-classic',
+    conceptCluster: 'stp.portRoles',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.MAPPING, QUESTION_ARCHETYPES.SCENARIO],
+    roleHints: ['technical', 'support'],
+    data: {
+      roles: [
+        { name: 'Root Port', meaning: 'Bester Pfad eines Nicht-Root-Switches zur Root Bridge. Pro Nicht-Root-Switch genau einer.' },
+        { name: 'Designated Port', meaning: 'Bester Weg pro Segment zur Root Bridge; weiterleitend. Root-Bridge-Ports sind typischerweise Designated Ports.' },
+        { name: 'Alternate / Non-Designated', meaning: 'Blockierter Ersatzweg, um Schleifen zu vermeiden.' },
+      ],
+      description: 'Portrollen beschreiben die Funktion eines Ports im Spannbaum, nicht unbedingt seinen aktuellen Weiterleitungszustand.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.portStates',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'portzustaende-classic',
+    conceptCluster: 'stp.portStates',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.ORDERING],
+    roleHints: ['technical'],
+    data: {
+      states: [
+        { name: 'Blocking', meaning: 'Empfängt BPDUs, leitet keine Daten weiter.' },
+        { name: 'Listening', meaning: 'Nimmt an STP-Berechnung teil, leitet noch keine Daten weiter.' },
+        { name: 'Learning', meaning: 'LERNT MAC-Adressen, leitet noch keine Daten weiter.' },
+        { name: 'Forwarding', meaning: 'Normaler Betriebszustand, Daten werden weitergeleitet.' },
+        { name: 'Disabled', meaning: 'Administrativ deaktiviert (shutdown).' },
+      ],
+      description: 'STP-Ports durchlaufen Zwischenzustände, um Schleifen beim Hochfahren zu vermeiden.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.pathCost',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'path-cost-classic',
+    conceptCluster: 'stp.pathCost',
+    type: KNOWLEDGE_TYPES.PROPERTY,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    roleHints: ['technical'],
+    data: {
+      rule: 'STP summiert die Kosten entlang eines Pfads. Der Pfad mit der niedrigsten Gesamtsumme wird bevorzugt.',
+      examples: [
+        { speed: '100 Mbit/s', cost: '19' },
+        { speed: '1000 Mbit/s', cost: '4' },
+      ],
+      description: 'Path Cost bewertet Verbindungen: schnellere Links haben niedrigere Kosten.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.rootConfiguration',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'root-konfigurieren-classic',
+    conceptCluster: 'stp.rootConfig',
+    type: KNOWLEDGE_TYPES.PROCEDURE,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical'],
+    data: {
+      commands: [
+        'spanning-tree vlan <ID> priority <Priority>',
+        'spanning-tree vlan <ID> root primary',
+        'spanning-tree vlan <ID> root secondary',
+      ],
+      note: 'Priority ist nur in 4096er-Schritten gültig (0, 4096, 8192, ..., 61440).',
+      description: 'Root Bridge wird über Priority oder die Komfortbefehle root primary / secondary gezielt festgelegt.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.portfast',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
     sourceSection: 'portfast-bpduguard-classic',
     conceptCluster: 'stp.portfast',
     type: KNOWLEDGE_TYPES.PROPERTY,
-    difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.TROUBLESHOOT],
     roleHints: ['technical'],
     data: {
-      command: 'spanning-tree portfast',
-      suitableFor: 'Access-Ports mit genau einem Endgerät (PC, Drucker, ...)',
-      unsuitableFor: 'Uplinks/Trunks zu anderen Switches',
-      reason: 'PortFast überspringt Listening/Learning und geht sofort in Forwarding. Auf einem Switch-Uplink könnte das kurzzeitig eine Schleife entstehen lassen, bevor STP sie regulär verhindert hätte.',
-      description: 'PortFast beschleunigt den Verbindungsaufbau für Endgeräte, ist aber kein "STP ausschalten" und gehört ausschließlich auf Access-Ports mit Endgeräten.',
+      purpose: 'Überspringt Listening/Learning auf Endgeräte-Ports und wechselt sofort in Forwarding.',
+      variants: [
+        'spanning-tree portfast (Interface)',
+        'spanning-tree portfast default (global)',
+        'spanning-tree portfast trunk (Sonderfall, z. B. Router-on-a-Stick)',
+      ],
+      restriction: 'Nicht auf normalen Switch-zu-Switch-Uplinks aktivieren, da eine Schleife sofort weiterleiten würde.',
+      description: 'PortFast beschleunigt die Konvergenz für Endgeräte-Ports, darf aber nicht auf Uplinks verwendet werden.',
     },
     siblings: [],
   },
   {
-    id: 'stp.bpduGuardPurpose',
-    topicKey: STP_TOPIC_KEY,
-    sourceTopicKey: STP_TOPIC_KEY,
+    id: 'stp.bpduGuard',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
     sourceSection: 'portfast-bpduguard-classic',
     conceptCluster: 'stp.bpduGuard',
     type: KNOWLEDGE_TYPES.RELATION,
-    difficulty: DIFFICULTY.MEDIUM,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.TROUBLESHOOT],
-    roleHints: ['technical', 'security'],
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SCENARIO],
+    roleHints: ['technical', 'support'],
     data: {
       command: 'spanning-tree bpduguard enable',
-      trigger: 'Empfang einer BPDU (Bridge Protocol Data Unit) auf diesem Port',
-      reaction: 'Der Port wird sofort in den err-disable-Zustand versetzt (abgeschaltet).',
-      typicalPairing: 'Wird praktisch immer zusammen mit PortFast auf demselben Port konfiguriert.',
-      meaning: 'Ein Access-Port sollte NIE eine BPDU sehen - ihr Auftauchen deutet auf einen nicht vorgesehenen zusätzlichen Switch/Hub an diesem Port hin.',
-      description: 'BPDU Guard schützt PortFast-Ports davor, unbemerkt Teil der Switching-Topologie zu werden, wenn dort ein unautorisiertes Gerät angeschlossen wird.',
+      trigger: 'PortFast-Port empfängt eine BPDU.',
+      effect: 'Port wird in den Zustand err-disabled versetzt.',
+      globalVariant: 'spanning-tree portfast bpduguard default',
+      description: 'BPDU Guard schützt PortFast-Ports, indem er sie bei Empfang einer BPDU sofort deaktiviert (err-disabled).',
     },
     siblings: [],
   },
   {
-    id: 'stp.portfastBpduGuardMisplacement',
-    topicKey: STP_TOPIC_KEY,
-    sourceTopicKey: STP_TOPIC_KEY,
-    sourceSection: 'portfast-bpduguard-classic',
-    conceptCluster: 'stp.misplacement',
-    type: KNOWLEDGE_TYPES.TROUBLESHOOT,
-    difficulty: DIFFICULTY.HARD,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
+    id: 'stp.errDisabledRecovery',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'err-disabled-classic',
+    conceptCluster: 'stp.recovery',
+    type: KNOWLEDGE_TYPES.PROCEDURE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING, QUESTION_ARCHETYPES.TROUBLESHOOT, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'support'],
+    data: {
+      steps: [
+        'Ursache beseitigen (angeschlossenes Gerät prüfen, BPDU-Quelle entfernen).',
+        'Interface mit "shutdown" deaktivieren.',
+        'Interface mit "no shutdown" reaktivieren.',
+        'Mit "show interfaces status" verifizieren.',
+      ],
+      warning: 'Shutdown/no shutdown ohne Ursachenbehebung führt meist zu sofortigem erneutem err-disabled.',
+      description: 'Ein BPDU-Guard-err-disabled-Port wird erst nach Behebung der Ursache mit shutdown/no shutdown wieder aktiviert.',
+    },
+    siblings: [],
+  },
+  {
+    id: 'stp.verify',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'verifizierung-classic',
+    conceptCluster: 'stp.verify',
+    type: KNOWLEDGE_TYPES.RELATION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
     roleHints: ['technical'],
     data: {
-      symptoms: [
-        {
-          symptom: 'PortFast + BPDU Guard wurden versehentlich auf dem Uplink zum restlichen Netz aktiviert',
-          cause: 'Der Uplink empfängt regulär BPDUs von anderen Switches - er würde sofort err-disabled und den gesamten Switch vom Netz trennen.',
-        },
-        {
-          symptom: 'Ein Arbeitsplatz-Port mit PortFast + BPDU Guard fällt plötzlich aus (err-disabled)',
-          cause: 'Am Port wurde vermutlich ein weiterer, nicht vorgesehener Switch angeschlossen, der BPDUs sendet.',
-        },
-        {
-          symptom: 'BPDU Guard ist konfiguriert, aber PortFast fehlt auf demselben Port',
-          cause: 'BPDU Guard funktioniert technisch trotzdem, aber die übliche NEXUS-Konvention koppelt beide Befehle auf jedem Endgeräte-Port.',
-        },
+      commands: [
+        'show spanning-tree (Root ID, Bridge ID, Portrollen und -zustände)',
+        'show spanning-tree vlan <ID> (pro VLAN bei PVST+)',
+        'show spanning-tree summary (kompakte Übersicht)',
+        'show spanning-tree detail (Detailcheck)',
+        'show interfaces status (err-disabled erkennen)',
       ],
-      description: 'Die Wirkung von PortFast/BPDU Guard hängt entscheidend von der Rolle des Ports ab: richtig auf Endgeräte-Ports, falsch auf Uplinks.',
+      interpretation: 'Root ID vs Bridge ID unterscheiden, Root/Desg/Altn-Rollen lesen, FWD/BLK-Zustände lesen, err-disabled erkennen.',
+      description: 'STP wird mit show spanning-tree-Befehlen und show interfaces status verifiziert.',
     },
     siblings: [],
   },
   {
-    id: 'trunk.nativeVlanVsAccessAllowed',
-    topicKey: TRUNK_TOPIC_KEY,
-    sourceTopicKey: TRUNK_TOPIC_KEY,
-    sourceSection: 'native-vlan-classic',
-    conceptCluster: 'trunk.nativeVlan',
+    id: 'stp.roleVsState',
+    topicKey: CISCO_STP_TOPIC_KEY,
+    sourceTopicKey: CISCO_STP_TOPIC_KEY,
+    sourceSection: 'portrollen-classic',
+    conceptCluster: 'stp.concepts',
     type: KNOWLEDGE_TYPES.COMPARE,
-    difficulty: DIFFICULTY.HARD,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.COMPARE, QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO],
-    roleHints: ['technical'],
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.COMPARE],
+    roleHints: ['technical', 'support'],
     data: {
       items: [
-        { name: 'Native VLAN', command: 'switchport trunk native vlan <id>', meaning: 'VLAN für UNGETAGGTEN Traffic auf einem 802.1Q-Trunk' },
-        { name: 'Access VLAN', command: 'switchport access vlan <id>', meaning: 'VLAN eines einzelnen Access-Ports (kein Trunk)' },
-        { name: 'Allowed-VLAN-Liste', command: 'switchport trunk allowed vlan <ids>', meaning: 'welche VLANs überhaupt über den Trunk transportiert werden dürfen' },
+        { name: 'Port Role', meaning: 'Funktion im Spannbaum (Root / Designated / Alternate).' },
+        { name: 'Port State', meaning: 'Aktueller Weiterleitungszustand (Blocking / Listening / Learning / Forwarding).' },
       ],
-      description: 'Alle drei betreffen VLAN-Zuordnung an einem Port, meinen aber unterschiedliche Dinge - ein korrektes Allowed-VLAN sagt nichts über das Native VLAN aus und umgekehrt.',
+      example: 'Ein Alternate Port befindet sich typischerweise im Blocking-Zustand.',
+      description: 'Rolle und Zustand sind zwei unterschiedliche Dimensionen eines STP-Ports.',
     },
     siblings: [],
   },

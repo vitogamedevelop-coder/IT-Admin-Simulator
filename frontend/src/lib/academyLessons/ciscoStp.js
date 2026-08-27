@@ -12,6 +12,12 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_STP_TOPIC_KEY = topicKey('cisco-packet-tracer', 'stp');
 
+const STP_TRIANGLE_SVG = `<svg viewBox="0 0 320 240" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">STP-Topologie</text><rect x="120" y="40" width="80" height="35" rx="5" fill="#00f0ff" opacity="0.9"/><text x="160" y="62" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">SW1 ROOT</text><rect x="30" y="160" width="80" height="35" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="70" y="182" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">SW2</text><rect x="210" y="160" width="80" height="35" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="250" y="182" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">SW3</text><line x1="135" y1="75" x2="75" y2="160" stroke="#00f0ff" stroke-width="3"/><text x="85" y="115" fill="#00f0ff" font-size="8" transform="rotate(-45 85 115)">FWD</text><line x1="185" y1="75" x2="245" y2="160" stroke="#00f0ff" stroke-width="3"/><text x="235" y="115" fill="#00f0ff" font-size="8" transform="rotate(45 235 115)">FWD</text><line x1="110" y1="178" x2="210" y2="178" stroke="#8b949e" stroke-width="3" stroke-dasharray="6,4"/><text x="160" y="170" text-anchor="middle" fill="#8b949e" font-size="8">BLK (Alternate)</text></svg>`;
+
+const PORTFAST_BPDUGUARD_SVG = `<svg viewBox="0 0 320 220" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">PortFast + BPDU Guard</text><rect x="120" y="50" width="80" height="40" rx="5" fill="#00f0ff" opacity="0.9"/><text x="160" y="68" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">Switch</text><text x="160" y="83" text-anchor="middle" fill="#0a1628" font-size="7">Access Port</text><rect x="40" y="120" width="60" height="30" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="70" y="138" text-anchor="middle" fill="#c9d1d9" font-size="8">PC</text><line x1="100" y1="135" x2="120" y2="80" stroke="#00f0ff" stroke-width="2"/><text x="90" y="105" text-anchor="middle" fill="#00f0ff" font-size="7">PortFast OK</text><rect x="220" y="120" width="60" height="30" rx="4" fill="#ff7b72" opacity="0.35" stroke="#ff7b72" stroke-width="2"/><text x="250" y="138" text-anchor="middle" fill="#ff7b72" font-size="8">Switch</text><line x1="200" y1="135" x2="200" y2="90" stroke="#ff7b72" stroke-width="2"/><line x1="200" y1="90" x2="170" y2="90" stroke="#ff7b72" stroke-width="2"/><text x="235" y="105" text-anchor="middle" fill="#ff7b72" font-size="7">BPDU → err-disabled</text></svg>`;
+
+const PVST_VLAN_SVG = `<svg viewBox="0 0 320 220" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">PVST+: eigener Baum pro VLAN</text><rect x="120" y="50" width="80" height="35" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="72" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">SW1</text><rect x="30" y="160" width="80" height="35" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="70" y="182" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">SW2</text><rect x="210" y="160" width="80" height="35" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="250" y="182" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">SW3</text><line x1="140" y1="85" x2="75" y2="160" stroke="#00f0ff" stroke-width="3"/><line x1="180" y1="85" x2="245" y2="160" stroke="#00f0ff" stroke-width="3"/><line x1="110" y1="178" x2="210" y2="178" stroke="#8b949e" stroke-width="3" stroke-dasharray="6,4"/><text x="160" y="105" text-anchor="middle" fill="#00f0ff" font-size="8">VLAN 10: SW1 Root</text><line x1="140" y1="115" x2="75" y2="160" stroke="#a371f7" stroke-width="2" stroke-dasharray="4,3"/><line x1="180" y1="115" x2="245" y2="160" stroke="#a371f7" stroke-width="2" stroke-dasharray="4,3"/><line x1="110" y1="193" x2="210" y2="193" stroke="#a371f7" stroke-width="2" stroke-dasharray="4,3"/><text x="160" y="145" text-anchor="middle" fill="#a371f7" font-size="8">VLAN 20: SW3 Root</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -28,6 +34,11 @@ function buildExplanations() {
       'Mehrfachzustellung: Frames können mehrfach beim Empfänger ankommen.',
     ] },
     { type: 'text', content: 'STP (Spanning Tree Protocol) löst dieses Dilemma: Es lässt die Redundanz physisch bestehen, blockiert aber gezielt einzelne Ports logisch, bis daraus eine schleifenfreie Baumstruktur entsteht - fällt eine aktive Verbindung aus, aktiviert STP automatisch einen zuvor blockierten Ersatzweg.' },
+  ]));
+
+  exps.push(explanation('stp-topology-visual', 'STP-Topologie: Root, Designated, Alternate', 'visual', [
+    { type: 'diagram', content: STP_TRIANGLE_SVG },
+    { type: 'text', content: 'Die Root Bridge sitzt oben. Von dort aus wählt jeder weitere Switch den besten Pfad (Root Port, FWD). Verbleibende redundante Links werden blockiert (BLK), dienen aber als Alternate Path. Wichtig: Blocking bedeutet nicht defekt, sondern Schleifenvermeidung.' },
   ]));
 
   exps.push(explanation('bridge-id-classic', 'Bridge ID und die Wahl der Root Bridge', 'classic', [
@@ -48,6 +59,11 @@ function buildExplanations() {
       'Die Root Bridge kann pro VLAN unterschiedlich sein, z. B. SW1 als Root für VLAN 10, SW2 als Root für VLAN 20 - für Lastverteilung.',
     ] },
     { type: 'text', content: 'Deshalb spielt bei PVST+ die VLAN-ID in der Bridge ID eine Rolle: die "System Extension ID" addiert die VLAN-Nummer zur konfigurierten Priority. Bei Standard-Priority 32768 und VLAN 1 ergibt sich z. B. 32768 + 1 = 32769 - der Wert, der z. B. in "show spanning-tree" für VLAN 1 als Priority erscheint.' },
+  ]));
+
+  exps.push(explanation('pvst-visual', 'PVST+: unterschiedliche Bäume pro VLAN', 'visual', [
+    { type: 'diagram', content: PVST_VLAN_SVG },
+    { type: 'text', content: 'Mit PVST+ kann VLAN 10 SW1 als Root sehen und einen Port blockieren, während VLAN 20 SW3 als Root wählt und einen ganz anderen Port blockiert. Lastverteilung und Redundanz werden pro VLAN optimiert.' },
   ]));
 
   exps.push(explanation('portrollen-classic', 'Portrollen: Root Port, Designated Port, Alternate Port', 'classic', [
@@ -112,11 +128,29 @@ function buildExplanations() {
     { type: 'question', question: 'Warum kombiniert man PortFast in der Praxis häufig mit BPDU Guard?', options: ['Damit der Port schneller wird', 'Damit ein Port, der eigentlich nur für ein Endgerät gedacht ist, automatisch abgeschaltet wird, falls doch ein Switch (und damit eine mögliche Schleife) angeschlossen wird', 'Weil beide Befehle technisch identisch sind', 'BPDU Guard ist für VLANs zuständig, PortFast für Trunks'], correct: 1, explanation: 'BPDU Guard schützt genau vor dem Risiko, das PortFast eingeht: Empfängt ein PortFast-Port eine BPDU (also ist dort doch ein Switch angeschlossen), wird er sofort deaktiviert.' },
   ]));
 
+  exps.push(explanation('portfast-bpduguard-visual', 'PortFast + BPDU Guard am Edge-Port', 'visual', [
+    { type: 'diagram', content: PORTFAST_BPDUGUARD_SVG },
+    { type: 'text', content: 'PortFast ist für Endgeräte-Ports gedacht: der Port geht sofort in Forwarding. BPDU Guard sichert ihn ab, falls stattdessen ein Switch angeschlossen wird. Das ist die Standardkombination für Edge-Ports, nie für Switch-Uplinks.' },
+  ]));
+
+  exps.push(explanation('err-disabled-classic', 'err-disabled und BPDU Guard Recovery', 'classic', [
+    { type: 'text', content: 'Wenn BPDU Guard auf einem PortFast-Port eine BPDU empfängt, legt er den Port in den Zustand "err-disabled". Der Port ist damit administrativ deaktiviert und leitet keine Daten weiter. Das ist ein Schutzmechanismus, kein Defekt.' },
+    { type: 'list', title: 'Sauberes Recovery', items: [
+      'Ursache beseitigen: angeschlossenes Gerät prüfen, BPDU-Quelle entfernen, ggf. PortFast/BPDU Guard nur auf echten Edge-Ports lassen.',
+      'Interface mit "shutdown" abschalten.',
+      'Interface mit "no shutdown" wieder aktivieren.',
+      'Mit "show interfaces status" prüfen, ob der Port wieder "connected" statt "err-disabled" anzeigt.',
+    ] },
+    { type: 'question', question: 'Ein Port zeigt "err-disabled". Was darf NICHT die erste Maßnahme sein?', options: ['Ursache prüfen und beseitigen', 'sofort "shutdown" gefolgt von "no shutdown"', 'Prüfen, ob BPDU Guard ausgelöst hat', '"show interfaces status" betrachten'], correct: 1, explanation: 'Shutdown/no shutdown allein hilft nicht, wenn die Ursache weiterhin besteht - der Port wird ggf. sofort wieder err-disabled.' },
+  ]));
+
   exps.push(explanation('verifizierung-classic', 'STP verifizieren und Ausgaben interpretieren', 'classic', [
     { type: 'table', headers: ['Befehl', 'Wofür'], rows: [
       ['show spanning-tree', 'Zeigt pro VLAN die Root Bridge, die eigene Bridge-Priority, sowie jeden Port mit Rolle (Root/Desg/Altn) und Status (FWD/BLK).'],
+      ['show spanning-tree vlan <ID>', 'Zeigt den Spanning Tree nur für das angegebene VLAN - wichtig bei PVST+, da jeder VLAN eigene Root haben kann.'],
       ['show spanning-tree summary', 'Kompakte Übersicht: welche VLANs existieren, wie viele blockierte/weiterleitende Ports es gibt, ob PortFast/BPDU-Guard-Verstöße aufgetreten sind.'],
       ['show spanning-tree detail', 'Sehr ausführliche Ausgabe inkl. Timern, Path Cost und Anzahl der Topologieänderungen pro Port.'],
+      ['show interfaces status', 'Zeigt u. a. den Port-Zustand: connected / notconnect / disabled / err-disabled. Wichtig für BPDU Guard Recovery.'],
     ] },
     { type: 'list', title: 'Beim Lesen einer Ausgabe klären', items: [
       'Wer ist Root Bridge? (Zeile "Root ID", ggf. "This bridge is the root")',
@@ -133,10 +167,12 @@ function buildExplanations() {
       'STP verhindert Layer-2-Loops und Broadcast-Storms, ohne auf physische Redundanz zu verzichten.',
       'Root Bridge: niedrigste Bridge ID (Priority + MAC) gewinnt. Cisco PVST+: ein Baum PRO VLAN.',
       'Portrollen: Root Port (bester Weg zur Root), Designated Port (bester Weg pro Segment), Alternate/Non-Designated (blockiert).',
+      'Port Role ≠ Port State: z. B. Alternate Port ist oft im Zustand Blocking.',
       'Path Cost: schnellere Verbindung = niedrigerer Wert (100 Mbit/s = 19, 1000 Mbit/s = 4), Kosten entlang des Pfads werden summiert.',
       'Root gezielt setzen: "spanning-tree vlan <ID> root primary/secondary" oder direkt über "priority".',
       'PortFast für Endgeräte-Ports beschleunigt die Konvergenz, BPDU Guard schützt dabei vor versehentlichen Switch-Loops.',
-      'Verifizieren mit "show spanning-tree", "show spanning-tree summary", "show spanning-tree detail".',
+      'BPDU Guard setzt einen Port bei BPDU-Empfang in "err-disabled". Recovery: Ursache beseitigen, dann shutdown/no shutdown, verifizieren mit "show interfaces status".',
+      'Verifizieren mit "show spanning-tree", "show spanning-tree vlan <ID>", "show spanning-tree summary", "show spanning-tree detail" und "show interfaces status".',
     ] },
   ]));
 
@@ -208,6 +244,45 @@ function buildExercises() {
       expectedLines: [['show spanning-tree summary', 'sh spanning-tree summary']],
       explanation: '"show spanning-tree summary" liefert die kompakte Übersicht über alle VLANs.',
     },
+    {
+      id: 'stp-role-vs-state-select',
+      type: 'select-best',
+      question: 'Ein Port hat die Rolle "Alternate" und den Status "Blocking". Was ist richtig?',
+      options: ['Der Port ist defekt und muss ersetzt werden', 'Rolle und Zustand sind unterschiedlich: Alternate ist der Ersatzweg, Blocking der aktuelle Zustand', 'Alternate und Blocking bedeuten dasselbe', 'Der Port ist die Root Bridge'],
+      correct: 1,
+      explanation: 'Rolle (Alternate) beschreibt die Funktion im Spannbaum, Zustand (Blocking) beschreibt den aktuellen Weiterleitungszustand.',
+    },
+    {
+      id: 'stp-err-disabled-recovery-cli',
+      type: 'cli-input',
+      question: 'Nach Beseitigung der Ursache soll ein wegen BPDU Guard in "err-disabled" befindlicher Port wieder aktiviert werden. Gib die notwendigen Befehle an.',
+      expectedLines: ['shutdown', 'no shutdown'],
+      explanation: 'Nach Behebung der Ursache reicht auf dem Interface "shutdown" gefolgt von "no shutdown", um err-disabled zurückzusetzen.',
+    },
+    {
+      id: 'stp-portfast-on-uplink-select',
+      type: 'select-best',
+      question: 'Ein Kollege hat "spanning-tree portfast" auf einem Switch-zu-Switch-Uplink aktiviert. Was ist die größte Gefahr?',
+      options: ['Der Port wird langsamer', 'Bei einer Schleife wird sofort weitergeleitet - Broadcast-Storm-Risiko', 'BPDU Guard funktioniert nicht mehr', 'Der Trunk wird gelöscht'],
+      correct: 1,
+      explanation: 'PortFast überspringt Listening/Learning. Auf einem Uplink kann eine versehentliche Schleife sofort aktiv werden und einen Broadcast-Storm auslösen.',
+    },
+    {
+      id: 'stp-pvst-per-vlan-root-select',
+      type: 'select-best',
+      question: 'Mit PVST+ kann es im selben physischen Netz sein, dass ...?',
+      options: ['alle VLANs denselben Root haben müssen', 'VLAN 10 und VLAN 20 unterschiedliche Root Bridges haben', 'es nur einen blockierten Port gibt', 'STP nicht zwischen VLANs unterscheidet'],
+      correct: 1,
+      explanation: 'PVST+ berechnet pro VLAN einen eigenen Spanning Tree - daher können Root Bridges pro VLAN unterschiedlich sein.',
+    },
+    {
+      id: 'stp-show-interfaces-status-select',
+      type: 'select-best',
+      question: 'Welcher Befehl zeigt dir sofort, ob ein Port wegen BPDU Guard im Zustand "err-disabled" ist?',
+      options: ['show spanning-tree vlan 1', 'show interfaces status', 'show ip interface brief', 'show vlan brief'],
+      correct: 1,
+      explanation: '"show interfaces status" zeigt den Zustand "err-disabled" neben dem Port an.',
+    },
   ];
 }
 
@@ -221,6 +296,11 @@ function buildQuiz() {
     { question: 'Warum sollte "spanning-tree portfast" nicht auf einer normalen Switch-zu-Switch-Verbindung aktiviert werden?', options: ['Weil PortFast dort langsamer ist', 'Weil ein PortFast-Port sofort weiterleitet, ohne die schützenden STP-Zwischenzustände zu durchlaufen - bei einer Schleife droht ein Broadcast-Storm', 'Weil PortFast nur mit VLAN 1 funktioniert', 'Weil PortFast Trunks automatisch deaktiviert'], correct: 1, explanation: 'PortFast ist nur für Endgeräte-Ports gedacht, die selbst keine Schleifen erzeugen können.' },
     { question: 'Was macht "spanning-tree bpduguard enable"?', options: ['Verschlüsselt BPDUs', 'Deaktiviert einen PortFast-Port automatisch, sobald er eine BPDU empfängt', 'Erhöht die Path Cost', 'Aktiviert PVST+'], correct: 1, explanation: 'BPDU Guard schützt PortFast-Ports vor versehentlich angeschlossenen Switches (und damit Loops).' },
     { question: 'In "show spanning-tree" hat ein Port die Rolle "Root". Was bedeutet das?', options: ['Der Port ist blockiert', 'Es ist der beste Pfad dieses Switches zur Root Bridge', 'Der Port gehört zur Root Bridge selbst', 'Der Port hat keine STP-Funktion'], correct: 1, explanation: 'Der Root Port ist der beste (günstigste) Pfad EINES Switches zur Root Bridge.' },
+    { question: 'Was bedeutet "Altn" / "BLK" in der Ausgabe von "show spanning-tree"?', options: ['Der Port ist defekt', 'Es handelt sich um einen blockierten Ersatzweg (Alternate Port)', 'Der Port ist der Root Port', 'Der Port ist auf der Root Bridge'], correct: 1, explanation: 'Alternate ist die Rolle, Blocking der Zustand: ein physisch vorhandener, aber blockierter Ersatzweg.' },
+    { question: 'Warum sollte man PortFast NICHT auf einem normalen Switch-zu-Switch-Uplink aktivieren?', options: ['Weil er zu langsam wird', 'Weil der Port sofort Forwarding ohne schützende STP-Zwischenzustände eingeht und Schleifen unmittelbar aktiv werden', 'Weil Trunks kein PortFast unterstützen', 'Weil BPDU Guard dann nicht funktioniert'], correct: 1, explanation: 'PortFast überspringt Listening/Learning - auf Uplinks gefährlich, falls eine Schleife entsteht.' },
+    { question: 'Ein Port zeigt "err-disabled". Was ist die richtige Reihenfolge?', options: ['shutdown / no shutdown, dann Ursache suchen', 'Ursache beseitigen, dann shutdown / no shutdown', 'Sofort neuen Port konfigurieren', 'BPDU Guard global deaktivieren'], correct: 1, explanation: 'Zuerst muss die Ursache behoben werden, sonst wird der Port nach shutdown/no shutdown sofort wieder err-disabled.' },
+    { question: 'Warum kann VLAN 10 in einem PVST+-Netz eine andere Root Bridge haben als VLAN 20?', options: ['Weil PVST+ pro VLAN einen eigenen Spanning Tree berechnet', 'Weil VLANs unterschiedliche MAC-Adressen haben', 'Weil STP pro VLAN zufällig arbeitet', 'Das ist nicht möglich'], correct: 0, explanation: 'PVST+ berechnet pro VLAN einen eigenen Baum mit eigener Root-Bridge-Wahl.' },
+    { question: 'Welcher Befehl zeigt am schnellsten, ob ein Port im Zustand "err-disabled" ist?', options: ['show spanning-tree', 'show interfaces status', 'show vlan brief', 'show ip interface brief'], correct: 1, explanation: '"show interfaces status" zeigt pro Port den Zustand, einschließlich "err-disabled".' },
   ];
 }
 
