@@ -39,11 +39,11 @@ for (let seed = 0; seed < 20; seed += 1) {
   const q = generateQuestion('nb.dns.records', null, { contextType: 'coworker_question', seed: String(seed) });
 
   const labels = q.leftItems.map((l) => l.label);
-  if (!['A', 'CNAME', 'MX', 'PTR'].every((l) => labels.includes(l))) seenAllFour = false;
+  if (!['A', 'AAAA', 'CNAME', 'MX', 'PTR', 'SRV', 'SOA', 'NS'].every((l) => labels.includes(l))) seenAllFour = false;
 
   if (!q.prompt.toLowerCase().includes('dns') && !q.prompt.toLowerCase().includes('record')) seenPromptContext = false;
-  assertTrue(q.rightItems.length === 4, 'right side has 4 descriptions');
-  assertTrue(q.leftItems.length === 4, 'left side has 4 records');
+  assertTrue(q.rightItems.length === 8, 'right side has 8 descriptions');
+  assertTrue(q.leftItems.length === 8, 'left side has 8 records');
 
   // Correct answer
   const correct = answerForQuestion(q);
