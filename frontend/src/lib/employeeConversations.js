@@ -1378,6 +1378,32 @@ export const CONVERSATION_TOPICS = {
       { id: 'pf-conv-9', difficulty: 'hard', text: 'Warum ersetzt SPI die ACL nicht vollständig?', options: ['Weil die ACL die Baseline-Policy definiert, die SPI ergänzt', 'Weil SPI keine Regeln kennt', 'Weil ACLs schneller sind'], correct: 0, explanation: 'Die ACL legt fest, welcher Verkehr grundsätzlich erlaubt ist; SPI merkt sich daraus resultierende Sessions und erlaubt passenden Rückverkehr.' },
     ],
   },
+  [topicKey('cisco-packet-tracer', 'nat')]: {
+    title: 'NAT / PAT / Port Forwarding',
+    relatedTopics: [
+      topicKey('cisco-packet-tracer', 'router-basics'),
+      topicKey('cisco-packet-tracer', 'acl'),
+      topicKey('cisco-packet-tracer', 'packet-filter'),
+      topicKey('cisco-packet-tracer', 'static-routing'),
+    ],
+    introPool: [
+      'Was ist der Unterschied zwischen Inside Local und Inside Global?',
+      'Wann verwendet man statisches NAT, wann PAT?',
+      'Warum reicht PAT nicht aus, um einen internen Server von außen erreichbar zu machen?',
+    ],
+    samHelp: 'NAT übersetzt private in globale Adressen. Inside Local ist die private Adresse eines internen Hosts, Inside Global die Adresse, unter der er nach außen erscheint. Interfaces müssen als inside/outside gekennzeichnet werden. Static NAT ist 1:1, Dynamic NAT nutzt einen Pool, PAT teilt sich globale Adressen über Ports. Port Forwarding leitet externe Ports an interne Server weiter. NAT ist keine Firewall.',
+    questions: [
+      { id: 'nat-conv-1', difficulty: 'easy', text: 'Was ist Inside Local?', options: ['Die öffentliche Adresse eines internen Hosts', 'Die private Adresse eines internen Hosts', 'Die Adresse eines externen Servers'], correct: 1, explanation: 'Inside Local ist die reale private Adresse des internen Geräts, z. B. 192.168.10.10.' },
+      { id: 'nat-conv-2', difficulty: 'easy', text: 'Was ist Inside Global?', options: ['Die private Adresse eines internen Hosts', 'Die Adresse, unter der ein interner Host nach außen erscheint', 'Die öffentliche Adresse des externen Servers'], correct: 1, explanation: 'Inside Global ist die globale Adresse, unter der der interne Host extern sichtbar ist.' },
+      { id: 'nat-conv-3', difficulty: 'medium', text: 'Welcher Befehl markiert das LAN-Interface als inside?', options: ['ip nat outside', 'ip nat inside', 'ip nat pool'], correct: 1, explanation: 'interface ... ip nat inside kennzeichnet das Interface zum internen Netz.' },
+      { id: 'nat-conv-4', difficulty: 'medium', text: 'Wann ist statisches NAT sinnvoll?', options: ['Wenn viele Clients ins Internet sollen', 'Wenn ein interner Server unter einer festen öffentlichen Adresse erreichbar sein soll', 'Wenn keine öffentlichen IPs verfügbar sind'], correct: 1, explanation: 'Statisches NAT bietet eine feste 1:1-Zuordnung für Server, die dauerhaft erreichbar sein sollen.' },
+      { id: 'nat-conv-5', difficulty: 'medium', text: 'Was ist der Hauptunterschied zwischen dynamischem NAT und PAT?', options: ['PAT übersetzt keine Ports', 'PAT erlaubt Port-Sharing und viele Clients auf wenige öffentliche IPs', 'Dynamisches NAT kann mehr gleichzeitige Verbindungen als PAT'], correct: 1, explanation: 'PAT teilt sich globale Adressen durch unterschiedliche Source-Ports; dynamisches NAT ohne overload belegt pro Verbindung eine eigene globale Adresse.' },
+      { id: 'nat-conv-6', difficulty: 'hard', text: 'Was fehlt in "ip nat inside source list 1 interface g0/1", wenn mehrere Clients dieselbe globale IP nutzen sollen?', options: ['overload', 'static', 'pool'], correct: 0, explanation: 'overload aktiviert PAT, sodass mehrere Verbindungen dieselbe globale Adresse teilen können.' },
+      { id: 'nat-conv-7', difficulty: 'hard', text: 'Warum reicht PAT nicht aus, um einen internen Webserver von außen erreichbar zu machen?', options: ['Weil PAT keine Ports kennt', 'Weil PAT nur ausgehende Verbindungen ermöglicht; für eingehende Dienste braucht man Port Forwarding', 'Weil der Server keine private IP hat'], correct: 1, explanation: 'PAT lässt interne Clients nach außen kommunizieren. Damit externe Clients einen internen Server erreichen, benötigt man typischerweise Port Forwarding.' },
+      { id: 'nat-conv-8', difficulty: 'hard', text: 'Was prüfst du zuerst, wenn show ip nat translations leer bleibt?', options: ['Ob die Interfaces korrekt als inside/outside markiert sind und die Auswahl-ACL die Clients matcht', 'Ob der externe Server online ist', 'Ob der Router rebootet wurde'], correct: 0, explanation: 'Eine leere Translation Table zeigt, dass keine Pakete den NAT-Prozess erreichen. Ursachen sind oft falsche inside/outside-Kennzeichnung oder eine nicht passende ACL.' },
+      { id: 'nat-conv-9', difficulty: 'hard', text: 'NAT verbirgt interne Adressen. Ist NAT deshalb eine Firewall?', options: ['Ja, NAT ersetzt eine Firewall', 'Nein, NAT ersetzt keine Firewall/ACL/SPI', 'Nur bei PAT'], correct: 1, explanation: 'NAT ändert Adressierung und kann Sichtbarkeit reduzieren, ist aber kein Ersatz für gezielte Sicherheitskontrollen.' },
+    ],
+  },
   [topicKey('fundamentals', 'vlsm')]: {
     title: 'VLSM',
     relatedTopics: [topicKey('fundamentals', 'subnetting'), topicKey('fundamentals', 'supernetting')],

@@ -36,6 +36,7 @@ import { ciscoDhcpKnowledgeItems } from './items/ciscoDhcp.js';
 import { ciscoOspfKnowledgeItems } from './items/ciscoOspf.js';
 import { ciscoAclKnowledgeItems } from './items/ciscoAcl.js';
 import { ciscoPacketFilterKnowledgeItems } from './items/ciscoPacketFilter.js';
+import { ciscoNatKnowledgeItems } from './items/ciscoNat.js';
 import { NETWORK_BASICS_ITEMS } from './items/networkBasics.js';
 import { CISCO_THEORY_ITEMS } from './items/ciscoTheory.js';
 import { informationSecurityKnowledgeItems } from './items/informationSecurity.js';
@@ -106,6 +107,7 @@ const PILOT_ITEMS = [
   ...ciscoOspfKnowledgeItems,
   ...ciscoAclKnowledgeItems,
   ...ciscoPacketFilterKnowledgeItems,
+  ...ciscoNatKnowledgeItems,
   ...NETWORK_BASICS_ITEMS,
   ...CISCO_THEORY_ITEMS,
   ...informationSecurityKnowledgeItems,

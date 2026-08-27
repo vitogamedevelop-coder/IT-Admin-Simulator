@@ -10,6 +10,16 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_NAT_TOPIC_KEY = topicKey('cisco-packet-tracer', 'nat');
 
+const NAT_TERMS_SVG = `<svg viewBox="0 0 340 200" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Inside Local → Inside Global</text><rect x="20" y="70" width="90" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="65" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Client</text><text x="65" y="105" text-anchor="middle" fill="#c9d1d9" font-size="8" font-family="monospace">192.168.10.10</text><rect x="135" y="60" width="70" height="60" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="85" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">NAT</text><text x="170" y="100" text-anchor="middle" fill="#0a1628" font-size="7">Router</text><text x="170" y="113" text-anchor="middle" fill="#0a1628" font-size="7">inside/outside</text><rect x="230" y="70" width="90" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="275" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Internet</text><text x="275" y="105" text-anchor="middle" fill="#c9d1d9" font-size="8" font-family="monospace">203.0.113.10</text><line x1="110" y1="85" x2="135" y2="85" stroke="#00f0ff" stroke-width="2"/><polygon points="125,80 125,90 135,85" fill="#00f0ff"/><line x1="205" y1="85" x2="230" y2="85" stroke="#00f0ff" stroke-width="2"/><polygon points="220,80 220,90 230,85" fill="#00f0ff"/><text x="65" y="135" text-anchor="middle" fill="#8b949e" font-size="7">Inside Local</text><text x="275" y="135" text-anchor="middle" fill="#8b949e" font-size="7">Inside Global</text><rect x="70" y="150" width="200" height="35" rx="4" fill="#00f0ff" opacity="0.25" stroke="#00f0ff" stroke-width="1"/><text x="170" y="164" text-anchor="middle" fill="#c9d1d9" font-size="8">Outside Local / Outside Global meist identisch</text><text x="170" y="178" text-anchor="middle" fill="#c9d1d9" font-size="8">(externer Server 198.51.100.20)</text></svg>`;
+
+const NAT_PAT_SVG = `<svg viewBox="0 0 340 240" class="w-full h-auto max-h-60" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">PAT: viele private Hosts → eine öffentliche IP</text><rect x="20" y="50" width="80" height="30" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="65" text-anchor="middle" fill="#c9d1d9" font-size="7" font-weight="bold">192.168.1.10</text><text x="60" y="76" text-anchor="middle" fill="#c9d1d9" font-size="6">:49152</text><rect x="20" y="90" width="80" height="30" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="105" text-anchor="middle" fill="#c9d1d9" font-size="7" font-weight="bold">192.168.1.11</text><text x="60" y="116" text-anchor="middle" fill="#c9d1d9" font-size="6">:49153</text><rect x="20" y="130" width="80" height="30" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="145" text-anchor="middle" fill="#c9d1d9" font-size="7" font-weight="bold">192.168.1.12</text><text x="60" y="156" text-anchor="middle" fill="#c9d1d9" font-size="6">:49154</text><rect x="130" y="90" width="80" height="60" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="115" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">PAT</text><text x="170" y="128" text-anchor="middle" fill="#0a1628" font-size="7">Translation</text><text x="170" y="141" text-anchor="middle" fill="#0a1628" font-size="7">Table</text><rect x="240" y="90" width="80" height="60" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="110" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Internet</text><text x="280" y="123" text-anchor="middle" fill="#c9d1d9" font-size="7">203.0.113.1</text><text x="280" y="136" text-anchor="middle" fill="#c9d1d9" font-size="7">:49152-49154</text><line x1="100" y1="65" x2="130" y2="100" stroke="#00f0ff" stroke-width="2"/><line x1="100" y1="105" x2="130" y2="115" stroke="#00f0ff" stroke-width="2"/><line x1="100" y1="145" x2="130" y2="130" stroke="#00f0ff" stroke-width="2"/><line x1="210" y1="120" x2="240" y2="120" stroke="#00f0ff" stroke-width="2"/><polygon points="230,115 230,125 240,120" fill="#00f0ff"/><text x="170" y="180" text-anchor="middle" fill="#c9d1d9" font-size="9">Jeder interne Host bekommt eigenen Source-Port</text><text x="170" y="195" text-anchor="middle" fill="#c9d1d9" font-size="9">auf der gemeinsamen öffentlichen IP</text></svg>`;
+
+const NAT_PORT_FORWARD_SVG = `<svg viewBox="0 0 340 200" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Port Forwarding: extern → intern</text><rect x="20" y="70" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="88" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Client</text><text x="60" y="102" text-anchor="middle" fill="#c9d1d9" font-size="7">203.0.113.1</text><rect x="135" y="60" width="70" height="60" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="85" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">NAT</text><text x="170" y="98" text-anchor="middle" fill="#0a1628" font-size="7">Router</text><text x="170" y="111" text-anchor="middle" fill="#0a1628" font-size="7">:8080</text><rect x="240" y="70" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="88" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Server</text><text x="280" y="102" text-anchor="middle" fill="#c9d1d9" font-size="7">192.168.10.20:80</text><line x1="100" y1="85" x2="135" y2="85" stroke="#00f0ff" stroke-width="2"/><polygon points="125,80 125,90 135,85" fill="#00f0ff"/><line x1="205" y1="85" x2="240" y2="85" stroke="#00f0ff" stroke-width="2"/><polygon points="230,80 230,90 240,85" fill="#00f0ff"/><text x="170" y="150" text-anchor="middle" fill="#ffcc00" font-size="9">extern 203.0.113.10:8080</text><text x="170" y="168" text-anchor="middle" fill="#ffcc00" font-size="9">↓</text><text x="170" y="186" text-anchor="middle" fill="#00f0ff" font-size="9">intern 192.168.10.20:80</text></svg>`;
+
+const NAT_FLOW_SVG = `<svg viewBox="0 0 340 220" class="w-full h-auto max-h-56" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">NAT Paketfluss mit PAT</text><rect x="20" y="80" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="100" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Client</text><text x="60" y="114" text-anchor="middle" fill="#c9d1d9" font-size="7">192.168.10.10</text><rect x="130" y="70" width="80" height="60" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="90" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">NAT</text><text x="170" y="103" text-anchor="middle" fill="#0a1628" font-size="7">Router</text><text x="170" y="116" text-anchor="middle" fill="#0a1628" font-size="7">Translation Table</text><rect x="240" y="80" width="80" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="100" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Internet</text><text x="280" y="114" text-anchor="middle" fill="#c9d1d9" font-size="7">8.8.8.8</text><line x1="100" y1="95" x2="130" y2="95" stroke="#00f0ff" stroke-width="2"/><polygon points="120,90 120,100 130,95" fill="#00f0ff"/><text x="115" y="85" text-anchor="middle" fill="#8b949e" font-size="6">src 192.168.10.10</text><line x1="210" y1="95" x2="240" y2="95" stroke="#00f0ff" stroke-width="2"/><polygon points="230,90 230,100 240,95" fill="#00f0ff"/><text x="225" y="85" text-anchor="middle" fill="#8b949e" font-size="6">src 203.0.113.1</text><line x1="240" y1="125" x2="210" y2="125" stroke="#00f0ff" stroke-width="2"/><polygon points="220,120 220,130 210,125" fill="#00f0ff"/><text x="225" y="145" text-anchor="middle" fill="#8b949e" font-size="6">dst 203.0.113.1</text><line x1="130" y1="125" x2="100" y2="125" stroke="#00f0ff" stroke-width="2"/><polygon points="110,120 110,130 100,125" fill="#00f0ff"/><text x="115" y="145" text-anchor="middle" fill="#8b949e" font-size="6">dst 192.168.10.10</text><rect x="60" y="170" width="220" height="30" rx="4" fill="#00f0ff" opacity="0.25" stroke="#00f0ff" stroke-width="1"/><text x="170" y="190" text-anchor="middle" fill="#c9d1d9" font-size="9">Source-IP/Port werden übersetzt und in Translation Table gespeichert</text></svg>`;
+
+const NAT_TYPES_SVG = `<svg viewBox="0 0 340 160" class="w-full h-auto max-h-44" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">NAT Varianten</text><rect x="20" y="50" width="95" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="67" y="68" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Static NAT</text><text x="67" y="82" text-anchor="middle" fill="#c9d1d9" font-size="7">1 private IP</text><text x="67" y="92" text-anchor="middle" fill="#c9d1d9" font-size="7">↔ 1 öffentliche IP</text><rect x="122" y="50" width="95" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="169" y="68" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Dynamic NAT</text><text x="169" y="82" text-anchor="middle" fill="#c9d1d9" font-size="7">n private IPs</text><text x="169" y="92" text-anchor="middle" fill="#c9d1d9" font-size="7">→ Pool mit m IPs</text><rect x="224" y="50" width="95" height="40" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="271" y="68" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">PAT</text><text x="271" y="82" text-anchor="middle" fill="#c9d1d9" font-size="7">n private IPs</text><text x="271" y="92" text-anchor="middle" fill="#c9d1d9" font-size="7">→ 1 öffentliche IP + Ports</text><rect x="20" y="110" width="300" height="35" rx="4" fill="#00f0ff" opacity="0.25" stroke="#00f0ff" stroke-width="1"/><text x="170" y="125" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Port Forwarding</text><text x="170" y="140" text-anchor="middle" fill="#c9d1d9" font-size="7">globaler IP:Port → interner Host:Port (für eingehende Dienste)</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -62,6 +72,11 @@ function buildExplanations() {
     ] },
     { type: 'text', content: 'Beispiel: Client 192.168.10.25 wird nach außen als 203.0.113.25 dargestellt. Der externe Server 198.51.100.20 bleibt meist unverändert, also sind Outside Local und Outside Global identisch.' },
     { type: 'question', question: 'Welche Adresse ist die private Adresse eines internen Clients?', options: ['Inside Global', 'Inside Local', 'Outside Global', 'Outside Local'], correct: 1, explanation: 'Inside Local ist die reale private Adresse des internen Geräts.' },
+  ]));
+
+  exps.push(explanation('address-terms-visual', 'NAT-Adressbegriffe im Überblick', 'visual', [
+    { type: 'diagram', content: NAT_TERMS_SVG },
+    { type: 'text', content: 'Inside Local ist die private Adresse des internen Hosts, Inside Global ist die Adresse, unter der er nach außen erscheint. In einfachen Szenarien sind Outside Local und Outside Global identisch, wenn externe Adressen nicht übersetzt werden.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -119,6 +134,11 @@ function buildExplanations() {
     { type: 'question', question: 'Was bewirkt das Schlüsselwort overload bei NAT?', options: ['Mehrere Verbindungen teilen sich globale Adressen via Ports', 'Es wird kein Pool verwendet', 'NAT wird deaktiviert', 'Es wird statisches NAT erzwungen'], correct: 0, explanation: 'overload ermöglicht PAT, bei dem mehrere Verbindungen dieselbe globale Adresse gemeinsam nutzen, unterschieden durch Ports.' },
   ]));
 
+  exps.push(explanation('pat-visual', 'PAT Translation Table', 'visual', [
+    { type: 'diagram', content: NAT_PAT_SVG },
+    { type: 'text', content: 'PAT übersetzt viele private Hosts auf eine oder wenige öffentliche IP-Adressen. Damit der Router die Antworten richtig zurückverteilen kann, merkt er sich in der Translation Table die Source-IP und den Source-Port jedes internen Hosts.' },
+  ]));
+
   // ---------------------------------------------------------------------------
   // 7. Port Forwarding
   // ---------------------------------------------------------------------------
@@ -135,6 +155,11 @@ function buildExplanations() {
     { type: 'question', question: 'Was macht diese Regel? ip nat inside source static tcp 192.168.10.20 80 203.0.113.10 8080', options: ['HTTP-Anfragen an 203.0.113.10:8080 werden an 192.168.10.20:80 weitergeleitet', 'HTTP-Anfragen an 192.168.10.20:80 werden an 203.0.113.10:8080 weitergeleitet', 'Alles wird blockiert', 'PAT wird aktiviert'], correct: 0, explanation: 'Die Reihenfolge ist: Protokoll, Inside-Local, Local-Port, Inside-Global, Global-Port. Extern an Global-Port 8080 kommt intern bei Local-Port 80 an.' },
   ]));
 
+  exps.push(explanation('port-forward-visual', 'Port Forwarding im Überblick', 'visual', [
+    { type: 'diagram', content: NAT_PORT_FORWARD_SVG },
+    { type: 'text', content: 'Port Forwarding leitet externe Anfragen auf einer globalen IP und einem Port an einen internen Host und dessen Port weiter. Dabei müssen externer und interner Port nicht identisch sein - im Beispiel wird extern 8080 auf intern 80 abgebildet.' },
+  ]));
+
   // ---------------------------------------------------------------------------
   // 8. NAT Translation Table
   // ---------------------------------------------------------------------------
@@ -149,6 +174,11 @@ function buildExplanations() {
     ] },
     { type: 'text', content: 'Bei PAT sieht man zusätzlich die verwendeten Ports, sowohl lokal als auch global.' },
     { type: 'question', question: 'Welcher Befehl zeigt die aktiven NAT-Übersetzungen an?', options: ['show ip nat translations', 'show ip route', 'show access-lists', 'show ip interface'], correct: 0, explanation: 'show ip nat translations listet die aktiven NAT-Übersetzungen auf.' },
+  ]));
+
+  exps.push(explanation('packet-flow-visual', 'NAT Paketfluss mit PAT', 'visual', [
+    { type: 'diagram', content: NAT_FLOW_SVG },
+    { type: 'text', content: 'Ein interner Client sendet ein Paket an das Internet. Der NAT-Router übersetzt Source-IP und Source-Port und speichert die Zuordnung. Die Antwort wird anhand der Translation Table zurückübersetzt und an den Client weitergeleitet.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -192,6 +222,11 @@ function buildExplanations() {
       ['Port Forwarding', 'Globaler Port → interner Host/Port', 'ip nat inside source static tcp 192.168.10.20 80 203.0.113.10 8080'],
     ] },
     { type: 'question', question: 'Welche NAT-Variante eignet sich, wenn 100 interne Clients über eine einzige öffentliche IPv4-Adresse surfen sollen?', options: ['Statisches NAT', 'Dynamisches NAT', 'PAT / Overload', 'Port Forwarding'], correct: 2, explanation: 'PAT ermöglicht es, viele interne Verbindungen über eine globale Adresse zu übersetzen, unterschieden durch Ports.' },
+  ]));
+
+  exps.push(explanation('nat-types-visual', 'NAT Varianten im Vergleich', 'visual', [
+    { type: 'diagram', content: NAT_TYPES_SVG },
+    { type: 'text', content: 'Static NAT ist die 1:1-Zuordnung, Dynamic NAT verwendet einen Pool, PAT teilt sich globale Adressen über Ports. Port Forwarding erlaubt gezielt eingehende Verbindungen zu einem internen Dienst.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -345,6 +380,53 @@ function buildExercises() {
       correct: 1,
       explanation: 'Ohne overload belegt jede Verbindung eine eigene globale Adresse aus dem Pool. PAT teilt sich globale Adressen durch Portunterscheidung.',
     },
+    {
+      id: 'nat-acl-selection-select',
+      type: 'select-best',
+      question: 'Die NAT-ACL "access-list 1 permit 192.168.10.0 0.0.0.255" dient dazu...',
+      options: ['den Traffic zu filtern und zu blockieren', 'auszuwählen, welche Inside-Local-Adressen von NAT übersetzt werden', 'das Outside-Interface zu kennzeichnen'],
+      correct: 1,
+      explanation: 'Die ACL bei NAT ist eine Auswahl-ACL. Sie entscheidet, welche Quell-IPs übersetzt werden - sie muss nicht zwingend als Paketfilter an ein Interface gebunden werden.',
+    },
+    {
+      id: 'nat-inside-outside-swapped-select',
+      type: 'select-best',
+      question: 'Ein Router hat g0/0 (LAN) als "ip nat outside" und g0/1 (WAN) als "ip nat inside" markiert. Was ist die Folge?',
+      options: ['NAT funktioniert wie erwartet', 'NAT funktioniert nicht, weil inside/outside vertauscht sind', 'PAT wird automatisch deaktiviert'],
+      correct: 1,
+      explanation: 'inside muss zur privaten Seite, outside zur öffentlichen Seite zeigen. Eine Vertauschung verhindert korrekte Übersetzungen.',
+    },
+    {
+      id: 'nat-empty-translations-select',
+      type: 'select-best',
+      question: 'show ip nat translations bleibt leer, obwohl Clients surfen wollen. Was prüfst du zuerst?',
+      options: ['Ob Traffic die Router-Interfaces überhaupt erreicht, ob ip nat inside/outside stimmt und die Auswahl-ACL die Clients matcht', 'Ob der externe Server online ist', 'Ob der Switch rebootet wurde'],
+      correct: 0,
+      explanation: 'Eine leere Translation Table deutet darauf hin, dass keine Pakete den NAT-Prozess erreichen - typisch: falsche inside/outside-Kennzeichnung oder ACL matcht die Quelle nicht.',
+    },
+    {
+      id: 'nat-client-out-server-in-select',
+      type: 'select-best',
+      question: 'Clients können ins Internet surfen (PAT), aber ein interner Webserver ist von außen nicht erreichbar. Was fehlt typischerweise?',
+      options: ['Overload', 'Port Forwarding für den gewünschten Dienst', 'Eine größere NAT-ACL'],
+      correct: 1,
+      explanation: 'PAT ermöglicht ausgehende Verbindungen. Für eingehende Verbindungen zu einem internen Server benötigt man typischerweise Port Forwarding.',
+    },
+    {
+      id: 'nat-port-forward-access-blocked-select',
+      type: 'select-best',
+      question: 'Port Forwarding ist korrekt konfiguriert, aber externe Clients erreichen den internen Server nicht. Was könnte zusätzlich blockieren?',
+      options: ['Eine ACL oder SPI-Regel auf dem externen Interface', 'Fehlendes overload', 'Falsche Default Route'], correct: 0,
+      explanation: 'NAT macht den Server technisch erreichbar; ob Verkehr tatsächlich durchkommt, kann zusätzlich durch ACLs oder Stateful Inspection beeinflusst werden.',
+    },
+    {
+      id: 'nat-clear-translations-select',
+      type: 'select-best',
+      question: 'Was bewirkt "clear ip nat translation *"?',
+      options: ['Löscht alle dynamischen NAT-Übersetzungen', 'Löscht die NAT-Konfiguration', 'Startet den Router neu'],
+      correct: 0,
+      explanation: 'clear ip nat translation * entfernt dynamische Einträge in der Translation Table, nicht die Konfiguration selbst.',
+    },
   ];
 }
 
@@ -365,6 +447,14 @@ function buildQuiz() {
     { question: 'Welcher Befehl zeigt NAT-Statistiken?', options: ['show ip nat translations', 'show ip nat statistics', 'show ip interface', 'show ip route'], correct: 1, explanation: 'show ip nat statistics zeigt NAT-Status, Interfaces, Hits/Misses und dynamische Mappings.' },
     { question: 'Welcher Befehl zeigt aktive NAT-Übersetzungen?', options: ['show ip route', 'show ip nat translations', 'show ip interface', 'show access-lists'], correct: 1, explanation: 'show ip nat translations listet die aktiven Übersetzungen.' },
     { question: 'Was prüfst du zuerst, wenn NAT nicht funktioniert?', options: ['Ob die NAT-Regel vorhanden ist', 'Ob ip nat inside und outside an den Interfaces gesetzt sind', 'Ob der Switch neu starten muss', 'Ob das WLAN-Passwort geändert wurde'], correct: 1, explanation: 'Ohne inside/outside-Interface-Kennzeichnung führt der Router keine NAT-Übersetzung durch.' },
+    { question: 'Die NAT-ACL "access-list 1 permit 192.168.10.0 0.0.0.255" ist zur Auswahl gedacht. Muss sie mit ip access-group an ein Interface gebunden werden, damit NAT funktioniert?', options: ['Ja, immer', 'Nein, NAT nutzt die ACL intern zur Auswahl der zu übersetzenden Quellen', 'Nur bei PAT'], correct: 1, explanation: 'Die ACL bei NAT dient der Auswahl, nicht zwingend dem Paketfilter-Binding. ip access-group ist optional für den eigentlichen NAT-Prozess.' },
+    { question: 'Welche Aussage über NAT und Sicherheit ist technisch am besten?', options: ['NAT ist eine Firewall', 'NAT verbirgt interne Adressen, ersetzt aber keine Firewall/ACL/SPI', 'NAT verschlüsselt den Verkehr'], correct: 1, explanation: 'NAT ändert Adressierung, kann Sichtbarkeit reduzieren, ist aber kein Ersatz für gezielte Sicherheitsmechanismen.' },
+    { question: 'Ein Client mit 192.168.20.10 wird von NAT nicht übersetzt. Die ACL lautet "permit 192.168.10.0 0.0.0.255". Was ist die Ursache?', options: ['IP nat outside fehlt', 'Die Quell-IP des Clients matcht nicht auf die ACL', 'Der Pool ist leer'], correct: 1, explanation: 'Die Auswahl-ACL matcht nur 192.168.10.0/24. 192.168.20.10 wird daher nicht übersetzt.' },
+    { question: 'Was fehlt in "ip nat inside source list 1 interface g0/1", wenn viele Clients dieselbe globale IP nutzen sollen?', options: ['overload', 'static', 'pool'], correct: 0, explanation: 'overload aktiviert PAT, sodass mehrere Verbindungen dieselbe globale Adresse teilen können.' },
+    { question: 'Port Forwarding ist konfiguriert, aber externe Clients kommen nicht durch. NAT funktioniert sonst. Was könnte zusätzlich blockieren?', options: ['Eine ACL/SPI-Regel auf dem externen Interface', 'Fehlendes overload', 'Falsche NAT-Pool-Definition'], correct: 0, explanation: 'NAT macht den Dienst technisch erreichbar; ACLs oder SPI können den Verkehr danach noch blockieren.' },
+    { question: 'Clients können ausgehend surfen, aber ein interner Server ist von außen nicht erreichbar. Was fehlt?', options: ['PAT funktioniert nicht', 'Port Forwarding für den eingehenden Dienst', 'Eine größere NAT-ACL'], correct: 1, explanation: 'PAT löst ausgehende Verbindungen. Für eingehende Dienste braucht man typischerweise Port Forwarding.' },
+    { question: 'Was passiert, wenn die dynamische PAT-Session abgelaufen ist?', options: ['Die Translation bleibt für immer', 'Die Translation verschwindet und muss bei neuer Verbindung neu erzeugt werden', 'Der Client bekommt eine neue IP'], correct: 1, explanation: 'Dynamische NAT/PAT-Einträge sind temporär und enden mit Timeout oder Verbindungsende.' },
+    { question: 'Was bewirkt "clear ip nat translation *"?', options: ['Löscht die NAT-Konfiguration', 'Löscht alle dynamischen Übersetzungen in der Translation Table', 'Startet den Router neu'], correct: 1, explanation: 'clear ip nat translation * entfernt dynamische Einträge, nicht die Konfiguration.' },
   ];
 }
 
