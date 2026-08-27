@@ -436,39 +436,104 @@ export function generateVlsmProblem() {
 // Supernetting / route summarization
 // =============================================================================
 
-export function calculateSupernet(networks) {
-  if (!networks || networks.length === 0) throw new Error('At least one network is required');
-  const parsed = networks.map((n) => {
-    if (typeof n === 'string') {
-      const [net, pre] = n.split('/');
-      return { network: net, prefix: Number(pre) };
-    }
-    return { network: n.network, prefix: Number(n.prefix) };
-  });
-  const longs = parsed.map((p) => BigInt(ipv4ToLong(p.network))).sort((a, b) => (a < b ? -1 : 1));
-  const first = longs[0];
-  const last = longs[longs.length - 1];
-  const xor = first ^ last;
-  let commonBits = 0;
-  for (let i = 31; i >= 0; i -= 1) {
-    if ((xor >> BigInt(i)) & 1n) break;
-    commonBits += 1;
+function parseNetworkRef(value) {
+  const [network, prefixRaw] = typeof value === 'string' ? value.split('/') : [value.network, value.prefix];
+  const prefix = Number(prefixRaw);
+  if (!isValidIpv4Address(network) || !Number.isInteger(prefix) || prefix < 0 || prefix > 32) throw new Error(`Invalid network reference: ${JSON.stringify(value)}`);
+  const networkId = calculateNetworkId(network, prefix);
+  const broadcast = calculateBroadcast(network, prefix);
+  return { network: networkId, prefix, networkId, broadcast, start: ipv4ToLong(networkId), end: ipv4ToLong(broadcast) };
+}
+
+function commonPrefixForRange(first, last) {
+  const xor = BigInt(first) ^ BigInt(last);
+  let prefix = 0;
+  for (let bit = 31; bit >= 0; bit -= 1) {
+    if ((xor >> BigInt(bit)) & 1n) break;
+    prefix += 1;
   }
-  const superPrefix = Math.min(...parsed.map((p) => p.prefix), commonBits);
-  const superMask = (0xffffffffn << BigInt(32 - superPrefix)) & 0xffffffffn;
-  const superNetwork = longToIpv4(Number(first & superMask));
-  const ranges = parsed.map((p) => ({
-    network: p.network,
-    prefix: p.prefix,
-    networkId: calculateNetworkId(p.network, p.prefix),
-    broadcast: calculateBroadcast(p.network, p.prefix),
-  }));
+  return prefix;
+}
+
+export function areNetworksAdjacent(first, second) {
+  const a = parseNetworkRef(first);
+  const b = parseNetworkRef(second);
+  const [left, right] = a.start <= b.start ? [a, b] : [b, a];
+  return left.end + 1 === right.start;
+}
+
+export function findMinimalSupernet(networks) {
+  if (!networks?.length) throw new Error('At least one network is required');
+  const ranges = networks.map(parseNetworkRef).sort((a, b) => a.start - b.start);
+  const first = ranges[0].start;
+  const last = ranges.reduce((max, range) => Math.max(max, range.end), ranges[0].end);
+  const superPrefix = commonPrefixForRange(first, last);
+  const superNetwork = calculateNetworkId(longToIpv4(first), superPrefix);
   return {
     superNetwork,
     superPrefix,
-    commonBits,
     ranges,
-    totalAddresses: Number(2n ** BigInt(32 - superPrefix)),
+    firstAddress: longToIpv4(first),
+    lastAddress: longToIpv4(last),
+    summaryBroadcast: calculateBroadcast(superNetwork, superPrefix),
+    totalAddresses: calculateTotalAddresses(superPrefix),
+  };
+}
+
+export function canAggregateExactly(networks) {
+  const summary = findMinimalSupernet(networks);
+  let cursor = summary.ranges[0].start;
+  let covered = 0;
+  for (const range of summary.ranges) {
+    if (range.start !== cursor) return { exact: false, reason: 'gap', summary };
+    covered += range.end - range.start + 1;
+    cursor = range.end + 1;
+  }
+  const summaryStart = ipv4ToLong(summary.superNetwork);
+  const summaryEnd = ipv4ToLong(summary.summaryBroadcast);
+  const exact = summary.ranges[0].start === summaryStart && cursor - 1 === summaryEnd && covered === summary.totalAddresses;
+  return { exact, reason: exact ? null : 'alignment', summary };
+}
+
+export function aggregateWithoutExpansion(networks) {
+  if (!networks?.length) throw new Error('At least one network is required');
+  let current = networks.map(parseNetworkRef).map((range) => ({ network: range.networkId, prefix: range.prefix }));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    current.sort((a, b) => ipv4ToLong(a.network) - ipv4ToLong(b.network) || b.prefix - a.prefix);
+    for (let index = 0; index < current.length - 1; index += 1) {
+      const first = current[index];
+      const second = current[index + 1];
+      if (first.prefix !== second.prefix || !areNetworksAdjacent(first, second)) continue;
+      const candidate = { network: calculateNetworkId(first.network, first.prefix - 1), prefix: first.prefix - 1 };
+      if (candidate.network !== first.network) continue;
+      current.splice(index, 2, candidate);
+      changed = true;
+      break;
+    }
+  }
+  return current.map((network) => `${network.network}/${network.prefix}`);
+}
+
+export function aggregateWithExpansion(networks) {
+  const summary = findMinimalSupernet(networks);
+  const covered = summary.ranges.reduce((sum, range) => sum + range.end - range.start + 1, 0);
+  return {
+    network: `${summary.superNetwork}/${summary.superPrefix}`,
+    addedAddresses: summary.totalAddresses - covered,
+    ...summary,
+  };
+}
+
+export function calculateSupernet(networks) {
+  const summary = findMinimalSupernet(networks);
+  return {
+    superNetwork: summary.superNetwork,
+    superPrefix: summary.superPrefix,
+    commonBits: summary.superPrefix,
+    ranges: summary.ranges,
+    totalAddresses: summary.totalAddresses,
   };
 }
 
@@ -480,7 +545,7 @@ export function generateSupernetProblem() {
   ];
   const [a, b, c] = startingOctets[Math.floor(Math.random() * startingOctets.length)];
   const startN = Math.floor(Math.random() * 8) * 4; // multiples of 4 in third octet
-  const count = Math.floor(Math.random() * 2) + 2; // 2 or 3 /24 networks
+  const count = Math.random() < 0.5 ? 2 : 4;
   const networks = [];
   for (let i = 0; i < count; i += 1) {
     networks.push(`${a}.${b}.${c + startN + i}.0/24`);

@@ -17,6 +17,7 @@ import { speak, stop, ttsTextFromBlocks, normalizeCiscoText } from '../lib/speec
 import {
   calculateNetworkId, calculateBroadcast, calculateFirstHost, calculateLastHost,
   calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems, generateSubnetRequirementProblem,
+  aggregateWithoutExpansion, aggregateWithExpansion, canAggregateExactly,
 } from '../lib/networking/ipv4Math';
 import {
   decimalToBinary, binaryToDecimal, decimalToHex, hexToDecimal, binaryToHex, hexToBinary,
@@ -231,6 +232,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     if (ex.type === 'difficulty-drill') return <DifficultyDrillExercise key={stateKey} exercise={ex} categoryId={categoryId} topicId={topicId} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'adaptive-number-systems') return <AdaptiveNumberSystemsExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'adaptive-subnet-requirements') return <AdaptiveSubnetRequirementsExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
+    if (ex.type === 'adaptive-supernetting') return <AdaptiveSupernettingExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
     return null;
   }
 
@@ -1537,6 +1539,103 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
       {savedExamsPassed.includes(difficultyLevel) && difficultyLevel >= 2 && (
         <button onClick={onComplete} className="cyber-btn w-full mt-3 py-2 text-sm">Übung abschließen</button>
       )}
+    </div>
+  );
+}
+
+function createSupernettingChallenge(level) {
+  const pools = [
+    [
+      { networks: ['192.168.10.0/26', '192.168.10.64/26'], allowExpansion: false },
+      { networks: ['192.168.10.64/26', '192.168.10.128/26'], allowExpansion: false },
+    ],
+    [
+      { networks: ['128.192.25.0/28', '128.192.25.16/29', '128.192.25.24/29'], allowExpansion: false },
+      { networks: ['192.168.0.0/26', '192.168.0.64/26', '192.168.0.192/26'], allowExpansion: false },
+    ],
+    [
+      { networks: ['220.78.168.0/28', '220.78.168.16/28', '220.78.168.48/28'], allowExpansion: true },
+      { networks: ['10.0.255.0/24', '10.1.0.0/24'], allowExpansion: true },
+    ],
+  ];
+  const scenario = pools[level][Math.floor(Math.random() * pools[level].length)];
+  const exact = canAggregateExactly(scenario.networks);
+  const exactRoutes = aggregateWithoutExpansion(scenario.networks);
+  const expanded = aggregateWithExpansion(scenario.networks);
+  const answer = scenario.allowExpansion ? expanded.network : exactRoutes.join(', ');
+  return { ...scenario, exact, exactRoutes, expanded, answer };
+}
+
+function AdaptiveSupernettingExercise({ exercise, onComplete }) {
+  const [level, setLevel] = useState(0);
+  const [challenge, setChallenge] = useState(() => createSupernettingChallenge(0));
+  const [stage, setStage] = useState('decision');
+  const [feedback, setFeedback] = useState(null);
+  const [completed, setCompleted] = useState(0);
+  const [streak, setStreak] = useState(0);
+
+  function answer(value) {
+    if (feedback) return;
+    const correct = stage === 'decision' ? value === (challenge.allowExpansion ? 'expand' : 'exact') : value === challenge.answer;
+    if (!correct) {
+      const text = stage === 'decision'
+        ? `Die Aufgabenregel lautet ${challenge.allowExpansion ? 'Adressraumerweiterung erlaubt' : 'keine Adressraumerweiterung'}. Diese Entscheidung bestimmt, ob Lücken eingeschlossen werden dürfen.`
+        : !challenge.allowExpansion && !challenge.exact.exact
+          ? `Ohne Erweiterung dürfen nur gültige Teilgruppen zusammengefasst werden. Ergebnis: ${challenge.answer}. Ursache: ${challenge.exact.reason === 'gap' ? 'eine Lücke im Adressraum' : 'ungültiges Alignment'}.`
+          : `Die kleinste erlaubte Summary ist ${challenge.answer}.${challenge.allowExpansion && challenge.expanded.addedAddresses ? ` Sie schließt ${challenge.expanded.addedAddresses} zusätzliche Adressen ein.` : ''}`;
+      setStreak(0);
+      setFeedback({ ok: false, text });
+      return;
+    }
+    if (stage === 'decision') {
+      setFeedback({ ok: true, text: 'Richtig. Prüfe jetzt Nachbarschaft, Alignment und Abdeckung.' });
+      return;
+    }
+    const nextCompleted = completed + 1;
+    const nextStreak = streak + 1;
+    setCompleted(nextCompleted);
+    setStreak(nextStreak);
+    setFeedback({ ok: true, text: `Korrekt: ${challenge.answer}.${challenge.allowExpansion && challenge.expanded.addedAddresses ? ` Zusätzlich eingeschlossen: ${challenge.expanded.addedAddresses} Adressen.` : ''}` });
+  }
+
+  function next() {
+    if (feedback && !feedback.ok) {
+      setFeedback(null);
+      return;
+    }
+    if (stage === 'decision' && feedback?.ok) {
+      setStage('summary');
+      setFeedback(null);
+      return;
+    }
+    const nextLevel = streak >= 2 ? Math.min(2, level + 1) : level;
+    setLevel(nextLevel);
+    setChallenge(createSupernettingChallenge(nextLevel));
+    setStage('decision');
+    setFeedback(null);
+    if (streak >= 2) setStreak(0);
+  }
+
+  const summaryOptions = [...new Set([
+    challenge.answer,
+    challenge.expanded.network,
+    challenge.networks.join(', '),
+    '0.0.0.0/0',
+  ])].sort(() => Math.random() - 0.5);
+
+  return (
+    <div className="cyber-card p-4">
+      <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">{exercise.title} · Stufe {level + 1}/3 · {completed}/5 Fälle</div>
+      <p className="mt-2 text-xs text-[#00f0ff]">Routen: {challenge.networks.join(', ')}</p>
+      <p className="mt-1 text-xs text-[#ffcc00]">Adressraumerweiterung: {challenge.allowExpansion ? 'erlaubt' : 'nicht erlaubt'}</p>
+      <p className="mt-3 text-sm font-bold text-white">{stage === 'decision' ? 'Welcher Arbeitsmodus gilt?' : 'Was ist das kleinste korrekte Ergebnis?'}</p>
+      <div className="mt-3 flex flex-col gap-2">
+        {(stage === 'decision' ? [{ value: 'exact', label: 'Nur exakt gegebene Bereiche zusammenfassen' }, { value: 'expand', label: 'Minimale Erweiterung ist erlaubt' }] : summaryOptions.map((value) => ({ value, label: value }))).map((option) => (
+          <button key={option.value} onClick={() => answer(option.value)} disabled={!!feedback} className="cyber-btn-outline px-3 py-2 text-left text-sm">{option.label}</button>
+        ))}
+      </div>
+      {feedback && <p className={`mt-3 text-xs ${feedback.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}`}>{feedback.text}</p>}
+      {completed >= 5 ? <button onClick={onComplete} className="cyber-btn mt-3 w-full py-2 text-sm">Trainer abschließen</button> : feedback ? <button onClick={next} className="cyber-btn mt-3 w-full py-2 text-sm">{!feedback.ok ? 'Erneut prüfen' : stage === 'decision' ? 'Zusammenfassung prüfen' : 'Nächster Fall'}</button> : null}
     </div>
   );
 }

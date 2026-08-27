@@ -1236,8 +1236,13 @@ export const CONVERSATION_TOPICS = {
       'Wann fasse ich mehrere kleine Netze zu einer Route zusammen?',
       'Supernetting – was ist dabei fachlich wichtig?',
     ],
-    samHelp: 'Supernetting fasst benachbarte Netze zu einer größeren Route zusammen, um Routing-Tabellen zu verkleinern. Voraussetzungen: lückenlos nebeneinander, gleiche Größe, Blockgrenzen.',
-    questions: [],
+    samHelp: 'Supernetting verkürzt den Netzanteil und fasst passende Netze zu einer größeren Route zusammen. Prüfe Nachbarschaft, Alignment und Adressraum. Ohne erlaubte Erweiterung dürfen keine Lücken oder fremden Netze eingeschlossen werden.',
+    questions: [
+      { id: 'super-1', difficulty: 'medium', text: 'Wir haben zwei /26-Netze. Kann ich daraus immer ein /25 machen?', options: ['Nein, Nachbarschaft und gültige /25-Ausrichtung müssen ebenfalls passen.', 'Ja, gleiche Präfixe reichen immer.', 'Ja, sofern beide Netze privat sind.'], correct: 0, explanation: 'Ein gültiges Geschwisterpaar muss benachbart sein und gemeinsam an einer /25-Grenze beginnen.' },
+      { id: 'super-2', difficulty: 'hard', text: 'Warum kann eine Route Summary riskant sein, wenn sie einen fremdverwalteten Zwischenbereich einschließt?', options: ['Sie kann Verkehr für diesen Bereich fälschlich in unsere Richtung lenken.', 'Sie vergrößert automatisch die Bandbreite des fremden Netzes.', 'Sie löscht dessen MAC-Adressen.'], correct: 0, explanation: 'Die Summary behauptet Erreichbarkeit für den gesamten abgedeckten Bereich. Ohne Erlaubnis darf sie fremde Netze nicht einschließen.' },
+      { id: 'super-3', difficulty: 'medium', text: 'Müssen beim Supernetting am Ende alle Routen in genau einem Netz stehen?', options: ['Nein, nicht exakt aggregierbare Netze dürfen separat bleiben.', 'Ja, sonst war die Berechnung falsch.', 'Ja, notfalls als 0.0.0.0/0.'], correct: 0, explanation: 'Ziel sind möglichst wenige fachlich korrekte Einträge. Eine unerlaubt breite Summary wäre schlechter als ein verbleibender Einzelbereich.' },
+      { id: 'super-4', difficulty: 'hard', text: 'Was ist der Unterschied zwischen technisch möglich und sinnvoll bei einer Summary?', options: ['Die kleinste erlaubte Summary vermeidet unnötig eingeschlossene Bereiche.', '0.0.0.0/0 ist immer die sinnvollste Lösung.', 'Sinnvoll ist grundsätzlich das kürzeste denkbare Präfix.'], correct: 0, explanation: 'Eine technisch breite Abdeckung kann falsche Erreichbarkeit behaupten. Entscheidend ist die kleinste fachlich erlaubte Zusammenfassung.' },
+    ],
   },
   [topicKey('cisco-packet-tracer', 'grundlagen')]: {
     title: 'Cisco IOS-Grundlagen',
