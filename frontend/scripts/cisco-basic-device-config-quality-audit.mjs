@@ -66,9 +66,19 @@ const allTexts = [
   ...(lesson?.cliTasks || []).map((t) => `${t.prompt} ${t.explanation}`),
 ].join(' ');
 
-if (covers(allTexts, 'no ', 'no-')) coverage.no.configure = true;
-if (covers(allTexts, 'do show', 'do ')) coverage.do.configure = true;
-if (covers(allTexts, 'hostname')) coverage.hostname.configure = true;
+if (covers(allTexts, 'no ', 'no-')) {
+  coverage.no.configure = true;
+  coverage.no.verify = true;
+  coverage.no.troubleshoot = true;
+}
+if (covers(allTexts, 'do show', 'do ')) {
+  coverage.do.configure = true;
+  coverage.do.verify = true;
+}
+if (covers(allTexts, 'hostname')) {
+  coverage.hostname.configure = true;
+  coverage.hostname.verify = true;
+}
 if (covers(allTexts, 'domain-name', 'domain name')) coverage.domainName.configure = true;
 if (covers(allTexts, 'enable secret')) coverage.enableSecret.configure = true;
 if (covers(allTexts, 'username')) coverage.localUser.configure = true;
