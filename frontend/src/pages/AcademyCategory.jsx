@@ -191,7 +191,7 @@ export default function AcademyCategory() {
                 <p className="text-[10px] text-[#8b949e]">Voraussetzungen: {prereqTitles.length ? prereqTitles.join(', ') : 'keine'}</p>
               ) : dimCount > 0 ? (
                 <div className={`grid gap-3 mt-1 ${dimCount === 1 ? 'grid-cols-1' : dimCount === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                  {dims.theory && <ScoreBar label="Theorie" value={topic.theoryScore} />}
+                  {dims.theory && <ScoreBar label="Theorie" value={(topic.theoryCompletion ?? topic.theoryScore) ?? 0} />}
                   {dims.practice && <ScoreBar label="Praxis" value={topic.practiceScore} />}
                   {dims.retention && <ScoreBar label="Festigung" value={topic.retentionScore} />}
                 </div>

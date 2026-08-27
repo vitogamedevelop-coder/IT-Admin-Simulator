@@ -47,7 +47,7 @@ export function clampScore(value) {
 // Helper for the theory dimension: a dedicated completion value (0-100) takes
 // precedence over the older fine-grained theoryScore so that a full theory
 // pass is always represented as 100 % theory progress.
-function topicTheoryCompletion(topic) {
+export function topicTheoryCompletion(topic) {
   return topic?.theoryCompletion ?? topic?.theoryScore ?? 0;
 }
 
@@ -354,7 +354,7 @@ export function recordQuizResult(categoryId, topicId, { total, correct }) {
 export function isTopicMastered(categoryId, topicId, hasPractice = false) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress) return false;
-  if (progress.contentSeenPercent < 100) return false;
+  if (topicTheoryCompletion(progress) < 100) return false;
   if ((progress.quizPerfectCount || 0) < 3) return false;
   if (hasPractice && progress.practiceScore < ACADEMY_THRESHOLDS.applied.minPracticeScore) return false;
   return true;
@@ -364,7 +364,7 @@ export function isTopicMastered(categoryId, topicId, hasPractice = false) {
 // competency scores, content seen, and quiz mastery. Always returns a clamped integer.
 export function topicOverallProgress(topic) {
   if (!topic) return 0;
-  const score = overallScore(topic) * 0.6 + (topic.contentSeenPercent || 0) * 0.3 + Math.min((topic.quizPerfectCount || 0) / 3, 1) * 100 * 0.1;
+  const score = overallScore(topic) * 0.6 + topicTheoryCompletion(topic) * 0.3 + Math.min((topic.quizPerfectCount || 0) / 3, 1) * 100 * 0.1;
   return clampScore(score);
 }
 

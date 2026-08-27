@@ -5,7 +5,7 @@ import { findTopic, topicKey, TOPIC_STATUS } from '../lib/academyTopics';
 import { getFullTopic } from '../lib/academyProgress';
 import {
   applyMentorLesson, applyQuiz, applyMiniExercise, applyConversationPractice,
-  recordContentSeen, topicOverallProgress,
+  recordContentSeen, topicOverallProgress, topicTheoryCompletion,
 } from '../lib/academyEngine';
 import { LESSONS, getTopicScoreDimensions } from '../lib/academyLessonData';
 import { LEARNING_MODES, readAcademyMode } from '../lib/academyMode';
@@ -252,14 +252,14 @@ function AcademyEntryCard({
   onTheory, onPractice, onInterview, onBack, onPlacement,
 }) {
   const portrait = characterAsset('sam');
-  const contentSeen = topic.contentSeenPercent || 0;
+  const theoryProgress = topicTheoryCompletion(topic);
   const overall = topicOverallProgress(topic);
 
   let greeting = '„Wie möchtest du diese Lektion angehen?"';
   let subtext = null;
-  if (contentSeen >= 100) {
+  if (theoryProgress >= 100) {
     subtext = `Gesamtfortschritt: ${overall}%`;
-  } else if (topic.status !== TOPIC_STATUS.AVAILABLE && (topic.theoryScore > 0 || topic.practiceScore > 0 || topic.retentionScore > 0 || contentSeen > 0)) {
+  } else if (topic.status !== TOPIC_STATUS.AVAILABLE && (theoryProgress > 0 || topic.practiceScore > 0 || topic.retentionScore > 0)) {
     greeting = '„Du hast das Thema schon angefangen. Wie geht es weiter?"';
     subtext = `Gesamtfortschritt: ${overall}%`;
   }
@@ -404,7 +404,7 @@ export default function AcademyTopic() {
         {topic.description && <p className="text-xs text-[#8b949e] mt-2">{topic.description}</p>}
         {!locked && (
           <div className={`grid gap-3 mt-3 text-center ${scoreCols === 1 ? 'grid-cols-1' : scoreCols === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-            {scoreDimensions.theory && <div><div className="text-[9px] text-[#8b949e]">Theorie</div><div className="text-sm text-[#00f0ff] font-bold">{(topic.theoryCompletion ?? topic.theoryScore) ?? 0}%</div></div>}
+            {scoreDimensions.theory && <div><div className="text-[9px] text-[#8b949e]">Theorie</div><div className="text-sm text-[#00f0ff] font-bold">{topicTheoryCompletion(topic)}%</div></div>}
             {scoreDimensions.practice && <div><div className="text-[9px] text-[#8b949e]">Praxis</div><div className="text-sm text-[#00f0ff] font-bold">{topic.practiceScore}%</div></div>}
             {scoreDimensions.retention && <div><div className="text-[9px] text-[#8b949e]">Festigung</div><div className="text-sm text-[#00f0ff] font-bold">{topic.retentionScore}%</div></div>}
           </div>
