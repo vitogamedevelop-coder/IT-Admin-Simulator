@@ -14,6 +14,10 @@ export const CISCO_GRUNDLAGEN_TOPIC_KEY = topicKey('cisco-packet-tracer', 'grund
 
 const HIERARCHY_SVG = `<svg viewBox="0 0 240 180" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><rect x="70" y="10" width="100" height="30" rx="6" fill="#00f0ff" opacity="0.9"/><text x="120" y="30" text-anchor="middle" fill="#0a1628" font-size="12" font-weight="bold">Core</text><rect x="30" y="70" width="80" height="30" rx="6" fill="#00f0ff" opacity="0.6"/><text x="70" y="90" text-anchor="middle" fill="#0a1628" font-size="11" font-weight="bold">Distribution</text><rect x="130" y="70" width="80" height="30" rx="6" fill="#00f0ff" opacity="0.6"/><text x="170" y="90" text-anchor="middle" fill="#0a1628" font-size="11" font-weight="bold">Distribution</text><rect x="10" y="130" width="60" height="30" rx="6" fill="#00f0ff" opacity="0.35"/><text x="40" y="150" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">Access</text><rect x="90" y="130" width="60" height="30" rx="6" fill="#00f0ff" opacity="0.35"/><text x="120" y="150" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">Access</text><rect x="170" y="130" width="60" height="30" rx="6" fill="#00f0ff" opacity="0.35"/><text x="200" y="150" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">Access</text><line x1="120" y1="40" x2="70" y2="70" stroke="#8b949e" stroke-width="2"/><line x1="120" y1="40" x2="170" y2="70" stroke="#8b949e" stroke-width="2"/><line x1="70" y1="100" x2="40" y2="130" stroke="#8b949e" stroke-width="2"/><line x1="70" y1="100" x2="120" y2="130" stroke="#8b949e" stroke-width="2"/><line x1="170" y1="100" x2="200" y2="130" stroke="#8b949e" stroke-width="2"/></svg>`;
 
+const DEVICE_COMPARISON_SVG = `<svg viewBox="0 0 320 180" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="90" height="160" rx="8" fill="#00f0ff" opacity="0.2" stroke="#00f0ff" stroke-width="2"/><text x="55" y="30" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">L2-Switch</text><text x="55" y="55" text-anchor="middle" fill="#8b949e" font-size="9">Layer 2</text><text x="55" y="80" text-anchor="middle" fill="#8b949e" font-size="9">MAC-Adressen</text><text x="55" y="105" text-anchor="middle" fill="#8b949e" font-size="9">ein VLAN</text><text x="55" y="140" text-anchor="middle" fill="#c9d1d9" font-size="9">Access-Layer</text><rect x="115" y="10" width="90" height="160" rx="8" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="30" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Multilayer</text><text x="160" y="50" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Switch</text><text x="160" y="75" text-anchor="middle" fill="#8b949e" font-size="9">Layer 2 + 3</text><text x="160" y="100" text-anchor="middle" fill="#8b949e" font-size="9">MAC + IP</text><text x="160" y="125" text-anchor="middle" fill="#8b949e" font-size="9">Routing</text><text x="160" y="150" text-anchor="middle" fill="#c9d1d9" font-size="9">Distribution/Core</text><rect x="220" y="10" width="90" height="160" rx="8" fill="#00f0ff" opacity="0.5" stroke="#00f0ff" stroke-width="2"/><text x="265" y="35" text-anchor="middle" fill="#0a1628" font-size="11" font-weight="bold">Router</text><text x="265" y="60" text-anchor="middle" fill="#0a1628" font-size="9">Layer 3</text><text x="265" y="85" text-anchor="middle" fill="#0a1628" font-size="9">IP-Adressen</text><text x="265" y="110" text-anchor="middle" fill="#0a1628" font-size="9">Netze verbinden</text><text x="265" y="145" text-anchor="middle" fill="#0a1628" font-size="9">WAN/Internet</text></svg>`;
+
+const BOOT_FLOW_SVG = `<svg viewBox="0 0 240 260" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><rect x="70" y="10" width="100" height="30" rx="6" fill="#00f0ff" opacity="0.9"/><text x="120" y="30" text-anchor="middle" fill="#0a1628" font-size="11" font-weight="bold">POWER ON</text><polygon points="120,45 110,60 130,60" fill="#8b949e"/><rect x="70" y="65" width="100" height="30" rx="6" fill="#00f0ff" opacity="0.75"/><text x="120" y="85" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">POST</text><polygon points="120,100 110,115 130,115" fill="#8b949e"/><rect x="70" y="120" width="100" height="30" rx="6" fill="#00f0ff" opacity="0.6"/><text x="120" y="140" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">BOOTLOADER</text><polygon points="120,155 110,170 130,170" fill="#8b949e"/><rect x="70" y="175" width="100" height="30" rx="6" fill="#00f0ff" opacity="0.45"/><text x="120" y="190" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">IOS aus Flash</text><polygon points="120,210 110,225 130,225" fill="#8b949e"/><rect x="70" y="230" width="100" height="25" rx="6" fill="#00f0ff" opacity="0.3"/><text x="120" y="247" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">startup-config</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -60,6 +64,15 @@ function buildExplanations() {
       'Router: Verbindet unterschiedliche Netzwerke (z. B. LAN mit WAN/Internet) und trifft Weiterleitungsentscheidungen anhand von IP-Adressen (Schicht 3).',
     ] },
     { type: 'text', content: 'Merksatz: Ein L2-Switch bleibt innerhalb eines Netzes, ein Router und ein Multilayer-Switch können zwischen Netzen vermitteln.' },
+  ]));
+
+  exps.push(explanation('geraete-compare-visual', 'Gerätetypen im Vergleich', 'visual', [
+    { type: 'diagram', content: DEVICE_COMPARISON_SVG },
+    { type: 'table', headers: ['Gerät', 'Layer 2', 'Layer 3', 'Typische Aufgabe'], rows: [
+      ['L2-Switch', 'Ja', 'Nein (nur Management-SVI)', 'Frames im LAN'],
+      ['Multilayer-Switch', 'Ja', 'Ja', 'Switching + Routing'],
+      ['Router', 'Nein im klassischen LAN-Switching-Sinn', 'Ja', 'Netze verbinden'],
+    ] },
   ]));
 
   // ---------------------------------------------------------------------
@@ -123,6 +136,11 @@ function buildExplanations() {
     { type: 'text', content: 'Wird keine startup-config gefunden (z. B. bei einem neuen, unkonfigurierten Gerät), startet das Gerät stattdessen in den Setup Mode.' },
   ]));
 
+  exps.push(explanation('boot-visual', 'Bootvorgang als Ablauf', 'visual', [
+    { type: 'diagram', content: BOOT_FLOW_SVG },
+    { type: 'text', content: 'Merke: Ohne gültiges IOS-Image landet das Gerät im ROMMON. Ohne startup-config startet der Setup Mode.' },
+  ]));
+
   // ---------------------------------------------------------------------
   // 9. Zugriff und Inbetriebnahme
   // ---------------------------------------------------------------------
@@ -158,6 +176,16 @@ function buildExplanations() {
 
   exps.push(explanation('modi-intuitive', 'Konfigurationsmodi', 'intuitive', [
     { type: 'text', content: 'Stell dir die Modi wie Zimmer in einem Haus vor: Du kommst zunächst in den Flur (User EXEC), brauchst einen Schlüssel für das Wohnzimmer (Privileged EXEC), von dort einen weiteren für den Keller (Global Config), und von dort einen für einen bestimmten Raum im Keller (Interface Config). "exit" bringt dich einen Raum zurück, "end" direkt zurück ins Wohnzimmer.' },
+  ]));
+
+  exps.push(explanation('cli-hilfe-classic', 'Das IOS-Hilfesystem nutzen', 'classic', [
+    { type: 'text', content: 'Ein guter Administrator muss nicht jeden Befehl auswendig kennen. Die Cisco-CLI hilft kontextsensitiv weiter.' },
+    { type: 'list', title: 'Hilfsmittel', items: [
+      '?: Zeigt im aktuellen Modus alle verfügbaren Befehle an.',
+      'Tab: Vervollständigt eine eindeutig erkennbare Befehlseingabe.',
+      'Abkürzungen: Befehle dürfen verkürzt werden, solange sie eindeutig bleiben (z. B. "conf t" für "configure terminal").',
+      'Fehlermeldungen: "% Ambiguous command", "% Incomplete command", "% Invalid input detected" zeigen präzise, was schiefläuft.',
+    ] },
   ]));
 
   // ---------------------------------------------------------------------
@@ -268,6 +296,34 @@ function buildExercises() {
       question: 'Welcher Befehl löscht die startup-config, um ein Gerät auf Werkseinstellungen zurückzusetzen? (Befehl eingeben)',
       answers: ['erase startup-config', 'erase startup config'],
       explanation: 'Der Befehl "erase startup-config" löscht die gespeicherte Konfiguration im NVRAM; anschließend macht "reload" den Neustart.',
+    },
+    {
+      id: 'cli-enable-conf-term',
+      type: 'cli-input',
+      question: 'Wechsle vom User EXEC in den Global Configuration Mode (nur die nötigen Befehle).',
+      expectedLines: ['enable', 'configure terminal'],
+      explanation: '"enable" bringt dich in den Privileged EXEC Mode, "configure terminal" (kurz "conf t") in den Global Configuration Mode.',
+    },
+    {
+      id: 'cli-save-config',
+      type: 'cli-input',
+      question: 'Speichere die aktuelle running-config dauerhaft als startup-config.',
+      expectedLines: ['copy running-config startup-config'],
+      explanation: '"copy running-config startup-config" (oder "write") überträgt die aktive Konfiguration ins NVRAM.',
+    },
+    {
+      id: 'cli-show-running-config',
+      type: 'cli-input',
+      question: 'Zeige die aktuell laufende Konfiguration an.',
+      expectedLines: [['show running-config', 'show run']],
+      explanation: '"show running-config" (kurz "show run") zeigt die aktive Konfiguration im RAM an.',
+    },
+    {
+      id: 'cli-interface-no-shutdown',
+      type: 'cli-input',
+      question: 'Das Interface g0/1 ist administrativ deaktiviert. Aktiviere es.',
+      expectedLines: ['interface g0/1', 'no shutdown'],
+      explanation: 'Zuerst das Interface auswählen, dann "no shutdown" eingeben, um die administrative Deaktivierung aufzuheben.',
     },
   ];
 }
