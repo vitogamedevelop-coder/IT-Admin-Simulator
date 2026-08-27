@@ -16,7 +16,7 @@ import { checkCiscoInput } from '../lib/ciscoCli';
 import { speak, stop, ttsTextFromBlocks, normalizeCiscoText } from '../lib/speechSynthesis';
 import {
   calculateNetworkId, calculateBroadcast, calculateFirstHost, calculateLastHost,
-  calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems,
+  calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems, generateSubnetRequirementProblem,
 } from '../lib/networking/ipv4Math';
 import {
   decimalToBinary, binaryToDecimal, decimalToHex, hexToDecimal, binaryToHex, hexToBinary,
@@ -230,6 +230,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     if (ex.type === 'adaptive-subnetting') return <AdaptiveSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'difficulty-drill') return <DifficultyDrillExercise key={stateKey} exercise={ex} categoryId={categoryId} topicId={topicId} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'adaptive-number-systems') return <AdaptiveNumberSystemsExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
+    if (ex.type === 'adaptive-subnet-requirements') return <AdaptiveSubnetRequirementsExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
     return null;
   }
 
@@ -1536,6 +1537,93 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
       {savedExamsPassed.includes(difficultyLevel) && difficultyLevel >= 2 && (
         <button onClick={onComplete} className="cyber-btn w-full mt-3 py-2 text-sm">Übung abschließen</button>
       )}
+    </div>
+  );
+}
+
+function AdaptiveSubnetRequirementsExercise({ exercise, onComplete }) {
+  const levels = ['easy', 'medium', 'hard'];
+  const [level, setLevel] = useState(0);
+  const [problem, setProblem] = useState(() => generateSubnetRequirementProblem('easy'));
+  const [stage, setStage] = useState('type');
+  const [input, setInput] = useState('');
+  const [feedback, setFeedback] = useState(null);
+  const [completed, setCompleted] = useState(0);
+  const [streak, setStreak] = useState(0);
+
+  const expected = stage === 'type'
+    ? problem.mode
+    : stage === 'bits'
+      ? String(problem.mode === 'subnets' ? problem.borrowedBits : problem.hostBits)
+      : stage === 'prefix'
+        ? String(problem.newPrefix)
+        : String(problem.jumpSize);
+
+  function submit(value = input) {
+    if (feedback) {
+      setFeedback(null);
+      setInput('');
+      if (feedback.nextProblem) {
+        const nextLevel = feedback.nextLevel;
+        setLevel(nextLevel);
+        setProblem(generateSubnetRequirementProblem(levels[nextLevel]));
+        setStage('type');
+      }
+      return;
+    }
+    const normalized = String(value).trim().toLowerCase().replace('/', '');
+    const ok = normalized === expected;
+    if (!ok) {
+      const explanation = stage === 'type'
+        ? 'Prüfe zuerst, ob die Anforderung eine Netzanzahl oder einen Hostbedarf nennt.'
+        : stage === 'bits'
+          ? problem.mode === 'subnets'
+            ? `Gesucht ist das kleinste n mit 2^n ≥ ${problem.requiredSubnets}. Richtig sind ${problem.borrowedBits} zusätzliche Netzbits.`
+            : `Netz-ID und Broadcast zählen mit: Das kleinste h mit 2^h − 2 ≥ ${problem.requiredHosts} ist ${problem.hostBits}.`
+          : stage === 'prefix'
+            ? problem.mode === 'subnets'
+              ? `Aus /${problem.basePrefix} plus ${problem.borrowedBits} Netzbits wird /${problem.newPrefix}.`
+              : `32 minus ${problem.hostBits} Hostbits ergibt /${problem.newPrefix}.`
+            : `Für /${problem.newPrefix} beträgt die Sprungweite im relevanten Oktett ${problem.jumpSize}.`;
+      setStreak(0);
+      setFeedback({ ok: false, text: `Noch nicht. ${explanation}`, nextProblem: false, nextLevel: level });
+      return;
+    }
+    const nextStage = stage === 'type' ? 'bits' : stage === 'bits' ? 'prefix' : stage === 'prefix' ? 'jump' : null;
+    if (nextStage) {
+      setStage(nextStage);
+      setInput('');
+      setFeedback({ ok: true, text: 'Richtig. Nächster Rechenschritt.', nextProblem: false, nextLevel: level });
+      return;
+    }
+    const nextCompleted = completed + 1;
+    const nextStreak = streak + 1;
+    const nextLevel = nextStreak >= 2 ? Math.min(2, level + 1) : level;
+    setCompleted(nextCompleted);
+    setStreak(nextStreak >= 2 ? 0 : nextStreak);
+    setFeedback({ ok: true, text: `Korrekt: /${problem.newPrefix}, Sprungweite ${problem.jumpSize}. Das erste Netz beginnt bei ${problem.sequence[0].network}, Broadcast ${problem.sequence[0].broadcast}.`, nextProblem: true, nextLevel });
+  }
+
+  const requirement = problem.mode === 'subnets' ? `${problem.requiredSubnets} gleich große Subnetze` : `mindestens ${problem.requiredHosts} Hosts je Subnetz`;
+  const prompt = stage === 'type'
+    ? 'Welche Anforderung ist gegeben?'
+    : stage === 'bits'
+      ? problem.mode === 'subnets' ? 'Wie viele zusätzliche Netzbits werden benötigt?' : 'Wie viele Hostbits werden benötigt?'
+      : stage === 'prefix' ? 'Welches neue Präfix ergibt sich?' : 'Wie groß ist die Sprungweite im relevanten Oktett?';
+
+  return (
+    <div className="cyber-card p-4">
+      <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">{exercise.title} · Stufe {level + 1}/3 · {completed}/5 Fälle</div>
+      <p className="mt-2 text-xs text-[#00f0ff]">NEXUS-Ausgangsnetz: {problem.baseNetwork}/{problem.basePrefix} · Bedarf: {requirement}</p>
+      <p className="mt-2 text-sm font-bold text-white">{prompt}</p>
+      {stage === 'type' ? (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button onClick={() => submit('subnets')} disabled={!!feedback} className="cyber-btn-outline py-2 text-sm">Netzanzahl</button>
+          <button onClick={() => submit('hosts')} disabled={!!feedback} className="cyber-btn-outline py-2 text-sm">Hostbedarf</button>
+        </div>
+      ) : <input value={input} onChange={(event) => setInput(event.target.value)} disabled={!!feedback} className="mt-3 w-full rounded border border-[#00f0ff]/30 bg-black/30 px-3 py-2 text-sm text-white" placeholder={stage === 'prefix' ? '/__' : 'Zahl eingeben'} />}
+      {feedback && <p className={`mt-3 text-xs ${feedback.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}`}>{feedback.text}</p>}
+      {completed >= 5 ? <button onClick={onComplete} className="cyber-btn mt-3 w-full py-2 text-sm">Trainer abschließen</button> : stage !== 'type' || feedback ? <button onClick={() => submit()} className="cyber-btn mt-3 w-full py-2 text-sm">{feedback ? feedback.nextProblem ? 'Nächster Fall' : 'Erneut versuchen' : 'Prüfen'}</button> : null}
     </div>
   );
 }

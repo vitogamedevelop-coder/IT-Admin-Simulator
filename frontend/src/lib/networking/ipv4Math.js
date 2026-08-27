@@ -185,6 +185,95 @@ export function calculateUsableHosts(prefix) {
   return total - 2;
 }
 
+export function subnetBitsForCount(requiredSubnets) {
+  const count = Number(requiredSubnets);
+  if (!Number.isInteger(count) || count < 1) throw new Error(`Required subnets must be a positive integer, got ${requiredSubnets}`);
+  return Math.ceil(Math.log2(count));
+}
+
+export function prefixForSubnetCount(basePrefix, requiredSubnets) {
+  const prefix = Number(basePrefix);
+  const newPrefix = prefix + subnetBitsForCount(requiredSubnets);
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 30 || newPrefix > 30) throw new Error('Required subnet count does not fit into the base network');
+  return newPrefix;
+}
+
+export function hostBitsForRequirement(requiredHosts) {
+  const hosts = Number(requiredHosts);
+  if (!Number.isInteger(hosts) || hosts < 1) throw new Error(`Required hosts must be a positive integer, got ${requiredHosts}`);
+  return Math.ceil(Math.log2(hosts + 2));
+}
+
+export function prefixForHostRequirement(basePrefix, requiredHosts) {
+  const prefix = Number(basePrefix);
+  const newPrefix = 32 - hostBitsForRequirement(requiredHosts);
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 30 || newPrefix < prefix || newPrefix > 30) throw new Error('Required host count does not fit into the base network');
+  return newPrefix;
+}
+
+export function generateFixedSubnetSequence(baseIp, basePrefix, newPrefix) {
+  const base = Number(basePrefix);
+  const target = Number(newPrefix);
+  if (!Number.isInteger(base) || !Number.isInteger(target) || base < 0 || target < base || target > 30) throw new Error('Invalid FLSM prefix range');
+  const networkLong = ipv4ToLong(calculateNetworkId(baseIp, base));
+  const count = 2 ** (target - base);
+  const blockSize = 2 ** (32 - target);
+  return Array.from({ length: count }, (_, index) => {
+    const network = longToIpv4(networkLong + index * blockSize);
+    return {
+      network,
+      prefix: target,
+      broadcast: calculateBroadcast(network, target),
+      firstHost: calculateFirstHost(network, target),
+      lastHost: calculateLastHost(network, target),
+      usableHosts: calculateUsableHosts(target),
+    };
+  });
+}
+
+export function generateSubnetRequirementProblem(difficulty = 'easy', rng = Math.random) {
+  const profile = difficulty === 'hard'
+    ? { basePrefixes: [16, 17, 20, 21, 22, 23], subnetCounts: [3, 5, 6, 7, 9, 12], hosts: [20, 30, 50, 60, 100, 200] }
+    : difficulty === 'medium'
+      ? { basePrefixes: [23, 24, 25], subnetCounts: [3, 4, 5, 6], hosts: [10, 15, 20, 30, 50] }
+      : { basePrefixes: [24], subnetCounts: [2, 4], hosts: [6, 14, 30, 50] };
+  const pick = (values) => values[Math.floor(rng() * values.length)];
+  const mode = rng() < 0.5 ? 'subnets' : 'hosts';
+  const basePrefix = pick(profile.basePrefixes);
+  const firstOctet = 10;
+  const secondOctet = Math.floor(rng() * 200);
+  const candidate = `${firstOctet}.${secondOctet}.${Math.floor(rng() * 256)}.0`;
+  const baseNetwork = calculateNetworkId(candidate, basePrefix);
+  if (mode === 'subnets') {
+    const requiredSubnets = pick(profile.subnetCounts);
+    const newPrefix = prefixForSubnetCount(basePrefix, requiredSubnets);
+    return {
+      mode,
+      baseNetwork,
+      basePrefix,
+      requiredSubnets,
+      borrowedBits: subnetBitsForCount(requiredSubnets),
+      newPrefix,
+      possibleSubnets: 2 ** (newPrefix - basePrefix),
+      jumpSize: calculateJumpSize(newPrefix),
+      sequence: generateFixedSubnetSequence(baseNetwork, basePrefix, newPrefix),
+    };
+  }
+  const requiredHosts = pick(profile.hosts);
+  const newPrefix = prefixForHostRequirement(basePrefix, requiredHosts);
+  return {
+    mode,
+    baseNetwork,
+    basePrefix,
+    requiredHosts,
+    hostBits: hostBitsForRequirement(requiredHosts),
+    newPrefix,
+    usableHosts: calculateUsableHosts(newPrefix),
+    jumpSize: calculateJumpSize(newPrefix),
+    sequence: generateFixedSubnetSequence(baseNetwork, basePrefix, newPrefix),
+  };
+}
+
 export function calculateJumpSize(prefix) {
   const bits = getNetworkBitsInRelevantOctet(prefix);
   const maskValue = maskValueForBitsInOctet(bits);

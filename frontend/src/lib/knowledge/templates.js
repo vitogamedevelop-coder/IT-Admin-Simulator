@@ -1639,6 +1639,7 @@ const PHASE7_PREFIXES = new Set([
   'dns',
   'dhcp',
   'routing',
+  'subnetting',
   'vlsm',
   'supernetting',
   'cisco',

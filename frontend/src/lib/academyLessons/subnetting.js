@@ -11,6 +11,11 @@ import {
   calculateUsableHosts,
   getSubnetBlockBounds,
   generateUniqueSubnetProblems,
+  subnetBitsForCount,
+  prefixForSubnetCount,
+  hostBitsForRequirement,
+  prefixForHostRequirement,
+  generateFixedSubnetSequence,
 } from '../networking/ipv4Math.js';
 
 export const SUBNETTING_TOPIC_KEY = topicKey('fundamentals', 'subnetting');
@@ -20,6 +25,8 @@ const INTUITIVE_EXAMPLES = [
   { ip: '192.168.199.3', prefix: 20, network: '192.168.192.0', broadcast: '192.168.207.255' },
   { ip: '10.25.140.18', prefix: 21, network: '10.25.136.0', broadcast: '10.25.143.255' },
 ];
+const BORROW_BITS_SVG = `<svg viewBox="0 0 430 135" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="215" y="20" text-anchor="middle" fill="#c9d1d9" font-size="11">Grenze verschieben – keine neuen Bits erzeugen</text><text x="20" y="55" fill="#8b949e" font-size="10">Ausgang /23</text><text x="115" y="55" fill="#00f0ff" font-size="12">NNNNNNNN.NNNNNNNN.NNNNNN</text><text x="313" y="55" fill="#ffcc00" font-size="12">NH.HHHHHHHH</text><text x="20" y="96" fill="#8b949e" font-size="10">Neu /26</text><text x="115" y="96" fill="#00f0ff" font-size="12">NNNNNNNN.NNNNNNNN.NNNNNNNN.NN</text><text x="349" y="96" fill="#ffcc00" font-size="12">HHHHHH</text><text x="215" y="123" text-anchor="middle" fill="#00ff66" font-size="10">3 Hostbits werden Netzbits → mehr, aber kleinere Subnetze</text></svg>`;
+const FLSM_BLOCKS_SVG = `<svg viewBox="0 0 430 145" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg"><text x="215" y="18" text-anchor="middle" fill="#c9d1d9" font-size="11">192.168.1.0/24 in vier gleich große /26-Blöcke</text><g font-size="9"><rect x="12" y="40" width="98" height="48" rx="5" fill="#00f0ff" opacity="0.25" stroke="#00f0ff"/><rect x="114" y="40" width="98" height="48" rx="5" fill="#58a6ff" opacity="0.25" stroke="#58a6ff"/><rect x="216" y="40" width="98" height="48" rx="5" fill="#00ff66" opacity="0.2" stroke="#00ff66"/><rect x="318" y="40" width="98" height="48" rx="5" fill="#ffcc00" opacity="0.25" stroke="#ffcc00"/><text x="61" y="60" text-anchor="middle" fill="#c9d1d9">.0 – .63</text><text x="163" y="60" text-anchor="middle" fill="#c9d1d9">.64 – .127</text><text x="265" y="60" text-anchor="middle" fill="#c9d1d9">.128 – .191</text><text x="367" y="60" text-anchor="middle" fill="#c9d1d9">.192 – .255</text><text x="61" y="78" text-anchor="middle" fill="#00f0ff">/26</text><text x="163" y="78" text-anchor="middle" fill="#58a6ff">/26</text><text x="265" y="78" text-anchor="middle" fill="#00ff66">/26</text><text x="367" y="78" text-anchor="middle" fill="#ffcc00">/26</text></g><text x="215" y="115" text-anchor="middle" fill="#8b949e" font-size="10">2 zusätzliche Netzbits → 2² = 4 Netze · 6 Hostbits → 62 nutzbare Hosts</text><text x="215" y="134" text-anchor="middle" fill="#8b949e" font-size="10">Fixed Length: alle erzeugten Subnetze sind gleich groß</text></svg>`;
 
 function buildExplanations() {
   const exps = [];
@@ -31,13 +38,63 @@ function buildExplanations() {
     style: 'classic',
     blocks: [
       { type: 'text', content: 'Stell dir ein großes Firmengebäude vor. Nicht jeder Mitarbeiter muss mit jedem gleichzeitig kommunizieren. Deshalb teilen wir große Netzwerke in kleinere Bereiche – sogenannte Subnetze.' },
-      { type: 'text', content: 'Subnetting reduziert Broadcasts, erhöht die Sicherheit und macht das Netz übersichtlicher. Jeder Bereich bekommt einen eigenen Adressraum.' },
+      { type: 'text', content: 'Subnetting teilt einen vorhandenen IP-Adressraum in mehrere kleinere Netze. Es erzeugt keine zusätzlichen IPv4-Adressen: Hostbits werden zu Netzbits und die Grenze zwischen beiden Anteilen verschiebt sich.' },
+      { type: 'diagram', content: BORROW_BITS_SVG },
+      { type: 'text', content: 'Der zentrale Trade-off: Mehr Netzbits ermöglichen mehr Subnetze, lassen aber weniger Hostbits und damit weniger Hosts pro Subnetz übrig.' },
       { type: 'list', title: 'Warum Subnetting?', items: [
         'Weniger Broadcast-Traffic pro Teilnetz',
         'Einfachere Fehlersuche durch klar abgegrenzte Bereiche',
         'Bessere Sicherheit: kritische Abteilungen können getrennt werden',
         'Effizientere Adressvergabe, weil große Blöcke passend aufgeteilt werden',
       ] },
+    ],
+  });
+
+  exps.push({
+    id: 'requirements-classic',
+    title: 'Welche Anforderung ist gegeben?',
+    style: 'classic',
+    blocks: [
+      { type: 'text', content: 'Vor jeder Rechnung entscheidest du: Ist die Anzahl gleich großer Subnetze gegeben, oder ist eine Mindestzahl an Hosts pro Subnetz gegeben? Diese beiden Wege beginnen unterschiedlich.' },
+      { type: 'table', headers: ['Anforderung', 'Gesuchte Bits', 'Kernbedingung'], rows: [
+        ['Anzahl Subnetze', 'zusätzliche Netzbits n', 'kleinstes n mit 2^n ≥ benötigte Subnetze'],
+        ['Hosts pro Subnetz', 'Hostbits h', 'kleinstes h mit 2^h − 2 ≥ benötigte Hosts'],
+      ] },
+      { type: 'question', facet: 'requirement-type', question: 'NEXUS benötigt mindestens 50 Hosts je Abteilungsnetz. Welcher Denkweg passt?', options: ['Hostbits über 2^h − 2 bestimmen', 'zusätzliche Netzbits gleich 50 setzen', 'nur die Anzahl der Abteilungen zählen'], correct: 0, explanation: 'Bei gegebenem Hostbedarf wird zuerst die kleinste ausreichende Anzahl Hostbits bestimmt.' },
+    ],
+  });
+
+  exps.push({
+    id: 'subnet-count-classic',
+    title: 'Weg A: Anzahl gleich großer Subnetze',
+    style: 'classic',
+    blocks: [
+      { type: 'text', content: 'Für sechs gewünschte Subnetze reichen zwei Bits nicht: 2² = 4. Drei zusätzliche Netzbits liefern 2³ = 8 mögliche, gleich große Subnetze. Es entstehen acht binäre Kombinationen, auch wenn zunächst nur sechs gebraucht werden.' },
+      { type: 'text', content: `Beim Ausgangsnetz 192.168.2.0/23 führen ${subnetBitsForCount(6)} zusätzliche Netzbits zum Präfix /${prefixForSubnetCount(23, 6)}.` },
+      { type: 'list', title: 'Die ersten sechs benötigten Netz-IDs', items: generateFixedSubnetSequence('192.168.2.0', 23, 26).slice(0, 6).map((subnet) => `${subnet.network}/${subnet.prefix}`) },
+      { type: 'question', facet: 'subnet-count', question: 'Warum benötigen sechs Subnetze drei zusätzliche Netzbits?', options: ['2² liefert nur 4, 2³ liefert 8 mögliche Kombinationen.', 'Jedes gewünschte Netz benötigt genau ein eigenes Bit.', 'Drei Bits liefern exakt sechs und niemals acht Netze.'], correct: 0, explanation: 'Subnetzanzahlen folgen Zweierpotenzen. Drei Bits stellen acht Kombinationen bereit.' },
+    ],
+  });
+
+  exps.push({
+    id: 'host-count-classic',
+    title: 'Weg B: Hostbedarf',
+    style: 'classic',
+    blocks: [
+      { type: 'text', content: 'Für normale Hostnetze werden Netz-ID und Broadcast mitgerechnet. Bei 15 benötigten Hosts reichen vier Hostbits deshalb nicht: 2⁴ − 2 = 14. Fünf Hostbits liefern 2⁵ − 2 = 30 nutzbare Hosts.' },
+      { type: 'text', content: `15 Hosts benötigen ${hostBitsForRequirement(15)} Hostbits. 32 − 5 ergibt den Präfix /${prefixForHostRequirement(25, 15)}.` },
+      { type: 'question', facet: 'host-count', question: 'Warum reichen vier Hostbits nicht für 15 Hosts in einem normalen IPv4-Hostnetz?', options: ['2⁴ liefert 16 Adressen, nach Netz-ID und Broadcast bleiben nur 14 Hosts.', 'Vier Hostbits liefern grundsätzlich nur vier Adressen.', 'Weil ein /28 immer acht Broadcastadressen benötigt.'], correct: 0, explanation: 'Bei klassischen Hostnetzen werden zwei Adressen nicht normalen Hosts zugewiesen. Daher gilt zunächst 2^h − 2.' },
+    ],
+  });
+
+  exps.push({
+    id: 'flsm-blocks-classic',
+    title: 'Feste, gleich große Blöcke',
+    style: 'classic',
+    blocks: [
+      { type: 'diagram', content: FLSM_BLOCKS_SVG },
+      { type: 'text', content: 'Die Sprungweite gibt den Abstand aufeinanderfolgender Netz-IDs im relevanten Oktett an. Bei /26 beträgt sie 64: .0, .64, .128 und .192.' },
+      { type: 'text', content: 'Fixed-Length Subnetting erzeugt gleich große Netze. Wenn Abteilungen unterschiedlich große Blöcke benötigen, folgt später VLSM: Dort wird der größte Bedarf zuerst geplant.' },
     ],
   });
 
@@ -361,6 +418,13 @@ function buildExercises() {
   });
 
   exs.push({
+    id: 'subnetting-requirements-trainer',
+    type: 'adaptive-subnet-requirements',
+    title: 'NEXUS-Anforderungs-Trainer',
+    explanation: 'Erkenne zuerst den Aufgabentyp und bestimme dann Bits, Präfix und Sprungweite.',
+  });
+
+  exs.push({
     id: 'subnetting-difficulty-drill',
     type: 'difficulty-drill',
     generator: 'subnetting',
@@ -373,7 +437,7 @@ function buildExercises() {
 
 function buildQuiz() {
   const problems = generateUniqueSubnetProblems(8, { prefixMin: 16, prefixMax: 30 });
-  return problems.map((p, i) => {
+  const calculated = problems.map((p, i) => {
     const variants = [
       {
         question: `Netz-ID von ${p.ip}/${p.prefix}?`,
@@ -405,6 +469,14 @@ function buildQuiz() {
       explanation: `Für ${p.ip}/${p.prefix}: Netz-ID ${p.network}, Broadcast ${p.broadcast}, erster Host ${p.firstHost}, letzter Host ${p.lastHost}.`,
     };
   });
+  return [
+    { facet: 'subnetting-definition', question: 'Was bewirkt Subnetting?', options: ['Es teilt einen vorhandenen Adressraum in kleinere Netze.', 'Es erzeugt zusätzliche IPv4-Adressen.', 'Es entfernt den Hostanteil vollständig.'], correct: 0, explanation: 'Subnetting verschiebt die Grenze zwischen Netz- und Hostanteil innerhalb des vorhandenen Adressraums.' },
+    { facet: 'subnet-count', question: 'Wie viele zusätzliche Netzbits braucht man mindestens für sechs gleich große Subnetze?', options: ['3', '6', '2'], correct: 0, explanation: '2² = 4 reicht nicht, 2³ = 8 deckt sechs benötigte Netze ab.' },
+    { facet: 'host-count', question: 'Welches Präfix bietet in einem normalen IPv4-Hostnetz mindestens 50 nutzbare Hosts?', options: ['/26', '/27', '/28'], correct: 0, explanation: '/26 lässt sechs Hostbits: 64 Gesamtadressen minus Netz-ID und Broadcast ergeben 62 Hosts.' },
+    { facet: 'tradeoff', question: 'Was passiert bei einem größeren Präfix?', options: ['Es entstehen kleinere Netze mit weniger Hostkapazität.', 'Das einzelne Netz wird größer.', 'Die Gesamtzahl der IPv4-Adressen wächst.'], correct: 0, explanation: 'Mehr Präfixbits sind mehr Netzbits; entsprechend bleiben weniger Hostbits.' },
+    { facet: 'vlsm-transition', question: 'Was unterscheidet Fixed-Length Subnetting von VLSM?', options: ['Fixed-Length erzeugt gleich große Netze; VLSM erlaubt unterschiedliche Größen.', 'VLSM erzeugt zusätzliche IPv4-Adressen.', 'Fixed-Length besitzt keine Netz-IDs.'], correct: 0, explanation: 'Unterschiedliche Anforderungen werden später mit VLSM und variablen Präfixen geplant.' },
+    ...calculated,
+  ];
 }
 
 export function buildSubnettingLesson() {
@@ -414,12 +486,15 @@ export function buildSubnettingLesson() {
     exercises: buildExercises(),
     quiz: buildQuiz(),
     summary: [
-      'Subnetting teilt Netze in kleinere, übersichtliche Bereiche.',
+      'Subnetting teilt einen vorhandenen Adressraum in kleinere, gleich große Netze und erzeugt keine neuen IPv4-Adressen.',
+      'Netzanzahl und Hostbedarf sind zwei unterschiedliche Ausgangsfragen.',
+      'Mehr Netzbits ergeben mehr kleinere Netze; mehr Hostbits ergeben weniger, aber größere Netze.',
       'Die klassische Methode geht Schritt für Schritt über die Subnetzmaske.',
       'Die intuitive Methode nutzt die Sprungweiten-Reihe 128, 64, 32, 16, 8, 4, 2, 1.',
       'Netz-ID = Blockanfang, Broadcast = Blockende.',
       'Erster Host = Netz-ID + 1, letzter Host = Broadcast − 1.',
-      'Nutzbare Hosts = Gesamtadressen − 2.',
+      'Nutzbare Hosts = Gesamtadressen − 2 in den normalen Hostnetzen dieser Übungen.',
+      'VLSM folgt separat, wenn unterschiedlich große Subnetze benötigt werden.',
     ],
   };
 }
