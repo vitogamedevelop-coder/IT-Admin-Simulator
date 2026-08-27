@@ -13,7 +13,6 @@ import { topicKey } from '../../academyTopics.js';
 import { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from '../types.js';
 
 export const CISCO_GRUNDLAGEN_TOPIC_KEY = topicKey('cisco-packet-tracer', 'grundlagen');
-export const CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY = topicKey('cisco-packet-tracer', 'basic-device-configuration');
 export const CISCO_ROUTER_BASICS_TOPIC_KEY = topicKey('cisco-packet-tracer', 'router-basics');
 export const CISCO_STATIC_ROUTING_TOPIC_KEY = topicKey('cisco-packet-tracer', 'static-routing');
 
@@ -125,97 +124,6 @@ const GRUNDLAGEN_ITEMS = [
       description: 'running-config und startup-config unterscheiden sich in Speicherort, Flüchtigkeit und Bedeutung.',
     },
     siblings: [],
-    roleHints: ['technical'],
-  },
-];
-
-// ---------------------------------------------------------------------------
-// cisco-packet-tracer/basic-device-configuration
-// ---------------------------------------------------------------------------
-
-const BASIC_DEVICE_CONFIG_ITEMS = [
-  {
-    id: 'ct.basicConfig.noShutdown',
-    topicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceTopicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceSection: 'interface-ip-classic',
-    conceptCluster: 'cisco.basicConfig.interfaceEnable',
-    type: KNOWLEDGE_TYPES.PROPERTY,
-    difficulty: DIFFICULTY.EASY,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
-    data: {
-      subject: 'no shutdown',
-      description: 'Cisco-Interfaces sind standardmäßig administrativ deaktiviert; erst "no shutdown" aktiviert sie, auch wenn IP-Adresse und Maske korrekt konfiguriert sind.',
-      distractorDescriptions: [
-        '"no shutdown" löscht die Interface-Konfiguration und setzt den Port auf Werkseinstellungen zurück.',
-        '"no shutdown" speichert die aktuelle Konfiguration dauerhaft im NVRAM.',
-        '"no shutdown" deaktiviert den Port, um ihn vor unbefugtem Zugriff zu schützen.',
-      ],
-    },
-    siblings: ['ct.basicConfig.noDomainLookup', 'ct.basicConfig.saveConfig', 'ct.basicConfig.doCommand'],
-    roleHints: ['technical'],
-  },
-  {
-    id: 'ct.basicConfig.noDomainLookup',
-    topicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceTopicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceSection: 'domain-lookup-classic',
-    conceptCluster: 'cisco.basicConfig.noDomainLookup',
-    type: KNOWLEDGE_TYPES.PROPERTY,
-    difficulty: DIFFICULTY.EASY,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
-    data: {
-      subject: 'no ip domain-lookup',
-      description: 'Deaktiviert den Versuch des Geräts, unbekannte CLI-Eingaben per DNS als Hostnamen aufzulösen, und vermeidet so Wartezeiten bei Tippfehlern.',
-      distractorDescriptions: [
-        '"no ip domain-lookup" entfernt den konfigurierten Domainnamen des Geräts.',
-        '"no ip domain-lookup" verhindert, dass Hosts im Netz DNS-Anfragen erhalten.',
-        '"no ip domain-lookup" ist nur im User EXEC Mode verfügbar.',
-      ],
-    },
-    siblings: ['ct.basicConfig.noShutdown', 'ct.basicConfig.saveConfig', 'ct.basicConfig.doCommand'],
-    roleHints: ['technical'],
-  },
-  {
-    id: 'ct.basicConfig.saveConfig',
-    topicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceTopicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceSection: 'speichern-classic',
-    conceptCluster: 'cisco.basicConfig.saveConfig',
-    type: KNOWLEDGE_TYPES.PROPERTY,
-    difficulty: DIFFICULTY.EASY,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
-    data: {
-      subject: 'copy running-config startup-config',
-      description: 'Überträgt die aktuell im RAM befindliche running-config dauerhaft ins NVRAM als startup-config, damit sie einen Neustart übersteht.',
-      distractorDescriptions: [
-        '"copy running-config startup-config" lädt die gespeicherte Konfiguration in den RAM.',
-        '"copy running-config startup-config" löscht die startup-config.',
-        '"copy running-config startup-config" ist nur im User EXEC Mode erlaubt.',
-      ],
-    },
-    siblings: ['ct.basicConfig.noShutdown', 'ct.basicConfig.noDomainLookup', 'ct.basicConfig.doCommand'],
-    roleHints: ['technical'],
-  },
-  {
-    id: 'ct.basicConfig.doCommand',
-    topicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceTopicKey: CISCO_BASIC_DEVICE_CONFIG_TOPIC_KEY,
-    sourceSection: 'do-classic',
-    conceptCluster: 'cisco.basicConfig.doCommand',
-    type: KNOWLEDGE_TYPES.PROPERTY,
-    difficulty: DIFFICULTY.EASY,
-    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
-    data: {
-      subject: 'do <Befehl>',
-      description: 'Führt einen Privileged-EXEC-Befehl (z. B. show-Befehle) direkt aus einem Konfigurationsmodus aus, ohne diesen vorher zu verlassen.',
-      distractorDescriptions: [
-        '"do" wechselt in den Global Configuration Mode.',
-        '"do" speichert die Konfiguration dauerhaft.',
-        '"do" ist nur im User EXEC Mode verfügbar.',
-      ],
-    },
-    siblings: ['ct.basicConfig.noShutdown', 'ct.basicConfig.noDomainLookup', 'ct.basicConfig.saveConfig'],
     roleHints: ['technical'],
   },
 ];
@@ -409,7 +317,6 @@ const STATIC_ROUTING_ITEMS = [
 
 export const CISCO_THEORY_ITEMS = [
   ...GRUNDLAGEN_ITEMS,
-  ...BASIC_DEVICE_CONFIG_ITEMS,
   ...ROUTER_BASICS_ITEMS,
   ...STATIC_ROUTING_ITEMS,
 ];

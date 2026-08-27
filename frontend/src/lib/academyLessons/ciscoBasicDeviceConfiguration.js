@@ -22,6 +22,10 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_BASIC_DEVICE_CONFIGURATION_TOPIC_KEY = topicKey('cisco-packet-tracer', 'basic-device-configuration');
 
+const LOGIN_VS_LOGIN_LOCAL_SVG = `<svg viewBox="0 0 320 200" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="160" y="25" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Console-Zugang absichern</text><rect x="20" y="50" width="125" height="120" rx="8" fill="#00f0ff" opacity="0.2" stroke="#00f0ff" stroke-width="2"/><text x="82" y="75" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Variante A</text><text x="82" y="100" text-anchor="middle" fill="#8b949e" font-size="9">line console 0</text><text x="82" y="120" text-anchor="middle" fill="#8b949e" font-size="9">password X</text><text x="82" y="140" text-anchor="middle" fill="#8b949e" font-size="9">login</text><line x1="82" y1="155" x2="82" y2="170" stroke="#8b949e" stroke-width="2"/><text x="82" y="185" text-anchor="middle" fill="#c9d1d9" font-size="9">Line-Passwort</text><rect x="175" y="50" width="125" height="120" rx="8" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="237" y="75" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Variante B</text><text x="237" y="100" text-anchor="middle" fill="#8b949e" font-size="9">username ... secret</text><text x="237" y="120" text-anchor="middle" fill="#8b949e" font-size="9">line console 0</text><text x="237" y="140" text-anchor="middle" fill="#8b949e" font-size="9">login local</text><line x1="237" y1="155" x2="237" y2="170" stroke="#8b949e" stroke-width="2"/><text x="237" y="185" text-anchor="middle" fill="#c9d1d9" font-size="9">Lokale Benutzer-DB</text></svg>`;
+
+const WORKFLOW_SVG = `<svg viewBox="0 0 240 220" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><rect x="70" y="10" width="100" height="35" rx="6" fill="#00f0ff" opacity="0.9"/><text x="120" y="32" text-anchor="middle" fill="#0a1628" font-size="11" font-weight="bold">CONFIGURE</text><polygon points="120,50 110,65 130,65" fill="#8b949e"/><rect x="70" y="70" width="100" height="35" rx="6" fill="#00f0ff" opacity="0.65"/><text x="120" y="92" text-anchor="middle" fill="#0a1628" font-size="11" font-weight="bold">VERIFY</text><polygon points="120,110 110,125 130,125" fill="#8b949e"/><rect x="70" y="130" width="100" height="35" rx="6" fill="#00f0ff" opacity="0.4"/><text x="120" y="152" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">CORRECT</text><polygon points="120,170 110,185 130,185" fill="#8b949e"/><rect x="70" y="190" width="100" height="25" rx="6" fill="#00f0ff" opacity="0.25"/><text x="120" y="207" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">SAVE</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -92,6 +96,11 @@ function buildExplanations() {
     { type: 'question', question: 'Du hast bereits mit "username admin secret ..." einen lokalen Benutzer erstellt. Welchen Befehl verwendest du auf der Console-/VTY-Line, damit genau diese lokale Benutzerdatenbank für die Anmeldung verwendet wird?', options: ['login', 'password admin', 'login local', 'enable secret'], correct: 2, explanation: '"login local" lässt die Line gegen die lokale Benutzerdatenbank prüfen - "login" allein würde stattdessen ein einzelnes, auf der Line selbst gesetztes Passwort erwarten.' },
   ]));
 
+  exps.push(explanation('login-visual', 'login vs. login local im Vergleich', 'visual', [
+    { type: 'diagram', content: LOGIN_VS_LOGIN_LOCAL_SVG },
+    { type: 'text', content: 'Merke: "login" + "password" prüft gegen das Line-Passwort. "login local" prüft gegen alle lokal mit "username" angelegten Benutzer. Beide dürfen auf derselben Line nicht gleichzeitig aktiv sein.' },
+  ]));
+
   exps.push(explanation('konsole-classic', 'Konsole absichern', 'classic', [
     { type: 'text', content: 'Wer physischen Zugriff auf die Konsolenschnittstelle eines Geräts hat, kann sich ohne weitere Absicherung anmelden - deshalb wird auch der Konsolenzugang grundsätzlich abgesichert, nicht nur der Fernzugriff.' },
     { type: 'table', headers: ['Variante', 'Konfiguration'], rows: [
@@ -140,6 +149,11 @@ function buildExplanations() {
       ['show running-config', 'Zeigt die vollständige, aktuell laufende Konfiguration.'],
     ] },
     { type: 'question', question: 'Du hast gerade drei Interfaces konfiguriert und willst schnell IP-Adresse und Up/Down-Zustand aller Interfaces sehen. Welchen Befehl verwendest du?', options: ['show running-config', 'show ip interface brief', 'show vlan brief', 'copy running-config startup-config'], correct: 1, explanation: '"show ip interface brief" liefert genau diese kompakte Übersicht auf einen Blick.' },
+  ]));
+
+  exps.push(explanation('workflow-visual', 'Vom Konfigurieren zum Speichern', 'visual', [
+    { type: 'diagram', content: WORKFLOW_SVG },
+    { type: 'text', content: 'Admin-Arbeitsweise: erst konfigurieren, dann mit show-Befehlen prüfen, gegebenenfalls korrigieren (z. B. mit "no" oder einem neuen Befehl) und erst dann dauerhaft speichern.' },
   ]));
 
   exps.push(explanation('speichern-classic', 'running-config dauerhaft speichern', 'classic', [
@@ -303,6 +317,62 @@ function buildExercises() {
       ],
       explanation: 'Identität zuerst (Hostname, Domain), dann Benutzer, dann Interface (auswählen → IP vergeben → aktivieren), zuletzt speichern.',
     },
+    {
+      id: 'basic-login-local-lockout-select',
+      type: 'select-best',
+      question: 'Du hast "line console 0" mit "login local" abgesichert, aber noch keinen lokalen Benutzer angelegt. Was passiert beim nächsten Konsolenversuch?',
+      options: ['Die Anmeldung funktioniert mit dem Line-Passwort', 'Es gibt keine gültigen Zugangsdaten, der Zugang schlägt fehl', 'Der Zugriff ist automatisch ohne Authentifizierung möglich', 'Das Gerät fragt automatisch nach einem neuen Benutzernamen'],
+      correct: 1,
+      explanation: '"login local" prüft gegen die lokale Benutzerdatenbank. Ohne "username ... secret/password" existieren keine gültigen Zugangsdaten.',
+    },
+    {
+      id: 'basic-config-not-saved-select',
+      type: 'select-best',
+      question: 'Hostname, Enable Secret und Console-Passwort wurden konfiguriert. Nach einem Stromausfall ist alles weg. Was wurde vergessen?',
+      options: ['Nichts, das Gerät speichert automatisch', 'Die Konfiguration wurde nicht mit "copy running-config startup-config" dauerhaft gespeichert', 'Es wurde kein Benutzer angelegt', 'Das Interface wurde nicht aktiviert'],
+      correct: 1,
+      explanation: 'Änderungen landen zunächst nur in der flüchtigen running-config. Erst das Speichern überträgt sie ins NVRAM.',
+    },
+    {
+      id: 'basic-dns-lookup-delay-select',
+      type: 'select-best',
+      question: 'Du tippst "conf t" falsch als "conft" und das Gerät scheint mehrere Sekunden zu hängen, bevor eine Fehlermeldung kommt. Welche Einstellung behebt das?',
+      options: ['service password-encryption', 'no ip domain-lookup', 'exec-timeout 0 0', 'login local'],
+      correct: 1,
+      explanation: 'Bei aktivem "ip domain-lookup" versucht IOS, unbekannte Eingaben als Hostnamen per DNS aufzulösen. "no ip domain-lookup" deaktiviert das.',
+    },
+    {
+      id: 'basic-exec-timeout-security-select',
+      type: 'select-best',
+      question: 'Ein Kollege setzt "exec-timeout 0 0". Was bedeutet das aus Sicherheitssicht?',
+      options: ['Die Sitzung wird sofort beendet', 'Es gibt keinen automatischen Timeout bei Inaktivität - eine offene Sitzung bleibt dauerhaft bestehen', 'Das Gerät startet nach 0 Sekunden neu', 'Der Benutzer wird nach 0 Sekunden abgemeldet'],
+      correct: 1,
+      explanation: '"exec-timeout 0 0" deaktiviert den automatischen Inaktivitäts-Timeout. In der Produktion ist das meist ein Sicherheitsrisiko.',
+    },
+    {
+      id: 'basic-no-command-select',
+      type: 'select-best',
+      question: 'Welche Aussage zu "no" vor einem Cisco-Befehl ist am besten?',
+      options: ['Es macht jeden beliebigen IOS-Befehl rückgängig', 'Es kehrt bei vielen Konfigurationsbefehlen die Wirkung um oder deaktiviert die Einstellung; bei Unsicherheit hilft die IOS-Hilfe', 'Es speichert die Konfiguration', 'Es ist nur im User EXEC Mode verfügbar'],
+      correct: 1,
+      explanation: '"no" ist keine universelle Rückgängig-Taste, sondern die Gegenform vieler Konfigurationsbefehle. Nicht jeder Befehl besitzt eine sinnvolle no-Form.',
+    },
+    {
+      id: 'basic-default-interface-select',
+      type: 'select-best',
+      question: 'Welche Wirkung hat "default interface FastEthernet0/1" typischerweise?',
+      options: ['Das Interface wird gelöscht', 'Die meisten Interface-Konfigurationen werden auf ihre Defaults zurückgesetzt', 'Das Interface wird deaktiviert', 'Das Interface bekommt automatisch DHCP'],
+      correct: 1,
+      explanation: '"default interface <Interface>" setzt die Konfiguration eines Interfaces weitgehend auf die Werksdefaults zurück - nützlich für Troubleshooting.',
+    },
+    {
+      id: 'basic-disable-mode-select',
+      type: 'select-best',
+      question: 'Was bewirkt "disable" im Privileged EXEC Mode?',
+      options: ['Es deaktiviert das Gerät', 'Es wechselt zurück in den User EXEC Mode', 'Es speichert die Konfiguration', 'Es löscht das aktuelle Interface'],
+      correct: 1,
+      explanation: '"disable" ist das Gegenstück zu "enable" und bringt dich vom Privileged EXEC zurück in den User EXEC Mode.',
+    },
   ];
 }
 
@@ -318,6 +388,11 @@ function buildQuiz() {
     { question: 'Eine IP-Adresse ist korrekt auf einem Interface konfiguriert, es bleibt aber "administratively down". Was fehlt?', options: ['Die Subnetzmaske', '"no shutdown"', 'Der Hostname', '"ip domain-lookup"'], correct: 1, explanation: 'Ohne "no shutdown" bleibt ein Interface administrativ deaktiviert, unabhängig von der IP-Konfiguration.' },
     { question: 'Mit welchem Befehl siehst du schnell IP-Adresse und Up/Down-Status aller Interfaces?', options: ['show running-config', 'show ip interface brief', 'show vlan brief', 'show version'], correct: 1, explanation: '"show ip interface brief" liefert genau diese kompakte Übersicht.' },
     { question: 'Was ist der Unterschied zwischen running-config und startup-config?', options: ['Kein Unterschied', 'running-config ist die aktuell aktive Konfiguration im RAM, startup-config wird beim nächsten Neustart geladen (NVRAM)', 'startup-config ist immer aktueller', 'running-config wird nie verändert'], correct: 1, explanation: 'Änderungen an der running-config gehen ohne "copy running-config startup-config" bei einem Neustart verloren.' },
+    { question: 'Was passiert, wenn du "login local" auf der Console konfigurierst, aber keinen lokalen Benutzer angelegt hast?', options: ['Die Konsole verwendet automatisch das Line-Passwort', 'Es gibt keine gültigen Zugangsdaten; die Anmeldung schlägt fehl', 'Der Zugriff ist ohne Authentifizierung möglich', 'Das Gerät legt automatisch einen Benutzer an'], correct: 1, explanation: '"login local" benötigt mindestens einen per "username" angelegten Benutzer, sonst existieren keine gültigen Zugangsdaten.' },
+    { question: 'Was ist der sicherheitstechnische Unterschied zwischen "enable secret" und "enable password"?', options: ['Es gibt keinen', 'enable secret speichert das Passwort als Hash, enable password als Klartext', 'enable password ist länger', 'enable secret funktioniert nur auf Routern'], correct: 1, explanation: 'enable secret speichert einen Hash; enable password speichert das Passwort lesbar.' },
+    { question: 'Warum ist "exec-timeout 0 0" in der Produktion problematisch?', options: ['Es beendet die Sitzung sofort', 'Es deaktiviert den automatischen Timeout - offene Sitzungen bleiben dauerhaft offen', 'Es verhindert das Speichern', 'Es blockiert den Konsolenzugang'], correct: 1, explanation: 'Ein Timeout von 0 0 schließt inaktive Sessions nie automatisch - das ist ein Sicherheitsrisiko.' },
+    { question: 'Was bewirkt "default interface FastEthernet0/1" grob?', options: ['Löscht das Interface', 'Setzt die Interface-Konfiguration auf Defaults zurück', 'Aktiviert das Interface', 'Löscht die VLAN-Datenbank'], correct: 1, explanation: '"default interface" setzt die meisten Interface-Einstellungen auf ihre Default-Werte zurück.' },
+    { question: 'Was ist "logging synchronous" auf einer Line?', options: ['Es synchronisiert die Uhrzeit', 'Es verhindert, dass Systemmeldungen die gerade getippte Zeile zerreißen', 'Es speichert das Logging ins NVRAM', 'Es aktiviert SSH-Logging'], correct: 1, explanation: 'logging synchronous hält Log-Meldungen davon ab, die aktuelle Eingabezeile unleserlich zu machen.' },
   ];
 }
 

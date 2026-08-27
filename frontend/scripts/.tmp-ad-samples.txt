@@ -1,0 +1,197 @@
+﻿=== AD Foundation Conversation Samples ===
+
+--- Sample 1 ---
+Employee:        David (Entwicklung)
+Context:         (none)
+Core Question:   Kannst du mir kurz bei etwas helfen? Welcher Begriff passt zu dieser Beschreibung? ÔÇ×Protokoll zum Zugriff auf Verzeichnisinformationen.ÔÇ£
+Facet:           ad.ldap.vsDirectory.compare
+Correct Answer:  LDAP
+Explanation:     LDAP und Active Directory sind nicht dasselbe.
+Source Status:   verified
+
+--- Sample 2 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Ich wollte das gerade nochmal sicher wissen: Was ist SMB?
+Facet:           ad.smbntfs.smb.definition
+Correct Answer:  SMB ist ein Netzwerkprotokoll f├╝r den Zugriff auf Dateien, Drucker und Ressourcen.
+Explanation:     SMB ist ein Netzwerkprotokoll f├╝r den Zugriff auf Dateien, Drucker und Ressourcen.
+Source Status:   verified
+
+--- Sample 3 ---
+Employee:        Management
+Context:         (none)
+Core Question:   Kannst du mir kurz bei etwas helfen? Was ist ein Verzeichnisdienst?
+Facet:           ad.directory.definition
+Correct Answer:  Ein Verzeichnisdienst verwaltet Objekte und ihre Attribute an einer zentralen Stelle.
+Explanation:     Ein Verzeichnisdienst verwaltet Objekte und ihre Attribute an einer zentralen Stelle.
+Source Status:   verified
+
+--- Sample 4 ---
+Employee:        Management
+Context:         (none)
+Core Question:   Ich bin mir bei einer Sache gerade nicht sicher. Was trifft auf Active Directory zu?
+Facet:           ad.capabilities.property
+Correct Answer:  AD bietet Skalierbarkeit, Erweiterbarkeit, zentrale Verwaltung, Delegation, DNS-Integration, richtlinienbasierte Verwaltung, Authentifizierung, Autorisierung und Replikation.
+Explanation:     AD bietet Skalierbarkeit, Erweiterbarkeit, zentrale Verwaltung, Delegation, DNS-Integration, richtlinienbasierte Verwaltung, Authentifizierung, Autorisierung und Replikation.
+Source Status:   verified
+
+--- Sample 5 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Ich bin mir bei einer Sache gerade nicht sicher. Was ist NTFS?
+Facet:           ad.smbntfs.ntfs.definition
+Correct Answer:  NTFS ist ein lokales Dateisystem mit Berechtigungen auf Datei- und Ordnerebene.
+Explanation:     NTFS ist ein lokales Dateisystem mit Berechtigungen auf Datei- und Ordnerebene.
+Source Status:   verified
+
+--- Sample 6 ---
+Employee:        David (Entwicklung)
+Context:         (none)
+Core Question:   Ich wollte das gerade nochmal sicher wissen: Was ist LDAP?
+Facet:           ad.ldap.definition
+Correct Answer:  LDAP ist ein Protokoll, mit dem man Verzeichnisinformationen abfragen und ├ñndern kann.
+Explanation:     LDAP ist ein Protokoll, mit dem man Verzeichnisinformationen abfragen und ├ñndern kann.
+Source Status:   verified
+
+--- Sample 7 ---
+Employee:        Management
+Context:         (none)
+Core Question:   Kurze Abfrage: Was trifft auf AD DS zu?
+Facet:           ad.adds.purpose.property
+Correct Answer:  AD DS bietet zentrale Identit├ñten, Computer- und Gruppenverwaltung, Authentifizierung, Autorisierung und Richtlinien.
+Explanation:     AD DS bietet zentrale Identit├ñten, Computer- und Gruppenverwaltung, Authentifizierung, Autorisierung und Richtlinien.
+Source Status:   verified
+
+--- Sample 8 ---
+Employee:        Security-Team
+Context:         (none)
+Core Question:   Kannst du das kurz gegenpr├╝fen? Was trifft auf Kerberos-Tickets zu?
+Facet:           ad.kerberos.tickets.property
+Correct Answer:  Kerberos stellt nach einer erfolgreichen Anmeldung Tickets aus, mit denen sich der Benutzer bei Diensten ausweisen kann, ohne das Passwort erneut einzugeben.
+Explanation:     Kerberos stellt nach einer erfolgreichen Anmeldung Tickets aus, mit denen sich der Benutzer bei Diensten ausweisen kann, ohne das Passwort erneut einzugeben.
+Source Status:   verified
+
+--- Sample 9 ---
+Employee:        David (Entwicklung)
+Context:         (none)
+Core Question:   Kannst du das kurz gegenpr├╝fen? Was ist LDAP?
+Facet:           ad.ldap.definition
+Correct Answer:  LDAP ist ein Protokoll, mit dem man Verzeichnisinformationen abfragen und ├ñndern kann.
+Explanation:     LDAP ist ein Protokoll, mit dem man Verzeichnisinformationen abfragen und ├ñndern kann.
+Source Status:   verified
+
+--- Sample 10 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Ich wollte das gerade nochmal sicher wissen: Was trifft auf rein lokale Benutzerverwaltung zu?
+Facet:           ad.centralized.problem.property
+Correct Answer:  Bei rein lokaler Verwaltung hat jeder Rechner eigene Konten. Benutzer haben an anderen Arbeitspl├ñtzen keine Identit├ñt, und der Verwaltungsaufwand steigt stark.
+Explanation:     Bei rein lokaler Verwaltung hat jeder Rechner eigene Konten. Benutzer haben an anderen Arbeitspl├ñtzen keine Identit├ñt, und der Verwaltungsaufwand steigt stark.
+Source Status:   course_specific
+
+--- Sample 11 ---
+Employee:        David (Entwicklung)
+Context:         (none)
+Core Question:   Ich bin mir bei einer Sache gerade nicht sicher. Welcher Begriff passt zu dieser Beschreibung? ÔÇ×Microsofts Verzeichnisdienst in Windows-Dom├ñnen.ÔÇ£
+Facet:           ad.ldap.vsDirectory.compare
+Correct Answer:  Active Directory
+Explanation:     LDAP und Active Directory sind nicht dasselbe.
+Source Status:   verified
+
+--- Sample 12 ---
+Employee:        David (Entwicklung)
+Context:         (none)
+Core Question:   Ich wollte das gerade nochmal sicher wissen: Welcher Begriff passt zu dieser Beschreibung? ÔÇ×System zur Namensaufl├Âsung und Dienstelokalisierung.ÔÇ£
+Facet:           ad.ldap.vsDirectory.compare
+Correct Answer:  DNS
+Explanation:     LDAP und Active Directory sind nicht dasselbe.
+Source Status:   verified
+
+--- Sample 13 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Kannst du das kurz gegenpr├╝fen? Welcher Begriff passt zu dieser Beschreibung? ÔÇ×Berechtigung pr├╝fen: Was darfst du?ÔÇ£
+Facet:           ad.authnVsAuthz.compare
+Correct Answer:  Autorisierung
+Explanation:     Authentifizierung und Autorisierung sind zwei getrennte Schritte.
+Source Status:   verified
+
+--- Sample 14 ---
+Employee:        Security-Team
+Context:         (none)
+Core Question:   Ich bin mir bei einer Sache gerade nicht sicher. Was ist Kerberos?
+Facet:           ad.kerberos.definition
+Correct Answer:  Kerberos ist ein Authentifizierungsprotokoll, das mit Tickets arbeitet und Single-Sign-On erm├Âglicht.
+Explanation:     Kerberos ist ein Authentifizierungsprotokoll, das mit Tickets arbeitet und Single-Sign-On erm├Âglicht.
+Source Status:   verified
+
+--- Sample 15 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Ich bin mir bei einer Sache gerade nicht sicher. Was trifft auf rein lokale Benutzerverwaltung zu?
+Facet:           ad.centralized.problem.property
+Correct Answer:  Bei rein lokaler Verwaltung hat jeder Rechner eigene Konten. Benutzer haben an anderen Arbeitspl├ñtzen keine Identit├ñt, und der Verwaltungsaufwand steigt stark.
+Explanation:     Bei rein lokaler Verwaltung hat jeder Rechner eigene Konten. Benutzer haben an anderen Arbeitspl├ñtzen keine Identit├ñt, und der Verwaltungsaufwand steigt stark.
+Source Status:   course_specific
+
+--- Sample 16 ---
+Employee:        Security-Team
+Context:         (none)
+Core Question:   Kannst du mir kurz bei etwas helfen? Was ist Kerberos?
+Facet:           ad.kerberos.definition
+Correct Answer:  Kerberos ist ein Authentifizierungsprotokoll, das mit Tickets arbeitet und Single-Sign-On erm├Âglicht.
+Explanation:     Kerberos ist ein Authentifizierungsprotokoll, das mit Tickets arbeitet und Single-Sign-On erm├Âglicht.
+Source Status:   verified
+
+--- Sample 17 ---
+Employee:        Management
+Context:         (none)
+Core Question:   Kurze Abfrage: Was trifft auf Active Directory zu?
+Facet:           ad.capabilities.property
+Correct Answer:  AD bietet Skalierbarkeit, Erweiterbarkeit, zentrale Verwaltung, Delegation, DNS-Integration, richtlinienbasierte Verwaltung, Authentifizierung, Autorisierung und Replikation.
+Explanation:     AD bietet Skalierbarkeit, Erweiterbarkeit, zentrale Verwaltung, Delegation, DNS-Integration, richtlinienbasierte Verwaltung, Authentifizierung, Autorisierung und Replikation.
+Source Status:   verified
+
+--- Sample 18 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Ich wollte das gerade nochmal sicher wissen: Was ist ein Attribut?
+Facet:           ad.directory.attribute.definition
+Correct Answer:  Ein Attribut beschreibt eine Eigenschaft eines Verzeichnisobjekts, z. B. Name, E-Mail oder Abteilung.
+Explanation:     Ein Attribut beschreibt eine Eigenschaft eines Verzeichnisobjekts, z. B. Name, E-Mail oder Abteilung.
+Source Status:   verified
+
+--- Sample 19 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Ich bin mir bei einer Sache gerade nicht sicher. Welcher Begriff passt zu dieser Beschreibung? ÔÇ×Ein logischer Rahmen, der Objekte gruppiert, aber nicht die Eigenschaften einzelner Objekte.ÔÇ£
+Facet:           ad.directory.objectVsAttribute.compare
+Correct Answer:  Container
+Explanation:     Unterscheidung zwischen Objekt und Attribut in einem Verzeichnis.
+Source Status:   verified
+
+--- Sample 20 ---
+Employee:        Mara (Helpdesk)
+Context:         (none)
+Core Question:   Kurze Abfrage: Welcher Begriff passt zu dieser Beschreibung? ÔÇ×Eine einzelne Eigenschaft dieses Objekts, z. B. E-Mail-Adresse.ÔÇ£
+Facet:           ad.directory.objectVsAttribute.compare
+Correct Answer:  Attribut
+Explanation:     Unterscheidung zwischen Objekt und Attribut in einem Verzeichnis.
+Source Status:   verified
+
+=== Facet distribution in 20 samples ===
+ad.adds.purpose.property: 1
+ad.authnVsAuthz.compare: 1
+ad.capabilities.property: 2
+ad.centralized.problem.property: 2
+ad.directory.attribute.definition: 1
+ad.directory.definition: 1
+ad.directory.objectVsAttribute.compare: 2
+ad.kerberos.definition: 2
+ad.kerberos.tickets.property: 1
+ad.ldap.definition: 2
+ad.ldap.vsDirectory.compare: 3
+ad.smbntfs.ntfs.definition: 1
+ad.smbntfs.smb.definition: 1
+ad-foundation-quality-audit: PASS
