@@ -1347,9 +1347,16 @@ export const CONVERSATION_TOPICS = {
     introPool: [
       'Wie entscheidet ein Router, wohin ein Paket geschickt wird?',
       'Was ist die Longest Prefix Match?',
+      'Warum muss ich bei Router-Interfaces "no shutdown" eingeben?',
     ],
-    samHelp: 'Ein Router verbindet Netze und leitet Pakete anhand der Ziel-IP und der Routing-Tabelle weiter. Die Routing-Tabelle enthält Zielnetz, Next Hop, Ausgangsschnittstelle und Metrik. Bei mehreren passenden Einträgen gewinnt die längste Präfixmaske.',
-    questions: [],
+    samHelp: 'Ein Router verbindet Netze und leitet Pakete anhand der Ziel-IP und der Routing-Tabelle weiter. Router-Interfaces sind im Auslieferungszustand administrativ deaktiviert und brauchen "no shutdown". Die Routing-Tabelle enthält Zielnetz, Next Hop, Ausgangsschnittstelle und Metrik. Bei mehreren passenden Einträgen gewinnt zuerst der längste Präfix (Longest Prefix Match), bei Gleichstand die niedrigere Administrative Distance (Connected=0, Static=1, OSPF=110), und erst dann die Metrik.',
+    questions: [
+      { id: 'router-basics-1', difficulty: 'easy', text: 'Warum muss ein Router-Interface nach der IP-Konfiguration meist noch mit "no shutdown" aktiviert werden?', options: ['Weil sonst die IP-Adresse verloren geht', 'Weil Router-Interfaces im Auslieferungszustand administrativ deaktiviert sind', 'Weil sonst kein SSH funktioniert', 'Weil der Hostname noch fehlt'], correct: 1, explanation: 'Router-Interfaces sind standardmäßig administrativ down und müssen explizit mit "no shutdown" aktiviert werden.' },
+      { id: 'router-basics-2', difficulty: 'medium', text: 'Ein Router kennt drei Routen zum Ziel: 10.0.0.0/8 (AD 1), 10.1.0.0/16 (AD 110), 10.1.1.0/24 (AD 110). Wohin wird ein Paket an 10.1.1.5 geschickt?', options: ['Über 10.0.0.0/8 wegen niedriger AD', 'Über 10.1.1.0/24 wegen Longest Prefix Match', 'Über 10.1.0.0/16 wegen OSPF', 'Zufällig'], correct: 1, explanation: 'Longest Prefix Match hat Vorrang: die /24-Route ist spezifischer als /16 und /8.' },
+      { id: 'router-basics-3', difficulty: 'medium', text: 'Wann spielt Administrative Distance überhaupt eine Rolle?', options: ['Immer, bevor LPM greift', 'Nur wenn mehrere Routen für dasselbe Präfix existieren', 'Nur bei OSPF', 'Nur bei statischen Routen'], correct: 1, explanation: 'AD entscheidet erst, wenn mehrere Routen zum exakt gleichen Zielpräfix aus unterschiedlichen Quellen stammen.' },
+      { id: 'router-basics-4', difficulty: 'hard', text: 'Was bedeutet "show ip interface brief" für g0/0: "administratively down/down"?', options: ['Das Interface ist aktiv', 'Das Interface ist wegen "shutdown" deaktiviert', 'Das Kabel ist nicht angeschlossen', 'Das Interface hat keine IP'], correct: 1, explanation: '"administratively down" heißt, dass das Interface per Konfiguration deaktiviert wurde - "no shutdown" ist nötig.' },
+      { id: 'router-basics-5', difficulty: 'hard', text: 'Welcher Befehl zeigt am schnellsten IP-Adresse und Status aller Router-Interfaces?', options: ['show running-config', 'show ip interface brief', 'show interfaces trunk', 'show ip route'], correct: 1, explanation: '"show ip interface brief" listet Interface, IP, Status und Protocol kompakt.' },
+    ],
   },
   [topicKey('cisco-packet-tracer', 'static-routing')]: {
     title: 'Statisches Routing',
@@ -1357,8 +1364,16 @@ export const CONVERSATION_TOPICS = {
     introPool: [
       'Wann setzt man eine statische Route statt eines dynamischen Protokolls ein?',
       'Was braucht eine statische Route mindestens?',
+      'Warum reicht eine Route in Hinrichtung nicht aus?',
+      'Was ist der Unterschied zwischen konfiguriert und aktiv?',
     ],
-    samHelp: 'Statische Routen werden manuell eingetragen. Sie brauchen Zielnetz, Subnetzmaske und Next Hop (oder Ausgangsschnittstelle). Die Default Route 0.0.0.0/0 greift, wenn keine spezifischere Route passt.',
-    questions: [],
+    samHelp: 'Statische Routen werden manuell eingetragen: "ip route <Zielnetz> <Maske> <Next-Hop>". Sie brauchen Zielnetz, Subnetzmaske und Next Hop. Die Default Route 0.0.0.0/0 greift, wenn keine spezifischere Route passt. Wichtig: der Rückweg muss ebenfalls vorhanden sein, sonst kommen Antworten nicht an. Eine Route kann in der running-config sichtbar sein, aber nur in "show ip route" aktiv, wenn der Next Hop erreichbar ist.',
+    questions: [
+      { id: 'static-route-1', difficulty: 'easy', text: 'Wofür steht die Zeile "S 192.168.10.0/24 [1/0] via 10.0.0.2" in "show ip route"?', options: ['Eine Connected Route', 'Eine statische Route mit AD 1, Metrik 0', 'Eine OSPF-Route', 'Eine Default Route'], correct: 1, explanation: '"S" steht für Static. [1/0] bedeutet AD 1 und Metrik 0, "via" gibt den Next Hop an.' },
+      { id: 'static-route-2', difficulty: 'medium', text: 'Eine statische Route ist in "show running-config" sichtbar, taucht aber nicht in "show ip route" auf. Was ist wahrscheinlich?', options: ['Der Next Hop ist nicht erreichbar', 'Die Syntax ist falsch', 'Das Zielnetz existiert nicht', 'IOS zeigt statische Routen nie an'], correct: 0, explanation: 'IOS installiert eine statische Route nur, wenn der Next Hop aktuell erreichbar ist.' },
+      { id: 'static-route-3', difficulty: 'medium', text: 'Ein Ping von LAN A zu LAN B kommt an, aber die Antwort geht verloren. Was fehlt?', options: ['Der Hinweg ist falsch', 'Der Rückweg vom Ziel-Router zurück zu LAN A', 'Die Default Route', 'Die Subnetzmaske'], correct: 1, explanation: 'Bidirektionale Kommunikation braucht Hin- und Rückweg. Antworten gehen verloren, wenn der Ziel-Router keine Route zurück hat.' },
+      { id: 'static-route-4', difficulty: 'medium', text: 'Wann greift die Default Route 0.0.0.0/0?', options: ['Immer zuerst', 'Nur wenn keine spezifischere Route passt', 'Nie, sie ist nur ein Platzhalter', 'Nur bei statischen Routen'], correct: 1, explanation: 'Die Default Route ist die unspezifischste Route und greift nur, wenn kein spezifischeres Präfix passt.' },
+      { id: 'static-route-5', difficulty: 'hard', text: 'Warum brauchen direkt angeschlossene Netze keine statische Route?', options: ['Weil der Router sie automatisch als Connected-Routen kennt', 'Weil sie immer über die Default Route erreicht werden', 'Weil statische Routen nur für Remote-Netze erlaubt sind', 'Weil der Switch sie bereitstellt'], correct: 0, explanation: 'Sobald ein Interface korrekt adressiert und aktiv ist, erscheint das Netz automatisch als Connected-Route in der Routing-Tabelle.' },
+    ],
   },
 };

@@ -65,12 +65,15 @@ function expandKnownAbbreviations(line) {
   for (const [pattern, full] of LINE_ABBREVIATIONS) {
     if (pattern.test(line)) return full;
   }
+  // "br" at the end of a show command is the common abbreviation for "brief".
+  if (/\sbr$/.test(line)) return expandKnownAbbreviations(line.replace(/\sbr$/, ' brief'));
   // "sh ..." / "show ..." and "int ..." / "interface ..." are interchangeable
   // prefixes for every command that starts with them (show running-config,
   // show vlan brief, interface fa0/1, ...) - re-checked once more afterwards
   // so e.g. "sh run" first becomes "show run" and then "show running-config".
   if (/^sh\s/.test(line)) return expandKnownAbbreviations(line.replace(/^sh\s/, 'show '));
   if (/^show int\s/.test(line)) return expandKnownAbbreviations(line.replace(/^show int\s/, 'show interfaces '));
+  if (/^show ip int\s/.test(line)) return expandKnownAbbreviations(line.replace(/^show ip int\s/, 'show ip interface '));
   if (/^sw\s/.test(line)) return expandKnownAbbreviations(line.replace(/^sw\s/, 'switchport '));
   if (/^int\s/.test(line)) return expandKnownAbbreviations(line.replace(/^int\s/, 'interface '));
   return line;

@@ -10,6 +10,8 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_INTER_VLAN_ROUTING_TOPIC_KEY = topicKey('cisco-packet-tracer', 'inter-vlan-routing');
 
+const ROAS_TOPOLOGY_SVG = `<svg viewBox="0 0 340 220" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Router on a Stick</text><rect x="40" y="70" width="80" height="40" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="80" y="88" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">VLAN 10</text><text x="80" y="102" text-anchor="middle" fill="#8b949e" font-size="8">PC A</text><rect x="40" y="130" width="80" height="40" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="80" y="148" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">VLAN 20</text><text x="80" y="162" text-anchor="middle" fill="#8b949e" font-size="8">PC B</text><rect x="130" y="100" width="80" height="40" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="118" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">Switch</text><text x="170" y="132" text-anchor="middle" fill="#0a1628" font-size="8">Trunk</text><rect x="240" y="100" width="80" height="40" rx="5" fill="#00f0ff" opacity="0.9"/><text x="280" y="118" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">Router</text><text x="280" y="132" text-anchor="middle" fill="#0a1628" font-size="8">g0/0</text><line x1="120" y1="90" x2="130" y2="110" stroke="#8b949e" stroke-width="2"/><line x1="120" y1="150" x2="130" y2="130" stroke="#8b949e" stroke-width="2"/><line x1="210" y1="120" x2="240" y2="120" stroke="#00f0ff" stroke-width="3"/><text x="80" y="62" text-anchor="middle" fill="#8b949e" font-size="8">Access</text><text x="275" y="170" text-anchor="middle" fill="#8b949e" font-size="8">g0/0.10 VLAN10</text><text x="275" y="185" text-anchor="middle" fill="#8b949e" font-size="8">g0/0.20 VLAN20</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -19,6 +21,11 @@ function buildExplanations() {
 
   exps.push(explanation('intro-classic', 'Das Problem: Kommunikation zwischen VLANs', 'classic', [
     { type: 'text', content: 'In der VLAN-Lektion hast du gelernt: Ein Switch alleine leitet nichts zwischen VLANs weiter, dafür wird ein Layer-3-Gerät benötigt. "Router on a Stick" ist die klassische Lösung dafür - ein einzelner Router mit einer einzigen physischen Verbindung zum Switch übernimmt das Routing für ALLE VLANs.' },
+  ]));
+
+  exps.push(explanation('topology-visual', 'Topologie: Router on a Stick', 'visual', [
+    { type: 'diagram', content: ROAS_TOPOLOGY_SVG },
+    { type: 'text', content: 'PC A (VLAN 10) und PC B (VLAN 20) sind am Switch über Access-Ports angeschlossen. Der Uplink zum Router ist ein Trunk. Auf dem Router trennt g0/0.10 und g0/0.20 die beiden VLANs logisch voneinander.' },
   ]));
 
   exps.push(explanation('warum-classic', 'Warum "Router on a Stick"?', 'classic', [
@@ -100,6 +107,37 @@ function buildExercises() {
       question: 'Konfiguriere ein Subinterface für VLAN 30 auf g0/0 mit der Gateway-Adresse 192.168.30.1/24.',
       expectedLines: ['interface g0/0.30', 'encapsulation dot1q 30', 'ip address 192.168.30.1 255.255.255.0'],
       explanation: 'Subinterface wählen, VLAN per Encapsulation zuordnen, Gateway-IP vergeben.',
+    },
+    {
+      id: 'roas-trunk-missing-select',
+      type: 'select-best',
+      question: 'Die Subinterfaces und Gateway-IPs sind korrekt, aber VLAN 10 und 20 können nicht kommunizieren. Was prüfst du zuerst auf dem Switch?',
+      options: ['Ob der Switch-Port zum Router ein Trunk ist, der VLAN 10 und 20 erlaubt', 'Ob VLAN 1 gelöscht wurde', 'Ob das Router-Interface eine MAC-Adresse hat', 'Ob der Switch neu gestartet werden muss'],
+      correct: 0,
+      explanation: 'Router-on-a-Stick braucht einen Trunk, der alle beteiligten VLANs erlaubt. Ohne Trunk erreichen die getaggten Frames den Router nicht.',
+    },
+    {
+      id: 'roas-physical-shutdown-select',
+      type: 'select-best',
+      question: 'Alle Subinterfaces sind konfiguriert, aber "show ip interface brief" zeigt g0/0 als administratively down. Was fehlt?',
+      options: ['Eine IP-Adresse auf g0/0', '"no shutdown" auf der physischen Schnittstelle g0/0', 'Eine statische Route', 'Ein VLAN-Name'],
+      correct: 1,
+      explanation: 'Auch wenn die physische Schnittstelle bei Router-on-a-Stick keine IP-Adresse bekommt, muss sie mit "no shutdown" aktiviert werden, damit die Subinterfaces funktionieren.',
+    },
+    {
+      id: 'roas-wrong-encapsulation-select',
+      type: 'select-best',
+      question: 'VLAN 10 funktioniert, VLAN 20 nicht. Was ist eine wahrscheinliche Ursache?',
+      options: ['Das Subinterface hat die falsche VLAN-ID in "encapsulation dot1q"', 'Die physische Schnittstelle hat keine IP', 'Der Switch ist ein Access-Port', 'VLAN 10 ist das Native VLAN'],
+      correct: 0,
+      explanation: 'Wenn das Subinterface nicht dem richtigen VLAN zugeordnet ist, werden die Frames dem falschen (oder keinem) Netz zugeordnet.',
+    },
+    {
+      id: 'roas-verify-cli',
+      type: 'cli-input',
+      question: 'Du hast Router-on-a-Stick konfiguriert. Zeige alle Interfaces und Subinterfaces mit Status und IP-Adresse an.',
+      expectedLines: [['show ip interface brief', 'sh ip int br']],
+      explanation: '"show ip interface brief" zeigt sowohl physische Interfaces als auch Subinterfaces kompakt.',
     },
   ];
 }

@@ -9,6 +9,8 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_STATIC_ROUTING_TOPIC_KEY = topicKey('cisco-packet-tracer', 'static-routing');
 
+const STATIC_ROUTE_TOPOLOGY_SVG = `<svg viewBox="0 0 340 180" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="70" width="80" height="40" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="60" y="88" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">LAN A</text><text x="60" y="102" text-anchor="middle" fill="#8b949e" font-size="8">192.168.1.0/24</text><rect x="130" y="60" width="80" height="50" rx="5" fill="#00f0ff" opacity="0.9"/><text x="170" y="80" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">Router R1</text><text x="170" y="98" text-anchor="middle" fill="#0a1628" font-size="8">Next Hop 10.0.0.2</text><rect x="240" y="60" width="80" height="50" rx="5" fill="#00f0ff" opacity="0.9"/><text x="280" y="80" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">Router R2</text><rect x="240" y="120" width="80" height="40" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="280" y="138" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">LAN B</text><text x="280" y="152" text-anchor="middle" fill="#8b949e" font-size="8">192.168.2.0/24</text><line x1="100" y1="90" x2="130" y2="85" stroke="#8b949e" stroke-width="2"/><line x1="210" y1="85" x2="240" y2="85" stroke="#00f0ff" stroke-width="2"/><line x1="280" y1="110" x2="280" y2="120" stroke="#8b949e" stroke-width="2"/><text x="225" y="78" text-anchor="middle" fill="#00f0ff" font-size="8">10.0.0.0/30</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -23,6 +25,11 @@ function buildExplanations() {
       'Für eine einzelne, klar definierte Standardroute ins Internet (Default Route).',
       'Wenn volle Kontrolle über den Pfad gewünscht ist, ohne die Komplexität eines dynamischen Protokolls.',
     ] },
+  ]));
+
+  exps.push(explanation('topology-visual', 'Topologie: Statische Route zwischen zwei Routern', 'visual', [
+    { type: 'diagram', content: STATIC_ROUTE_TOPOLOGY_SVG },
+    { type: 'text', content: 'Router R1 kennt LAN A direkt, Router R2 kennt LAN B direkt. Über den gemeinsamen Link 10.0.0.0/30 braucht R1 eine Route zu LAN B und R2 eine Route zurück zu LAN A - sonst gibt es keine Antwort.' },
   ]));
 
   exps.push(explanation('begriffe-classic', 'Next Hop, Zielnetz und Subnetzmaske', 'classic', [
@@ -107,6 +114,30 @@ function buildExercises() {
       hint: 'Zielnetz und Maske sind bei der Default Route beide 0.0.0.0.',
       expectedLines: ['ip route 0.0.0.0 0.0.0.0 203.0.113.1'],
       explanation: 'Die Default Route verwendet 0.0.0.0 0.0.0.0 als "passt auf alles"-Platzhalter für Zielnetz und Maske.',
+    },
+    {
+      id: 'static-configured-vs-active-select',
+      type: 'select-best',
+      question: 'Eine statische Route ist in "show running-config" sichtbar, aber erscheint nicht in "show ip route". Was ist die wahrscheinlichste Ursache?',
+      options: ['Der Next Hop ist nicht erreichbar', 'Die Route ist falsch geschrieben', 'Das Zielnetz existiert nicht', 'Die Route ist redundant'],
+      correct: 0,
+      explanation: 'IOS installiert eine statische Route nur, wenn der Next Hop aktuell erreichbar ist. Sonst bleibt sie konfiguriert, aber inaktiv.',
+    },
+    {
+      id: 'static-return-path-select',
+      type: 'select-best',
+      question: 'Ein Ping von LAN A zu LAN B kommt an, aber die Antwort geht verloren. Was fehlt wahrscheinlich?',
+      options: ['Der Hinweg ist falsch', 'Der Router am Ziel hat keine Route zurück zum Quellnetz', 'Die Subnetzmaske ist falsch', 'Das Kabel ist zu lang'],
+      correct: 1,
+      explanation: 'Für bidirektionale Kommunikation braucht auch der Ziel-Router einen Rückweg zum Ursprungsnetz.',
+    },
+    {
+      id: 'static-show-ip-route-select',
+      type: 'select-best',
+      question: 'Was bedeutet die Zeile "S 192.168.5.0/24 [1/0] via 10.0.0.2" in "show ip route"?',
+      options: ['Eine Connected Route mit AD 1, Metrik 0', 'Eine statische Route mit AD 1, Metrik 0 über Next Hop 10.0.0.2', 'Eine OSPF-Route', 'Eine Default Route'],
+      correct: 1,
+      explanation: '"S" steht für Static, [1/0] bedeutet AD 1 und Metrik 0, "via" gibt den Next Hop an.',
     },
   ];
 }

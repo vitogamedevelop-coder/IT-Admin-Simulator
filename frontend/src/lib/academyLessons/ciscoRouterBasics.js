@@ -13,6 +13,8 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_ROUTER_BASICS_TOPIC_KEY = topicKey('cisco-packet-tracer', 'router-basics');
 
+const ROUTING_DECISION_SVG = `<svg viewBox="0 0 320 240" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Routing-Entscheidung</text><rect x="110" y="40" width="100" height="35" rx="5" fill="#00f0ff" opacity="0.9"/><text x="160" y="62" text-anchor="middle" fill="#0a1628" font-size="10" font-weight="bold">Ziel-IP</text><polygon points="160,80 150,95 170,95" fill="#00f0ff"/><rect x="60" y="105" width="200" height="30" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="124" text-anchor="middle" fill="#c9d1d9" font-size="10">Passende Routen?</text><polygon points="160,140 150,155 170,155" fill="#00f0ff"/><rect x="80" y="165" width="160" height="30" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="184" text-anchor="middle" fill="#c9d1d9" font-size="9">Längster Präfix</text><polygon points="160,200 150,215 170,215" fill="#00f0ff"/><text x="160" y="232" text-anchor="middle" fill="#8b949e" font-size="9">gleich? AD, dann Metrik</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -22,6 +24,11 @@ function buildExplanations() {
 
   exps.push(explanation('intro-classic', 'Was ein Router grundlegend tut', 'classic', [
     { type: 'text', content: 'Ein Router verbindet unterschiedliche Netzwerke (z. B. verschiedene VLANs, oder ein LAN mit dem Internet) und entscheidet anhand der Ziel-IP-Adresse eines Pakets, über welche Schnittstelle es weitergeleitet wird - im Gegensatz zum Switch, der nur innerhalb eines Netzes anhand von MAC-Adressen vermittelt.' },
+  ]));
+
+  exps.push(explanation('routing-decision-visual', 'So entscheidet ein Router', 'visual', [
+    { type: 'diagram', content: ROUTING_DECISION_SVG },
+    { type: 'text', content: 'Zuerst sucht der Router alle passenden Routen, wählt den längsten Präfix (spezifischste Route), und prüft erst danach Administrative Distance bzw. Metrik.' },
   ]));
 
   exps.push(explanation('interface-cli-classic', 'Router-Interface konfigurieren', 'classic', [
@@ -111,6 +118,30 @@ function buildExercises() {
       question: 'Konfiguriere GigabitEthernet0/1 mit der IP-Adresse 192.168.20.1/24 und aktiviere die Schnittstelle.',
       expectedLines: ['interface g0/1', 'ip address 192.168.20.1 255.255.255.0', 'no shutdown'],
       explanation: 'interface wählt die Schnittstelle, ip address vergibt Adresse und Maske, no shutdown aktiviert sie.',
+    },
+    {
+      id: 'router-status-select',
+      type: 'select-best',
+      question: '"show ip interface brief" zeigt für g0/1 "administratively down/down". Was fehlt wahrscheinlich?',
+      options: ['Eine falsche IP-Adresse', '"no shutdown" auf der Schnittstelle', 'Eine statische Route', 'Ein VLAN-Tag'],
+      correct: 1,
+      explanation: '"administratively down" bedeutet, dass die Schnittstelle noch mit "no shutdown" aktiviert werden muss.',
+    },
+    {
+      id: 'lpm-ad-select',
+      type: 'select-best',
+      question: 'Ein Router kennt 10.0.0.0/8 (AD 1), 10.1.0.0/16 (AD 110) und 10.1.1.0/24 (AD 110). Wohin schickt er ein Paket an 10.1.1.5?',
+      options: ['Über 10.0.0.0/8, weil es die niedrigste AD hat', 'Über 10.1.1.0/24, weil es der längste Präfix ist', 'Über 10.1.0.0/16, weil OSPF genutzt wird', 'Zufällige Auswahl'],
+      correct: 1,
+      explanation: 'Longest Prefix Match hat Vorrang vor Administrative Distance. Erst wenn mehrere Routen denselben Präfix haben, spielt die AD.',
+    },
+    {
+      id: 'router-if-mask-select',
+      type: 'select-best',
+      question: 'Ein Interface ist mit "ip address 192.168.10.1 255.255.0.0" konfiguriert, soll aber ein /24-Netz bilden. Was ist zu tun?',
+      options: ['Nichts, das ist richtig', 'Subnetzmaske auf 255.255.255.0 korrigieren', 'Default Route eintragen', 'Interface löschen'],
+      correct: 1,
+      explanation: 'Eine falsche Subnetzmaske muss korrigiert werden, indem der Befehl mit der richtigen Maske erneut eingegeben wird.',
     },
   ];
 }
