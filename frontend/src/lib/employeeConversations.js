@@ -1301,6 +1301,32 @@ export const CONVERSATION_TOPICS = {
       { id: 'dhcp-conv-9', difficulty: 'hard', text: 'Warum sollte die Gateway-IP eines Netzes im DHCP-Pool ausgeschlossen werden?', options: ['Damit sie nicht dynamisch an einen Client vergeben wird', 'Weil Gateways keine IP-Adressen brauchen', 'Damit der Pool kleiner bleibt', 'Weil DHCP-Server Gateways ablehnen'], correct: 0, explanation: 'Wichtige statische Adressen wie das Default Gateway dürfen nicht dynamisch vergeben werden; daher werden sie mit "ip dhcp excluded-address" ausgeschlossen.' },
     ],
   },
+  [topicKey('cisco-packet-tracer', 'ospf')]: {
+    title: 'OSPF Single-Area',
+    relatedTopics: [
+      topicKey('cisco-packet-tracer', 'router-basics'),
+      topicKey('cisco-packet-tracer', 'static-routing'),
+      topicKey('fundamentals', 'routing'),
+      topicKey('fundamentals', 'subnetting'),
+    ],
+    introPool: [
+      'Wieso reicht "show running-config" nicht, um sicher zu sagen, dass OSPF funktioniert?',
+      'Was genau macht die Wildcard-Maske im OSPF network-Befehl?',
+      'Wenn zwei Router verbunden sind, aber kein OSPF-Nachbar auftaucht - was prüfst du zuerst?',
+    ],
+    samHelp: 'OSPF ist ein link-state Protokoll. Mit "router ospf <ID>" startest du den Prozess; "network" oder "ip ospf" aktivieren Interfaces. Area und ggf. Authentifizierung müssen auf dem Verbindungsinterface passen. Die Process-ID ist lokal und muss nicht identisch sein. Verifizieren mit show ip ospf neighbor, show ip route ospf und show ip protocols.',
+    questions: [
+      { id: 'ospf-conv-1', difficulty: 'easy', text: 'Was bedeutet es, wenn OSPF als link-state Protokoll bezeichnet wird?', options: ['Router tauschen direkt die komplette Routingtabelle aus', 'Jeder Router kennt die Topologie und berechnet selbst den kürzesten Pfad', 'Router merken sich nur den nächsten Hop'], correct: 1, explanation: 'Bei link-state kennen die Router die Topologie und berechnen mit SPF den günstigsten Pfad, anstatt nur eine Entfernung zu merken.' },
+      { id: 'ospf-conv-2', difficulty: 'medium', text: 'Müssen die OSPF-Prozess-IDs auf zwei Nachbarroutern identisch sein?', options: ['Ja, sonst entsteht keine Nachbarschaft', 'Nein, die Process-ID ist nur lokal relevant', 'Nur in Area 0'], correct: 1, explanation: 'Die OSPF-Prozess-ID ist lokal. Area, Subnetz und Authentifizierung müssen passen, nicht die Process-ID.' },
+      { id: 'ospf-conv-3', difficulty: 'medium', text: 'Was macht die Wildcard-Maske im network-Befehl?', options: ['Sie legt die OSPF-Cost fest', 'Sie bestimmt, welche Bits der Interface-IP zur Auswahl herangezogen werden', 'Sie definiert die OSPF-Area'], correct: 1, explanation: 'Eine 0 in der Wildcard bedeutet „muss passen", eine 255 bedeutet „egal". So werden passende Interfaces ausgewählt.' },
+      { id: 'ospf-conv-4', difficulty: 'hard', text: 'show ip ospf neighbor zeigt keinen Nachbarn. Beide Interfaces sind up und im selben Subnetz. Was prüfst du zuerst?', options: ['Ob auf beiden Seiten OSPF aktiv ist und die Area übereinstimmt', 'Ob die Prozess-IDs identisch sind', 'Ob der Switch zwischen den Routern VLAN 99 transportiert'], correct: 0, explanation: 'Zuerst prüft man, ob OSPF auf den Interfaces aktiv ist und beide Seiten in derselben Area sind. Process-IDs sind irrelevant.' },
+      { id: 'ospf-conv-5', difficulty: 'hard', text: 'show ip ospf neighbor zeigt FULL, aber eine bestimmte Route fehlt. Was ist die wahrscheinlichste Ursache?', options: ['Das Zielnetz ist beim Nachbarn nicht korrekt in OSPF aktiviert', 'Das Kabel ist defekt', 'Die Prozess-ID ist falsch'], correct: 0, explanation: 'FULL bedeutet, die Nachbarschaft funktioniert. Damit Routen gelernt werden, muss das Zielnetz aber auch beim Nachbarn in OSPF aktiv sein.' },
+      { id: 'ospf-conv-6', difficulty: 'medium', text: 'Was bewirkt passive-interface auf einem Interface?', options: ['OSPF wird komplett deaktiviert und das Netz verschwindet', 'Das Interface sendet keine OSPF-Hellos, bewirbt das Netz aber weiterhin', 'Das Interface wird heruntergefahren'], correct: 1, explanation: 'passive-interface verhindert Nachbarschaften auf dem Interface, das Netz wird aber weiter über OSPF angekündigt.' },
+      { id: 'ospf-conv-7', difficulty: 'hard', text: 'Welche Voraussetzung muss für "default-information originate" gegeben sein?', options: ['Es reicht, den Befehl im OSPF-Prozess einzugeben', 'Eine statische Default Route muss bereits existieren', 'Das Interface muss passive sein'], correct: 1, explanation: '"default-information originate" verteilt eine bereits vorhandene Default Route über OSPF. Er erstellt sie nicht automatisch.' },
+      { id: 'ospf-conv-8', difficulty: 'medium', text: 'Welcher Buchstabe kennzeichnet OSPF-Routen in show ip route?', options: ['S', 'C', 'O', 'D'], correct: 2, explanation: '"O" steht für OSPF, "S" für Static, "C" für Connected.' },
+      { id: 'ospf-conv-9', difficulty: 'hard', text: 'Warum reicht "show running-config" allein nicht, um funktionierendes OSPF zu beweisen?', options: ['Weil die Konfiguration nur zeigt, was eingestellt ist, nicht ob Nachbarn und Routen wirklich funktionieren', 'Weil show running-config keine Wildcard-Masken anzeigt', 'Weil der Befehl OSPF deaktiviert'], correct: 0, explanation: 'Configured ≠ functioning. show ip ospf neighbor, show ip route ospf und show ip protocols zeigen den tatsächlichen Betriebszustand.' },
+    ],
+  },
   [topicKey('fundamentals', 'vlsm')]: {
     title: 'VLSM',
     relatedTopics: [topicKey('fundamentals', 'subnetting'), topicKey('fundamentals', 'supernetting')],

@@ -11,6 +11,16 @@ import { topicKey } from '../academyTopics.js';
 
 export const CISCO_OSPF_TOPIC_KEY = topicKey('cisco-packet-tracer', 'ospf');
 
+const OSPF_NEIGHBOR_SVG = `<svg viewBox="0 0 320 160" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><text x="160" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">OSPF Nachbarschaft</text><rect x="20" y="50" width="70" height="45" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="55" y="72" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">R1</text><text x="55" y="88" text-anchor="middle" fill="#8b949e" font-size="7">Area 0</text><rect x="230" y="50" width="70" height="45" rx="5" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="265" y="72" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">R2</text><text x="265" y="88" text-anchor="middle" fill="#8b949e" font-size="7">Area 0</text><line x1="90" y1="72" x2="230" y2="72" stroke="#00f0ff" stroke-width="2"/><polygon points="140,68 140,76 150,72" fill="#00f0ff"/><polygon points="180,76 180,68 170,72" fill="#00f0ff"/><text x="160" y="62" text-anchor="middle" fill="#8b949e" font-size="7">Hello-Pakete</text><rect x="115" y="110" width="90" height="28" rx="4" fill="#00f0ff" opacity="0.9"/><text x="160" y="124" text-anchor="middle" fill="#0a1628" font-size="8" font-weight="bold">State FULL</text><text x="160" y="138" text-anchor="middle" fill="#8b949e" font-size="7">10.0.0.0/30</text></svg>`;
+
+const OSPF_AREA_SVG = `<svg viewBox="0 0 320 220" class="w-full h-auto max-h-56" xmlns="http://www.w3.org/2000/svg"><text x="160" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Single-Area OSPF: Area 0 (Backbone)</text><ellipse cx="160" cy="115" rx="120" ry="80" fill="#00f0ff" opacity="0.15" stroke="#00f0ff" stroke-width="2"/><text x="160" y="120" text-anchor="middle" fill="#00f0ff" font-size="14" font-weight="bold" opacity="0.4">Area 0</text><rect x="80" y="60" width="60" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="110" y="80" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">R1</text><rect x="200" y="60" width="60" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="230" y="80" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">R2</text><rect x="130" y="150" width="60" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="160" y="170" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">R3</text><line x1="140" y1="78" x2="200" y2="78" stroke="#00f0ff" stroke-width="2"/><line x1="110" y1="95" x2="150" y2="150" stroke="#00f0ff" stroke-width="2"/><line x1="210" y1="95" x2="170" y2="150" stroke="#00f0ff" stroke-width="2"/><text x="160" y="205" text-anchor="middle" fill="#8b949e" font-size="8">Alle Interfaces gehören zur Area 0</text></svg>`;
+
+const OSPF_PASSIVE_SVG = `<svg viewBox="0 0 320 180" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="160" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">passive-interface</text><rect x="120" y="45" width="80" height="45" rx="5" fill="#00f0ff" opacity="0.9"/><text x="160" y="65" text-anchor="middle" fill="#0a1628" font-size="9" font-weight="bold">Router</text><text x="160" y="80" text-anchor="middle" fill="#0a1628" font-size="7">g0/2 passive</text><rect x="20" y="105" width="90" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="65" y="122" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Client LAN</text><line x1="120" y1="90" x2="80" y2="105" stroke="#ff7b72" stroke-width="2" stroke-dasharray="5,3"/><text x="95" y="100" text-anchor="middle" fill="#ff7b72" font-size="7">keine Hellos</text><rect x="210" y="105" width="90" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="255" y="122" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">R2</text><line x1="200" y1="90" x2="240" y2="105" stroke="#00f0ff" stroke-width="2"/><polygon points="215,98 223,98 219,104" fill="#00f0ff"/><text x="220" y="95" text-anchor="middle" fill="#8b949e" font-size="7">Hellos</text><text x="160" y="160" text-anchor="middle" fill="#c9d1d9" font-size="8">Netz weiter beworben, aber keine OSPF-Nachbarschaft</text></svg>`;
+
+const OSPF_WILDCARD_SVG = `<svg viewBox="0 0 340 150" class="w-full h-auto max-h-44" xmlns="http://www.w3.org/2000/svg"><text x="170" y="20" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Wildcard: 0 = prüfen, 1 = ignorieren</text><text x="170" y="45" text-anchor="middle" fill="#8b949e" font-size="10">Subnetzmaske 255.255.255.0 → Wildcard 0.0.0.255</text><rect x="40" y="65" width="260" height="30" rx="4" fill="#00f0ff" opacity="0.25" stroke="#00f0ff" stroke-width="1"/><text x="170" y="85" text-anchor="middle" fill="#c9d1d9" font-size="9" font-family="monospace">network 10.0.1.0 0.0.0.255 area 0</text><text x="170" y="115" text-anchor="middle" fill="#c9d1d9" font-size="9">alle IPs von 10.0.1.0 bis 10.0.1.255 passen</text><text x="170" y="135" text-anchor="middle" fill="#8b949e" font-size="8">z. B. 10.0.1.1/24, 10.0.1.254/24</text></svg>`;
+
+const OSPF_COST_SVG = `<svg viewBox="0 0 340 200" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="170" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">OSPF Cost: niedriger = besser</text><rect x="20" y="70" width="60" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="50" y="88" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">R1</text><rect x="260" y="70" width="60" height="35" rx="4" fill="#00f0ff" opacity="0.35" stroke="#00f0ff" stroke-width="2"/><text x="290" y="88" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">R2</text><path d="M 80 88 Q 130 60 170 88 T 260 88" stroke="#ff7b72" stroke-width="2" fill="none"/><path d="M 80 88 Q 130 130 170 110 T 260 88" stroke="#00f0ff" stroke-width="2" fill="none"/><text x="170" y="60" text-anchor="middle" fill="#ff7b72" font-size="8">oben: Cost 100</text><text x="170" y="135" text-anchor="middle" fill="#00f0ff" font-size="8">unten: Cost 10 + 10 = 20</text><text x="170" y="165" text-anchor="middle" fill="#c9d1d9" font-size="9">OSPF wählt den unteren Pfad (geringere Gesamtkosten)</text></svg>`;
+
 function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
@@ -41,6 +51,16 @@ function buildExplanations() {
     { type: 'text', content: 'Stell dir ein Firmennetzwerk als Stadtplan vor. Jeder Router ist ein Kreuzung, jede Leitung ist eine Straße. OSPF verschickt „Stadtpläne“ an alle anderen Router, damit jeder weiß, welche Straße zum Ziel am schnellsten ist. Area 0 ist dabei das zentrale Rathaus, an das alle Stadtteile (Areas) angebunden sein müssen.' },
   ]));
 
+  exps.push(explanation('intro-visual', 'OSPF Single-Area', 'visual', [
+    { type: 'diagram', content: OSPF_AREA_SVG },
+    { type: 'text', content: 'Im Single-Area-Modell gehören alle Router und ihre Interfaces zu einer einzigen OSPF-Area - typischerweise Area 0. Multi-Area-Designs werden später ergänzend behandelt.' },
+  ]));
+
+  exps.push(explanation('neighbor-visual', 'OSPF Nachbarschaft', 'visual', [
+    { type: 'diagram', content: OSPF_NEIGHBOR_SVG },
+    { type: 'text', content: 'Router tauschen Hello-Pakete aus. Stimmen Area und ggf. Authentifizierung überein, entsteht eine Nachbarschaft; der stabile Zustand heißt meist FULL.' },
+  ]));
+
   // ---------------------------------------------------------------------------
   // 2. Wildcard Mask
   // ---------------------------------------------------------------------------
@@ -57,6 +77,11 @@ function buildExplanations() {
       'Passende Network-Anweisung: network 10.0.0.4 0.0.0.3 area 0',
     ] },
     { type: 'question', question: 'Welche Wildcard Mask gehört zur Subnetzmaske 255.255.255.252?', options: ['0.0.0.3', '0.0.0.255', '255.255.255.252', '0.0.3.255'], correct: 0, explanation: '255.255.255.252 ist /30, also 30 feste Bits. Invertiert: 0.0.0.3.' },
+  ]));
+
+  exps.push(explanation('wildcard-visual', 'Wildcard-Maske im Network-Befehl', 'visual', [
+    { type: 'diagram', content: OSPF_WILDCARD_SVG },
+    { type: 'text', content: 'Eine 0 in der Wildcard bedeutet „dieses Bit muss übereinstimmen“, eine 255 bedeutet „egal“. Darum wählt "network 10.0.1.0 0.0.0.255 area 0" alle Interfaces aus, deren IP in 10.0.1.0/24 liegt.' },
   ]));
 
   // ---------------------------------------------------------------------------
@@ -169,8 +194,26 @@ function buildExplanations() {
     { type: 'question', question: 'Warum setzt man ein Client-Interface auf passive?', options: ['Um OSPF komplett zu deaktivieren', 'Um unnötige OSPF-Nachbarschaften und Hello-Pakete zu vermeiden, das Netz aber weiter zu bewerben', 'Um die IP-Adresse zu löschen', 'Um das Interface herunterzufahren'], correct: 1, explanation: 'passive-interface beendet Hello-Pakete, bewirbt die Route aber weiterhin.' },
   ]));
 
+  exps.push(explanation('passive-visual', 'passive-interface im Überblick', 'visual', [
+    { type: 'diagram', content: OSPF_PASSIVE_SVG },
+    { type: 'text', content: 'Ein passive-interface sendet keine OSPF-Hello-Pakete und baut keine Nachbarschaft auf. Das angehängte Netz wird weiterhin über OSPF bekannt gemacht.' },
+  ]));
+
   // ---------------------------------------------------------------------------
-  // 9. Default Route in OSPF
+  // 9. OSPF Cost
+  // ---------------------------------------------------------------------------
+  exps.push(explanation('cost-classic', 'OSPF Cost & günstigster Pfad', 'classic', [
+    { type: 'text', content: 'OSPF berechnet die Kosten eines Pfades aus den Kosten der einzelnen Links. Höhere Bandbreite bedeutet niedrigere Kosten. Der Pfad mit den niedrigsten Gesamtkosten wird in die Routing-Tabelle übernommen. Sind mehrere Pfade gleich günstig, kann OSPF sie im Rahmen von Equal-Cost Multipath (ECMP) parallel nutzen.' },
+    { type: 'text', content: 'Die klassische Cisco-Default-Formel ist: Cost = Reference-Bandwidth / Interface-Bandwidth. In modernen Netzen muss die Referenzbandbreite häufig angepasst werden, damit schnelle Links auch wirklich niedrige Kosten erhalten. Für den Unterricht reicht zunächst das Prinzip: niedrigere Gesamtkosten = bevorzugter Pfad.' },
+  ]));
+
+  exps.push(explanation('cost-visual', 'OSPF Cost im Vergleich', 'visual', [
+    { type: 'diagram', content: OSPF_COST_SVG },
+    { type: 'text', content: 'Zwei Pfade zum Ziel: der obere Link hat hohe Kosten (z. B. langsame Leitung), der untere Pfad über zwei schnelle Links hat niedrigere Gesamtkosten. OSPF wählt den günstigeren Pfad.' },
+  ]));
+
+  // ---------------------------------------------------------------------------
+  // 10. Default Route in OSPF
   // ---------------------------------------------------------------------------
   exps.push(explanation('default-route-classic', 'Default Route über OSPF bekanntgeben', 'classic', [
     { type: 'text', content: 'Zuerst legst du eine statische Default Route an. Dann teilst du OSPF mit, diese Default Route in das Protokoll einzubinden, damit alle anderen OSPF-Router sie lernen.' },
@@ -189,9 +232,12 @@ function buildExplanations() {
     { type: 'text', content: 'Nach der Konfiguration musst du prüfen, ob OSPF wie erwartet funktioniert. Fehlende Nachbarn, falsche Areas oder Authentifizierungsfehler zeigen sich in den show-Befehlen.' },
     { type: 'table', headers: ['Befehl', 'Was erwartet man?', 'Was bedeutet es, wenn etwas fehlt?'], rows: [
       ['show ip ospf neighbor', 'Liste der OSPF-Nachbarn mit State FULL/2WAY', 'Keine Nachbarschaft: falsche Area, falsche Authentifizierung, OSPF nicht auf Interface aktiv oder Interface down.'],
-      ['show ip route', 'OSPF-Routen mit "O" am Anfang', 'Keine "O"-Routen: OSPF hat keine gültigen Nachbarn oder keine passende Area.'],
+      ['show ip route', 'Alle Routen, darunter OSPF-Routen mit "O" am Anfang', 'Keine "O"-Routen: OSPF hat keine gültigen Nachbarn oder keine passende Area.'],
+      ['show ip route ospf', 'Nur die über OSPF gelernten Routen', 'Keine Einträge: OSPF hat keine Routen gelernt oder der Prozess funktioniert nicht wie erwartet.'],
       ['show ip protocols', 'Zeigt OSPF-Prozess, Router-ID, Netzwerke', 'OSPF-Prozess nicht sichtbar: router ospf wurde nicht konfiguriert.'],
       ['show ip ospf interface', 'Zeigt OSPF-Status pro Interface', 'Interface nicht gelistet: OSPF nicht auf diesem Interface aktiviert.'],
+      ['show running-config', 'Zeigt die konfigurierten Befehle', 'Konfiguration fehlt oder ist falsch - aber configured ≠ functioning.'],
+      ['clear ip ospf process', 'Setzt den OSPF-Prozess neu, ändert aber keine Konfiguration', 'Nützlich zum Neustart der Nachbarschaften nach Konfigurationsänderungen, nicht zum Beheben von Syntaxfehlern.'],
     ] },
     { type: 'question', question: 'Welcher Befehl zeigt OSPF-Nachbarn und deren Zustand?', options: ['show ip route', 'show ip ospf neighbor', 'show ip protocols', 'show ip interface brief'], correct: 1, explanation: 'show ip ospf neighbor listet alle OSPF-Nachbarn mit ihrem Zustand (z. B. FULL).' },
   ]));
@@ -220,10 +266,13 @@ function buildExplanations() {
       'OSPF ist ein link-state Protokoll mit Prozessnummer, Area 0 als Backbone und Nachbarschaften zwischen Routern.',
       'Network-Methode: router ospf 1 → network <Netz> <Wildcard> area 0.',
       'Interface-Methode: interface <Int> → ip ospf <Prozess> area 0.',
+      'Die Process-ID ist lokal und muss nicht auf allen Nachbarn identisch sein; Area und Authentifizierung müssen jedoch übereinstimmen.',
       'Authentifizierung: Typ 0 (keine), Typ 1 (Klartext), Typ 2 (MD5 / message-digest).',
-      'passive-interface bewirbt ein Netz, sendet aber keine Hello-Pakete.',
-      'Default Route: ip route 0.0.0.0 0.0.0.0 <Next-Hop>, dann default-information originate.',
-      'Verifizierung: show ip ospf neighbor, show ip route, show ip protocols, show ip ospf interface.',
+      'passive-interface bewirbt ein Netz, sendet aber keine Hello-Pakete - es verschwindet nicht automatisch aus OSPF.',
+      'passive-interface default gefolgt von no passive-interface ist eine sichere Admin-Routine.',
+      'Default Route: ip route 0.0.0.0 0.0.0.0 <Next-Hop>, dann default-information originate (verteilt eine vorhandene statische Default Route).',
+      'OSPF Cost: niedrigere Gesamtkosten = bevorzugter Pfad; bei gleichen Kosten ist ECMP möglich.',
+      'Verifizierung: show ip ospf neighbor, show ip route, show ip route ospf, show ip protocols, show ip ospf interface, show running-config.',
     ] },
   ]));
 
@@ -352,6 +401,54 @@ function buildExercises() {
       correct: 0,
       explanation: 'Ohne OSPF-Aktivierung oder bei unterschiedlicher Area/Auth entsteht keine Nachbarschaft, auch wenn Layer 1/2 funktionieren.',
     },
+    {
+      id: 'ospf-process-id-select',
+      type: 'select-best',
+      question: 'Router A verwendet "router ospf 1", Router B verwendet "router ospf 10". Können sie trotzdem OSPF-Nachbarn werden?',
+      options: ['Nein, die Process-IDs müssen identisch sein', 'Ja, die Process-ID ist lokal und muss nicht übereinstimmen; Area und Authentifizierung müssen passen', 'Nur, wenn beide Area 0 nutzen', 'Nur, wenn beide keine Authentifizierung verwenden'],
+      correct: 1,
+      explanation: 'Die OSPF-Prozess-ID ist nur lokal relevant. Nachbarschaften bilden sich über Area, Subnetz, Authentifizierung etc.',
+    },
+    {
+      id: 'ospf-full-but-route-select',
+      type: 'select-best',
+      question: 'show ip ospf neighbor zeigt FULL, aber das Netz 192.168.50.0/24 ist trotzdem nicht in der Routingtabelle. Was prüfst du zuerst?',
+      options: ['Ob das Zielnetz überhaupt in OSPF aktiviert ist (network/Wildcard korrekt)', 'Ob das Kabel defekt ist', 'Ob der Router neu gestartet werden muss', 'Ob das Interface administrativ down ist'],
+      correct: 0,
+      explanation: 'Neighbor FULL heißt, die Adjacency funktioniert. Damit eine Route gelernt wird, muss das Zielnetz beim Nachbarn auch korrekt in OSPF aktiviert sein.',
+    },
+    {
+      id: 'ospf-passive-default-select',
+      type: 'select-best',
+      question: 'Was bewirkt die Kombination "passive-interface default" gefolgt von "no passive-interface g0/0" in OSPF?',
+      options: ['Alle Interfaces außer g0/0 senden weiterhin Hello-Pakete', 'Alle Interfaces sind passiv, nur g0/0 darf Nachbarschaften aufbauen', 'g0/0 ist passiv und alle anderen Interfaces aktiv', 'OSPF wird auf allen Interfaces deaktiviert'],
+      correct: 1,
+      explanation: 'passive-interface default macht zunächst alle Interfaces passiv; no passive-interface hebt dies für ausgewählte Interfaces wieder auf.',
+    },
+    {
+      id: 'ospf-cost-select',
+      type: 'select-best',
+      question: 'Zwei Pfade führen zum Ziel. Pfad A hat Gesamtkosten 10, Pfad B Gesamtkosten 100. Was tut OSPF?',
+      options: ['Nimmt beide gleichzeitig (ECMP)', 'Nimmt Pfad A, weil er niedrigere Kosten hat', 'Nimmt Pfad B, weil er höhere Kosten hat', 'Verwirft beide Pfade, weil die Kosten unterschiedlich sind'],
+      correct: 1,
+      explanation: 'OSPF wählt den Pfad mit den niedrigsten Gesamtkosten. ECMP greift nur bei gleichen Kosten.',
+    },
+    {
+      id: 'ospf-default-originate-select',
+      type: 'select-best',
+      question: 'Welche Voraussetzung gibt es für "default-information originate"?',
+      options: ['Es erstellt automatisch eine statische Default Route', 'Es verteilt eine bereits vorhandene statische Default Route über OSPF', 'Es funktioniert nur in Area 0', 'Es setzt passive-interface voraus'],
+      correct: 1,
+      explanation: '"default-information originate" bewirbt eine vorhandene Default Route in OSPF. Die Route muss zuvor eingegeben werden (z. B. ip route 0.0.0.0 0.0.0.0 <next-hop>).',
+    },
+    {
+      id: 'ospf-show-route-ospf-select',
+      type: 'select-best',
+      question: 'Welcher Befehl zeigt ausschließlich die über OSPF gelernten Routen?',
+      options: ['show ip route', 'show ip route ospf', 'show ip ospf neighbor', 'show ip protocols'],
+      correct: 1,
+      explanation: '"show ip route ospf" filtert die Routingtabelle auf OSPF-Routen.',
+    },
   ];
 }
 
@@ -432,6 +529,26 @@ function buildCliTasks() {
       prompt: 'Sam: "Zeige mir die OSPF-Nachbarn an."',
       expectedLines: [['show ip ospf neighbor', 'sh ip ospf neighbor']],
       explanation: 'show ip ospf neighbor zeigt alle OSPF-Nachbarn und deren Zustand.',
+    },
+    {
+      prompt: 'Sam: "Zeige mir nur die OSPF-Routen aus der Routingtabelle an."',
+      expectedLines: [['show ip route ospf', 'sh ip route ospf']],
+      explanation: '"show ip route ospf" filtert die Routingtabelle auf über OSPF gelernte Routen.',
+    },
+    {
+      prompt: 'Sam: "Prüfe, auf welchen Interfaces OSPF Prozess 1 Area 0 aktiv ist."',
+      expectedLines: [['show ip ospf interface', 'sh ip ospf interface']],
+      explanation: '"show ip ospf interface" listet pro Interface den OSPF-Status.',
+    },
+    {
+      prompt: 'Sam: "Zeige mir den OSPF-Prozess, die Router-ID und die konfigurierten Netzwerke an."',
+      expectedLines: [['show ip protocols', 'sh ip protocols']],
+      explanation: '"show ip protocols" zeigt die laufenden Routing-Protokolle inklusive OSPF.',
+    },
+    {
+      prompt: 'Sam: "Starte den OSPF-Prozess neu, damit geänderte Einstellungen wirksam werden."',
+      expectedLines: [['clear ip ospf process', 'clear ip ospf process *']],
+      explanation: '"clear ip ospf process" startet den OSPF-Prozess neu. Er ändert keine Konfiguration, sondern baut Nachbarschaften neu auf.',
     },
   ];
 }
