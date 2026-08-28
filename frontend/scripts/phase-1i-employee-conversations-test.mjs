@@ -90,7 +90,11 @@ withLocalStorage(() => {
   globalThis.localStorage.setItem('cyberlearn:academy-progress-v1', JSON.stringify(firstUnlockedTopic()));
   const conv = startEmployeeConversation();
   const q = conv.question;
-  const answer = q.type === 'mc' ? q.correctOptionId : q.correctOrderIds;
+  const answer = q.type === 'mc'
+    ? q.correctOptionId
+    : q.type === 'matching'
+      ? Object.fromEntries(q.correctPairs.map((p) => [p.leftId ?? p.left, p.rightId ?? p.right]))
+      : q.correctOrderIds;
   const result = evaluateEmployeeAnswer(conv, answer);
   assert.equal(result.correct, true);
   assert.equal(result.scoreAwarded, true, 'Correct answer awards practice points');
@@ -123,7 +127,11 @@ withLocalStorage(() => {
   let turns = 0;
   while (turns < 10) {
     const q = conv.question;
-    const answer = q.type === 'mc' ? q.correctOptionId : q.correctOrderIds;
+    const answer = q.type === 'mc'
+      ? q.correctOptionId
+      : q.type === 'matching'
+        ? Object.fromEntries(q.correctPairs.map((p) => [p.leftId ?? p.left, p.rightId ?? p.right]))
+        : q.correctOrderIds;
     evaluateEmployeeAnswer(conv, answer);
     turns += 1;
     const next = advanceConversation(conv);

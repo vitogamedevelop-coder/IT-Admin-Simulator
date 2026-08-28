@@ -87,8 +87,8 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     const map = new Map();
     lesson.explanations.forEach((ex) => {
       const dash = ex.id.lastIndexOf('-');
-      const sectionId = dash > 0 ? ex.id.slice(0, dash) : ex.id;
-      const style = dash > 0 ? ex.id.slice(dash + 1) : ex.style || 'classic';
+      const sectionId = ex.sectionId || (dash > 0 ? ex.id.slice(0, dash) : ex.id);
+      const style = ex.sectionId ? ex.style || 'classic' : (dash > 0 ? ex.id.slice(dash + 1) : ex.style || 'classic');
       if (!map.has(sectionId)) map.set(sectionId, {});
       map.get(sectionId)[style] = ex;
     });

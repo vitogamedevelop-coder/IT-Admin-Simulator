@@ -11,7 +11,9 @@ import { KNOWLEDGE_TYPES, QUESTION_ARCHETYPES, DIFFICULTY } from '../types.js';
 // Topic keys
 // ---------------------------------------------------------------------------
 
+const SECURITY_FUNDAMENTALS_KEY = topicKey('information-security', 'security-fundamentals');
 const SECURITY_OBJECTIVES_KEY = topicKey('information-security', 'security-objectives');
+const AUTHENTICITY_KEY = topicKey('information-security', 'authenticity');
 const PIMO_KEY = topicKey('information-security', 'pimo');
 const OPTI_KEY = topicKey('information-security', 'opti');
 const ISMS_KEY = topicKey('information-security', 'isms');
@@ -39,6 +41,7 @@ const CIA_SIBLINGS = [
   'security.cia.availability',
   'security.cia.interaction',
   'security.cia.measureMapping',
+  'security.cia.definition',
 ];
 
 const PIMO_SIBLINGS = [
@@ -118,10 +121,28 @@ export const informationSecurityKnowledgeItems = [
   // Concept cluster: security.cia
   // ==========================================================================
   {
+    id: 'security.cia.definition',
+    topicKey: SECURITY_OBJECTIVES_KEY,
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-grundwerte',
+    conceptCluster: 'security.cia',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Informationssicherheit',
+      definition: 'Informationssicherheit liegt vor, wenn Vertraulichkeit, Integrität und Verfügbarkeit im geforderten Maß gewährleistet werden.',
+    },
+    siblings: CIA_SIBLINGS.filter((id) => id !== 'security.cia.definition'),
+  },
+  {
     id: 'security.cia.confidentiality',
     topicKey: SECURITY_OBJECTIVES_KEY,
-    sourceTopicKey: SECURITY_OBJECTIVES_KEY,
-    sourceSection: 'b1-cia-classic',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-grundwerte',
     conceptCluster: 'security.cia',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -138,8 +159,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.cia.integrity',
     topicKey: SECURITY_OBJECTIVES_KEY,
-    sourceTopicKey: SECURITY_OBJECTIVES_KEY,
-    sourceSection: 'b1-cia-classic',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-grundwerte',
     conceptCluster: 'security.cia',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -156,8 +177,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.cia.availability',
     topicKey: SECURITY_OBJECTIVES_KEY,
-    sourceTopicKey: SECURITY_OBJECTIVES_KEY,
-    sourceSection: 'b1-cia-classic',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-grundwerte',
     conceptCluster: 'security.cia',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -174,8 +195,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.cia.interaction',
     topicKey: SECURITY_OBJECTIVES_KEY,
-    sourceTopicKey: SECURITY_OBJECTIVES_KEY,
-    sourceSection: 'b1-cia-classic',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-wechselwirkung',
     conceptCluster: 'security.cia',
     type: KNOWLEDGE_TYPES.PROPERTY,
     difficulty: DIFFICULTY.MEDIUM,
@@ -192,8 +213,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.cia.measureMapping',
     topicKey: SECURITY_OBJECTIVES_KEY,
-    sourceTopicKey: SECURITY_OBJECTIVES_KEY,
-    sourceSection: 'b1-cia-classic',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-wechselwirkung',
     conceptCluster: 'security.cia',
     type: KNOWLEDGE_TYPES.MAPPING,
     difficulty: DIFFICULTY.MEDIUM,
@@ -215,14 +236,33 @@ export const informationSecurityKnowledgeItems = [
     siblings: CIA_SIBLINGS.filter((id) => id !== 'security.cia.measureMapping'),
   },
 
+  {
+    id: 'security.cia.authenticity',
+    topicKey: AUTHENTICITY_KEY,
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-authentizitaet',
+    conceptCluster: 'security.cia',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Authentizität',
+      definition: 'Echtheit und Zuordenbarkeit: Von wem stammt etwas, und wer hat gehandelt? Im Kursmodell wird Authentizität im Zusammenhang mit Integrität betrachtet.',
+    },
+    siblings: ['security.cia.integrity'],
+  },
+
   // ==========================================================================
   // Concept cluster: security.pimo
   // ==========================================================================
   {
     id: 'security.pimo.personell',
     topicKey: PIMO_KEY,
-    sourceTopicKey: PIMO_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-pimo',
     conceptCluster: 'security.pimo',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -239,8 +279,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.pimo.infrastrukturell',
     topicKey: PIMO_KEY,
-    sourceTopicKey: PIMO_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-pimo',
     conceptCluster: 'security.pimo',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -257,8 +297,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.pimo.materiell',
     topicKey: PIMO_KEY,
-    sourceTopicKey: PIMO_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-pimo',
     conceptCluster: 'security.pimo',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -275,8 +315,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.pimo.organisatorisch',
     topicKey: PIMO_KEY,
-    sourceTopicKey: PIMO_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-pimo',
     conceptCluster: 'security.pimo',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -293,8 +333,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.pimo.mapping',
     topicKey: PIMO_KEY,
-    sourceTopicKey: PIMO_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-pimo',
     conceptCluster: 'security.pimo',
     type: KNOWLEDGE_TYPES.MAPPING,
     difficulty: DIFFICULTY.MEDIUM,
@@ -321,8 +361,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.opti.organisatorisch',
     topicKey: OPTI_KEY,
-    sourceTopicKey: OPTI_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-opti',
     conceptCluster: 'security.opti',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -339,8 +379,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.opti.personell',
     topicKey: OPTI_KEY,
-    sourceTopicKey: OPTI_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-opti',
     conceptCluster: 'security.opti',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -357,8 +397,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.opti.technisch',
     topicKey: OPTI_KEY,
-    sourceTopicKey: OPTI_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-opti',
     conceptCluster: 'security.opti',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -375,8 +415,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.opti.infrastrukturell',
     topicKey: OPTI_KEY,
-    sourceTopicKey: OPTI_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-opti',
     conceptCluster: 'security.opti',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -393,8 +433,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.opti.mapping',
     topicKey: OPTI_KEY,
-    sourceTopicKey: OPTI_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-opti',
     conceptCluster: 'security.opti',
     type: KNOWLEDGE_TYPES.MAPPING,
     difficulty: DIFFICULTY.MEDIUM,
@@ -419,8 +459,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.pimoVsOpti',
     topicKey: OPTI_KEY,
-    sourceTopicKey: OPTI_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-pimo-vs-opti',
     conceptCluster: 'security.opti',
     type: KNOWLEDGE_TYPES.COMPARE,
     difficulty: DIFFICULTY.MEDIUM,
@@ -444,8 +484,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.isms.definition',
     topicKey: ISMS_KEY,
-    sourceTopicKey: ISMS_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-isms-pdca',
     conceptCluster: 'security.isms',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -471,8 +511,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.pdca.order',
     topicKey: PDCA_KEY,
-    sourceTopicKey: PDCA_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-isms-pdca',
     conceptCluster: 'security.pdca',
     type: KNOWLEDGE_TYPES.ORDER,
     difficulty: DIFFICULTY.EASY,
@@ -492,14 +532,34 @@ export const informationSecurityKnowledgeItems = [
     siblings: [],
   },
 
+  {
+    id: 'security.pdca.adminRole',
+    topicKey: PDCA_KEY,
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-adminrolle',
+    conceptCluster: 'security.pdca',
+    type: KNOWLEDGE_TYPES.PROPERTY,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      subject: 'Administratorrolle im PDCA-Zyklus',
+      statement: 'Administratoren wirken besonders in DO, indem sie geplante technische Maßnahmen umsetzen, und liefern Betriebsinformationen für CHECK und ACT.',
+      description: 'Administratoren setzen geplante technische Maßnahmen praktisch um und unterstützen die fortlaufende Verbesserung.',
+    },
+    siblings: ['security.pdca.order'],
+  },
+
   // ==========================================================================
   // Concept cluster: security.requiredLevel
   // ==========================================================================
   {
     id: 'security.requiredLevel.definition',
     topicKey: REQUIRED_LEVEL_KEY,
-    sourceTopicKey: REQUIRED_LEVEL_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_FUNDAMENTALS_KEY,
+    sourceSection: 'b1-gefordertes-mass',
     conceptCluster: 'security.requiredLevel',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,

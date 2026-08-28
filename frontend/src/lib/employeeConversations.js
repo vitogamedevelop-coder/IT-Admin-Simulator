@@ -386,16 +386,20 @@ function normalizeConversationDifficulty(d) {
 function generateQuestionFromCandidate(candidate, seed, contextType, difficulty, history = null) {
   if (candidate.kind === 'knowledge') {
     const item = candidate.item;
-    const question = generateQuestion(item.id, null, {
-      seed,
-      contextType,
-      difficulty,
-      history,
-    });
-    if (!question.concept) {
-      question.concept = question.learningObjective || question.conceptCluster || 'general';
+    try {
+      const question = generateQuestion(item.id, null, {
+        seed,
+        contextType,
+        difficulty,
+        history,
+      });
+      if (!question.concept) {
+        question.concept = question.learningObjective || question.conceptCluster || 'general';
+      }
+      return question;
+    } catch {
+      return null;
     }
-    return question;
   }
   // Legacy fallback.
   return buildInstance(candidate.topicKey, candidate.archetype);
@@ -561,9 +565,8 @@ export function startEmployeeConversation() {
   const topicsByKey = Object.fromEntries(topics.map((t) => [t.key, t]));
   const employee = pickEmployee();
   const semanticHistory = createSemanticHistory({ longTerm: readLongTermHistory().longTerm });
-  const firstTopic = pickWeakestTopic(topics, semanticHistory, employee);
+  let firstTopic = pickWeakestTopic(topics, semanticHistory, employee);
   const session = readSession();
-  const topicState = ensureTopicState(session, firstTopic.key);
   const history = readHistory();
   const conversationSeed = {
     conversationId: `conv-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
@@ -571,12 +574,30 @@ export function startEmployeeConversation() {
     semanticHistory,
     lastResult: null,
   };
-  const question = pickQuestionForTopic(firstTopic.key, topicState, { questions: [] }, history, {
+  let topicState = ensureTopicState(session, firstTopic.key);
+  let question = pickQuestionForTopic(firstTopic.key, topicState, { questions: [] }, history, {
     conversation: conversationSeed,
     questionIndex: 0,
     employee,
     topicsByKey,
   });
+  if (!question) {
+    for (const fallbackTopic of topics.filter((topic) => topic.key !== firstTopic.key)) {
+      const fallbackState = ensureTopicState(session, fallbackTopic.key);
+      const fallbackQuestion = pickQuestionForTopic(fallbackTopic.key, fallbackState, { questions: [] }, history, {
+        conversation: conversationSeed,
+        questionIndex: 0,
+        employee,
+        topicsByKey,
+      });
+      if (fallbackQuestion) {
+        firstTopic = fallbackTopic;
+        topicState = fallbackState;
+        question = fallbackQuestion;
+        break;
+      }
+    }
+  }
   if (!question) return null;
 
   const conversation = {
@@ -735,7 +756,7 @@ export function evaluateEmployeeAnswer(conversation, answer) {
       usedHint: false,
     });
 
-    recordSkillEvent('fundamentals', topicId, question.concept || 'general', {
+    recordSkillEvent(categoryId, topicId, question.concept || 'general', {
       correct: true,
       source: SKILL_SOURCE.CONVERSATION,
       dimension: SKILL_DIMENSION.KNOWLEDGE,
@@ -898,6 +919,32 @@ export function resetEmployeeConversations() {
 // =============================================================================
 
 export const CONVERSATION_TOPICS = {
+  [topicKey('information-security', 'security-fundamentals')]: {
+    title: 'Grundlagen der Informationssicherheit',
+    relatedTopics: [topicKey('information-security', 'security-objectives'), topicKey('information-security', 'pimo'), topicKey('information-security', 'opti'), topicKey('information-security', 'pdca'), topicKey('information-security', 'required-level')],
+    introPool: ['Kannst du mir helfen, einen Vorfall ganzheitlich einzuordnen?', 'Ich verwechsle PIMO und OPTI noch. Wie gehst du dabei vor?', 'Warum gilt Informationssicherheit eigentlich als fortlaufender Prozess?'],
+    samHelp: 'Informationssicherheit bedeutet: Vertraulichkeit, Integrität und Verfügbarkeit im geforderten Maß. Authentizität wird hier im Zusammenhang mit Integrität betrachtet. PIMO beschreibt die Elemente des Systems, OPTI die Arten von Maßnahmen. PDCA entwickelt die Sicherheit fortlaufend weiter.',
+    questions: [
+      { id: 'sec-fund-conv-1', difficulty: 'easy', text: 'Ein Kollege meint, Informationssicherheit schütze nur vor Hackern. Was fehlt in dieser Aussage?', options: ['Nichts', 'Auch Fehlbedienung, unberechtigter Zugriff, Manipulation, Ausfälle, Infrastruktur, Personal und Prozesse gehören dazu', 'Nur Datenschutz fehlt', 'Nur Firewalls fehlen'], correct: 1, explanation: 'Informationssicherheit betrachtet Informationen und Dienste ganzheitlich, unabhängig davon, ob ein Angriff, Fehler oder Ausfall die Ursache ist.' },
+      { id: 'sec-fund-conv-2', difficulty: 'medium', text: 'Warum kann derselbe Vorfall mehrere Grundwerte verletzen?', options: ['Weil jeder Vorfall automatisch alle Grundwerte verletzt', 'Weil ein Ereignis unterschiedliche Wirkungen haben kann, etwa unbefugte Kenntnisnahme und Ausfall', 'Weil Grundwerte austauschbar sind', 'Das ist nicht möglich'], correct: 1, explanation: 'Bewertet werden die konkreten Wirkungen. Ein gestohlenes und gelöschtes Medium kann beispielsweise Vertraulichkeit und Verfügbarkeit beeinträchtigen.' },
+      { id: 'sec-fund-conv-3', difficulty: 'medium', text: 'Warum ist Accountsharing auch ein Problem der Authentizität?', options: ['Weil nicht mehr eindeutig zugeordnet werden kann, wer gehandelt hat', 'Weil Accounts dadurch immer gelöscht werden', 'Weil Authentizität nur Verschlüsselung meint', 'Weil dadurch kein Netzwerk mehr verfügbar ist'], correct: 0, explanation: 'Authentizität betrifft Echtheit und Zuordenbarkeit und wird in diesem Kursmodell im Zusammenhang mit Integrität betrachtet.' },
+      { id: 'sec-fund-conv-4', difficulty: 'medium', text: 'Was unterscheidet PIMO von OPTI?', options: ['PIMO beschreibt Elemente des Systems, OPTI Arten von Maßnahmen', 'PIMO beschreibt Maßnahmen, OPTI Geräte', 'Beide beschreiben dasselbe', 'PIMO gilt nur für Personen'], correct: 0, explanation: 'PIMO fragt WAS zum Gesamtsystem gehört. OPTI fragt WELCHE ART von Maßnahme eingesetzt wird.' },
+      { id: 'sec-fund-conv-5', difficulty: 'hard', text: 'Ein Serverraum überhitzt. Wie ordnest du das als PIMO und OPTI ein?', options: ['PIMO materiell, OPTI technisch', 'PIMO infrastrukturell, OPTI infrastrukturell', 'PIMO organisatorisch, OPTI materiell', 'PIMO personell, OPTI technisch'], correct: 1, explanation: 'Der Serverraum und seine Umgebung sind infrastrukturelle Elemente; geeignete Kühlung ist eine infrastrukturelle Maßnahme.' },
+      { id: 'sec-fund-conv-6', difficulty: 'hard', text: 'Warum endet Informationssicherheit nicht, nachdem ein System einmal abgesichert wurde?', options: ['Weil Risiken, Systeme und Anforderungen sich verändern und Maßnahmen geprüft sowie verbessert werden müssen', 'Weil PLAN nie abgeschlossen werden darf', 'Weil technische Maßnahmen wirkungslos sind', 'Weil nur Audits Sicherheit schaffen'], correct: 0, explanation: 'PDCA beschreibt kontinuierliche Planung, Umsetzung, Prüfung und Verbesserung.' },
+      { id: 'sec-fund-conv-7', difficulty: 'hard', text: 'Warum braucht eine Lernplattform nicht zwingend dieselbe Verfügbarkeit wie ein 24/7 einsatzkritisches System?', options: ['Weil Lernplattformen keine Informationen enthalten', 'Weil das geforderte Maß vom Schutzbedarf und Zweck des Systems abhängt', 'Weil Verfügbarkeit nur für Server gilt', 'Weil maximale Sicherheit immer kostenlos ist'], correct: 1, explanation: 'Beide brauchen Verfügbarkeit, aber das erforderliche Niveau und der vertretbare Ressourceneinsatz unterscheiden sich.' },
+      { id: 'sec-fund-conv-8', difficulty: 'medium', text: 'Welche Rolle spielt ein Administrator besonders im PDCA-Modell?', options: ['Er legt allein den Schutzbedarf fest', 'Er setzt viele geplante technische Maßnahmen in DO praktisch um und liefert Informationen für CHECK und ACT', 'Er ist ausschließlich für ACT zuständig', 'Er schreibt nur Vorschriften'], correct: 1, explanation: 'Administratoren setzen Sicherheitsmaßnahmen praktisch um; Planung, Prüfung und Verbesserung sind ein Zusammenspiel mehrerer Rollen.' },
+    ],
+  },
+  [topicKey('information-security', 'security-objectives')]: { title: 'Grundwerte der Informationssicherheit', relatedTopics: [topicKey('information-security', 'security-fundamentals'), topicKey('information-security', 'authenticity')], introPool: ['Welche Grundwerte sind in diesem Fall betroffen?', 'Kann eine Maßnahme mehrere Grundwerte unterstützen?'], samHelp: 'Vertraulichkeit, Integrität und Verfügbarkeit werden im geforderten Maß betrachtet. Vorfälle und Maßnahmen können mehrere Grundwerte betreffen.' },
+  [topicKey('information-security', 'confidentiality')]: { title: 'Vertraulichkeit', relatedTopics: [topicKey('information-security', 'security-objectives')], introPool: ['Wer darf diese Information sehen?'], samHelp: 'Vertraulichkeit schützt vor unbefugter Informationsgewinnung.', questions: [{ id: 'sec-conf-conv-1', difficulty: 'medium', text: 'Ein Mitarbeiter kann einen Ordner lesen, den er nicht sehen dürfte. Welcher Grundwert ist primär betroffen?', options: ['Vertraulichkeit', 'Integrität', 'Verfügbarkeit'], correct: 0, explanation: 'Unberechtigte Kenntnisnahme verletzt die Vertraulichkeit.' }] },
+  [topicKey('information-security', 'integrity')]: { title: 'Integrität', relatedTopics: [topicKey('information-security', 'security-objectives'), topicKey('information-security', 'authenticity')], introPool: ['Wurde eine Information unzulässig verändert?'], samHelp: 'Integrität schützt vor unbefugten oder unzulässigen Veränderungen und macht Veränderungen erkennbar.', questions: [{ id: 'sec-int-conv-1', difficulty: 'medium', text: 'Eine Konfiguration wurde unberechtigt geändert. Welcher Grundwert ist primär betroffen?', options: ['Integrität', 'Verfügbarkeit', 'Vertraulichkeit'], correct: 0, explanation: 'Die unzulässige Veränderung verletzt die Integrität.' }] },
+  [topicKey('information-security', 'availability')]: { title: 'Verfügbarkeit', relatedTopics: [topicKey('information-security', 'security-objectives')], introPool: ['Ist der Dienst zum benötigten Zeitpunkt nutzbar?'], samHelp: 'Verfügbarkeit betrachtet die gesamte Dienstkette, nicht nur einen laufenden Server.', questions: [{ id: 'sec-avail-conv-1', difficulty: 'medium', text: 'Der Server läuft, aber die einzige Verbindung ist ausgefallen. Ist der Dienst verfügbar?', options: ['Ja, weil der Server läuft', 'Nein, weil die erforderliche Nutzung nicht möglich ist', 'Nur wenn kein Backup existiert'], correct: 1, explanation: 'Die gesamte Kette zur zugesicherten Nutzung muss verfügbar sein.' }] },
+  [topicKey('information-security', 'authenticity')]: { title: 'Authentizität', relatedTopics: [topicKey('information-security', 'integrity')], introPool: ['Kannst du eindeutig sagen, wer gehandelt hat?'], samHelp: 'Authentizität betrifft Echtheit und Zuordenbarkeit und wird hier im Zusammenhang mit Integrität behandelt.' },
+  [topicKey('information-security', 'isms')]: { title: 'ISMS Bw', relatedTopics: [topicKey('information-security', 'pdca'), topicKey('information-security', 'pimo'), topicKey('information-security', 'opti')], introPool: ['Warum ist ein ISMS kein einzelnes Produkt?'], samHelp: 'Ein ISMS organisiert Informationssicherheit systematisch und kontinuierlich.' },
+  [topicKey('information-security', 'pimo')]: { title: 'PIMO', relatedTopics: [topicKey('information-security', 'opti')], introPool: ['Welches Element des Gesamtsystems ist betroffen?'], samHelp: 'PIMO beschreibt personelle, infrastrukturelle, materielle und organisatorische Elemente.' },
+  [topicKey('information-security', 'opti')]: { title: 'OPTI', relatedTopics: [topicKey('information-security', 'pimo')], introPool: ['Welche Art von Maßnahme passt hier?'], samHelp: 'OPTI umfasst organisatorische, personelle, technische und infrastrukturelle Maßnahmen; materiell gehört nicht dazu.' },
+  [topicKey('information-security', 'pdca')]: { title: 'PDCA', relatedTopics: [topicKey('information-security', 'isms')], introPool: ['In welcher Phase befinden wir uns?'], samHelp: 'PLAN plant, DO setzt um, CHECK prüft, ACT verbessert und führt zurück zu PLAN.' },
+  [topicKey('information-security', 'required-level')]: { title: 'Gefordertes Maß', relatedTopics: [topicKey('information-security', 'security-objectives')], introPool: ['Wie hoch muss das Schutzniveau hier wirklich sein?'], samHelp: 'Das geforderte Maß hängt von Schutzbedarf, Risiko und Aufgabe des konkreten Systems ab.' },
   [topicKey('fundamentals', 'grundbegriffe')]: {
     title: 'Grundbegriffe',
     relatedTopics: [topicKey('fundamentals', 'topologien'), topicKey('fundamentals', 'ipv4')],
