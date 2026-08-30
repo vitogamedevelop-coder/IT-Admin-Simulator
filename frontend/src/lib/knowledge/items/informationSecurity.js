@@ -24,6 +24,7 @@ const DATA_PROTECTION_KEY = topicKey('information-security', 'data-protection');
 const ART9_KEY = topicKey('information-security', 'art9-dsgvo');
 const INFO_CATEGORIES_KEY = topicKey('information-security', 'information-categories');
 const SECURITY_INCIDENTS_KEY = topicKey('information-security', 'security-incidents');
+const SECURITY_THREATS_MALWARE_KEY = topicKey('information-security', 'security-threats-malware');
 const ATTACKS_KEY = topicKey('information-security', 'attacks');
 const MALWARE_TYPES_KEY = topicKey('information-security', 'malware-types');
 const MALWARE_PREVENTION_KEY = topicKey('information-security', 'malware-prevention');
@@ -73,6 +74,8 @@ const MALWARE_SIBLINGS = [
   'security.malware.backdoor',
   'security.malware.payload',
   'security.malware.behaviorMapping',
+  'security.malware.bot',
+  'security.malware.scareware',
 ];
 
 const ATTACKS_SIBLINGS = [
@@ -81,6 +84,51 @@ const ATTACKS_SIBLINGS = [
   'security.attacks.socialEngineering',
   'security.attacks.phishing',
   'security.attacks.goalMapping',
+  'security.attacks.ddos',
+  'security.attacks.flooding',
+  'security.attacks.reflection',
+];
+
+const THREATS_SIBLINGS = [
+  'security.threats.threat.definition',
+  'security.threats.vulnerability.definition',
+  'security.threats.riskExposure.definition',
+  'security.threats.damage.definition',
+  'security.threats.chain',
+  'security.threats.attackLifecycle',
+];
+
+const TOOLS_SIBLINGS = [
+  'security.tools.categories',
+  'security.tools.examples',
+];
+
+const BOTNET_SIBLINGS = [
+  'security.botnet.definition',
+  'security.botnet.commandControl',
+  'security.botnet.uses',
+];
+
+const INFILTRATION_SIBLINGS = [
+  'security.infiltration.targeted',
+  'security.infiltration.mass',
+  'security.infiltration.insider',
+];
+
+const IDENTITY_SIBLINGS = [
+  'security.identity.spearPhishing',
+  'security.identity.spoofing',
+  'security.identity.pharming',
+];
+
+const CVE_SIBLINGS = [
+  'security.cve.definition',
+];
+
+const WEB_ATTACKS_SIBLINGS = [
+  'security.web.sqlInjection',
+  'security.web.xss',
+  'security.web.sqlVsXss',
 ];
 
 const FIREWALL_SIBLINGS = [
@@ -1529,8 +1577,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.attacks.dos',
     topicKey: ATTACKS_KEY,
-    sourceTopicKey: ATTACKS_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-dos-ddos',
     conceptCluster: 'security.attacks',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1547,8 +1595,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.attacks.identityTheft',
     topicKey: ATTACKS_KEY,
-    sourceTopicKey: ATTACKS_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-identitaetsdiebstahl',
     conceptCluster: 'security.attacks',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1565,8 +1613,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.attacks.socialEngineering',
     topicKey: ATTACKS_KEY,
-    sourceTopicKey: ATTACKS_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-phishing',
     conceptCluster: 'security.attacks',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1583,8 +1631,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.attacks.phishing',
     topicKey: ATTACKS_KEY,
-    sourceTopicKey: ATTACKS_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-phishing',
     conceptCluster: 'security.attacks',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -1601,8 +1649,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.attacks.goalMapping',
     topicKey: ATTACKS_KEY,
-    sourceTopicKey: ATTACKS_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-thema1-transfer',
     conceptCluster: 'security.attacks',
     type: KNOWLEDGE_TYPES.MAPPING,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1628,8 +1676,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.umbrella',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-malware-ueberblick',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.EASY,
@@ -1646,8 +1694,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.virus',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-virus',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1664,8 +1712,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.worm',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-wurm',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1682,8 +1730,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.trojan',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-trojaner',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1700,8 +1748,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.ransomware',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-ransomware',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1718,8 +1766,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.spyware',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-spyware-keylogger',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1736,8 +1784,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.keylogger',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-spyware-keylogger',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1754,8 +1802,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.rootkit',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-rootkit-backdoor',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.HARD,
@@ -1772,8 +1820,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.backdoor',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-rootkit-backdoor',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1790,8 +1838,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.payload',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-malware-ueberblick',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1808,8 +1856,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.malware.behaviorMapping',
     topicKey: MALWARE_TYPES_KEY,
-    sourceTopicKey: MALWARE_TYPES_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-malware-ueberblick',
     conceptCluster: 'security.malware',
     type: KNOWLEDGE_TYPES.MAPPING,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1837,8 +1885,8 @@ export const informationSecurityKnowledgeItems = [
   {
     id: 'security.prevention.defenseInDepth',
     topicKey: MALWARE_PREVENTION_KEY,
-    sourceTopicKey: MALWARE_PREVENTION_KEY,
-    sourceSection: 'fundamentals',
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-schutzrichtung',
     conceptCluster: 'security.prevention',
     type: KNOWLEDGE_TYPES.DEFINITION,
     difficulty: DIFFICULTY.MEDIUM,
@@ -1856,6 +1904,542 @@ export const informationSecurityKnowledgeItems = [
       ],
     },
     siblings: [],
+  },
+
+  // ==========================================================================
+  // Concept cluster: security.threats
+  // ==========================================================================
+  {
+    id: 'security.threats.threat.definition',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-bedrohung',
+    conceptCluster: 'security.threats',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Bedrohung',
+      definition: 'Eine Gegebenheit oder ein Ereignis, das einen Schaden verursachen kann. Quellen sind höhere Gewalt, vorsätzliches Handeln, fahrlässiges Handeln und technisches Versagen.',
+    },
+    siblings: THREATS_SIBLINGS.filter((id) => id !== 'security.threats.threat.definition'),
+  },
+  {
+    id: 'security.threats.vulnerability.definition',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-schwachstelle',
+    conceptCluster: 'security.threats',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Schwachstelle',
+      definition: 'Ein Fehler oder eine unzureichende Gegebenheit, durch die eine Bedrohung wirksam werden kann. Schwachstellen können technisch, organisatorisch oder personell sein.',
+    },
+    siblings: THREATS_SIBLINGS.filter((id) => id !== 'security.threats.vulnerability.definition'),
+  },
+  {
+    id: 'security.threats.riskExposure.definition',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-gefaehrdung',
+    conceptCluster: 'security.threats',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Gefährdung',
+      definition: 'Eine Bedrohung trifft auf eine passende Schwachstelle. Eine Bedrohung allein reicht nicht; genauso wenig reicht eine Schwachstelle allein für einen Schaden.',
+    },
+    siblings: THREATS_SIBLINGS.filter((id) => id !== 'security.threats.riskExposure.definition'),
+  },
+  {
+    id: 'security.threats.damage.definition',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-schaden',
+    conceptCluster: 'security.threats',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Schaden',
+      definition: 'Eine tatsächliche negative Einwirkung auf mindestens einen Grundwert der Informationssicherheit, etwa Vertraulichkeit, Integrität oder Verfügbarkeit.',
+    },
+    siblings: THREATS_SIBLINGS.filter((id) => id !== 'security.threats.damage.definition'),
+  },
+  {
+    id: 'security.threats.chain',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-threat-chain',
+    conceptCluster: 'security.threats',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.COMPARE],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      description: 'Bedrohung plus passende Schwachstelle ergibt eine Gefährdung; realisiert sie sich, entsteht Schaden an den Grundwerten.',
+      items: [
+        { name: 'Bedrohung', description: 'Kann Schaden verursachen: höhere Gewalt, Vorsatz, Fahrlässigkeit, technisches Versagen.' },
+        { name: 'Schwachstelle', description: 'Technisch, organisatorisch oder personell; ermöglicht wirksame Bedrohung.' },
+        { name: 'Gefährdung', description: 'Bedrohung trifft auf passende Schwachstelle.' },
+        { name: 'Schaden', description: 'Negative Einwirkung auf Vertraulichkeit, Integrität oder Verfügbarkeit.' },
+      ],
+    },
+    siblings: THREATS_SIBLINGS.filter((id) => id !== 'security.threats.chain'),
+  },
+  {
+    id: 'security.threats.attackLifecycle',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-angriffsablauf',
+    conceptCluster: 'security.threats',
+    type: KNOWLEDGE_TYPES.ORDER,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.ORDERING],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      description: 'Ansatzpunkte für Erkennung und Schutz entlang eines typischen Ablaufs.',
+      steps: [
+        { id: 'ziel', label: 'Ziel wählen' },
+        { id: 'infos', label: 'Informationen sammeln' },
+        { id: 'punkt', label: 'Angriffspunkt finden' },
+        { id: 'werkzeug', label: 'Werkzeug / Methode wählen' },
+        { id: 'angriff', label: 'Angriff' },
+        { id: 'wirkung', label: 'Auswirkung' },
+      ],
+    },
+    siblings: THREATS_SIBLINGS.filter((id) => id !== 'security.threats.attackLifecycle'),
+  },
+
+  // ==========================================================================
+  // Concept cluster: security.tools
+  // ==========================================================================
+  {
+    id: 'security.tools.categories',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-werkzeugkategorien',
+    conceptCluster: 'security.tools',
+    type: KNOWLEDGE_TYPES.MAPPING,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.MAPPING],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      subject: 'Angriffswerkzeug-Kategorien',
+      description: 'Sechs Kategorien, in die Angriffswerkzeuge eingeordnet werden können.',
+      pairs: [
+        { key: 'Schadsoftware', value: 'Virus, Wurm, Trojaner' },
+        { key: 'Datenträger / Kanäle', value: 'USB-Stick, E-Mail' },
+        { key: 'Software', value: 'Exploit, Fernwartungstool' },
+        { key: 'Internet-Strukturen', value: 'Botnetz' },
+        { key: 'Geräte', value: 'Hardware-Keylogger' },
+        { key: 'angriffsunterstützende Informationen', value: 'CVE-Eintrag' },
+      ],
+    },
+    siblings: TOOLS_SIBLINGS.filter((id) => id !== 'security.tools.categories'),
+  },
+  {
+    id: 'security.tools.examples',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-werkzeugkategorien',
+    conceptCluster: 'security.tools',
+    type: KNOWLEDGE_TYPES.MAPPING,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.MATCHING, QUESTION_ARCHETYPES.MAPPING],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      subject: 'Beispiele zu Kategorien',
+      description: 'Konkrete Beispiele den Werkzeugkategorien zuordnen.',
+      pairs: [
+        { key: 'Trojaner', value: 'Schadsoftware' },
+        { key: 'USB-Stick', value: 'Datenträger / Kanäle' },
+        { key: 'Exploit', value: 'Software' },
+        { key: 'Botnetz', value: 'Internet-Struktur' },
+        { key: 'Hardware-Keylogger', value: 'Gerät' },
+        { key: 'CVE-Eintrag', value: 'angriffsunterstützende Information' },
+      ],
+    },
+    siblings: TOOLS_SIBLINGS.filter((id) => id !== 'security.tools.examples'),
+  },
+
+  // ==========================================================================
+  // Concept cluster: security.botnet
+  // ==========================================================================
+  {
+    id: 'security.botnet.definition',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-botnet',
+    conceptCluster: 'security.botnet',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Botnetz',
+      definition: 'Zusammenschluss vieler kompromittierter Geräte, die ferngesteuert gemeinsam eingesetzt werden können.',
+    },
+    siblings: BOTNET_SIBLINGS.filter((id) => id !== 'security.botnet.definition'),
+  },
+  {
+    id: 'security.botnet.commandControl',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-botnet',
+    conceptCluster: 'security.botnet',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Command and Control (C&C)',
+      definition: 'Steuerungsstruktur eines Botnetzes, über die Befehle an kompromittierte Geräte verteilt werden.',
+    },
+    siblings: BOTNET_SIBLINGS.filter((id) => id !== 'security.botnet.commandControl'),
+  },
+  {
+    id: 'security.botnet.uses',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-botnet',
+    conceptCluster: 'security.botnet',
+    type: KNOWLEDGE_TYPES.PROPERTY,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      subject: 'Botnetz-Einsätze',
+      description: 'Botnetze können unter anderem für DDoS, Spam, Phishing-Hosting und Verschleierung missbraucht werden.',
+    },
+    siblings: BOTNET_SIBLINGS.filter((id) => id !== 'security.botnet.uses'),
+  },
+
+  // ==========================================================================
+  // Concept cluster: security.infiltration
+  // ==========================================================================
+  {
+    id: 'security.infiltration.targeted',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-infiltration',
+    conceptCluster: 'security.infiltration',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Gezielte Verteilung',
+      definition: 'Schädliche Inhalte werden auf eine bestimmte Person, Rolle oder Systemgruppe zugeschnitten.',
+    },
+    siblings: INFILTRATION_SIBLINGS.filter((id) => id !== 'security.infiltration.targeted'),
+  },
+  {
+    id: 'security.infiltration.mass',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-infiltration',
+    conceptCluster: 'security.infiltration',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Massenverteilung',
+      definition: 'Gleiche schädliche Inhalte werden an sehr viele Empfänger gleichzeitig verteilt.',
+    },
+    siblings: INFILTRATION_SIBLINGS.filter((id) => id !== 'security.infiltration.mass'),
+  },
+  {
+    id: 'security.infiltration.insider',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-infiltration',
+    conceptCluster: 'security.infiltration',
+    type: KNOWLEDGE_TYPES.PROPERTY,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      subject: 'Innentäter',
+      description: 'Innentäter können bewusst handeln oder unbewusst durch Fahrlässigkeit, Irrtum oder Täuschung zur Verteilung beitragen.',
+    },
+    siblings: INFILTRATION_SIBLINGS.filter((id) => id !== 'security.infiltration.insider'),
+  },
+
+  // ==========================================================================
+  // Concept cluster: security.identity
+  // ==========================================================================
+  {
+    id: 'security.identity.spearPhishing',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-phishing',
+    conceptCluster: 'security.identity',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Spear-Phishing',
+      definition: 'Gezielter Phishing-Angriff auf eine bestimmte Person, Rolle oder Gruppe mit personalisierten Inhalten.',
+    },
+    siblings: IDENTITY_SIBLINGS.filter((id) => id !== 'security.identity.spearPhishing'),
+  },
+  {
+    id: 'security.identity.spoofing',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-spoofing',
+    conceptCluster: 'security.identity',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Spoofing',
+      definition: 'Vortäuschen oder Verschleiern von Identitäts- oder Adressinformationen, etwa Absender, IP, ARP oder MAC.',
+    },
+    siblings: IDENTITY_SIBLINGS.filter((id) => id !== 'security.identity.spoofing'),
+  },
+  {
+    id: 'security.identity.pharming',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-pharming',
+    conceptCluster: 'security.identity',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Pharming',
+      definition: 'Manipulation der Namensauflösung, sodass eine korrekt eingegebene Adresse zu einer falschen Seite führt.',
+    },
+    siblings: IDENTITY_SIBLINGS.filter((id) => id !== 'security.identity.pharming'),
+  },
+
+  // ==========================================================================
+  // Concept cluster: security.cve
+  // ==========================================================================
+  {
+    id: 'security.cve.definition',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-cve',
+    conceptCluster: 'security.cve',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'CVE',
+      definition: 'Standardisierte Kennung für öffentlich bekannte Schwachstellen; weder die Schwachstelle selbst noch automatisch ein Exploit.',
+      distractorDefinitions: [
+        'Ein Computer Emergency Response Team, das auf Sicherheitsvorfälle reagiert.',
+        'Ein standardisiertes Netzwerkprotokoll zur verschlüsselten Übertragung.',
+        'Ein Typ von Schadsoftware, der Schwachstellen automatisch ausnutzt.',
+      ],
+    },
+    siblings: CVE_SIBLINGS.filter((id) => id !== 'security.cve.definition'),
+  },
+
+  // ==========================================================================
+  // Concept cluster: security.web
+  // ==========================================================================
+  {
+    id: 'security.web.sqlInjection',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-sqli-xss',
+    conceptCluster: 'security.web',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'SQL Injection',
+      definition: 'Unsichere Verarbeitung von Nutzereingaben führt dazu, dass SQL-Code als Datenbankbefehl interpretiert wird.',
+    },
+    siblings: WEB_ATTACKS_SIBLINGS.filter((id) => id !== 'security.web.sqlInjection'),
+  },
+  {
+    id: 'security.web.xss',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-sqli-xss',
+    conceptCluster: 'security.web',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Cross-Site Scripting (XSS)',
+      definition: 'Unzureichend gefilterte Eingaben führen dazu, dass fremder Code im Browser- oder Sitzungskontext eines Nutzers ausgeführt wird.',
+    },
+    siblings: WEB_ATTACKS_SIBLINGS.filter((id) => id !== 'security.web.xss'),
+  },
+  {
+    id: 'security.web.sqlVsXss',
+    topicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-sqli-xss',
+    conceptCluster: 'security.web',
+    type: KNOWLEDGE_TYPES.COMPARE,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.COMPARE],
+    roleHints: ['support', 'management', 'security'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      description: 'SQLi und XSS entstehen durch unsichere Eingaben, wirken aber an unterschiedlichen Stellen.',
+      items: [
+        { name: 'SQL Injection', description: 'Manipuliert Datenbankabfragen.' },
+        { name: 'Cross-Site Scripting', description: 'Führt fremden Code im Browser-/Session-Kontext aus.' },
+      ],
+    },
+    siblings: WEB_ATTACKS_SIBLINGS.filter((id) => id !== 'security.web.sqlVsXss'),
+  },
+
+  // ==========================================================================
+  // Existing cluster extensions
+  // ==========================================================================
+  {
+    id: 'security.malware.bot',
+    topicKey: MALWARE_TYPES_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-bots-scareware',
+    conceptCluster: 'security.malware',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'support'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Bot',
+      definition: 'Automatisiertes Programm oder kompromittiertes Gerät, das Aufgaben ausführen oder fremdgesteuert agieren kann.',
+    },
+    siblings: MALWARE_SIBLINGS.filter((id) => id !== 'security.malware.bot'),
+  },
+  {
+    id: 'security.malware.scareware',
+    topicKey: MALWARE_TYPES_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-bots-scareware',
+    conceptCluster: 'security.malware',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.EASY,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'support'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Scareware',
+      definition: 'Software mit gefälschten Warnungen, die den Nutzer zu überstürzten Handlungen oder Zahlungen verleiten soll.',
+    },
+    siblings: MALWARE_SIBLINGS.filter((id) => id !== 'security.malware.scareware'),
+  },
+  {
+    id: 'security.attacks.ddos',
+    topicKey: ATTACKS_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-dos-ddos',
+    conceptCluster: 'security.attacks',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'support'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Distributed Denial of Service (DDoS)',
+      definition: 'Angriff auf Verfügbarkeit, bei dem sehr viele verteilte Quellen gleichzeitig ein Ziel überlasten.',
+    },
+    siblings: ATTACKS_SIBLINGS.filter((id) => id !== 'security.attacks.ddos'),
+  },
+  {
+    id: 'security.attacks.flooding',
+    topicKey: ATTACKS_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-dos-ddos',
+    conceptCluster: 'security.attacks',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'support'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Flooding',
+      definition: 'Überflutung mit sehr vielen Anfragen, sodass Bandbreite, Rechenleistung, Speicher oder Verbindungen erschöpft werden.',
+    },
+    siblings: ATTACKS_SIBLINGS.filter((id) => id !== 'security.attacks.flooding'),
+  },
+  {
+    id: 'security.attacks.reflection',
+    topicKey: ATTACKS_KEY,
+    sourceTopicKey: SECURITY_THREATS_MALWARE_KEY,
+    sourceSection: 'b4-dos-ddos',
+    conceptCluster: 'security.attacks',
+    type: KNOWLEDGE_TYPES.DEFINITION,
+    difficulty: DIFFICULTY.MEDIUM,
+    allowedQuestionTypes: [QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SELECT_BEST],
+    roleHints: ['technical', 'support'],
+    sourceType: 'academy_course_note',
+    verificationStatus: 'verified',
+    data: {
+      term: 'Reflection / DrDoS',
+      definition: 'Angriff, bei dem Anfragen mit gefälschter Absenderadresse an dritte Dienste gesendet werden und deren Antworten das Opfer treffen.',
+    },
+    siblings: ATTACKS_SIBLINGS.filter((id) => id !== 'security.attacks.reflection'),
   },
 
   // ==========================================================================

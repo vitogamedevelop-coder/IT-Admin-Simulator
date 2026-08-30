@@ -688,70 +688,176 @@ export function buildInformationSecurityIncidentsLesson() {
 
 export function buildInformationSecurityThreatsMalwareLesson() {
   const title = 'Block 4: Gefährdungen, Angriffsmethoden & Schadsoftware';
+  const threatChainSvg = `<svg viewBox="0 0 360 150" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><g fill="#00f0ff" fill-opacity="0.15" stroke="#00f0ff"><rect x="5" y="32" width="105" height="45" rx="7"/><rect x="130" y="32" width="95" height="45" rx="7"/><rect x="245" y="32" width="105" height="45" rx="7"/><rect x="110" y="105" width="140" height="34" rx="7"/></g><g fill="#c9d1d9" font-size="9" text-anchor="middle"><text x="57" y="50">Bedrohung +</text><text x="57" y="65">Schwachstelle</text><text x="177" y="59">Gefährdung</text><text x="297" y="59">Schaden</text><text x="180" y="126">V • I • V</text></g><path d="M110 54h20m95 0h20m52 23v27h-47" stroke="#58a6ff" stroke-width="2" fill="none"/></svg>`;
+  const lifecycleSvg = `<svg viewBox="0 0 360 125" class="w-full h-auto max-h-44" xmlns="http://www.w3.org/2000/svg"><g fill="#1f6feb" fill-opacity="0.3" stroke="#58a6ff"><rect x="4" y="35" width="48" height="34" rx="6"/><rect x="64" y="35" width="48" height="34" rx="6"/><rect x="124" y="35" width="48" height="34" rx="6"/><rect x="184" y="35" width="48" height="34" rx="6"/><rect x="244" y="35" width="48" height="34" rx="6"/><rect x="304" y="35" width="52" height="34" rx="6"/></g><g fill="#c9d1d9" font-size="7" text-anchor="middle"><text x="28" y="55">Ziel</text><text x="88" y="50">Infos</text><text x="88" y="60">sammeln</text><text x="148" y="50">Angriffs-</text><text x="148" y="60">punkt</text><text x="208" y="50">Werkzeug /</text><text x="208" y="60">Methode</text><text x="268" y="55">Angriff</text><text x="330" y="55">Auswirkung</text></g><path d="M52 52h12m48 0h12m48 0h12m48 0h12m48 0h12" stroke="#00f0ff" stroke-width="2"/></svg>`;
+  const malwareSvg = `<svg viewBox="0 0 360 145" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Malware: Verhalten vergleichen</text><g fill="#00f0ff" fill-opacity="0.13" stroke="#00f0ff"><rect x="5" y="32" width="82" height="78" rx="6"/><rect x="94" y="32" width="82" height="78" rx="6"/><rect x="183" y="32" width="82" height="78" rx="6"/><rect x="272" y="32" width="82" height="78" rx="6"/></g><g fill="#c9d1d9" font-size="8" text-anchor="middle"><text x="46" y="52" font-weight="bold">Virus</text><text x="46" y="70">braucht Wirt</text><text x="135" y="52" font-weight="bold">Wurm</text><text x="135" y="70">verbreitet sich</text><text x="135" y="82">selbstständig</text><text x="224" y="52" font-weight="bold">Trojaner</text><text x="224" y="70">tarnt sich</text><text x="313" y="52" font-weight="bold">Ransomware</text><text x="313" y="70">sperrt oder</text><text x="313" y="82">verschlüsselt</text></g></svg>`;
+  const botnetSvg = `<svg viewBox="0 0 360 150" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><rect x="135" y="53" width="90" height="42" rx="8" fill="#00f0ff"/><text x="180" y="70" text-anchor="middle" fill="#06111f" font-size="10" font-weight="bold">C&amp;C</text><text x="180" y="84" text-anchor="middle" fill="#06111f" font-size="8">Steuerung</text><g fill="#1f6feb" fill-opacity="0.35" stroke="#58a6ff"><rect x="10" y="15" width="70" height="30" rx="5"/><rect x="280" y="15" width="70" height="30" rx="5"/><rect x="10" y="105" width="70" height="30" rx="5"/><rect x="280" y="105" width="70" height="30" rx="5"/></g><g fill="#c9d1d9" font-size="8" text-anchor="middle"><text x="45" y="34">Zombie 1</text><text x="315" y="34">Zombie 2</text><text x="45" y="124">Zombie 3</text><text x="315" y="124">Zombie n</text></g><g stroke="#00f0ff"><line x1="80" y1="38" x2="135" y2="62"/><line x1="280" y1="38" x2="225" y2="62"/><line x1="80" y1="116" x2="135" y2="86"/><line x1="280" y1="116" x2="225" y2="86"/></g></svg>`;
+  const methodsSvg = `<svg viewBox="0 0 360 165" class="w-full h-auto max-h-56" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Angriffsmethoden im Überblick</text><g fill="#00f0ff" fill-opacity="0.14" stroke="#00f0ff"><rect x="8" y="35" width="105" height="38" rx="6"/><rect x="127" y="35" width="105" height="38" rx="6"/><rect x="246" y="35" width="105" height="38" rx="6"/><rect x="8" y="90" width="105" height="38" rx="6"/><rect x="127" y="90" width="105" height="38" rx="6"/><rect x="246" y="90" width="105" height="38" rx="6"/></g><g fill="#c9d1d9" font-size="8" text-anchor="middle"><text x="60" y="58">Täuschung</text><text x="179" y="58">Schadsoftware</text><text x="298" y="58">Überlastung</text><text x="60" y="113">Identitätsmissbrauch</text><text x="179" y="113">Web-Manipulation</text><text x="298" y="113">Innentäter</text></g></svg>`;
 
   const explanations = [
-    explanation('b4-angriffsmethoden', 'Angriffsmethoden', 'classic', [
-      { type: 'text', content: 'Angreifer nutzen unterschiedliche Methoden, um Schutzziele zu gefährden. Die Schutzziele helfen, Angriffe einzuordnen.' },
-      { type: 'table', headers: ['Methode', 'Beschreibung', 'Betroffenes Grundziel'], rows: [
-        ['DoS / DDoS', 'Überlastung eines Dienstes', 'Verfügbarkeit'],
-        ['Identitätsdiebstahl', 'Missbrauch von Zugangsdaten', 'Vertraulichkeit, Integrität'],
-        ['Social Engineering', 'Mensch manipulieren, um Zugang zu erhalten', 'Vertraulichkeit'],
-        ['Phishing', 'Gefälschte Nachricht mit bösartigem Link', 'Vertraulichkeit'],
-      ] },
-      { type: 'question', question: 'Welches Schutzziel trifft primär auf einen DoS-Angriff zu?', options: ['Vertraulichkeit', 'Integrität', 'Verfügbarkeit', 'Authentizität'], correct: 2, explanation: 'DoS-Angriffe machen Dienste unerreichbar und greifen die Verfügbarkeit an.' },
+    explanation('b4-situation', 'Ich sehe eine Auffälligkeit — was bedeutet das?', 'classic', [
+      { type: 'text', content: 'Im NEXUS-Kontrollraum erscheint eine ungewöhnliche Meldung. Eine Auffälligkeit ist zunächst ein Hinweis: Erst durch saubere Begriffe lässt sich unterscheiden, ob eine Bedrohung, Schwachstelle, Gefährdung oder bereits ein Schaden vorliegt.' },
+      { type: 'question', question: 'Was ist bei einer neuen Auffälligkeit der beste erste Denkansatz?', options: ['Sofort einen Schaden behaupten', 'Beobachtung und mögliche Wirkung strukturiert einordnen', 'Jede Meldung löschen', 'Immer Malware annehmen'], correct: 1, explanation: 'Eine Auffälligkeit wird zunächst sachlich eingeordnet; sie beweist noch keinen Schaden.' },
     ]),
+    explanation('b4-bedrohung', 'Bedrohung', 'classic', [
+      { type: 'text', content: 'Eine Bedrohung ist ein Umstand oder Ereignis, das Schaden verursachen kann. Quellen sind höhere Gewalt, vorsätzliches Handeln, fahrlässiges Handeln und technisches Versagen. Bedrohung und Schaden sind nicht dasselbe: Der Sturm ist die Bedrohung, der ausgefallene Standort der mögliche Schaden.' },
+      { type: 'question', question: 'Welche Aussage stimmt?', options: ['Eine Bedrohung ist immer bereits ein Schaden', 'Technisches Versagen kann eine Bedrohung sein', 'Nur Vorsatz zählt als Bedrohung', 'Höhere Gewalt betrifft Informationssicherheit nicht'], correct: 1, explanation: 'Auch Naturereignisse, Fahrlässigkeit und technisches Versagen können Bedrohungen darstellen.' },
+    ]),
+    explanation('b4-schwachstelle', 'Schwachstelle', 'classic', [
+      { type: 'text', content: 'Eine Schwachstelle ist eine technische, organisatorische oder personelle Schwäche. Beispiele sind fehlender Blitzschutz, veralteter Virenschutz und ein ungeschulter Nutzer. Sie ist kein Angriff, kann aber von einer passenden Bedrohung ausgenutzt werden.' },
+      { type: 'question', question: 'Was ist eine personelle Schwachstelle?', options: ['Ein Gewitter', 'Ein ungeschulter Nutzer', 'Ein Stromausfall', 'Ein bereits gelöschter Datenbestand'], correct: 1, explanation: 'Fehlendes Wissen oder fehlende Sensibilisierung ist eine personelle Schwäche.' },
+    ]),
+    explanation('b4-gefaehrdung', 'Gefährdung', 'classic', [
+      { type: 'text', content: 'Eine Gefährdung entsteht, wenn eine Bedrohung auf eine passende Schwachstelle trifft. Eine Bedrohung allein reicht nicht: Ein Blitz bedroht einen Standort, doch wirksamer Blitzschutz verringert die konkrete Gefährdung.' },
+      { type: 'question', question: 'Wann entsteht eine konkrete Gefährdung?', options: ['Bei jeder Bedrohung automatisch', 'Wenn Bedrohung und passende Schwachstelle zusammentreffen', 'Erst nach einem Schaden', 'Nur bei Vorsatz'], correct: 1, explanation: 'Die passende Schwachstelle macht die Bedrohung für das betrachtete System wirksam.' },
+    ]),
+    explanation('b4-schaden', 'Schaden', 'classic', [
+      { type: 'text', content: 'Schaden ist eine negative Einwirkung auf einen Grundwert: Daten werden offengelegt (Vertraulichkeit), unzulässig verändert (Integrität) oder ein Dienst fällt aus (Verfügbarkeit). Ein Ereignis kann mehrere Grundwerte zugleich schädigen.' },
+      { type: 'question', question: 'Daten sind nach einer Verschlüsselung nicht mehr nutzbar. Welcher Grundwert ist direkt betroffen?', options: ['Verfügbarkeit', 'Nur Authentizität', 'Keiner', 'Nur Organisation'], correct: 0, explanation: 'Nicht nutzbare Daten bedeuten zunächst einen Verfügbarkeitsschaden.' },
+    ]),
+    explanation('b4-threat-chain', 'Die Bedrohungskette', 'visual', [
+      { type: 'diagram', content: threatChainSvg },
+      { type: 'text', content: 'NEXUS-Merksatz: Bedrohung plus passende Schwachstelle ergibt eine Gefährdung; realisiert sie sich, kann ein Schaden an Vertraulichkeit, Integrität oder Verfügbarkeit entstehen.' },
+      { type: 'question', question: 'Wie ist fehlender Blitzschutz einzuordnen?', options: ['Bedrohung', 'Schwachstelle', 'Gefährdung', 'Schaden'], correct: 1, explanation: 'Der fehlende Schutz ist die Schwäche, auf die die Bedrohung Blitz treffen kann.' },
+    ]),
+    explanation('b4-usb-fall', 'NEXUS-Fall: gefundener USB-Stick', 'example', [
+      { type: 'text', content: 'Vor dem NEXUS-Gebäude liegt ein USB-Stick mit Schadsoftware. Das präparierte Medium ist die Bedrohung. Alter Virenschutz und fehlende Backups sind Schwachstellen. Beim Anschließen entsteht die Gefährdung einer Verschlüsselung; werden Dateien unlesbar, liegt ein Schaden an der Verfügbarkeit vor.' },
+      { type: 'question', question: 'Welche Rolle haben die fehlenden Backups in diesem Fall?', options: ['Bedrohung', 'Schwachstelle', 'Schaden', 'Grundwert'], correct: 1, explanation: 'Fehlende Backups erschweren die Wiederherstellung und sind eine Schwachstelle.' },
+    ]),
+    explanation('b4-angriffsablauf', 'Angriffslifecycle verstehen', 'visual', [
+      { type: 'diagram', content: lifecycleSvg },
+      { type: 'text', content: 'Ein typischer Ablauf lässt sich defensiv als Kette verstehen: Ziel wählen, Informationen sammeln, Angriffspunkt erkennen, Werkzeug oder Methode wählen, Angriff durchführen, Auswirkung erzeugen. Das Modell hilft, an mehreren Stellen Schutz einzubauen.' },
+      { type: 'question', question: 'Was folgt im Modell auf die Wahl des Angriffspunkts?', options: ['Auswirkung', 'Werkzeug oder Methode', 'Zielwahl', 'Schadensbehebung'], correct: 1, explanation: 'Danach wird ein zur Schwachstelle passendes Werkzeug oder Verfahren gewählt.' },
+    ]),
+    explanation('b4-werkzeugkategorien', 'Werkzeugkategorien', 'classic', [
+      { type: 'diagram', content: methodsSvg },
+      { type: 'table', headers: ['Kategorie', 'Beispiele'], rows: [['Schadsoftware', 'Trojaner, Wurm'], ['Datenträger/Kanäle', 'USB-Stick, E-Mail'], ['Software', 'Exploit'], ['Internet-Strukturen', 'Botnetz'], ['Geräte', 'Hardware-Keylogger'], ['Angriffsunterstützende Informationen', 'CVE-Eintrag']] },
+      { type: 'question', question: 'Zu welcher Kategorie gehört ein Hardware-Keylogger?', options: ['Gerät', 'Internet-Struktur', 'Datenträger', 'Schadsoftware'], correct: 0, explanation: 'Als physische Komponente gehört er zur Kategorie Geräte.' },
+    ]),
+    explanation('b4-malware-ueberblick', 'Malware als Oberbegriff', 'classic', [
+      { type: 'diagram', content: malwareSvg },
+      { type: 'text', content: 'Malware ist der Oberbegriff für Schadsoftware mit möglichen Folgen wie Ausspähung, Manipulation, Sperrung, Löschung, verstecktem Zugriff oder automatisierter Fremdsteuerung. Ein Programm kann mehrere Merkmale verbinden.' },
+      { type: 'question', question: 'Was beschreibt Malware?', options: ['Nur Viren', 'Den Oberbegriff für Schadsoftware', 'Nur Überlastungsangriffe', 'Ein Backupformat'], correct: 1, explanation: 'Virus, Wurm, Trojaner und weitere Typen sind Formen oder Merkmale von Malware.' },
+    ]),
+    explanation('b4-virus', 'Virus', 'classic', [
+      { type: 'text', content: 'Ein Virus benötigt einen Wirt und infiziert etwa Dateien oder Programme. Seine Verbreitung hängt davon ab, dass der infizierte Wirt weitergegeben oder ausgeführt wird.' },
+      { type: 'question', question: 'Welches Merkmal kennzeichnet einen Virus?', options: ['Er braucht einen Wirt', 'Er ist immer ein Botnetz', 'Er ist nur eine Warnmeldung', 'Er verändert die Namensauflösung'], correct: 0, explanation: 'Die Bindung an einen Wirt grenzt den Virus vom selbstständig verbreitenden Wurm ab.' },
+    ]),
+    explanation('b4-wurm', 'Wurm', 'classic', [
+      { type: 'text', content: 'Ein Wurm kann sich selbstständig verbreiten und benötigt keine Wirtsdatei. Seine schnelle Ausbreitung kann zusätzlich Netze und Systeme belasten.' },
+      { type: 'question', question: 'Was unterscheidet den Wurm vom Virus?', options: ['Der Wurm benötigt immer einen Wirt', 'Der Wurm verbreitet sich selbstständig', 'Der Virus ist keine Malware', 'Es gibt keinen Unterschied'], correct: 1, explanation: 'Der Wurm braucht für seine Verbreitung keine Wirtsdatei.' },
+    ]),
+    explanation('b4-trojaner', 'Trojaner', 'classic', [
+      { type: 'text', content: 'Ein Trojaner tarnt sich als legitimer oder nützlicher Inhalt. Entscheidend ist die Täuschung; mögliche Schadfunktionen können zusätzlich variieren.' },
+      { type: 'question', question: 'Was ist das Kernmerkmal eines Trojaners?', options: ['Selbstständige Netzverbreitung', 'Tarnung als legitimer Inhalt', 'Nur Überlastung', 'Fehlender Wirt'], correct: 1, explanation: 'Die scheinbar harmlose oder nützliche Tarnung verleitet zur Ausführung.' },
+    ]),
+    explanation('b4-ransomware', 'Ransomware', 'classic', [
+      { type: 'text', content: 'Ransomware blockiert Systeme oder verschlüsselt Daten und verbindet dies häufig mit einer Lösegeldforderung. Sie betrifft nicht nur Verfügbarkeit: Werden Daten kopiert oder verändert, sind auch Vertraulichkeit und Integrität berührt.' },
+      { type: 'question', question: 'Welche Aussage zu Ransomware stimmt?', options: ['Sie betrifft immer nur Verfügbarkeit', 'Sie kann mehrere Grundwerte beeinträchtigen', 'Sie ist ein Hardwarefehler', 'Sie verbreitet sich immer als Virus'], correct: 1, explanation: 'Sperrung, Datendiebstahl und Veränderung können unterschiedliche Grundwerte treffen.' },
+    ]),
+    explanation('b4-spyware-keylogger', 'Spyware und Keylogger', 'classic', [
+      { type: 'text', content: 'Spyware sammelt unbemerkt Informationen über Nutzer oder Systeme. Ein Keylogger zeichnet Tastatureingaben auf und kann als Software oder Hardware auftreten. Primär ist die Vertraulichkeit gefährdet.' },
+      { type: 'question', question: 'Was zeichnet ein Keylogger auf?', options: ['Tastatureingaben', 'Nur Stromausfälle', 'Backups', 'DNS-Namen'], correct: 0, explanation: 'Tastatureingaben können sensible Inhalte wie Zugangsdaten enthalten.' },
+    ]),
+    explanation('b4-rootkit-backdoor', 'Rootkit und Backdoor', 'classic', [
+      { type: 'text', content: 'Ein Rootkit dient dazu, Schadaktivitäten oder Bestandteile im System zu tarnen. Eine Backdoor ist ein versteckter Zugang, der reguläre Kontrollen umgeht. Beides beschreibt unterschiedliche Funktionen.' },
+      { type: 'question', question: 'Welche Zuordnung stimmt?', options: ['Rootkit = Tarnung, Backdoor = versteckter Zugang', 'Rootkit = Backup, Backdoor = Update', 'Beide sind ausschließlich Viren', 'Backdoor = Namensauflösung'], correct: 0, explanation: 'Tarnung und versteckter Zugang sind getrennte Konzepte, können aber kombiniert auftreten.' },
+    ]),
+    explanation('b4-bots-scareware', 'Bots und Scareware', 'classic', [
+      { type: 'text', content: 'Ein Bot führt automatisierte Aufgaben aus; bösartig wird er durch fremde Kontrolle oder schädliche Zwecke. Viele kompromittierte Bots bilden ein Botnetz. Scareware arbeitet mit gefälschten Warnungen, um zu überstürzten Handlungen oder Zahlungen zu verleiten.' },
+      { type: 'question', question: 'Was unterscheidet Bot und Botnetz?', options: ['Ein Botnetz besteht aus vielen kontrollierten Bots', 'Ein Bot ist immer eine Warnmeldung', 'Ein Botnetz ist ein einzelnes Gerät', 'Es gibt keinen Unterschied'], correct: 0, explanation: 'Das Netz entsteht durch das koordinierte Zusammenwirken vieler kompromittierter Geräte.' },
+    ]),
+    explanation('b4-botnet', 'Botnetze', 'visual', [
+      { type: 'diagram', content: botnetSvg },
+      { type: 'text', content: 'Kompromittierte Geräte heißen oft Zombies. Sie erhalten Befehle über Command-and-Control-Strukturen (C&C). Botnetze können unter anderem für DDoS, Spam oder das Hosting gefälschter Phishing-Inhalte missbraucht werden.' },
+      { type: 'question', question: 'Welche Rolle hat C&C in einem Botnetz?', options: ['Koordinierte Steuerung', 'Datensicherung', 'Blitzschutz', 'Patchverwaltung'], correct: 0, explanation: 'Die Steuerungsstruktur verteilt Aufgaben oder Befehle an kompromittierte Geräte.' },
+    ]),
+    explanation('b4-dos-ddos', 'DoS und DDoS', 'classic', [
+      { type: 'text', content: 'DoS zielt primär auf Verfügbarkeit, häufig durch Flooding mit sehr vielen Anfragen. DDoS verteilt die Last auf viele Quellen. Bei DrDoS beziehungsweise Reflection werden Antworten über fremde Systeme zum Ziel gelenkt; dieser Kontext dient nur der begrifflichen Einordnung.' },
+      { type: 'question', question: 'Was ist der zentrale Unterschied bei DDoS?', options: ['Der Angriff ist verteilt', 'Er betrifft nur Vertraulichkeit', 'Er benötigt eine Wirtsdatei', 'Er ist eine gefälschte Webseite'], correct: 0, explanation: 'Viele verteilte Quellen erschweren Abwehr und Zuordnung.' },
+    ]),
+    explanation('b4-infiltration', 'Verteilungsmethoden', 'classic', [
+      { type: 'text', content: 'Schädliche Inhalte können durch gezielte Verteilung gegen einzelne Personen oder Systeme, als breite Massenverteilung oder durch Innentäter eingebracht werden. Innentäter können bewusst handeln oder unbewusst durch Fehler und Täuschung mitwirken.' },
+      { type: 'question', question: 'Ist ein Innentäter immer vorsätzlich?', options: ['Ja', 'Nein, Beteiligung kann bewusst oder unbewusst sein', 'Nur bei Malware', 'Nur bei USB-Sticks'], correct: 1, explanation: 'Auch Irrtum, Fahrlässigkeit oder erfolgreiche Täuschung können einen internen Verteilungsweg öffnen.' },
+    ]),
+    explanation('b4-identitaetsdiebstahl', 'Identitätsdiebstahl', 'classic', [
+      { type: 'text', content: 'Identitätsdiebstahl betrifft nicht nur Passwörter. Zugangsdaten, Fotos, biometrische Merkmale und Kontoinformationen können missbraucht werden. Folgen reichen von Kontenübernahme und Betrug bis zu Rufschädigung und unzulässigen Handlungen im Namen des Opfers.' },
+      { type: 'question', question: 'Welche Information kann Teil einer gestohlenen Identität sein?', options: ['Nur Passwörter', 'Auch Fotos, biometrische Merkmale und Kontoinformationen', 'Nur Gerätenamen', 'Nur öffentliche Uhrzeiten'], correct: 1, explanation: 'Identitäten bestehen aus vielen kombinierbaren Merkmalen.' },
+    ]),
+    explanation('b4-phishing', 'Phishing und Spear-Phishing', 'classic', [
+      { type: 'text', content: 'Phishing lockt mit einer gefälschten Nachricht oder Seite zur Preisgabe von Informationen oder zu einer riskanten Handlung. Spear-Phishing ist gezielt auf eine bestimmte Person oder Gruppe zugeschnitten.' },
+      { type: 'question', question: 'Was macht Spear-Phishing besonders?', options: ['Es ist gezielt personalisiert', 'Es verändert immer DNS', 'Es ist ein Stromausfall', 'Es benötigt ein Botnetz'], correct: 0, explanation: 'Gezielte Informationen erhöhen die Glaubwürdigkeit der Täuschung.' },
+    ]),
+    explanation('b4-spoofing', 'Spoofing', 'classic', [
+      { type: 'text', content: 'Spoofing bedeutet das Vortäuschen einer Identität oder Herkunft. Gefälscht erscheinen können etwa Absenderangaben, IP-Adressen sowie ARP- oder MAC-Informationen. Spoofing kann andere Methoden unterstützen.' },
+      { type: 'question', question: 'Was ist der gemeinsame Kern von Spoofing-Arten?', options: ['Vortäuschen einer Herkunft oder Identität', 'Verschlüsseln von Backups', 'Erhöhen der Verfügbarkeit', 'Installieren von Updates'], correct: 0, explanation: 'Die technische Ausprägung variiert, das Täuschungsprinzip bleibt gleich.' },
+    ]),
+    explanation('b4-pharming', 'Pharming', 'classic', [
+      { type: 'text', content: 'Pharming manipuliert die Namensauflösung, sodass eine korrekt eingegebene Adresse zum falschen Ziel führen kann. Anders als Phishing benötigt es nicht zwingend eine täuschende Nachricht, die zum Anklicken verleitet.' },
+      { type: 'question', question: 'Was grenzt Pharming von Phishing ab?', options: ['Manipulierte Namensauflösung statt primär täuschender Nachricht', 'Pharming ist ein Virus mit Wirt', 'Phishing betrifft nur Strom', 'Es gibt keinen Unterschied'], correct: 0, explanation: 'Pharming verändert den Weg zum Ziel; Phishing täuscht typischerweise über Nachricht oder Webseite.' },
+    ]),
+    explanation('b4-cve', 'CVE defensiv nutzen', 'classic', [
+      { type: 'text', content: 'CVE ist eine standardisierte Kennung für öffentlich bekannte Schwachstellen. Eine CVE ist weder die Schwachstelle selbst noch automatisch ein Exploit. NEXUS nutzt Kennungen, um betroffene Produkte zu identifizieren, Updates zu priorisieren und Risiken nachvollziehbar zu dokumentieren.' },
+      { type: 'question', question: 'Was ist eine CVE?', options: ['Eine standardisierte Schwachstellenkennung', 'Immer ein fertiger Exploit', 'Eine Malware-Familie', 'Ein Botnetz'], correct: 0, explanation: 'Die Kennung schafft eine gemeinsame Referenz für defensive Bewertung und Behebung.' },
+    ]),
+    explanation('b4-sqli-xss', 'SQLi und XSS unterscheiden', 'classic', [
+      { type: 'text', content: 'SQL Injection (SQLi) manipuliert eine Datenbankabfrage über ungeeignete Eingaben. Cross-Site Scripting (XSS) bringt fremden Code in den Browser- und Sitzungskontext eines Nutzers. Beide entstehen durch unsichere Verarbeitung, wirken aber an unterschiedlichen Stellen.' },
+      { type: 'question', question: 'Welche Zuordnung stimmt?', options: ['SQLi: Datenbankabfrage; XSS: Browser-/Session-Kontext', 'SQLi: Strom; XSS: Blitzschutz', 'Beide sind DDoS', 'XSS ist eine CVE-Kennung'], correct: 0, explanation: 'SQLi zielt auf Datenbankinteraktion, XSS auf die Ausführung fremden Codes im Browserkontext.' },
+    ]),
+    explanation('b4-thema1-transfer', 'Transfer: Grundwerte', 'classic', [
+      { type: 'text', content: 'Die Wirkung ordnet Methoden ein: DoS beeinträchtigt primär Verfügbarkeit, Spyware primär Vertraulichkeit und unbefugte Manipulation primär Integrität. Je nach Verlauf können weitere Grundwerte betroffen sein.' },
+      { type: 'question', question: 'Welcher Grundwert ist bei Spyware primär betroffen?', options: ['Vertraulichkeit', 'Verfügbarkeit', 'Nur Authentizität', 'Keiner'], correct: 0, explanation: 'Spyware sammelt Informationen ohne Berechtigung.' },
+    ]),
+    explanation('b4-thema3-transfer', 'Transfer: Lücke, Verstoß, Vorkommnis', 'classic', [
+      { type: 'text', content: 'Eine neu entdeckte Schwachstelle kann eine Informationssicherheitslücke und damit ein Vorkommnis begründen. Die Installation verbotener Software ist ein Verstoß und kann ebenfalls ein Vorkommnis sein. Schaden ist dafür nicht zwingend erforderlich.' },
+      { type: 'question', question: 'Verbotene Software wird blockiert. Bleibt ein Verstoß?', options: ['Ja, die regelwidrige Handlung bleibt bestehen', 'Nein, ohne Schaden nie', 'Nur bei DDoS', 'Nur bei Datenverlust'], correct: 0, explanation: 'Eine Schutzmaßnahme kann Schaden verhindern, hebt die Regelverletzung aber nicht auf.' },
+    ]),
+    explanation('b4-schutzrichtung', 'Schutzrichtung', 'classic', [
+      { type: 'text', content: 'NEXUS setzt auf Defense in Depth: Updates reduzieren bekannte Schwächen, Backups unterstützen Wiederherstellung, Awareness stärkt Menschen, Segmentierung begrenzt Ausbreitung und Least Privilege reduziert mögliche Auswirkungen. Block 5 vertieft die technischen Schutzmaßnahmen.' },
+      { type: 'question', question: 'Warum werden mehrere Maßnahmen kombiniert?', options: ['Damit der Ausfall einer Schutzschicht nicht sofort alle Sicherungen aufhebt', 'Weil Backups alle Angriffe verhindern', 'Weil Updates Awareness ersetzen', 'Weil Least Privilege Rechte erweitert'], correct: 0, explanation: 'Mehrere unabhängige Schutzebenen erhöhen die Widerstandsfähigkeit.' },
+    ]),
+    explanation('b4-zusammenfassung', 'Zusammenfassung und Transfer', 'classic', [
+      { type: 'list', title: 'Wichtige Unterscheidungen', items: ['Bedrohung + passende Schwachstelle → Gefährdung → möglicher Schaden', 'Virus braucht Wirt; Wurm verbreitet sich selbstständig', 'Bot ist ein automatisierter Teilnehmer; Botnetz koordiniert viele kompromittierte Geräte', 'Phishing täuscht über Nachricht/Seite; Pharming manipuliert Namensauflösung', 'CVE ist eine Kennung, kein Exploit', 'SQLi betrifft Datenbankabfragen; XSS den Browser-/Session-Kontext'] },
+      { type: 'question', question: 'Welche Denkfolge verbindet Ursache und Wirkung korrekt?', options: ['Schaden → Bedrohung → Schwachstelle', 'Bedrohung + Schwachstelle → Gefährdung → Schaden', 'CVE → Bot → Backup', 'Phishing → Blitzschutz'], correct: 1, explanation: 'Diese Kette trennt Potenzial, konkrete Gefährdung und eingetretene negative Wirkung.' },
+    ]),
+  ].map((entry) => ({ ...entry, sectionId: entry.id }));
 
-    explanation('b4-malware', 'Malware ist der Oberbegriff', 'classic', [
-      { type: 'text', content: 'Malware ist ein Oberbegriff für Schadsoftware. Schadsoftware kann Eigenschaften mehrerer Kategorien gleichzeitig haben.' },
-      { type: 'table', headers: ['Art', 'Kennzeichen'], rows: [
-        ['Virus', 'Benötigt Wirtsprogramm, verbreitet sich an Dateien anhängend'],
-        ['Wurm', 'Verbreitet sich selbstständig über Netzwerke'],
-        ['Trojaner', 'Tarnt sich als nützliche Software und öffnet eine Hintertür'],
-        ['Spyware', 'Beobachtet Aktivitäten und stiehlt Daten'],
-        ['Keylogger', 'Zeichnet Tastatureingaben auf'],
-        ['Ransomware', 'Verschlüsselt Daten und fordert Lösegeld'],
-        ['Rootkit', 'Versteckt sich tief im System und ist schwer erkennbar'],
-        ['Backdoor', 'Bietet einen geheimen Zugang für Angreifer'],
-      ] },
-    ]),
-
-    explanation('b4-payload', 'Payload richtig einordnen', 'classic', [
-      { type: 'text', content: 'Die Payload ist die eigentlich schädliche Funktion einer Malware. Ein Wurm kann sich beispielsweise selbst verbreiten und dabei Dateien verschlüsseln. Dann handelt es sich um einen Wurm mit einer Ransomware-Payload.' },
-      { type: 'question', question: 'Was ist eine Payload?', options: ['Das Netzwerkprotokoll', 'Der eigentlich schädliche Code', 'Ein Antiviren-Tool', 'Ein Sicherheitsupdate'], correct: 1, explanation: 'Die Payload ist der eigentlich schädliche Teil, der nach dem Eindringen aktiv wird.' },
-    ]),
-
-    explanation('b4-praevention', 'Prävention', 'classic', [
-      { type: 'text', content: 'Defense in Depth setzt mehrere Verteidigungslinien hintereinander. Technische und menschliche Maßnahmen ergänzen sich.' },
-      { type: 'list', title: 'Präventionsmaßnahmen', items: [
-        'Regelmäßige Updates und Patches',
-        'Vorsicht bei Anhängen und Links',
-        'Application Control',
-        'Malware-Schutzsoftware',
-        'Least Privilege',
-        'Backups',
-        'Netzwerksegmentierung',
-        'Awareness-Schulung',
-      ] },
-    ]),
+  const exercises = [
+    { id: 'b4-threat-chain-classify', type: 'matching', question: 'Ordne den Blitz-Fall ein.', pairs: [{ left: 'Blitz', right: 'Bedrohung' }, { left: 'Fehlender Blitzschutz', right: 'Schwachstelle' }, { left: 'Möglicher Stromausfall durch Blitzeinwirkung', right: 'Gefährdung' }, { left: 'NEXUS-Standort ist offline', right: 'Schaden' }], explanation: 'Die Kette führt von der Bedrohung über die passende Schwäche zur konkreten Gefährdung und möglichen Wirkung.' },
+    { id: 'b4-tool-categories', type: 'matching', question: 'Ordne die Beispiele den Werkzeugkategorien zu.', pairs: [{ left: 'Trojaner', right: 'Schadsoftware' }, { left: 'USB-Stick', right: 'Datenträger/Kanäle' }, { left: 'Exploit', right: 'Software' }, { left: 'Botnetz', right: 'Internet-Struktur' }, { left: 'Hardware-Keylogger', right: 'Gerät' }, { left: 'CVE', right: 'angriffsunterstützende Information' }], explanation: 'Die Kategorien trennen schädliche Programme, Übertragungswege, Strukturen, Geräte und Informationen.' },
+    { id: 'b4-malware-matching', type: 'matching', question: 'Ordne das Verhalten dem passenden Typ zu.', pairs: [{ left: 'Benötigt eine Wirtsdatei', right: 'Virus' }, { left: 'Verbreitet sich selbstständig', right: 'Wurm' }, { left: 'Tarnt sich als legitimer Inhalt', right: 'Trojaner' }, { left: 'Zeichnet Tastatureingaben auf', right: 'Keylogger' }, { left: 'Tarnt Schadaktivität', right: 'Rootkit' }, { left: 'Erzeugt gefälschte Warnungen', right: 'Scareware' }], explanation: 'Einzelne Malware kann mehrere Merkmale kombinieren; zugeordnet wird hier das kennzeichnende Verhalten.' },
+    { id: 'b4-phishing-spoofing-pharming', type: 'select-best', question: 'Die NEXUS-Adresse wird korrekt eingegeben, führt wegen manipulierter Namensauflösung aber zu einer Fälschung. Was passt am besten?', options: ['Phishing', 'Spoofing', 'Pharming', 'Ransomware'], correct: 2, explanation: 'Manipulierte Namensauflösung ist das Kennzeichen von Pharming.' },
+    { id: 'b4-insider-nuance', type: 'select-best', question: 'Welche Aussage über Innentäter ist am genauesten?', options: ['Sie handeln immer vorsätzlich', 'Sie können bewusst oder unbewusst beteiligt sein', 'Sie nutzen ausschließlich USB-Sticks', 'Sie verursachen immer Schaden'], correct: 1, explanation: 'Auch Fahrlässigkeit, Irrtum oder Täuschung können einen internen Verteilungsweg bilden.' },
+    { id: 'b4-sqli-vs-xss', type: 'select-best', question: 'Fremder Code wirkt im Browser- und Sitzungskontext eines Nutzers. Welcher Begriff passt?', options: ['SQLi', 'XSS', 'DDoS', 'CVE'], correct: 1, explanation: 'XSS betrifft den Browserkontext; SQLi manipuliert Datenbankabfragen.' },
+    { id: 'b4-attack-goal', type: 'matching', question: 'Ordne die Methode dem primär betroffenen Grundwert zu.', pairs: [{ left: 'DoS', right: 'Verfügbarkeit' }, { left: 'Spyware', right: 'Vertraulichkeit' }, { left: 'Unbefugte Datenmanipulation', right: 'Integrität' }], explanation: 'Weitere Wirkungen sind möglich; gefragt ist der typische primäre Fokus.' },
+    { id: 'b4-distribution', type: 'matching', question: 'Ordne die Verteilungsform dem Beispiel zu.', pairs: [{ left: 'Personalisierte Nachricht an die NEXUS-Leitung', right: 'gezielt' }, { left: 'Gleiche schädliche Nachricht an tausende Adressen', right: 'Massenverteilung' }, { left: 'Mitarbeiter bringt Datei unbewusst ein', right: 'Innentäter' }], explanation: 'Verteilung unterscheidet Zielgruppe und Herkunft; interne Beteiligung muss nicht vorsätzlich sein.' },
+    { id: 'b4-lifecycle-ordering', type: 'ordering', question: 'Bringe den Angriffslifecycle in die richtige Reihenfolge.', items: [{ id: 'ziel', label: 'Ziel' }, { id: 'infos', label: 'Informationen sammeln' }, { id: 'punkt', label: 'Angriffspunkt' }, { id: 'werkzeug', label: 'Werkzeug/Methode' }, { id: 'angriff', label: 'Angriff' }, { id: 'wirkung', label: 'Auswirkung' }], correctOrder: ['ziel', 'infos', 'punkt', 'werkzeug', 'angriff', 'wirkung'], explanation: 'Das Modell zeigt Ansatzpunkte für Schutz und Erkennung, ohne technische Durchführung zu üben.' },
+    { id: 'b4-cve-input', type: 'input', question: 'Welche dreibuchstabige standardisierte Kennung referenziert öffentlich bekannte Schwachstellen?', answers: ['CVE', 'cve'], explanation: 'CVE schafft eine gemeinsame Referenz; die Kennung ist kein Exploit.' },
   ];
 
   const quiz = [
-    { question: 'Malware ist...', options: ['ein spezieller Computervirus', 'ein Oberbegriff für Schadsoftware', 'ein Antivirenprogramm', 'ein Passwortmanager'], correct: 1, explanation: 'Malware umfasst Viren, Würmer, Trojaner und weitere Schadsoftware.' },
-    { question: 'Was unterscheidet einen Wurm von einem Virus?', options: ['Viren benötigen einen Wirt, Würmer verbreiten sich selbst', 'Würmer sind harmlos', 'Viren verbreiten sich immer selbst', 'Es gibt keinen Unterschied'], correct: 0, explanation: 'Viren benötigen ein Wirtsprogramm, Würmer verbreiten sich eigenständig.' },
-    { question: 'Was ist ein Trojaner?', options: ['Offizielle Sicherheitssoftware', 'Schadsoftware in harmloser Tarnung', 'Eine Art Firewall', 'Ein Backup-Verfahren'], correct: 1, explanation: 'Ein Trojaner tarnt sich als nützliche Software und schafft Hintertüren.' },
-    { question: 'Was ist eine Payload?', options: ['Netzwerklast', 'Eigentliche Schadfunktion', 'Sicherheitslücke', 'Verschlüsselungsmethode'], correct: 1, explanation: 'Die Payload ist die eigentliche bösartige Funktion der Malware.' },
-    { question: 'Was bedeutet Defense in Depth?', options: ['Nur eine Firewall', 'Eine Verteidigungslinie', 'Mehrere Sicherheitsmaßnahmen hintereinander', 'Ein einmaliges Training'], correct: 2, explanation: 'Defense in Depth kombiniert mehrere Schutzmaßnahmen in mehreren Ebenen.' },
+    { facet: 'threat-chain', question: 'Wann wird aus einer Bedrohung eine konkrete Gefährdung?', options: ['Wenn sie auf eine passende Schwachstelle trifft', 'Erst nach jedem Schaden', 'Nur bei Malware', 'Sobald sie benannt wird'], correct: 0, explanation: 'Bedrohung und passende Schwachstelle bilden die konkrete Gefährdung.' },
+    { facet: 'malware', question: 'Was unterscheidet Virus und Wurm?', options: ['Der Virus braucht einen Wirt, der Wurm verbreitet sich selbstständig', 'Der Wurm braucht immer einen Wirt', 'Nur der Virus ist Malware', 'Beide sind identisch'], correct: 0, explanation: 'Die Abhängigkeit vom Wirt ist das zentrale Unterscheidungsmerkmal.' },
+    { facet: 'botnet', question: 'Was ist ein Botnetz?', options: ['Ein einzelner automatisierter Task', 'Viele koordinierte kompromittierte Geräte', 'Eine CVE-Liste', 'Ein Backupverbund'], correct: 1, explanation: 'Viele fremdgesteuerte Bots beziehungsweise Zombies bilden das Netz.' },
+    { facet: 'ddos', question: 'Welchen Grundwert greift DDoS primär an?', options: ['Verfügbarkeit', 'Vertraulichkeit', 'Integrität', 'Authentizität'], correct: 0, explanation: 'Die verteilte Überlastung soll einen Dienst unerreichbar machen.' },
+    { facet: 'phishing-pharming', question: 'Welche Aussage trennt Phishing und Pharming korrekt?', options: ['Phishing täuscht typischerweise per Nachricht/Seite; Pharming manipuliert Namensauflösung', 'Beides bezeichnet immer DDoS', 'Pharming benötigt eine Wirtsdatei', 'Phishing ist eine CVE'], correct: 0, explanation: 'Die Täuschungswege unterscheiden sich, auch wenn beide zu gefälschten Zielen führen können.' },
+    { facet: 'cve', question: 'Welche Aussage zu CVE stimmt?', options: ['CVE ist eine standardisierte Kennung, nicht automatisch ein Exploit', 'CVE ist immer Malware', 'CVE ist ein Botnetz', 'CVE ist eine Phishing-Seite'], correct: 0, explanation: 'CVE dient der eindeutigen Referenz und defensiven Priorisierung.' },
+    { facet: 'insider', question: 'Ein Mitarbeiter öffnet nach einer Täuschung unbewusst einen schädlichen Anhang. Wie ist die interne Beteiligung zu bewerten?', options: ['Als möglicher unbewusster Innentäter-Fall', 'Immer als vorsätzlicher Angriff', 'Nie sicherheitsrelevant', 'Als Pharming'], correct: 0, explanation: 'Innentäter können bewusst oder unbewusst zur Verteilung beitragen.' },
+    { facet: 'sqli-xss', question: 'Welche Aussage ist richtig?', options: ['SQLi manipuliert Datenbankabfragen; XSS wirkt im Browser-/Session-Kontext', 'SQLi und XSS sind Botnetze', 'XSS manipuliert ausschließlich Stromversorgung', 'SQLi ist eine CVE-Kennung'], correct: 0, explanation: 'Die Methoden betreffen unterschiedliche Verarbeitungskontexte.' },
   ];
 
   const summary = [
-    'Angriffsarten wie DoS, Phishing und Social Engineering zielen auf unterschiedliche Schutzziele.',
-    'Malware ist ein Oberbegriff für Viren, Würmer, Trojaner, Spyware und mehr.',
-    'Die Payload ist die eigentliche Schadfunktion hinter einer Malware.',
-    'Defense in Depth kombiniert viele Schutzmaßnahmen.',
-    'Technische und menschliche Maßnahmen zusammen erhöhen die Widerstandsfähigkeit.',
+    'Bedrohung und passende Schwachstelle ergeben eine Gefährdung; realisiert sie sich, kann ein Schaden an Vertraulichkeit, Integrität oder Verfügbarkeit entstehen.',
+    'Bedrohungen können aus höherer Gewalt, Vorsatz, Fahrlässigkeit oder technischem Versagen entstehen; Schwachstellen können technisch, organisatorisch oder personell sein.',
+    'Virus, Wurm, Trojaner, Ransomware, Spyware, Keylogger, Rootkit, Backdoor, Bot und Scareware beschreiben unterschiedliche Merkmale und Wirkungen.',
+    'Botnetze koordinieren viele kompromittierte Geräte; DoS und DDoS zielen primär auf Verfügbarkeit.',
+    'Phishing, Spoofing und Pharming nutzen unterschiedliche Formen der Täuschung.',
+    'CVE ist eine standardisierte Schwachstellenkennung und kein Exploit.',
+    'SQLi manipuliert Datenbankabfragen, XSS wirkt im Browser- und Sitzungskontext.',
+    'Defense in Depth verbindet Updates, Backups, Awareness, Segmentierung und Least Privilege.',
   ];
 
-  return { title, explanations, exercises: [], quiz, summary };
+  return { title, explanations, exercises, quiz, summary };
 }
 
 export function buildInformationSecurityTechnicalMeasuresLesson() {
