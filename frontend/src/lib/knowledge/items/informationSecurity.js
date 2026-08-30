@@ -1364,7 +1364,7 @@ export const informationSecurityKnowledgeItems = [
     sourceType: 'academy_course_note',
     verificationStatus: 'verified',
     data: {
-      description: 'Lücke und Verstoß unterscheiden sich, können aber beide ein Vorkommnis begründen.',
+      description: 'Lücke und Verstoß sind unterschiedliche, unabhängige Auslöser; beide können jeweils für sich ein Vorkommnis begründen.',
       items: [
         { name: 'Informationssicherheitslücke', description: 'Gefährdung durch unzureichende Maßnahmen; Schaden muss noch nicht eingetreten sein.' },
         { name: 'Informationssicherheitsverstoß', description: 'Regelwidrige Handlung oder Verdacht auf Grundwertverletzung.' },
