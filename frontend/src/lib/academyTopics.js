@@ -233,17 +233,14 @@ export const ACADEMY_TOPICS = [
   topic('active-directory-virtualbox', 'ad-user-profiles', 'Benutzerprofile', 'Benutzer- und Computerkonten, Profile, Ordnerumleitung, Home-Verzeichnis, UNC und Admin-Tier-Modell.', ['active-directory-virtualbox/ad-foundation']),
   topic('active-directory-virtualbox', 'ad-permissions', 'Berechtigungsverwaltung', 'Gruppen, Gruppenbereiche, A-G-DL-P, A-G-G-P und das Least-Privilege-Prinzip.', ['active-directory-virtualbox/ad-user-profiles']),
   topic('active-directory-virtualbox', 'windows-server', 'Windows Server', 'Grundlegende Bedienung von Windows Server.', ['virtualbox-lab', 'ad-foundation']),
-  topic('active-directory-virtualbox', 'domain', 'Domäne', 'Was eine Windows-Domäne ist und leistet.', ['windows-server', 'ad-foundation']),
-  // Corrected: Linux users/groups are NOT valid prerequisites for Active
-  // Directory (different, unrelated user/group concepts). domain-controller
-  // now only depends on the AD chain itself (windows-server -> domain) plus
-  // the networking fundamentals it actually needs (ipv4, dns). AD's own
-  // users/groups/organizational-units correctly depend on domain-controller
-  // below, without any circular reference back to it.
-  // A neutral, shared "Benutzer- und Gruppenkonzepte" fundamentals topic
-  // could later replace the Linux-specific reference entirely - intentionally
-  // not introduced yet.
-  topic('active-directory-virtualbox', 'domain-controller', 'Domain Controller', 'Rolle und Funktion des Domain Controllers.', ['active-directory-virtualbox/windows-server', 'active-directory-virtualbox/domain', 'fundamentals/ipv4', 'fundamentals/dns']),
+  // Domain builds directly on the AD foundation for the logical-components
+  // block. Windows Server remains a separate topic; the playable chain here
+  // is ad-foundation -> domain -> domain-controller -> organizational-units.
+  topic('active-directory-virtualbox', 'domain', 'Domäne', 'Was eine Windows-Domäne ist und leistet.', ['active-directory-virtualbox/ad-foundation']),
+  // Domain Controller depends on domain (logical understanding) and the
+  // networking fundamentals it actually needs (ipv4, dns). The windows-server
+  // topic stays available as separate, optional preparation.
+  topic('active-directory-virtualbox', 'domain-controller', 'Domain Controller', 'Rolle und Funktion des Domain Controllers.', ['active-directory-virtualbox/domain', 'fundamentals/ipv4', 'fundamentals/dns']),
   topic('active-directory-virtualbox', 'users', 'Benutzer', 'Benutzerkonten in Active Directory anlegen.', ['domain-controller']),
   topic('active-directory-virtualbox', 'groups', 'Gruppen', 'Gruppen in Active Directory verwalten.', ['users']),
   topic('active-directory-virtualbox', 'organizational-units', 'Organisationseinheiten', 'Struktur der Domäne über OUs abbilden.', ['domain-controller']),

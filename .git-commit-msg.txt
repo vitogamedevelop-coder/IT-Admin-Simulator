@@ -1,0 +1,31 @@
+feat: Active Directory logical components block (v1.67.0)
+
+- Add three new Academy lessons under the existing AD topic keys:
+  * domain
+  * organizational-units
+  * domain-controller
+  bundled in frontend/src/lib/academyLessons/adLogicalComponents.js.
+- Each lesson uses the NEXUS-growth gaming entry, classic + intuitive
+  explanation styles, inline comprehension questions, SVG diagrams,
+  3-5 full-pool exercises, and a 6-8 question final quiz.
+- Visuals cover physical vs logical, domain→OU→object hierarchy,
+  domain vs DC, OU vs group, DN tree, and DC redundancy.
+- Add 16 new AD knowledge items for the three topics in
+  frontend/src/lib/knowledge/items/adLogicalComponents.js, covering
+  object hierarchy, OU purpose, domain namespace, DC role, DN components,
+  and the DC/Domain-Component ambiguity.
+- Add conversation topics for domain, OU, and DC with transfer-oriented
+  Sam questions in employeeConversations.js.
+- Update academyTopics.js prerequisites so the playable AD chain is
+  ad-foundation → domain → domain-controller → organizational-units.
+- Extend active-directory-foundation-quality-audit.mjs for 6 AD
+  lessons and add active-directory-logical-components-quality-audit.mjs
+  validating structure, scope, visuals, exercises, quiz, conversations,
+  knowledge links, prerequisite chain, and absence of out-of-scope FSMO/
+  GC/procedure content.
+- No guided-ui production usage yet; guided-ui remains technically wired.
+- No remote release.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

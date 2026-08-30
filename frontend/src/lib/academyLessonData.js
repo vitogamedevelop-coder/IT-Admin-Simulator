@@ -45,6 +45,14 @@ import {
   SECURITY_TECHNICAL_MEASURES_TOPIC_KEY,
 } from './academyLessons/informationSecurity.js';
 import { buildAdFoundationLesson, AD_FOUNDATION_TOPIC_KEY } from './academyLessons/adFoundation.js';
+import {
+  buildAdDomainLesson,
+  buildAdDomainControllerLesson,
+  buildAdOrganizationalUnitsLesson,
+  AD_DOMAIN_TOPIC_KEY,
+  AD_DC_TOPIC_KEY,
+  AD_OU_TOPIC_KEY,
+} from './academyLessons/adLogicalComponents.js';
 import { buildAdUserProfilesLesson, AD_USER_PROFILES_TOPIC_KEY } from './academyLessons/adUserProfiles.js';
 import { buildAdPermissionsLesson, AD_PERMISSIONS_TOPIC_KEY } from './academyLessons/adPermissions.js';
 
@@ -397,6 +405,9 @@ export const LESSONS = {
   [SECURITY_THREATS_MALWARE_TOPIC_KEY]: buildInformationSecurityThreatsMalwareLesson(),
   [SECURITY_TECHNICAL_MEASURES_TOPIC_KEY]: buildInformationSecurityTechnicalMeasuresLesson(),
   [AD_FOUNDATION_TOPIC_KEY]: buildAdFoundationLesson(),
+  [AD_DOMAIN_TOPIC_KEY]: buildAdDomainLesson(),
+  [AD_OU_TOPIC_KEY]: buildAdOrganizationalUnitsLesson(),
+  [AD_DC_TOPIC_KEY]: buildAdDomainControllerLesson(),
   [AD_USER_PROFILES_TOPIC_KEY]: buildAdUserProfilesLesson(),
   [AD_PERMISSIONS_TOPIC_KEY]: buildAdPermissionsLesson(),
 };

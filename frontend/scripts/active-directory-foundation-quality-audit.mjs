@@ -31,13 +31,16 @@ for (const topic of adTopics) {
 
 console.log(`2. Lessons registered: ${withLesson.length}`);
 console.log(`   Placeholder topics: ${withoutLesson.length}`);
-assert.strictEqual(withLesson.length, 3, 'expected 3 AD lessons');
-assert.strictEqual(withoutLesson.length, 15, 'expected 15 AD placeholder topics');
+assert.strictEqual(withLesson.length, 6, 'expected 6 AD lessons');
+assert.strictEqual(withoutLesson.length, 12, 'expected 12 AD placeholder topics');
 
 const expectedLessons = [
   topicKey(CATEGORY, 'ad-foundation'),
   topicKey(CATEGORY, 'ad-user-profiles'),
   topicKey(CATEGORY, 'ad-permissions'),
+  topicKey(CATEGORY, 'domain'),
+  topicKey(CATEGORY, 'organizational-units'),
+  topicKey(CATEGORY, 'domain-controller'),
 ];
 for (const key of expectedLessons) {
   assert(LESSONS[key], `expected lesson ${key}`);

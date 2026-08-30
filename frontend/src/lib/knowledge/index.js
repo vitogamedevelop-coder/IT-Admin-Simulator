@@ -45,6 +45,7 @@ import { informationSecurityKnowledgeItems } from './items/informationSecurity.j
 import { adFoundationKnowledgeItems } from './items/adFoundation.js';
 import { adUserProfilesKnowledgeItems } from './items/adUserProfiles.js';
 import { adPermissionsKnowledgeItems } from './items/adPermissions.js';
+import { adLogicalComponentsKnowledgeItems } from './items/adLogicalComponents.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
@@ -116,6 +117,7 @@ const PILOT_ITEMS = [
   ...CISCO_THEORY_ITEMS,
   ...informationSecurityKnowledgeItems,
   ...adFoundationKnowledgeItems,
+  ...adLogicalComponentsKnowledgeItems,
   ...adUserProfilesKnowledgeItems,
   ...adPermissionsKnowledgeItems,
 ];
