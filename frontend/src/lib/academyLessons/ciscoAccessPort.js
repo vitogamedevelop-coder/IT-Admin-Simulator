@@ -105,6 +105,7 @@ function buildExercises() {
       explanation: 'Ein Port kann keinem VLAN zugewiesen werden, das noch nicht angelegt wurde - das ist die häufigste Fehlerursache.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'access-port-cli-single',
       type: 'cli-input',
       question: 'Konfiguriere FastEthernet0/3 als Access-Port im VLAN 20.',
@@ -113,6 +114,7 @@ function buildExercises() {
       explanation: 'interface wählt den Port, switchport mode access legt den Port-Typ fest, switchport access vlan weist das VLAN zu.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'access-port-cli-range',
       type: 'cli-input',
       question: 'Weise die Ports FastEthernet0/1 bis FastEthernet0/10 gemeinsam dem VLAN 10 zu.',
@@ -129,6 +131,7 @@ function buildExercises() {
       explanation: 'Ein Endgeräte-Port muss "switchport mode access" erhalten und einem VLAN zugewiesen werden, damit das Gerät im richtigen VLAN landet.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'access-port-verify-cli',
       type: 'cli-input',
       question: 'Ein PC an FastEthernet0/8 soll im VLAN 30 sein. Konfiguriere den Port und verifiziere anschließend mit "show vlan brief".',
@@ -153,16 +156,19 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Am Empfang steht ein neuer PC an FastEthernet0/7. Konfiguriere den Port als Access-Port im VLAN 10."',
       expectedLines: ['interface fa0/7', 'switchport mode access', 'switchport access vlan 10'],
       explanation: 'Ein einzelner Access-Port: interface, mode access, vlan-Zuweisung.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Die komplette dritte Etage (Ports FastEthernet0/11 bis 0/20) soll ins VLAN 30. Mach das in einem Zug."',
       expectedLines: ['interface range fa0/11-20', 'switchport mode access', 'switchport access vlan 30'],
       explanation: 'Mit "interface range" konfigurierst du mehrere Ports gleichzeitig, statt jeden einzeln.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir kurz die Switchport-Details von GigabitEthernet0/1."',
       expectedLines: [['show interfaces switchport', 'show int switchport']],
       explanation: '"show interfaces switchport" liefert die Details zum Access-/Trunk-Status eines einzelnen Ports.',

@@ -298,6 +298,7 @@ function buildExercises() {
       explanation: 'Der Befehl "erase startup-config" löscht die gespeicherte Konfiguration im NVRAM; anschließend macht "reload" den Neustart.',
     },
     {
+      startContext: 'Benutzer-Modus (User EXEC)',
       id: 'cli-enable-conf-term',
       type: 'cli-input',
       question: 'Wechsle vom User EXEC in den Global Configuration Mode (nur die nötigen Befehle).',
@@ -305,6 +306,7 @@ function buildExercises() {
       explanation: '"enable" bringt dich in den Privileged EXEC Mode, "configure terminal" (kurz "conf t") in den Global Configuration Mode.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       id: 'cli-save-config',
       type: 'cli-input',
       question: 'Speichere die aktuelle running-config dauerhaft als startup-config.',
@@ -312,6 +314,7 @@ function buildExercises() {
       explanation: '"copy running-config startup-config" (oder "write") überträgt die aktive Konfiguration ins NVRAM.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       id: 'cli-show-running-config',
       type: 'cli-input',
       question: 'Zeige die aktuell laufende Konfiguration an.',
@@ -319,6 +322,7 @@ function buildExercises() {
       explanation: '"show running-config" (kurz "show run") zeigt die aktive Konfiguration im RAM an.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'cli-interface-no-shutdown',
       type: 'cli-input',
       question: 'Das Interface g0/1 ist administrativ deaktiviert. Aktiviere es.',

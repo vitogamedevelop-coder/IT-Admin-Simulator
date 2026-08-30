@@ -167,6 +167,7 @@ function buildExercises() {
       explanation: 'Ohne globales "ip routing" bleibt der Switch beim reinen Layer-2-Verhalten, egal wie viele SVIs konfiguriert sind.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'mls-cli-svi',
       type: 'cli-input',
       question: 'Aktiviere Routing und lege eine SVI für VLAN 30 mit der IP-Adresse 192.168.30.1/24 an.',
@@ -174,6 +175,7 @@ function buildExercises() {
       explanation: 'ip routing aktiviert das globale Routing, danach folgt die SVI-Konfiguration wie bei jeder anderen Schnittstelle.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'mls-routed-port-cli',
       type: 'cli-input',
       question: 'Konfiguriere FastEthernet0/3 als Routed Port mit der IP-Adresse 10.10.10.1/30.',
@@ -249,26 +251,31 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Aktiviere auf dem Multilayer-Switch das Routing und richte die SVI für VLAN 10 mit Gateway 192.168.10.1/24 ein."',
       expectedLines: ['ip routing', 'interface vlan 10', 'ip address 192.168.10.1 255.255.255.0', 'no shutdown'],
       explanation: 'ip routing zuerst, dann SVI anlegen, IP vergeben, aktivieren.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Jetzt noch die SVI für VLAN 20, Gateway 192.168.20.1/24 - "ip routing" ist schon aktiv."',
       expectedLines: ['interface vlan 20', 'ip address 192.168.20.1 255.255.255.0', 'no shutdown'],
       explanation: '"ip routing" muss nur einmal global aktiviert werden, danach reicht pro VLAN die SVI-Konfiguration.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "FastEthernet0/4 soll ein Routed Port für den Uplink zum Core-Router werden. IP 10.0.0.1/30."',
       expectedLines: ['interface fa0/4', 'no switchport', 'ip address 10.0.0.1 255.255.255.252'],
       explanation: 'Mit "no switchport" wird der Port zu einem Layer-3-Port; danach erhält er eine IP-Adresse.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Die SVIs scheinen konfiguriert, aber es gibt kein Inter-VLAN-Routing. Zeig mir die Routing-Tabelle."',
       expectedLines: [['show ip route', 'sh ip route']],
       explanation: '"show ip route" zeigt, ob der Switch überhaupt routet und welche Netze verbunden sind.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir die wichtigsten Interface-Status auf einen Blick: IP, Status, Protocol."',
       expectedLines: [['show ip interface brief', 'sh ip int br']],
       explanation: '"show ip interface brief" listet SVIs, Routed Ports und andere Interfaces kompakt auf.',

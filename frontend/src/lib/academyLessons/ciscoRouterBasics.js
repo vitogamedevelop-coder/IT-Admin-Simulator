@@ -113,6 +113,7 @@ function buildExercises() {
       explanation: 'Longest Prefix Match bevorzugt immer die spezifischere (längere) Subnetzmaske.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'router-if-cli',
       type: 'cli-input',
       question: 'Konfiguriere GigabitEthernet0/1 mit der IP-Adresse 192.168.20.1/24 und aktiviere die Schnittstelle.',
@@ -159,11 +160,13 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Konfiguriere GigabitEthernet0/1 mit der IP-Adresse 192.168.10.1/24 und aktiviere sie."',
       expectedLines: ['interface g0/1', 'ip address 192.168.10.1 255.255.255.0', 'no shutdown'],
       explanation: 'interface, ip address mit Maske, no shutdown - die drei Standardschritte jeder Router-Interface-Konfiguration.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir kurz, welche Interfaces up sind und welche IP-Adresse sie haben."',
       expectedLines: [['show ip interface brief', 'sh ip int br']],
       explanation: '"show ip interface brief" liefert Status und IP-Adresse aller Schnittstellen kompakt auf einen Blick.',

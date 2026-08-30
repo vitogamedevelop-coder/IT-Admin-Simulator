@@ -348,6 +348,7 @@ function buildExercises() {
       explanation: 'Pro Interface, Protokoll und Richtung ist nur eine IPv4-ACL gleichzeitig aktiv.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'acl-cli-standard',
       type: 'cli-input',
       question: 'Erstelle eine Numbered Standard ACL 10, die Host 192.168.10.50 blockiert und allen anderen Verkehr erlaubt.',
@@ -358,6 +359,7 @@ function buildExercises() {
       explanation: 'Deny den Host, dann permit any, sonst greift implicit deny.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'acl-cli-bind',
       type: 'cli-input',
       question: 'Binde ACL 110 am Interface g0/0 in eingehender Richtung an.',
@@ -368,6 +370,7 @@ function buildExercises() {
       explanation: 'ip access-group <ACL> in im Interface-Kontext bindet die ACL eingehend.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'acl-cli-extended',
       type: 'cli-input',
       question: 'Erlaube dem Netz 192.168.10.0/24 HTTP-Zugriff auf Server 10.10.10.10 mit Extended ACL 110.',
@@ -377,6 +380,7 @@ function buildExercises() {
       explanation: 'tcp, Source mit Wildcard, Host als Destination, eq 80 für Port 80.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'acl-cli-vty',
       type: 'cli-input',
       question: 'Nur das Managementnetz 192.168.99.0/24 darf per SSH auf die VTYs zugreifen. ACL 10 ist bereits passend.',
@@ -387,6 +391,7 @@ function buildExercises() {
       explanation: 'An VTY-Lines wird access-class <ACL> in verwendet, nicht ip access-group.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'acl-cli-named',
       type: 'cli-input',
       question: 'Erstelle eine Named Standard ACL namens ADMINS, die 192.168.100.0/24 erlaubt und alles andere blockiert.',
@@ -398,6 +403,7 @@ function buildExercises() {
       explanation: 'Named ACLs werden im ACL-Konfigurationsmodus mit permit/deny-Einträgen erstellt.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'acl-cli-edit',
       type: 'cli-input',
       question: 'Füge in der Named Extended ACL WEB-ACCESS zwischen Sequenz 10 und 20 eine HTTPS-Regel für 192.168.10.0/24 → 10.10.10.10 ein.',
@@ -487,6 +493,7 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Blockiere Host 192.168.10.25 mit Standard ACL 10 und erlaube allen anderen Traffic."',
       expectedLines: [
         'access-list 10 deny host 192.168.10.25',
@@ -495,6 +502,7 @@ function buildCliTasks() {
       explanation: 'Deny vor permit, sonst trifft permit any zuerst.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Erlaube Netz 192.168.10.0/24 HTTP-Zugriff auf Server 10.10.10.10 mit Extended ACL 110."',
       expectedLines: [
         'access-list 110 permit tcp 192.168.10.0 0.0.0.255 host 10.10.10.10 eq 80',
@@ -502,6 +510,7 @@ function buildCliTasks() {
       explanation: 'Extended ACL: tcp, Source mit Wildcard, host als Destination, eq 80.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Binde ACL 110 an g0/0 in eingehender Richtung an."',
       expectedLines: [
         'interface g0/0',
@@ -510,6 +519,7 @@ function buildCliTasks() {
       explanation: 'ip access-group <ACL> in im Interface-Kontext.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Nur das Managementnetz 192.168.99.0/24 darf den Router per SSH administrieren. ACL 10 ist passend."',
       expectedLines: [
         'line vty 0 15',
@@ -518,11 +528,13 @@ function buildCliTasks() {
       explanation: 'An VTY-Lines: access-class, nicht ip access-group.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir alle ACLs mit Match-Zählern an."',
       expectedLines: [['show access-lists', 'sh access-lists']],
       explanation: 'show access-lists zeigt alle ACLs und ihre Regeln.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Füge in die Named Extended ACL WEB-ACCESS eine HTTPS-Regel für 192.168.10.0/24 → 10.10.10.10 zwischen ACE 10 und 20 ein."',
       expectedLines: [
         'ip access-list extended WEB-ACCESS',
@@ -531,6 +543,7 @@ function buildCliTasks() {
       explanation: 'Named ACLs erlauben Einfügen mit Sequenznummern zwischen bestehenden ACEs.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Erstelle eine Named Standard ACL ADMINS, die 192.168.100.0/24 erlaubt und alles andere blockiert."',
       expectedLines: [
         'ip access-list standard ADMINS',
@@ -540,11 +553,13 @@ function buildCliTasks() {
       explanation: 'Named Standard ACL im ACL-Konfigurationsmodus mit permit und deny any.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Prüfe, ob auf g0/0 eine ACL gebunden ist und in welcher Richtung."',
       expectedLines: [['show ip interface g0/0', 'sh ip int g0/0']],
       explanation: '"show ip interface <IF>" zeigt die inbound/outbound gebundenen ACLs.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir alle IPv4-ACLs mit ihren Match-Zählern an."',
       expectedLines: [['show ip access-lists', 'sh ip access-lists']],
       explanation: '"show ip access-lists" listet alle IPv4-ACLs mit Regeln und Match-Zählern.',

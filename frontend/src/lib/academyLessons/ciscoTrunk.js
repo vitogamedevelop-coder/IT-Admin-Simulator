@@ -133,6 +133,7 @@ function buildExercises() {
       explanation: 'Erst die Schnittstelle wählen, dann den Trunk-Modus setzen, danach optional die erlaubten VLANs einschränken.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'trunk-cli-basic',
       type: 'cli-input',
       question: 'Konfiguriere GigabitEthernet0/1 als Trunk-Port.',
@@ -140,6 +141,7 @@ function buildExercises() {
       explanation: 'interface wählt den Port, switchport mode trunk legt den Port-Typ fest.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'trunk-cli-allowed',
       type: 'cli-input',
       question: 'Konfiguriere GigabitEthernet0/2 als Trunk, der nur VLAN 10, 20 und 30 überträgt.',
@@ -148,6 +150,7 @@ function buildExercises() {
       explanation: '"switchport trunk allowed vlan" mit einer kommagetrennten Liste beschränkt den Trunk auf genau diese VLANs.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'trunk-allowed-add-cli',
       type: 'cli-input',
       question: 'Der Trunk an GigabitEthernet0/3 erlaubt bereits VLAN 10 und 20. Füge VLAN 30 zur erlaubten Liste hinzu, ohne die bestehenden VLANs zu entfernen.',
@@ -198,26 +201,31 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Zwischen SW1 und SW2 hängt ein Kabel an GigabitEthernet0/1. Mach daraus einen Trunk."',
       expectedLines: ['interface gi0/1', 'switchport mode trunk'],
       explanation: 'interface + switchport mode trunk reichen für einen einfachen Trunk ohne VLAN-Einschränkung.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Auf dem Trunk an gi0/3 sollen ausschließlich VLAN 10 und VLAN 99 erlaubt sein."',
       expectedLines: ['interface gi0/3', 'switchport mode trunk', 'switchport trunk allowed vlan 10,99'],
       explanation: '"switchport trunk allowed vlan" grenzt den Trunk auf genau die angegebenen VLANs ein.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir kurz alle aktuell konfigurierten Trunk-Ports."',
       expectedLines: [['show interfaces trunk', 'sh int trunk']],
       explanation: '"show interfaces trunk" zeigt alle Trunk-Ports inklusive erlaubter VLANs und Native VLAN.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Der Trunk an gi0/3 erlaubt nur VLAN 10 und 20. VLAN 30 muss zusätzlich erlaubt werden, ohne die bestehenden VLANs zu verlieren."',
       expectedLines: ['interface gi0/3', 'switchport trunk allowed vlan add 30'],
       explanation: 'Mit "add" ergänzt man VLAN 30; ohne "add" würde man die bestehenden VLANs überschreiben.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "VLAN 99 ist auf dem Trunk erlaubt, wird aber als nicht aktiv angezeigt. Was fehlt wahrscheinlich und wie prüfst du es?"',
       expectedLines: [['show vlan brief', 'sh vlan brief']],
       explanation: 'Wenn ein VLAN erlaubt, aber nicht aktiv ist, fehlt es auf dem Switch. "show vlan brief" zeigt, ob es existiert.',

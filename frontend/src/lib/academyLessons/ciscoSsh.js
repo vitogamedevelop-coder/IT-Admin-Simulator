@@ -200,6 +200,7 @@ function buildExercises() {
       explanation: 'Jeder Schritt baut auf dem vorherigen auf - fehlt eine Voraussetzung, schlägt der nächste Schritt fehl.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ssh-grundkonfig-cli',
       type: 'cli-input',
       question: 'Vergib den Hostnamen "Router0" und den Domainnamen "name.ms.hw".',
@@ -207,6 +208,7 @@ function buildExercises() {
       explanation: 'Beide Werte zusammen bilden später den Namen des RSA-Schlüssels.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ssh-user-rsa-cli',
       type: 'cli-input',
       question: 'Lege den lokalen Benutzer "admin" mit dem Passwort "Cisco123!" an (sichere Variante) und erzeuge anschließend das RSA-Schlüsselpaar.',
@@ -214,6 +216,7 @@ function buildExercises() {
       explanation: '"secret" statt "password" speichert das Passwort verschlüsselt. Das RSA-Schlüsselpaar braucht vorher Hostname und Domain Name.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ssh-version-cli',
       type: 'cli-input',
       question: 'Erzwinge auf diesem Gerät ausschließlich SSH Version 2.',
@@ -221,6 +224,7 @@ function buildExercises() {
       explanation: '"ip ssh version 2" deaktiviert die unsichere Version 1.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ssh-vty-cli',
       type: 'cli-input',
       question: 'Erlaube auf den VTY-Lines ausschließlich SSH und verwende die lokale Benutzerdatenbank.',
@@ -228,6 +232,7 @@ function buildExercises() {
       explanation: '"login local" aktiviert die lokale Benutzerdatenbank, "transport input ssh" blockiert Telnet auf denselben Lines.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ssh-management-svi-cli',
       type: 'cli-input',
       question: 'Lege für die Fernwartung eines Layer-2-Switches das Management-VLAN 99 an und konfiguriere die SVI mit der IP-Adresse 192.168.99.100/25.',
@@ -235,6 +240,7 @@ function buildExercises() {
       explanation: 'VLAN anlegen, dann die zugehörige SVI konfigurieren und aktivieren - erst danach ist der Switch über diese IP erreichbar.',
     },
     {
+      startContext: 'Benutzer-Modus (User EXEC)',
       id: 'ssh-client-test-cli',
       type: 'cli-input',
       question: 'Baue von deinem aktuellen Gerät aus eine SSH-Verbindung zu 192.168.100.254 auf, angemeldet als Benutzer "admin".',
@@ -303,41 +309,49 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Konfiguriere Hostname Router0 und Domain name.ms.hw als Vorbereitung für SSH."',
       expectedLines: ['hostname Router0', 'ip domain-name name.ms.hw'],
       explanation: 'Beide Werte werden für den Namen des RSA-Schlüssels benötigt.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Erzeuge jetzt das RSA-Schlüsselpaar und aktiviere ausschließlich SSH Version 2."',
       expectedLines: ['crypto key generate rsa', 'ip ssh version 2'],
       explanation: 'Erst das RSA-Schlüsselpaar, danach die SSH-Version erzwingen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Erlaube auf den VTY-Lines ausschließlich SSH und verwende die lokale Benutzerdatenbank."',
       expectedLines: ['line vty 0 15', 'transport input ssh', 'login local'],
       explanation: 'Reihenfolge von "transport input ssh" und "login local" ist untereinander egal, beide müssen aber unter "line vty 0 15" gesetzt werden.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Ein L2-Switch besitzt keine Management-IP. Was musst du konfigurieren, damit er remote erreichbar wird?"',
       expectedLines: ['vlan 99', 'interface vlan 99', 'ip address 192.168.99.100 255.255.255.128', 'no shutdown'],
       explanation: 'Management-VLAN anlegen, SVI konfigurieren, IP-Adresse vergeben und aktivieren.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir kurz, welche SSH-Version aktiv ist und ob schon jemand verbunden ist."',
       expectedLines: [['show ip ssh', 'sh ip ssh']],
       explanation: '"show ip ssh" zeigt die aktive Version und den Verbindungsstatus.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Prüfe, ob auf dem Gerät ein RSA-Schlüsselpaar existiert."',
       expectedLines: ['show crypto key mypubkey rsa'],
       explanation: '"show crypto key mypubkey rsa" zeigt den öffentlichen RSA-Schlüssel - ein Indikator, dass ein Schlüsselpaar vorhanden ist.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Lösche den alten RSA-Schlüssel, damit du später einen neuen erzeugen kannst."',
       expectedLines: ['crypto key zeroize rsa'],
       explanation: '"crypto key zeroize rsa" entfernt die bestehenden RSA-Schlüssel.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Ein L2-Switch soll aus einem anderen Netz per SSH erreichbar sein. Sein Management-Gateway ist 192.168.99.1."',
       expectedLines: ['ip default-gateway 192.168.99.1'],
       explanation: 'Ein reiner L2-Switch braucht für Erreichbarkeit aus anderen Netzen ein "ip default-gateway".',

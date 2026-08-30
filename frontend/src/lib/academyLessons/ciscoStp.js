@@ -209,6 +209,7 @@ function buildExercises() {
       explanation: 'Die Summe der Path Costs entscheidet: Pfad B kostet 8, Pfad A kostet 19 - Pfad B gewinnt trotz zweier Hops.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'stp-root-primary-cli',
       type: 'cli-input',
       question: 'Konfiguriere Switch 1 für VLAN 10 als primäre Root Bridge.',
@@ -216,6 +217,7 @@ function buildExercises() {
       explanation: 'Der Komfort-Befehl "root primary" senkt die Priority automatisch so weit, dass dieser Switch Root Bridge wird.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'stp-root-secondary-cli',
       type: 'cli-input',
       question: 'Konfiguriere Switch 2 für VLAN 10 als Secondary Root (Backup, falls die primäre Root Bridge ausfällt).',
@@ -223,6 +225,7 @@ function buildExercises() {
       explanation: '"root secondary" setzt eine niedrige, aber nicht die niedrigste Priority.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'stp-priority-cli',
       type: 'cli-input',
       question: 'Setze für VLAN 20 die Priority auf 4096 (statt des Komfort-Befehls "root primary").',
@@ -230,6 +233,7 @@ function buildExercises() {
       explanation: 'Direkte Priority-Vergabe: "spanning-tree vlan <ID> priority <Wert>".',
     },
     {
+      startContext: 'Interface-Konfigurationsmodus',
       id: 'stp-portfast-bpduguard-cli',
       type: 'cli-input',
       question: 'Aktiviere auf dem aktuellen Access-Port (zu einem PC) sowohl PortFast als auch BPDU Guard.',
@@ -237,6 +241,7 @@ function buildExercises() {
       explanation: 'PortFast beschleunigt die Konvergenz, BPDU Guard schützt vor versehentlichen Switch-Loops auf demselben Port.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       id: 'stp-show-cli',
       type: 'cli-input',
       question: 'Zeig dir eine kompakte Übersicht über den Spanning-Tree-Status aller VLANs an.',
@@ -253,6 +258,7 @@ function buildExercises() {
       explanation: 'Rolle (Alternate) beschreibt die Funktion im Spannbaum, Zustand (Blocking) beschreibt den aktuellen Weiterleitungszustand.',
     },
     {
+      startContext: 'Interface-Konfigurationsmodus',
       id: 'stp-err-disabled-recovery-cli',
       type: 'cli-input',
       question: 'Nach Beseitigung der Ursache soll ein wegen BPDU Guard in "err-disabled" befindlicher Port wieder aktiviert werden. Gib die notwendigen Befehle an.',
@@ -307,21 +313,25 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Setze für VLAN 30 die Priority direkt auf 4096, ohne den Komfort-Befehl root primary zu benutzen."',
       expectedLines: ['spanning-tree vlan 30 priority 4096'],
       explanation: 'Direkte Priority-Vergabe: "spanning-tree vlan <ID> priority <Wert>" (nur in 4096er-Schritten gültig).',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Setze Switch 2 für VLAN 20 als Secondary Root."',
       expectedLines: ['spanning-tree vlan 20 root secondary'],
       explanation: 'Secondary Root übernimmt die Root-Rolle automatisch, falls die primäre Root Bridge ausfällt.',
     },
     {
+      startContext: 'Interface-Konfigurationsmodus',
       prompt: 'Sam: "Aktiviere PortFast und BPDU Guard auf diesem Access-Port zu einem PC."',
       expectedLines: ['spanning-tree portfast', 'spanning-tree bpduguard enable'],
       explanation: 'PortFast für schnelle Konvergenz, BPDU Guard als Schutz vor einem versehentlich angeschlossenen Switch.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir kurz, wer aktuell Root Bridge ist und welche Ports blockiert sind."',
       expectedLines: [['show spanning-tree', 'sh spanning-tree']],
       explanation: '"show spanning-tree" zeigt die Root Bridge (Root ID) sowie Rolle und Status jedes Ports (u. a. "Altn"/"BLK" für blockierte Ports).',

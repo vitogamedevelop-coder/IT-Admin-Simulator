@@ -304,6 +304,7 @@ function buildExercises() {
       explanation: 'ACL wählt die zu übersetzenden Adressen, Interfaces werden gekennzeichnet, NAT-Regel verbindet ACL mit Outside-Interface und Overload.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'nat-static-cli',
       type: 'cli-input',
       question: 'Konfiguriere statisches NAT: interner Server 192.168.10.20 soll extern als 203.0.113.20 erscheinen. Markiere g0/0 als inside und g0/1 als outside.',
@@ -317,6 +318,7 @@ function buildExercises() {
       explanation: 'Statisches NAT mit ip nat inside source static <inside-local> <inside-global> und Interface-Kennzeichnungen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'nat-pat-interface-cli',
       type: 'cli-input',
       question: 'Alle Clients aus 192.168.10.0/24 sollen über die WAN-IP von g0/1 ins Internet (PAT).',
@@ -331,6 +333,7 @@ function buildExercises() {
       explanation: 'ACL wählt Inside Sources, overload aktiviert PAT auf dem Outside-Interface g0/1.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'nat-pat-pool-cli',
       type: 'cli-input',
       question: 'Konfiguriere PAT mit NAT-Pool PUBLIC 203.0.113.100 bis 203.0.113.102 für 192.168.10.0/24.',
@@ -346,6 +349,7 @@ function buildExercises() {
       explanation: 'Pool mit netmask, overload am Ende aktiviert PAT über den Pool.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'nat-port-forward-cli',
       type: 'cli-input',
       question: 'Externe Anfragen an 203.0.113.10:8080 sollen an internen Webserver 192.168.10.20:80 weitergeleitet werden (TCP).',
@@ -461,6 +465,7 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Ein interner Server mit 192.168.10.20 soll extern immer unter 203.0.113.20 erreichbar sein. Markiere g0/0 als inside und g0/1 als outside."',
       expectedLines: [
         'ip nat inside source static 192.168.10.20 203.0.113.20',
@@ -472,6 +477,7 @@ function buildCliTasks() {
       explanation: 'Statisches NAT mit fester 1:1-Zuordnung und Interface-Kennzeichnungen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Alle Clients aus 192.168.10.0/24 sollen über die IP des g0/1-Interfaces ins Internet. Verwende PAT."',
       expectedLines: [
         'access-list 1 permit 192.168.10.0 0.0.0.255',
@@ -484,6 +490,7 @@ function buildCliTasks() {
       explanation: 'PAT über Outside-Interface mit overload. ACL wählt Inside Sources.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Verwende stattdessen einen NAT-Pool PUBLIC (203.0.113.100–203.0.113.102) mit PAT für 192.168.10.0/24."',
       expectedLines: [
         'access-list 1 permit 192.168.10.0 0.0.0.255',
@@ -497,6 +504,7 @@ function buildCliTasks() {
       explanation: 'PAT über NAT-Pool: Pool definieren, dann source list ... pool ... overload.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Leite externe Anfragen an 203.0.113.10:8080 an den internen Webserver 192.168.10.20:80 weiter (TCP)."',
       expectedLines: [
         'ip nat inside source static tcp 192.168.10.20 80 203.0.113.10 8080',
@@ -508,16 +516,19 @@ function buildCliTasks() {
       explanation: 'Port Forwarding: tcp, Inside-Local, Local-Port, Inside-Global, Global-Port.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Wie prüfst du die aktuellen NAT-Übersetzungen?"',
       expectedLines: [['show ip nat translations', 'sh ip nat translations']],
       explanation: 'show ip nat translations zeigt alle aktiven Übersetzungen.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Wie prüfst du NAT-Statistiken und Interface-Kennzeichnungen?"',
       expectedLines: [['show ip nat statistics', 'sh ip nat statistics']],
       explanation: 'show ip nat statistics zeigt NAT-Status, inside/outside Interfaces, Hits/Misses.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Clients können nicht ins Internet, obwohl die ACL korrekt ist. Was prüfst du zuerst?"',
       expectedLines: [
         'show ip interface',

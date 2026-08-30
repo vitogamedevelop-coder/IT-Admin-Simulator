@@ -344,6 +344,7 @@ function buildExercises() {
       explanation: 'Zuerst die statische Default Route anlegen, dann OSPF-Prozess, dann default-information originate.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ospf-cli-network',
       type: 'cli-input',
       question: 'Aktiviere OSPF Prozess 1 auf dem Interface g0/0 (IP 10.0.0.5/30) mit der Network-Methode in Area 0.',
@@ -355,6 +356,7 @@ function buildExercises() {
       explanation: '/30 → Wildcard 0.0.0.3. Netzbeginn für 10.0.0.5/30 ist 10.0.0.4.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ospf-cli-interface',
       type: 'cli-input',
       question: 'Aktiviere OSPF Prozess 1 auf den Interfaces g0/0 bis g0/1 mit der Interface-Methode in Area 0.',
@@ -365,6 +367,7 @@ function buildExercises() {
       explanation: 'interface range ermöglicht die Konfiguration mehrerer Interfaces gleichzeitig.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ospf-cli-passive',
       type: 'cli-input',
       question: 'Setze g0/2 im OSPF-Prozess 1 auf passive.',
@@ -375,6 +378,7 @@ function buildExercises() {
       explanation: 'passive-interface wird im OSPF-Prozesskonfigurationsmodus gesetzt.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'ospf-cli-md5-area',
       type: 'cli-input',
       question: 'Konfiguriere auf dem Interface g0/0 die area-basierte MD5-Authentifizierung. Der OSPF-Prozess 1 soll in Area 0 laufen und der Schlüssel lautet ospfkey.',
@@ -472,6 +476,7 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Aktiviere OSPF Prozess 1 auf g0/0 mit der Interface-Methode in Area 0."',
       expectedLines: [
         'interface g0/0',
@@ -480,6 +485,7 @@ function buildCliTasks() {
       explanation: 'ip ospf <Prozess> area <Area> direkt im Interface-Kontext.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Aktiviere OSPF Prozess 1 auf g0/0 und g0/1 mit der Network-Methode in Area 0. g0/0 hat 10.0.0.5/30, g0/1 hat 10.0.1.1/24."',
       expectedLines: [
         'router ospf 1',
@@ -489,6 +495,7 @@ function buildCliTasks() {
       explanation: 'Netzwerk und Wildcard Mask pro Interface bestimmen, welche Interfaces OSPF sprechen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Setze g0/2 im OSPF-Prozess 1 auf passive."',
       expectedLines: [
         'router ospf 1',
@@ -497,6 +504,7 @@ function buildCliTasks() {
       explanation: 'passive-interface wird im OSPF-Router-Kontext gesetzt.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Konfiguriere auf g0/0 die interface-basierte Klartext-Authentifizierung mit dem Schlüssel ospfkey. OSPF-Prozess 1, Area 0."',
       expectedLines: [
         'interface g0/0',
@@ -507,6 +515,7 @@ function buildCliTasks() {
       explanation: 'Interface-basierte Klartext-Auth: ip ospf authentication + ip ospf authentication-key.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Konfiguriere auf g0/0 die interface-basierte MD5-Authentifizierung mit Schlüsselnummer 1 und Schlüssel ospfkey."',
       expectedLines: [
         'interface g0/0',
@@ -517,6 +526,7 @@ function buildCliTasks() {
       explanation: 'Interface-basierte MD5-Auth: ip ospf authentication message-digest + ip ospf message-digest-key.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Verteile die Default Route 0.0.0.0/0 über Next-Hop 10.11.12.14 über OSPF."',
       expectedLines: [
         'ip route 0.0.0.0 0.0.0.0 10.11.12.14',
@@ -526,26 +536,31 @@ function buildCliTasks() {
       explanation: 'Zuerst statische Default Route, dann default-information originate im OSPF-Prozess.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir die OSPF-Nachbarn an."',
       expectedLines: [['show ip ospf neighbor', 'sh ip ospf neighbor']],
       explanation: 'show ip ospf neighbor zeigt alle OSPF-Nachbarn und deren Zustand.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir nur die OSPF-Routen aus der Routingtabelle an."',
       expectedLines: [['show ip route ospf', 'sh ip route ospf']],
       explanation: '"show ip route ospf" filtert die Routingtabelle auf über OSPF gelernte Routen.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Prüfe, auf welchen Interfaces OSPF Prozess 1 Area 0 aktiv ist."',
       expectedLines: [['show ip ospf interface', 'sh ip ospf interface']],
       explanation: '"show ip ospf interface" listet pro Interface den OSPF-Status.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir den OSPF-Prozess, die Router-ID und die konfigurierten Netzwerke an."',
       expectedLines: [['show ip protocols', 'sh ip protocols']],
       explanation: '"show ip protocols" zeigt die laufenden Routing-Protokolle inklusive OSPF.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Starte den OSPF-Prozess neu, damit geänderte Einstellungen wirksam werden."',
       expectedLines: [['clear ip ospf process', 'clear ip ospf process *']],
       explanation: '"clear ip ospf process" startet den OSPF-Prozess neu. Er ändert keine Konfiguration, sondern baut Nachbarschaften neu auf.',

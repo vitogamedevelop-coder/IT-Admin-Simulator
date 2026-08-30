@@ -102,6 +102,7 @@ function buildExercises() {
       explanation: 'Die physische Schnittstelle bleibt IP-los, jedes VLAN bekommt sein Gateway über ein eigenes Subinterface.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'router-on-stick-cli',
       type: 'cli-input',
       question: 'Konfiguriere ein Subinterface für VLAN 30 auf g0/0 mit der Gateway-Adresse 192.168.30.1/24.',
@@ -133,6 +134,7 @@ function buildExercises() {
       explanation: 'Wenn das Subinterface nicht dem richtigen VLAN zugeordnet ist, werden die Frames dem falschen (oder keinem) Netz zugeordnet.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       id: 'roas-verify-cli',
       type: 'cli-input',
       question: 'Du hast Router-on-a-Stick konfiguriert. Zeige alle Interfaces und Subinterfaces mit Status und IP-Adresse an.',
@@ -155,16 +157,19 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "VLAN 10 und VLAN 20 sollen über Router on a Stick auf g0/0 kommunizieren können. Fang mit VLAN 10 an: Gateway 192.168.10.1/24."',
       expectedLines: ['interface g0/0.10', 'encapsulation dot1q 10', 'ip address 192.168.10.1 255.255.255.0'],
       explanation: 'Subinterface für VLAN 10 mit Encapsulation und Gateway-IP.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Jetzt das Subinterface für VLAN 20, Gateway 192.168.20.1/24."',
       expectedLines: ['interface g0/0.20', 'encapsulation dot1q 20', 'ip address 192.168.20.1 255.255.255.0'],
       explanation: 'Gleiches Muster wie bei VLAN 10, nur mit VLAN-ID 20 und der passenden Gateway-Adresse.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Vergiss nicht, die physische Schnittstelle g0/0 selbst zu aktivieren."',
       expectedLines: ['interface g0/0', 'no shutdown'],
       explanation: 'Ohne "no shutdown" auf der physischen Schnittstelle bleiben alle Subinterfaces wirkungslos.',

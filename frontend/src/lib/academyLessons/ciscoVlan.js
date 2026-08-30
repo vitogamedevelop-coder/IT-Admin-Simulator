@@ -149,6 +149,7 @@ function buildExercises() {
       explanation: 'Innerhalb eines VLANs reicht die normale Layer-2-Vermittlung durch den Switch, ein Router wird erst für die Kommunikation zwischen VLANs benötigt.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'vlan-cli-create-10',
       type: 'cli-input',
       question: 'Lege VLAN 10 an und benenne es "Verwaltung".',
@@ -157,6 +158,7 @@ function buildExercises() {
       explanation: 'Mit "vlan 10" legst du das VLAN an, "name Verwaltung" vergibt den Namen, "exit" verlässt den VLAN-Konfigurationsmodus.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'vlan-cli-create-20-30',
       type: 'cli-input',
       question: 'Lege zusätzlich VLAN 20 ("Gaeste") und VLAN 30 ("Produktion") an.',
@@ -189,17 +191,20 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Wir brauchen ein VLAN für die Buchhaltung - VLAN-ID 50, Name Buchhaltung."',
       expectedLines: ['vlan 50', 'name Buchhaltung', 'exit'],
       explanation: 'vlan 50 legt das VLAN an, name Buchhaltung benennt es, exit verlässt den Modus.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir mal kompakt, welche VLANs aktuell existieren."',
       hint: 'Ein einzelner Befehl reicht.',
       expectedLines: [['show vlan brief', 'sh vlan brief']],
       explanation: '"show vlan brief" zeigt VLAN-ID, Name, Status und zugewiesene Ports auf einen Blick.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Lege VLAN 60 mit dem Namen IT an und wechsle danach gleich in den Konfigurationsmodus von VLAN 70, das du IoT nennst."',
       expectedLines: ['vlan 60', 'name IT', 'exit', 'vlan 70', 'name IoT', 'exit'],
       explanation: 'Für jedes VLAN wiederholst du: vlan anlegen, benennen, exit - egal wie viele VLANs du direkt hintereinander anlegst.',

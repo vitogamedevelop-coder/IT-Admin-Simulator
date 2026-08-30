@@ -2,6 +2,7 @@ import { topicKey } from '../academyTopics.js';
 import {
   prefixToSubnetMask,
   getRelevantOctet,
+  getHostOctet,
   calculateJumpSize,
   calculateNetworkId,
   calculateBroadcast,
@@ -121,7 +122,7 @@ function buildExplanations() {
       { type: 'list', title: 'Lösung Schritt für Schritt', items: [
         `Präfix: /${CLASSIC_EXAMPLE.prefix}`,
         `Subnetzmaske: ${prefixToSubnetMask(CLASSIC_EXAMPLE.prefix).decimal}`,
-        `relevantes Oktett: ${getRelevantOctet(CLASSIC_EXAMPLE.prefix) + 1}. Oktett`,
+        `veränderliches Oktett (Hostanteil): ${getHostOctet(CLASSIC_EXAMPLE.prefix) + 1}. Oktett`,
         `Sprungweite: ${calculateJumpSize(CLASSIC_EXAMPLE.prefix)}`,
         `Netz-ID: ${calculateNetworkId(CLASSIC_EXAMPLE.ip, CLASSIC_EXAMPLE.prefix)}`,
         `Broadcast: ${calculateBroadcast(CLASSIC_EXAMPLE.ip, CLASSIC_EXAMPLE.prefix)}`,
@@ -174,9 +175,9 @@ function buildExplanations() {
       ...INTUITIVE_EXAMPLES.flatMap((ex) => [
         { type: 'text', content: `Beispiel: ${ex.ip}/${ex.prefix}` },
         { type: 'list', title: 'Lösung', items: [
-          `${ex.prefix} liegt im ${getRelevantOctet(ex.prefix) + 1}. Oktett`,
+          `Bei /${ex.prefix} liegt das veränderliche Oktett im ${getHostOctet(ex.prefix) + 1}. Oktett`,
           `Sprungweite: ${calculateJumpSize(ex.prefix)}`,
-          `${ex.ip.split('.')[getRelevantOctet(ex.prefix)]} liegt im Block ${getSubnetBlockBounds(ex.ip, ex.prefix).lower} bis ${getSubnetBlockBounds(ex.ip, ex.prefix).upper}`,
+          `${ex.ip.split('.')[getHostOctet(ex.prefix)]} liegt im Block ${getSubnetBlockBounds(ex.ip, ex.prefix).lower} bis ${getSubnetBlockBounds(ex.ip, ex.prefix).upper}`,
           `Netz-ID: ${ex.network}`,
           `Broadcast: ${ex.broadcast}`,
         ] },
@@ -225,9 +226,9 @@ function selectBlockExercise(id, ip, prefix) {
   const correct = calculateNetworkId(ip, prefix);
   const broadcast = calculateBroadcast(ip, prefix);
   const jump = calculateJumpSize(prefix);
-  const relevant = getRelevantOctet(prefix) + 1;
+  const relevant = getHostOctet(prefix) + 1;
   const bounds = getSubnetBlockBounds(ip, prefix);
-  const octetValue = Number(ip.split('.')[getRelevantOctet(prefix)]);
+  const octetValue = Number(ip.split('.')[getHostOctet(prefix)]);
   const distractors = [
     `${calculateNetworkId([ip.split('.')[0], ip.split('.')[1], ip.split('.')[2], ip.split('.')[3] - (octetValue % jump || jump)].join('.'), prefix)} bis ${calculateBroadcast([ip.split('.')[0], ip.split('.')[1], ip.split('.')[2], ip.split('.')[3] - (octetValue % jump || jump)].join('.'), prefix)}`,
   ].filter((d) => d !== `${correct} bis ${broadcast}`);
@@ -299,9 +300,9 @@ function buildExercises() {
   exs.push(inputExercise(
     'relevant-octet-classic',
     'Relevantes Oktett',
-    `Bei ${CLASSIC_EXAMPLE.ip}/${CLASSIC_EXAMPLE.prefix}: Welches Oktett ist relevant? (1-4)`,
-    getRelevantOctet(CLASSIC_EXAMPLE.prefix) + 1,
-    `Das Präfix /${CLASSIC_EXAMPLE.prefix} endet im ${getRelevantOctet(CLASSIC_EXAMPLE.prefix) + 1}. Oktett, weil es zwischen 25 und 32 liegt.`
+    `Bei ${CLASSIC_EXAMPLE.ip}/${CLASSIC_EXAMPLE.prefix}: In welchem Oktett liegt der veränderliche Hostanteil? (1-4)`,
+    getHostOctet(CLASSIC_EXAMPLE.prefix) + 1,
+    `Bei /${CLASSIC_EXAMPLE.prefix} verändert sich der Hostanteil im ${getHostOctet(CLASSIC_EXAMPLE.prefix) + 1}. Oktett.`
   ));
   exs.push(inputExercise(
     'jump-classic',
@@ -376,14 +377,14 @@ function buildExercises() {
       'Netz-ID',
       `Netz-ID von ${m.ip}/${m.prefix}?`,
       calculateNetworkId(m.ip, m.prefix),
-      `Relevantes Oktett: ${getRelevantOctet(m.prefix) + 1}, Sprungweite: ${calculateJumpSize(m.prefix)}.`
+      `veränderliches Oktett: ${getHostOctet(m.prefix) + 1}, Sprungweite: ${calculateJumpSize(m.prefix)}.`
     ));
     exs.push(inputExercise(
       `broadcast-mixed-${idx}`,
       'Broadcast',
       `Broadcast von ${m.ip}/${m.prefix}?`,
       calculateBroadcast(m.ip, m.prefix),
-      `Der Block endet bei ${getSubnetBlockBounds(m.ip, m.prefix).upper} im ${getRelevantOctet(m.prefix) + 1}. Oktett.`
+      `Der Block endet bei ${getSubnetBlockBounds(m.ip, m.prefix).upper} im ${getHostOctet(m.prefix) + 1}. Oktett.`
     ));
     exs.push(inputExercise(
       `first-host-mixed-${idx}`,

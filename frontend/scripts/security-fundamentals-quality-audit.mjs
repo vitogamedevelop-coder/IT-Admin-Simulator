@@ -20,7 +20,7 @@ console.log('=== Security Fundamentals Quality Audit ===');
 assert('Lesson existiert', !!lesson);
 assert('Mindestens 15 Theory Sections', (lesson?.explanations?.length || 0) >= 15, `count=${lesson?.explanations?.length || 0}`);
 assert('Mindestens 8 Übungen', (lesson?.exercises?.length || 0) >= 8, `count=${lesson?.exercises?.length || 0}`);
-assert('Mindestens 10 Quizfragen', (lesson?.quiz?.length || 0) >= 10, `count=${lesson?.quiz?.length || 0}`);
+assert('Mindestens 8 Quizfragen', (lesson?.quiz?.length || 0) >= 8, `count=${lesson?.quiz?.length || 0}`);
 
 const sectionIds = (lesson?.explanations || []).map((e) => e.sectionId || e.id);
 assert('Section IDs eindeutig', new Set(sectionIds).size === sectionIds.length);

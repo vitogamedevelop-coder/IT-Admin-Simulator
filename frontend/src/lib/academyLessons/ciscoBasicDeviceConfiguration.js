@@ -188,6 +188,7 @@ function buildExplanations() {
 function buildExercises() {
   return [
     {
+      startContext: 'Interface-Konfigurationsmodus',
       id: 'basic-no-shutdown-cli',
       type: 'cli-input',
       question: 'Das Interface ist administrativ deaktiviert. Aktiviere es.',
@@ -195,6 +196,7 @@ function buildExercises() {
       explanation: '"no shutdown" hebt die administrative Deaktivierung auf.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-no-domain-lookup-cli',
       type: 'cli-input',
       question: 'Die automatische DNS-Namensauflösung für vertippte Befehle soll deaktiviert werden.',
@@ -202,6 +204,7 @@ function buildExercises() {
       explanation: '"no ip domain-lookup" verhindert den automatischen Auflösungsversuch und damit die Wartezeit bei Tippfehlern.',
     },
     {
+      startContext: 'Interface-Konfigurationsmodus',
       id: 'basic-do-show-run-cli',
       type: 'cli-input',
       question: 'Zeig dir aus dem aktuellen Interface-Konfigurationsmodus heraus die komplette laufende Konfiguration an, ohne den Modus vorher zu verlassen.',
@@ -209,6 +212,7 @@ function buildExercises() {
       explanation: '"do" führt "show running-config" direkt aus, ohne den Konfigurationsmodus verlassen zu müssen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-hostname-cli',
       type: 'cli-input',
       question: 'Ändere den Hostnamen auf SW-Core.',
@@ -216,6 +220,7 @@ function buildExercises() {
       explanation: '"hostname <Name>" setzt den Gerätenamen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-domain-name-cli',
       type: 'cli-input',
       question: 'Setze den Domainnamen auf firma.local.',
@@ -231,6 +236,7 @@ function buildExercises() {
       explanation: '"enable secret" speichert einen Hash - deutlich sicherer als das Klartext-Passwort von "enable password".',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-user-cli',
       type: 'cli-input',
       question: 'Lege den Benutzer admin mit dem Passwort Cisco123! an (sichere Variante).',
@@ -246,6 +252,7 @@ function buildExercises() {
       explanation: '"login local" lässt die Line gegen die lokale Benutzerdatenbank prüfen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-console-password-cli',
       type: 'cli-input',
       question: 'Sichere die Konsole mit einem eigenen Line-Passwort "K0nsole!" ab (ohne lokale Benutzerdatenbank).',
@@ -253,6 +260,7 @@ function buildExercises() {
       explanation: '"password" setzt das Line-Passwort, "login" aktiviert die Abfrage dieses Passworts.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-console-login-local-cli',
       type: 'cli-input',
       question: 'Sichere die Konsole stattdessen so ab, dass sich nur bereits angelegte lokale Benutzer anmelden können.',
@@ -260,6 +268,7 @@ function buildExercises() {
       explanation: '"login local" verwendet die lokale Benutzerdatenbank statt eines einzelnen Line-Passworts.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-password-encryption-cli',
       type: 'cli-input',
       question: 'Verhindere, dass einfache Klartext-Passwörter (z. B. aus "enable password") lesbar in der Konfiguration erscheinen.',
@@ -267,6 +276,7 @@ function buildExercises() {
       explanation: '"service password-encryption" verschleiert einfache Klartext-Passwörter in der Konfigurationsausgabe.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-interface-select-cli',
       type: 'cli-input',
       question: 'Konfiguriere GigabitEthernet0/1.',
@@ -274,6 +284,7 @@ function buildExercises() {
       explanation: 'Die CLI-Engine akzeptiert die übliche Abkürzung "g0/1" für "GigabitEthernet0/1".',
     },
     {
+      startContext: 'Interface-Konfigurationsmodus',
       id: 'basic-ip-address-cli',
       type: 'cli-input',
       question: 'Vergib auf der aktuellen Schnittstelle die IP-Adresse 192.168.50.1 mit der Subnetzmaske 255.255.255.0.',
@@ -281,9 +292,10 @@ function buildExercises() {
       explanation: '"ip address <IP> <Maske>" - beide Werte zusammen, in dieser Reihenfolge.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-interface-down-troubleshoot-cli',
       type: 'cli-input',
-      question: 'Das Interface g0/1 hat die korrekte IP-Adresse 192.168.10.1/24, "show ip interface brief" zeigt aber "administratively down". Behebe das Problem.',
+      question: 'Das Interface g0/1 hat die korrekte IP-Adresse 192.168.10.1/24, "show ip interface brief" zeigt aber "administratively down". Wähle das Interface aus und aktiviere es administrativ.',
       expectedLines: ['interface g0/1', 'no shutdown'],
       explanation: '"administratively down" bedeutet, dass "shutdown" aktiv ist - "no shutdown" behebt es.',
     },
@@ -296,6 +308,7 @@ function buildExercises() {
       explanation: '"show ip interface brief" zeigt IP-Adresse und Status aller Interfaces auf einen Blick.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       id: 'basic-save-cli',
       type: 'cli-input',
       question: 'Du hast die Konfiguration abgeschlossen. Stelle sicher, dass sie einen Neustart überlebt.',
@@ -303,6 +316,7 @@ function buildExercises() {
       explanation: '"copy running-config startup-config" (bzw. "write"/"wr") übernimmt die aktuelle Konfiguration dauerhaft ins NVRAM.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'basic-fabrikneu-scenario-cli',
       type: 'cli-input',
       question: 'Du erhältst einen fabrikneuen Router. Konfiguriere: Hostname R-BER-01, Domain its.bw, lokalen Benutzer admin mit Passwort Cisco123!, Interface g0/0 mit 10.20.30.1/24, aktiviere das Interface und speichere anschließend die Konfiguration dauerhaft.',
@@ -403,26 +417,31 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Konfiguriere auf G0/1 die Adresse 172.16.10.254/24."',
       expectedLines: ['interface g0/1', 'ip address 172.16.10.254 255.255.255.0'],
       explanation: 'Zuerst das Interface auswählen, dann die IP-Adresse mit Maske vergeben.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Speichere die Konfiguration dauerhaft."',
       expectedLines: ['copy running-config startup-config'],
       explanation: '"copy running-config startup-config" (bzw. "write"/"wr") übernimmt die running-config dauerhaft in die startup-config.',
     },
     {
+      startContext: 'Interface-Konfigurationsmodus',
       prompt: 'Sam: "Du hast eine IP-Adresse konfiguriert, aber \'show ip interface brief\' zeigt \'administratively down\'. Behebe das."',
       expectedLines: ['no shutdown'],
       explanation: '"administratively down" heißt: "shutdown" ist aktiv - "no shutdown" hebt das auf.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Zeig mir aus dem aktuellen Konfigurationsmodus heraus die laufende Konfiguration, ohne den Modus zu verlassen."',
       expectedLines: [['do show running-config', 'do show run']],
       explanation: '"do" führt den Befehl direkt aus, ohne vorher "exit" zu benötigen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Fabrikneuer Router: Hostname R-BER-01, Domain its.bw, lokaler Benutzer admin mit Cisco123!, Interface g0/0 mit 10.20.30.1/24 aktivieren, danach speichern."',
       expectedLines: [
         'hostname R-BER-01',

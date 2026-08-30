@@ -309,6 +309,7 @@ function buildExercises() {
       explanation: 'Zuerst ACL, dann Inspection Rule, dann Interface und beide Bindungen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'packetfilter-stateless-config',
       type: 'cli-input',
       question: 'Erlaube aus dem Netz 192.168.10.0/24 HTTP-Zugriff nach draußen mit einer statischen Extended ACL OUTBOUND.',
@@ -320,6 +321,7 @@ function buildExercises() {
       explanation: 'Extended ACL: Protokoll, Source, Wildcard, Destination any, eq 80, deny ip any any.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'packetfilter-bind-interface',
       type: 'cli-input',
       question: 'Binde die ACL OUTBOUND und die Inspection Rule INTERNET an g0/1 in ausgehender Richtung.',
@@ -331,6 +333,7 @@ function buildExercises() {
       explanation: 'Beide Befehle werden im Interface-Kontext mit Richtung out angewendet.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'packetfilter-inspect-rule',
       type: 'cli-input',
       question: 'Erstelle eine Inspection Rule INTERNET, die TCP- und UDP-Sitzungen überwacht.',
@@ -428,6 +431,7 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Erstelle eine Extended ACL OUTBOUND, die 192.168.10.0/24 erlaubt, HTTP (Port 80) ins Internet zu nutzen, und alles andere blockiert."',
       expectedLines: [
         'ip access-list extended OUTBOUND',
@@ -437,6 +441,7 @@ function buildCliTasks() {
       explanation: 'Extended ACL mit Protokoll, Source, Wildcard, Destination any und eq 80.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Erstelle die Inspection Rule INTERNET für TCP und UDP."',
       expectedLines: [
         'ip inspect name INTERNET tcp',
@@ -445,6 +450,7 @@ function buildCliTasks() {
       explanation: 'ip inspect name <NAME> <Protokoll> definiert die zu überwachenden Protokolle.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Binde ACL OUTBOUND und Inspection Rule INTERNET auf g0/1 ausgehend an."',
       expectedLines: [
         'interface g0/1',
@@ -454,16 +460,19 @@ function buildCliTasks() {
       explanation: 'Im Interface-Kontext werden beide Befehle mit Richtung out angewendet.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir die aktuellen Inspection-Sitzungen an."',
       expectedLines: [['show ip inspect sessions', 'sh ip inspect sessions']],
       explanation: 'show ip inspect sessions zeigt aktive, inspizierte Verbindungen.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir die konfigurierten Inspection Rules und deren Interfaces an."',
       expectedLines: [['show ip inspect config', 'sh ip inspect config']],
       explanation: 'show ip inspect config zeigt alle definierten Inspection Rules und deren Bindungen.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Der Rückverkehr aus dem Internet funktioniert nicht, obwohl die ACL ausgehend erlaubt. Was prüfst du zuerst?"',
       expectedLines: [
         'show ip inspect config',
@@ -471,11 +480,13 @@ function buildCliTasks() {
       explanation: 'Mit show ip inspect config prüft man, ob die Inspection Rule auf dem richtigen Interface und in der richtigen Richtung aktiv ist.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir, auf welchen Interfaces SPI in welcher Richtung aktiv ist."',
       expectedLines: [['show ip inspect interfaces', 'sh ip inspect interfaces']],
       explanation: 'show ip inspect interfaces listet die Interfaces mit angewandten Inspection Rules.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeige mir an, ob auf g0/1 eine ACL und eine Inspection Rule gebunden sind."',
       expectedLines: [['show ip interface g0/1', 'sh ip int g0/1']],
       explanation: 'show ip interface zeigt inbound/outbound ACLs und Inspection Rules auf einem Interface.',

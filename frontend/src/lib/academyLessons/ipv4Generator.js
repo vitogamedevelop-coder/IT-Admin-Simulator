@@ -5,7 +5,7 @@
 // ============================================================================
 import {
   prefixToSubnetMask,
-  getRelevantOctet,
+  getHostOctet,
   calculateJumpSize,
   calculateTotalAddresses,
   calculateUsableHosts,
@@ -261,13 +261,13 @@ function generateMediumQuestion() {
     }
     case 'relevantOctet': {
       const prefix = randomInt(9, 30);
-      const octet = getRelevantOctet(prefix) + 1;
+      const octet = getHostOctet(prefix) + 1;
       return {
-        question: `Bei /${prefix} – welches Oktett ist relevant? (1–4)`,
+        question: `Bei /${prefix} – in welchem Oktett liegt der veränderliche Hostanteil? (1–4)`,
         type: 'input',
         answer: String(octet),
         tipCategory: 'relevantOctet',
-        explanation: `/${prefix} liegt im ${octet}. Oktett.`,
+        explanation: `Bei /${prefix} verändert sich der Hostanteil im ${octet}. Oktett.`,
       };
     }
     case 'jumpSize': {
@@ -300,7 +300,7 @@ function generateHardQuestion() {
         type: 'input',
         answer: problem.network,
         tipCategory: 'networkId',
-        explanation: `Sprungweite ${calculateJumpSize(problem.prefix)} im ${getRelevantOctet(problem.prefix) + 1}. Oktett → Netz-ID ${problem.network}.`,
+        explanation: `Sprungweite ${calculateJumpSize(problem.prefix)} im ${getHostOctet(problem.prefix) + 1}. Oktett → Netz-ID ${problem.network}.`,
       };
     case 'broadcast':
       return {
@@ -352,11 +352,11 @@ function generateHardQuestion() {
     case 'prefixFromContext': {
       const jump = calculateJumpSize(problem.prefix);
       return {
-        question: `Ein Netz hat die Sprungweite ${jump} im ${getRelevantOctet(problem.prefix) + 1}. Oktett. Welcher Präfix ist das?`,
+        question: `Ein Netz hat die Sprungweite ${jump} im ${getHostOctet(problem.prefix) + 1}. Oktett. Welcher Präfix ist das?`,
         type: 'input',
         answer: String(problem.prefix),
         tipCategory: 'prefix',
-        explanation: `Sprungweite ${jump} im ${getRelevantOctet(problem.prefix) + 1}. Oktett = /${problem.prefix}.`,
+        explanation: `Sprungweite ${jump} im ${getHostOctet(problem.prefix) + 1}. Oktett = /${problem.prefix}.`,
       };
     }
     default:
@@ -436,11 +436,11 @@ export function generateSubnettingQuestion(difficulty) {
         };
       case 'relevantOctet':
         return {
-          question: `Welches Oktett ist bei /${problem.prefix} relevant? (1–4)`,
+          question: `In welchem Oktett liegt bei /${problem.prefix} der veränderliche Hostanteil? (1–4)`,
           type: 'input',
-          answer: String(getRelevantOctet(problem.prefix) + 1),
+          answer: String(getHostOctet(problem.prefix) + 1),
           tipCategory: 'relevantOctet',
-          explanation: `/${problem.prefix} liegt im ${getRelevantOctet(problem.prefix) + 1}. Oktett.`,
+          explanation: `Bei /${problem.prefix} verändert sich der Hostanteil im ${getHostOctet(problem.prefix) + 1}. Oktett.`,
         };
       case 'networkIdSimple':
         return {
@@ -503,7 +503,7 @@ export function generateSubnettingQuestion(difficulty) {
     case 'suffix':
       return { question: `Wie viele Hostbits hat /${problem.prefix}?`, type: 'input', answer: String(32 - problem.prefix), tipCategory: 'prefix', explanation: `32 - ${problem.prefix} = ${32 - problem.prefix} Hostbits.` };
     case 'prefix':
-      return { question: `Sprungweite ${calculateJumpSize(problem.prefix)} im ${getRelevantOctet(problem.prefix) + 1}. Oktett – welcher Präfix?`, type: 'input', answer: String(problem.prefix), tipCategory: 'prefix', explanation: `/${problem.prefix}.` };
+      return { question: `Sprungweite ${calculateJumpSize(problem.prefix)} im ${getHostOctet(problem.prefix) + 1}. Oktett – welcher Präfix?`, type: 'input', answer: String(problem.prefix), tipCategory: 'prefix', explanation: `/${problem.prefix}.` };
     case 'hosts':
       return { question: `Nutzbare Hosts bei /${problem.prefix}?`, type: 'input', answer: String(calculateUsableHosts(problem.prefix)), tipCategory: 'hosts', explanation: `${calculateUsableHosts(problem.prefix)} Hosts.` };
     case 'jumpSize':

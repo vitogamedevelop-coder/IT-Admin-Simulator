@@ -93,6 +93,7 @@ function buildExercises() {
       explanation: 'Wenn VLAN 20 nicht in der "allowed vlan"-Liste des Trunks steht, kommt der Verkehr nicht durch.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       id: 'troubleshooting-cli-1',
       type: 'cli-input',
       question: 'Sam: "Ein Router soll ein entferntes Netz erreichen, tut es aber nicht. Prüfe zuerst die Routing-Tabelle."',
@@ -100,6 +101,7 @@ function buildExercises() {
       explanation: '"show ip route" zeigt, ob überhaupt eine passende Route zum Zielnetz existiert.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       id: 'troubleshooting-cli-2',
       type: 'cli-input',
       question: 'Sam: "Wir wissen die MAC-Adresse eines Geräts, aber nicht an welchem Port es hängt. Finde es heraus."',
@@ -122,16 +124,19 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Ein Kollege sagt, VLAN 30 kommt nicht über die Trunk-Verbindung an. Prüfe, welche VLANs der Trunk überhaupt erlaubt."',
       expectedLines: [['show interfaces trunk', 'sh int trunk']],
       explanation: '"show interfaces trunk" zeigt die erlaubten VLANs pro Trunk-Port.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Ein PC an fa0/12 hat keine Verbindung. Prüfe zuerst den grundsätzlichen Interface-Status."',
       expectedLines: [['show ip interface brief', 'sh ip int br']],
       explanation: '"show ip interface brief" ist der schnellste erste Diagnoseschritt.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir, welcher Port aktuell welchem VLAN zugewiesen ist - ich vermute einen Konfigurationsfehler."',
       expectedLines: [['show vlan brief', 'sh vlan brief']],
       explanation: '"show vlan brief" zeigt kompakt alle VLANs mit ihren zugewiesenen Ports.',

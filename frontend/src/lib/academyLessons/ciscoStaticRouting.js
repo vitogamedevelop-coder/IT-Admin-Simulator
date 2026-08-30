@@ -101,6 +101,7 @@ function buildExercises() {
       explanation: '"ip route" erwartet Zielnetz, Subnetzmaske (nicht Präfixlänge) und Next Hop.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'static-route-cli',
       type: 'cli-input',
       question: 'Trage eine statische Route zu 192.168.40.0/24 über den nächsten Router 10.10.10.2 ein.',
@@ -108,6 +109,7 @@ function buildExercises() {
       explanation: 'Zielnetz, Subnetzmaske und Next Hop in genau dieser Reihenfolge.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'default-route-cli',
       type: 'cli-input',
       question: 'Trage eine Default Route ins Internet über den nächsten Router 203.0.113.1 ein.',
@@ -155,16 +157,19 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Trage eine Route zu 192.168.50.0/24 über den nächsten Router 10.0.0.2 ein."',
       expectedLines: ['ip route 192.168.50.0 255.255.255.0 10.0.0.2'],
       explanation: 'Zielnetz, Maske, Next Hop - in dieser Reihenfolge.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Richte eine Default Route über den Internet-Router 198.51.100.1 ein."',
       expectedLines: ['ip route 0.0.0.0 0.0.0.0 198.51.100.1'],
       explanation: 'Default Route: Zielnetz und Maske sind beide 0.0.0.0.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir kurz die aktuelle Routing-Tabelle."',
       expectedLines: [['show ip route', 'sh ip route']],
       explanation: '"show ip route" zeigt alle bekannten Routen mit ihrer Quelle (C, S, O, ...).',

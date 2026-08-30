@@ -27,6 +27,7 @@ import {
   checkAnswer, getRandomTip, DIFFICULTY_NAMES, DIFFICULTY_LABELS,
 } from '../lib/academyLessons/ipv4Generator';
 import { selectFinalQuiz } from '../lib/academyLessonData';
+import { selectDirectTheoryExercises } from '../lib/lessonExerciseSelector';
 
 const STYLE_SEQUENCE = ['classic', 'intuitive', 'example', 'visual', 'mnemonic'];
 
@@ -115,6 +116,9 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
   const [finished, setFinished] = useState(false);
   // Final quiz is a stable, facet-diverse subset of the full quiz pool.
   const finalQuiz = useMemo(() => selectFinalQuiz(lesson.quiz || [], lesson.finalQuizCount), [lesson.quiz, lesson.finalQuizCount]);
+  // Direct theory exercises: a compact, type-diverse subset of the full pool.
+  // The full pool is still available in practice / Fachgespräch / adaptive drills.
+  const directExercises = useMemo(() => selectDirectTheoryExercises(lesson.exercises || [], `${categoryId}/${topicId}`), [lesson.exercises, categoryId, topicId]);
   // Comprehension check shown after every theory section (see
   // findSectionCheckQuestion below): either a real question reused from
   // that section's own content, or - if the section has none - a short
@@ -196,7 +200,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
       setCurrentSectionIndex((i) => i + 1);
       setPhase('explanation');
     } else {
-      const hasExercises = (lesson.exercises || []).length > 0;
+      const hasExercises = directExercises.length > 0;
       setPhase(hasExercises ? 'exercises' : 'quiz');
     }
   }
@@ -399,7 +403,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
   }
 
   if (phase === 'exercises') {
-    const allDone = (lesson.exercises || []).every((_, i) => completedExercises[`ex-${i}`] || completedExercises[lesson.exercises[i].id]);
+    const allDone = directExercises.every((_, i) => completedExercises[`ex-${i}`] || completedExercises[directExercises[i].id]);
     return (
       <div className="flex flex-col gap-4">
         <div className="cyber-card p-4">
@@ -412,7 +416,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          {(lesson.exercises || []).map((ex, i) => renderExercise(ex, i))}
+          {directExercises.map((ex, i) => renderExercise(ex, i))}
         </div>
         {allDone && (
           <button onClick={() => setPhase('quiz')} className="cyber-btn w-full py-2 text-sm">
@@ -890,13 +894,18 @@ function CliInputExercise({ exercise, index, onComplete }) {
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – CLI-Eingabe</div>
       <p className="text-sm text-white font-bold mt-1">{exercise.question}</p>
+      {exercise.startContext && (
+        <div className="mt-1 inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20">
+          Aktueller Modus: {exercise.startContext}
+        </div>
+      )}
       {exercise.hint && <p className="text-xs text-[#8b949e] mt-1">{exercise.hint}</p>}
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={done && result?.allCorrect}
         rows={Math.max(3, exercise.expectedLines.length)}
-        placeholder={'Switch(config)# ...\nEinen Befehl pro Zeile eingeben'}
+        placeholder={'Einen Befehl pro Zeile eingeben'}
         spellCheck={false}
         className="w-full mt-3 p-2 rounded-lg bg-[#0a1628] border border-[#00f0ff]/30 text-sm text-[#c9d1d9] placeholder-[#8b949e] font-mono focus:outline-none focus:border-[#00f0ff]"
       />
@@ -1967,6 +1976,11 @@ function CliTaskCard({ task, answered, onAnswer, onNext, showQuestion = true }) 
   return (
     <div className="cyber-card p-4">
       {showQuestion && <p className="text-sm text-white font-bold">{task.question}</p>}
+      {task.startContext && (
+        <div className="mt-1 inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20">
+          Aktueller Modus: {task.startContext}
+        </div>
+      )}
       {task.hint && <p className="text-xs text-[#8b949e] mt-1">{task.hint}</p>}
       {answered === undefined ? (
         <>

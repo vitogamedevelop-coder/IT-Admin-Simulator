@@ -73,6 +73,18 @@ export function getRelevantOctet(prefix) {
   return 3;
 }
 
+export function getHostOctet(prefix) {
+  const p = Number(prefix);
+  if (!Number.isInteger(p) || p < 0 || p > 32) {
+    throw new Error(`Prefix must be between 0 and 32, got ${prefix}`);
+  }
+  if (p === 0) return 0;
+  if (p < 8) return 0;
+  if (p < 16) return 1;
+  if (p < 24) return 2;
+  return 3;
+}
+
 export function getNetworkBitsInRelevantOctet(prefix) {
   const p = Number(prefix);
   if (!Number.isInteger(p) || p < 0 || p > 32) {
@@ -283,7 +295,7 @@ export function calculateJumpSize(prefix) {
 export function getSubnetBlockBounds(ip, prefix) {
   const network = calculateNetworkId(ip, prefix);
   const broadcast = calculateBroadcast(ip, prefix);
-  const relevantOctet = getRelevantOctet(prefix);
+  const relevantOctet = getHostOctet(prefix);
   const networkOctets = network.split('.').map(Number);
   const broadcastOctets = broadcast.split('.').map(Number);
   return {
@@ -331,6 +343,7 @@ export function generateSubnetProblem({ prefixMin = 16, prefixMax = 30, allowPri
     usable: calculateUsableHosts(prefix),
     jump: calculateJumpSize(prefix),
     relevantOctet: getRelevantOctet(prefix),
+    hostOctet: getHostOctet(prefix),
   };
 }
 

@@ -204,6 +204,7 @@ function buildExercises() {
       explanation: 'Helper-Ziel und Pool-Gateway sind unterschiedliche IP-Adressen in unterschiedlichen Netzen und dürfen nicht verwechselt werden.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'dhcp-physisch-cli',
       type: 'cli-input',
       question: 'Konfiguriere fa0/0 mit der Gateway-IP 192.168.10.1/24 und richte den DHCP Relay zum Server 172.16.0.10 ein.',
@@ -211,6 +212,7 @@ function buildExercises() {
       explanation: 'Der Helper gehört auf das Gateway-Interface des Client-Netzes - hier das physische Interface fa0/0.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'dhcp-subinterface-cli',
       type: 'cli-input',
       question: 'Router on a Stick: Konfiguriere das Subinterface fa0/0.100 für VLAN 100 (Clients) mit Gateway 192.168.100.1/24 und DHCP Relay zum Server 172.16.0.10.',
@@ -218,6 +220,7 @@ function buildExercises() {
       explanation: 'Der Helper gehört auf das Subinterface DES Client-VLANs - nicht auf das physische Hauptinterface und nicht auf andere Subinterfaces ohne DHCP-Clients.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'dhcp-svi-cli',
       type: 'cli-input',
       question: 'Multilayer-Switch: Konfiguriere die SVI für VLAN 100 mit Gateway 192.168.100.1/24 und DHCP Relay zum Server 172.16.0.10.',
@@ -233,6 +236,7 @@ function buildExercises() {
       explanation: 'Der Helper gehört auf jedes Gateway-Interface mit tatsächlichen DHCP-Clients - hier VLAN 10 und VLAN 30, aber nicht VLAN 20 (Server mit statischen IPs).',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       id: 'dhcp-troubleshooting-svi-cli',
       type: 'cli-input',
       question: 'Der Helper "ip helper-address 172.16.0.10" steht fälschlich auf "interface vlan 20" (Server-VLAN) statt auf "interface vlan 10" (Client-VLAN). Entferne den falschen Eintrag auf VLAN 20 und setze ihn korrekt auf VLAN 10.',
@@ -301,36 +305,43 @@ function buildQuiz() {
 function buildCliTasks() {
   return [
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Prüfe zuerst, ob das Gateway-Interface des Clientnetzes überhaupt aktiv ist, bevor wir uns um DHCP kümmern."',
       expectedLines: [['show ip interface brief', 'sh ip int br']],
       explanation: 'Ein down-Interface leitet auch keine DHCP-Broadcasts weiter - deshalb zuerst den grundsätzlichen Interface-Status prüfen.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Auf dem physischen Interface fa0/0 hängt das Clientnetz 192.168.20.0/24, Gateway 192.168.20.1. Der DHCP-Server ist unter 172.16.0.10 erreichbar. Richte den Relay ein."',
       expectedLines: ['interface fa0/0', 'ip helper-address 172.16.0.10'],
       explanation: 'Der Helper gehört auf das Gateway-Interface des Client-Netzes und zeigt auf die DHCP-Server-IP.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Bei Router on a Stick liegt VLAN 100 auf Subinterface fa0/0.100 - dort stehen die DHCP-Clients. Der Server ist 172.16.0.10. Konfiguriere den Relay auf dem richtigen Subinterface."',
       expectedLines: ['interface fa0/0.100', 'ip helper-address 172.16.0.10'],
       explanation: 'Nur das Subinterface des Client-VLANs braucht den Helper.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Auf dem Multilayer-Switch ist VLAN 30 das Client-VLAN mit SVI interface vlan 30. Server: 172.16.0.10. Konfiguriere den Relay."',
       expectedLines: ['interface vlan 30', 'ip helper-address 172.16.0.10'],
       explanation: 'Die SVI des Client-VLANs ist auch hier die richtige Stelle für den Helper.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Zeig mir kurz, auf welchen Interfaces aktuell überall ein DHCP-Helper konfiguriert ist."',
       expectedLines: [['show running-config | include helper', 'sh run | include helper']],
       explanation: '"show running-config | include helper" filtert die laufende Konfiguration direkt auf alle "ip helper-address"-Zeilen.',
     },
     {
+      startContext: 'Privilegierter Modus (Privileged EXEC)',
       prompt: 'Sam: "Prüfe am Interface fa0/0, ob dort ein Helper eingetragen ist und auf welche IP er zeigt."',
       expectedLines: [['show ip interface fa0/0', 'sh ip int fa0/0']],
       explanation: '"show ip interface <IF>" zeigt unter anderem die konfigurierte Helper-Adresse für dieses Interface.',
     },
     {
+      startContext: 'Globaler Konfigurationsmodus',
       prompt: 'Sam: "Für Redundanz sollen auf diesem Interface zwei DHCP-Server als Helper eingetragen werden: 10.0.0.2 und 10.0.0.3."',
       expectedLines: ['interface fa0/0', 'ip helper-address 10.0.0.2', 'ip helper-address 10.0.0.3'],
       explanation: 'Mehrere "ip helper-address"-Einträge auf demselben Interface leiten DHCP-Anfragen redundant an mehrere Server weiter.',
