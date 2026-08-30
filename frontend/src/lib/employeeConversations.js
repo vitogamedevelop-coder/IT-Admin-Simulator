@@ -1753,4 +1753,27 @@ export const CONVERSATION_TOPICS = {
       { id: 'stp-conv-9', difficulty: 'hard', text: 'Was ist der Unterschied zwischen Root ID und Bridge ID in "show spanning-tree"?', options: ['Keiner', 'Root ID beschreibt die Root Bridge, Bridge ID beschreibt den aktuellen Switch', 'Root ID ist die MAC-Adresse, Bridge ID die Priority', 'Bridge ID gehört immer zur Root Bridge'], correct: 1, explanation: 'Root ID zeigt Informationen über die gewählte Root Bridge, Bridge ID beschreibt den eigenen Switch.' },
     ],
   },
+
+  [topicKey('active-directory-virtualbox', 'ad-foundation')]: {
+    title: 'Active Directory – Grundlagen',
+    relatedTopics: [],
+    introPool: [
+      'Wir überlegen, ob wir unsere Arbeitsplätze zentral verwalten sollen. Was spricht dafür?',
+      'Ein Praktikant fragt, warum lokale Konten nicht einfach auf jedem PC bleiben können. Wie erklärst du das?',
+      'Was unterscheidet eigentlich ein Objekt von einem Attribut in einem Verzeichnis?',
+    ],
+    samHelp: 'Ein Verzeichnisdienst hält Netzwerkobjekte und ihre Eigenschaften zentral. Objekte sind verwaltete Einheiten wie Benutzer oder Computer, Attribute beschreiben sie. Active Directory Domain Services ist der Windows-Verzeichnisdienst. DNS findet Dienste, Kerberos authentifiziert mit Tickets, LDAP ist ein standardisiertes Verzeichnisprotokoll. SMB transportiert Netzwerkzugriff, NTFS regelt Dateisystemrechte.',
+    questions: [
+      { id: 'ad-found-conv-1', difficulty: 'easy', text: 'Warum sind reine lokale Benutzerkonten bei vielen Arbeitsplatz-PCs unpraktisch?', options: ['Weil sie automatisch ungültig werden', 'Weil sie an jedem Gerät separat verwaltet werden müssen', 'Weil sie keine Passwörter haben', 'Weil sie zentrale Ressourcen verwalten'], correct: 1, explanation: 'Lokale Konten sind nur auf dem jeweiligen Rechner gültig. Bei vielen Geräten entsteht hoher Verwaltungsaufwand.' },
+      { id: 'ad-found-conv-2', difficulty: 'medium', text: 'Was ist der entscheidende Unterschied zwischen einem Objekt und einem Attribut?', options: ['Ein Objekt beschreibt eine Eigenschaft', 'Ein Objekt ist die verwaltete Einheit; ein Attribut beschreibt eine Eigenschaft', 'Attribute sind Objekte', 'Ein Objekt ist immer ein Computer'], correct: 1, explanation: 'Ein Objekt ist eine verwaltete Einheit wie ein Benutzer. Attribute sind Eigenschaften dieses Objekts.' },
+      { id: 'ad-found-conv-3', difficulty: 'medium', text: 'Was definiert das Schema eines Verzeichnisdienstes?', options: ['Alle Passwörter', 'Welche Objektarten und Attribute erlaubt sind', 'Das Netzwerkkabel', 'Den Backup-Zeitpunkt'], correct: 1, explanation: 'Das Schema legt die erlaubten Objektarten und Attribute fest.' },
+      { id: 'ad-found-conv-4', difficulty: 'medium', text: 'Warum braucht AD DS DNS?', options: ['DNS speichert die Benutzerkonten', 'DNS hilft Clients, passende Domain Controller und Dienste zu finden', 'DNS ersetzt die zentrale Benutzerverwaltung', 'DNS ist nur für Webseiten zuständig'], correct: 1, explanation: 'DNS ist die Dienst-Lokalisierungsinfrastruktur für AD.' },
+      { id: 'ad-found-conv-5', difficulty: 'medium', text: 'Welche Rolle spielt Kerberos in einer AD-Domäne?', options: ['Dateisystemberechtigungen', 'Ticket-basierte Authentifizierung und Single Sign-On', 'Netzwerkdruck', 'DNS-Auflösung'], correct: 1, explanation: 'Kerberos authentifiziert Benutzer und stellt Tickets aus.' },
+      { id: 'ad-found-conv-6', difficulty: 'hard', text: 'Ein Benutzer meldet sich erfolgreich an, darf aber einen Ordner nicht öffnen. Welcher Unterschied liegt vor?', options: ['Authentifizierung gescheitert, Autorisierung gelungen', 'Authentifizierung gelungen, Autorisierung fehlt', 'Autorisierung gescheitert, Authentifizierung fehlt', 'Delegation fehlt'], correct: 1, explanation: 'Authentifizierung prüft die Identität, Autorisierung die Berechtigung.' },
+      { id: 'ad-found-conv-7', difficulty: 'hard', text: 'Was unterscheidet SMB und NTFS?', options: ['SMB ist ein Dateisystem, NTFS ein Netzwerkprotokoll', 'SMB ermöglicht Netzwerkzugriff, NTFS regelt Dateisystemrechte', 'Beide regeln nur Netzwerkzugriff', 'Beide sind identisch'], correct: 1, explanation: 'SMB ist ein Netzwerkprotokoll für Freigaben, NTFS das lokale Dateisystem mit seinen Berechtigungen.' },
+      { id: 'ad-found-conv-8', difficulty: 'hard', text: 'Was ist LDAP im Verhältnis zu Active Directory?', options: ['LDAP ist ein Protokoll, Active Directory ist ein Verzeichnisdienst', 'LDAP ist ein Microsoft-Produkt', 'LDAP ist ein Dateisystem', 'LDAP ist gleich Active Directory'], correct: 0, explanation: 'LDAP ist ein standardisiertes Protokoll für Verzeichnisabfragen. AD DS nutzt es unter anderem.' },
+      { id: 'ad-found-conv-9', difficulty: 'hard', text: 'Warum ist Delegation in AD sinnvoll?', options: ['Weil jeder Administrator alle Rechte bekommt', 'Weil Aufgaben gezielt an Rollen mit passenden Rechten vergeben werden', 'Weil sie Passwörter automatisch setzt', 'Weil sie lokale Konten ersetzt'], correct: 1, explanation: 'Delegation ermöglicht gezielte Rechtevergabe ohne Vollzugriff.' },
+      { id: 'ad-found-conv-10', difficulty: 'medium', text: 'Warum müssen AD-Daten auf mehreren Domain Controllern abgeglichen werden?', options: ['Damit keine einzelne Fehlerstelle entsteht und Informationen verfügbar bleiben', 'Damit mehr Benutzer gleichzeitig spielen können', 'Damit die Festplatten voller werden', 'Damit kein DNS mehr nötig ist'], correct: 0, explanation: 'Replikation sorgt für Konsistenz und Verfügbarkeit.' },
+    ],
+  },
 };
