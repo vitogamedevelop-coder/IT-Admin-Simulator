@@ -138,26 +138,55 @@ export function buildInformationSecurityFundamentalsLesson() {
 export function buildInformationSecurityLegalDataLesson() {
   const title = 'Block 2: Rechtliche Grundlagen, Datenschutz & Informationskategorien';
 
+  const decisionTreeSvg = `<svg viewBox="0 0 360 260" class="w-full h-auto max-h-72" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Datenschutz-Entscheidungsbaum</text><rect x="110" y="35" width="140" height="28" rx="6" fill="#1f6feb" fill-opacity="0.35" stroke="#58a6ff"/><text x="180" y="54" text-anchor="middle" fill="#c9d1d9" font-size="11">INFORMATION</text><line x1="180" y1="63" x2="180" y2="78" stroke="#8b949e"/><rect x="95" y="78" width="170" height="28" rx="6" fill="#1f6feb" fill-opacity="0.35" stroke="#58a6ff"/><text x="180" y="97" text-anchor="middle" fill="#c9d1d9" font-size="11">PERSONENBEZOGEN?</text><line x1="140" y1="106" x2="80" y2="130" stroke="#8b949e"/><line x1="220" y1="106" x2="280" y2="130" stroke="#8b949e"/><rect x="20" y="130" width="120" height="28" rx="6" fill="#00f0ff" fill-opacity="0.15" stroke="#00f0ff"/><text x="80" y="149" text-anchor="middle" fill="#c9d1d9" font-size="10">NEIN → andere Ebene</text><rect x="220" y="130" width="120" height="28" rx="6" fill="#1f6feb" fill-opacity="0.35" stroke="#58a6ff"/><text x="280" y="149" text-anchor="middle" fill="#c9d1d9" font-size="10">JA → weiter</text><line x1="280" y1="158" x2="280" y2="175" stroke="#8b949e"/><rect x="195" y="175" width="170" height="28" rx="6" fill="#1f6feb" fill-opacity="0.35" stroke="#58a6ff"/><text x="280" y="194" text-anchor="middle" fill="#c9d1d9" font-size="11">BESONDERE KATEGORIE?</text><line x1="235" y1="203" x2="190" y2="225" stroke="#8b949e"/><line x1="325" y1="203" x2="370" y2="225" stroke="#8b949e"/><rect x="125" y="225" width="130" height="28" rx="6" fill="#00f0ff" fill-opacity="0.15" stroke="#00f0ff"/><text x="190" y="244" text-anchor="middle" fill="#c9d1d9" font-size="10">NEIN → APersDat</text><rect x="315" y="225" width="120" height="28" rx="6" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="375" y="244" text-anchor="middle" fill="#c9d1d9" font-size="10">JA → BPersDat</text></svg>`;
+
+  const protectionAreasSvg = `<svg viewBox="0 0 360 220" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Schutzbereiche personenbezogener Daten</text><polygon points="180,45 60,195 300,195" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="180" y="100" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">SB 3</text><text x="180" y="120" text-anchor="middle" fill="#c9d1d9" font-size="10">sehr hoher Schutzbedarf</text><text x="180" y="135" text-anchor="middle" fill="#8b949e" font-size="9">BPersDat + besonders sensible allg. Daten</text><polygon points="180,80 90,185 270,185" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="180" y="140" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">SB 2</text><text x="180" y="155" text-anchor="middle" fill="#c9d1d9" font-size="9">hoher Schutzbedarf</text><polygon points="180,115 120,175 240,175" fill="#3fb950" fill-opacity="0.2" stroke="#3fb950"/><text x="180" y="160" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">SB 1</text><text x="180" y="172" text-anchor="middle" fill="#c9d1d9" font-size="9">normaler Schutzbedarf</text><text x="180" y="205" text-anchor="middle" fill="#8b949e" font-size="10">Gemischte Sammlung → höchster Schutzbereich gilt</text></svg>`;
+
+  const infoCategoriesSvg = `<svg viewBox="0 0 360 230" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Informationskategorien</text><rect x="80" y="35" width="200" height="26" rx="5" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><text x="180" y="53" text-anchor="middle" fill="#c9d1d9" font-size="10">ÖFFENTLICH – offiziell veröffentlicht</text><rect x="80" y="68" width="200" height="26" rx="5" fill="#58a6ff" fill-opacity="0.25" stroke="#58a6ff"/><text x="180" y="86" text-anchor="middle" fill="#c9d1d9" font-size="10">OFFEN – intern, nicht öffentlich, nicht VS</text><rect x="80" y="101" width="200" height="26" rx="5" fill="#f0883e" fill-opacity="0.25" stroke="#f0883e"/><text x="180" y="119" text-anchor="middle" fill="#c9d1d9" font-size="10">VS-NfD – nur für den Dienstgebrauch</text><rect x="80" y="134" width="200" height="26" rx="5" fill="#f0883e" fill-opacity="0.35" stroke="#f0883e"/><text x="180" y="152" text-anchor="middle" fill="#c9d1d9" font-size="10">VS-VERTRAULICH</text><rect x="80" y="167" width="200" height="26" rx="5" fill="#f85149" fill-opacity="0.25" stroke="#f85149"/><text x="180" y="185" text-anchor="middle" fill="#c9d1d9" font-size="10">GEHEIM</text><rect x="80" y="200" width="200" height="26" rx="5" fill="#f85149" fill-opacity="0.4" stroke="#f85149"/><text x="180" y="218" text-anchor="middle" fill="#c9d1d9" font-size="10">STRENG GEHEIM</text></svg>`;
+
+  const levelsSvg = `<svg viewBox="0 0 360 180" class="w-full h-auto max-h-56" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Drei Ebenen – nicht vermischen</text><rect x="30" y="40" width="95" height="95" rx="8" fill="#1f6feb" fill-opacity="0.25" stroke="#58a6ff"/><text x="77" y="70" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Datenschutz</text><text x="77" y="90" text-anchor="middle" fill="#8b949e" font-size="9">personen-</text><text x="77" y="102" text-anchor="middle" fill="#8b949e" font-size="9">bezogen?</text><text x="77" y="122" text-anchor="middle" fill="#c9d1d9" font-size="10">APersDat / BPersDat</text><rect x="132" y="40" width="95" height="95" rx="8" fill="#00f0ff" fill-opacity="0.15" stroke="#00f0ff"/><text x="180" y="70" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Schutzbereich</text><text x="180" y="90" text-anchor="middle" fill="#8b949e" font-size="9">Schutzbedarf</text><text x="180" y="102" text-anchor="middle" fill="#8b949e" font-size="9">personen-</text><text x="180" y="114" text-anchor="middle" fill="#8b949e" font-size="9">bez. Daten</text><text x="180" y="134" text-anchor="middle" fill="#c9d1d9" font-size="10">SB1 / SB2 / SB3</text><rect x="235" y="40" width="95" height="95" rx="8" fill="#f85149" fill-opacity="0.15" stroke="#f85149"/><text x="282" y="70" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Geheim-</text><text x="282" y="85" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">haltung</text><text x="282" y="105" text-anchor="middle" fill="#8b949e" font-size="9">Information</text><text x="282" y="117" text-anchor="middle" fill="#8b949e" font-size="9">öffentlich /</text><text x="282" y="129" text-anchor="middle" fill="#8b949e" font-size="9">offen / VS</text><text x="282" y="149" text-anchor="middle" fill="#c9d1d9" font-size="10">Öffentlich / VS-Stufen</text><text x="180" y="165" text-anchor="middle" fill="#c9d1d9" font-size="10">Eine Information kann mehreren Ebenen zugeordnet sein.</text></svg>`;
+
   const explanations = [
-    explanation('b2-begriffe-trennen', 'Begriffe trennen', 'classic', [
-      { type: 'text', content: 'Datenschutz, Informationssicherheit und Geheimschutz verwandte Themen, aber nicht identisch. Datenschutz schützt natürliche Personen bei der Datenverarbeitung. Informationssicherheit schützt die Ziele Vertraulichkeit, Integrität und Verfügbarkeit von Informationen. Geheimschutz hat eine eigene rechtliche Dimension.' },
-      { type: 'question', question: 'Wem oder was dient der Datenschutz primär?', options: ['Schutz von Softwarelizenzen', 'Schutz natürlicher Personen', 'Schutz von Servern vor Ausfall', 'Schutz militärischer Geheimnisse'], correct: 1, explanation: 'Datenschutz schützt naturpersonen, nicht Sachen oder Geheimnisse.' },
-    ]),
-
-    explanation('b2-schutzbereiche', 'Schutzbereiche personenbezogener Daten', 'classic', [
-      { type: 'text', content: 'Behörden und Organisationen mit Sicherheitsaufgaben nutzen interne Schutzbereiche, um personenbezogene Daten nach ihrem Schutzbedarf einzuordnen.' },
-      { type: 'table', headers: ['Schutzbereich', 'Beschreibung', 'Beispiel'], rows: [
-        ['Schutzbereich 1', 'Besonders sensible Daten mit hohem Schutzbedarf', 'Gesundheitsdaten, politische Meinungen'],
-        ['Schutzbereich 2', 'Sensible personenbezogene Daten', 'Religion, Gewerkschaftszugehörigkeit, Strafregisterdaten'],
-        ['Schutzbereich 3', 'Weitere besondere Daten nach interner Einstufung', 'Biometrische oder genetische Daten, sofern zugeordnet'],
+    explanation('b2-einstieg', 'Drei Ebenen trennen', 'classic', [
+      { type: 'text', content: 'Datenschutz, Schutzbereiche personenbezogener Daten und Geheimhaltung/Informationskategorien sind verwandt, aber nicht identisch. Jede Ebene beantwortet eine eigene Frage.' },
+      { type: 'diagram', content: levelsSvg },
+      { type: 'table', headers: ['Ebene', 'Frage', 'Beispiel-Antworten'], rows: [
+        ['Datenschutz', 'Ist die Information personenbezogen?', 'Ja / Nein; ggf. APersDat oder BPersDat'],
+        ['Schutzbereiche', 'Wie hoch ist der Schutzbedarf personenbezogener Daten?', 'SB1 normal, SB2 hoch, SB3 sehr hoch'],
+        ['Geheimhaltung', 'Wie ist die Information insgesamt einzustufen?', 'Öffentlich, Offen, VS-NfD, VS-V, GEHEIM, STRENG GEHEIM'],
       ] },
-      { type: 'text', content: 'Schutzbereich 3 ist nicht identisch mit Art. 9 DSGVO. Die konkrete Ausgestaltung muss an der Lehrgangsquelle verifiziert werden.' },
+      { type: 'text', content: 'Eine Information kann gleichzeitig personenbezogen sein UND einer Geheimhaltungsstufe zugeordnet sein. Die Ebenen werden bewusst getrennt betrachtet.' },
+      { type: 'question', question: 'Welche Frage beantwortet der Datenschutz?', options: ['Welche Geheimhaltungsstufe gilt?', 'Ist die Information personenbezogen?', 'Welcher Schutzbereich gilt?', 'Darf ich die Information öffentlich teilen?'], correct: 1, explanation: 'Der Datenschutz fragt primär, ob Informationen eine natürliche Person betreffen. Geheimhaltung und Schutzbereiche stellen weitere Fragen.' },
     ]),
 
-    explanation('b2-art9', 'Art. 9 DSGVO', 'classic', [
-      { type: 'text', content: 'Art. 9 DSGVO listet besondere Kategorien personenbezogener Daten auf. Diese genießen einen besonderen Schutz, weil ihre missbräuchliche Verarbeitung besondere Risiken birgt.' },
-      { type: 'list', title: 'Besondere Kategorien nach Art. 9 DSGVO', items: [
-        'Rasse oder ethnische Herkunft',
+    explanation('b2-personenbezogen', 'Was sind personenbezogene Daten?', 'classic', [
+      { type: 'text', content: 'Personenbezogene Daten sind Informationen, die sich auf eine identifizierte oder identifizierbare natürliche Person beziehen. Entscheidend ist, ob eine Zuordnung zur Person möglich ist – nicht ob ein Name direkt sichtbar ist. Man unterscheidet direkte und indirekte Identifizierbarkeit.' },
+      { type: 'diagram', content: decisionTreeSvg },
+      { type: 'table', headers: ['Direkt identifizierbar', 'Indirekt identifizierbar'], rows: [
+        ['Name und Geburtsdatum zusammen', 'Personalnummer, Kennnummer, eindeutige ID'],
+        ['Eindeutige Kombination mehrerer Angaben', 'IP-Adresse im konkreten Kontext, Standortdaten'],
+        ['', 'Online-Kennung mit Zuordnungstabelle'],
+      ] },
+      { type: 'text', content: 'Nicht jede Nummer allein ist automatisch personenbezogen. Wenn sie aber einer Person zugeordnet werden kann, ist sie es. Vollständig anonymisierte Statistiken sind dagegen nicht personenbezogen.' },
+      { type: 'question', question: 'Wann ist eine Information personenbezogen?', options: ['Nur wenn der Name direkt enthalten ist', 'Wenn sie sich auf eine identifizierte oder identifizierbare natürliche Person bezieht', 'Nur wenn ein Geburtsdatum enthalten ist', 'Nur bei Daten in einem Personalsystem'], correct: 1, explanation: 'Personenbezogenheit hängt davon ab, ob eine Zuordnung zu einer Person möglich ist – direkt oder indirekt.' },
+    ]),
+
+    explanation('b2-warum-datenschutz', 'Warum Datenschutz?', 'classic', [
+      { type: 'text', content: 'Datenschutz schützt nicht Daten um ihrer selbst willen, sondern die Rechte und Freiheiten von Menschen. Missbräuchliche Verarbeitung kann zu Diskriminierung, Erpressung, unerwünschter Profilbildung, Einflussnahme und Kontrollverlust führen.' },
+      { type: 'text', content: 'Das Recht auf informationelle Selbstbestimmung ist eine zentrale deutsche Grundrechtsidee: Jeder soll grundsätzlich selbst entscheiden können, wer was über ihn erfährt.' },
+      { type: 'question', question: 'Wem oder was dient der Datenschutz primär?', options: ['Schutz natürlicher Personen', 'Schutz von Softwarelizenzen', 'Schutz von Servern vor Ausfall', 'Schutz militärischer Geheimnisse'], correct: 0, explanation: 'Datenschutz schützt natürliche Personen bei der Verarbeitung ihrer Daten.' },
+    ]),
+
+    explanation('b2-rechtsgrundlage', 'Rechtsgrundlage oder Einwilligung', 'classic', [
+      { type: 'text', content: 'Datenverarbeitung darf erfolgen, wenn eine Rechtsgrundlage besteht oder die betroffene Person wirksam eingewilligt hat. Im hier behandelten Grundmodell begegnen dir vor allem diese beiden Wege.' },
+      { type: 'text', content: 'Eine Einwilligung ist keine allgemeine Freikarte. Sie muss freiwillig, informiert und situationsbezogen sein. Eine Verarbeitung, die für einen Vertrag nötig ist, rechtfertigt sich durch die Vertragsabwicklung – das ist keine stillschweigende „Zustimmung zu allem".' },
+      { type: 'question', question: 'Ein Online-Shop benötigt die Lieferadresse. Auf welcher Basis darf er sie verarbeiten?', options: ['Weil jede Verarbeitung automatisch eine Einwilligung ist', 'Weil sie für die Abwicklung des Vertrags notwendig ist', 'Weil öffentliche Daten keine Regeln haben', 'Weil Datenschutz nur für sensible Daten gilt'], correct: 1, explanation: 'Notwendige Verarbeitungen für Vertragsabwicklung beruhen auf einer Rechtsgrundlage, nicht auf einer pauschalen Zustimmung.' },
+    ]),
+
+    explanation('b2-art9', 'Besondere Kategorien nach Art. 9 DSGVO', 'classic', [
+      { type: 'text', content: 'Art. 9 DSGVO listet besondere Kategorien personenbezogener Daten auf. Ihre Verarbeitung birgt besondere Risiken für die Betroffenen.' },
+      { type: 'list', title: 'Besondere Kategorien', items: [
+        'Rassische oder ethnische Herkunft',
         'Politische Meinungen',
         'Religiöse oder weltanschauliche Überzeugungen',
         'Gewerkschaftszugehörigkeit',
@@ -167,34 +196,204 @@ export function buildInformationSecurityLegalDataLesson() {
         'Sexualleben',
         'Sexuelle Orientierung',
       ] },
-      { type: 'question', question: 'Welche Daten gehören nach Art. 9 DSGVO zu den besonderen Kategorien?', options: ['Name und Adresse', 'IP-Adresse', 'Gesundheitsdaten und politische Meinungen', 'Öffentliche Webseite'], correct: 2, explanation: 'Art. 9 DSGVO nennt unter anderem Gesundheitsdaten und politische Meinungen als besondere Kategorien.' },
+      { type: 'text', content: 'Hinweis: Nicht jedes biometrische Merkmal ist automatisch Art. 9. Relevant ist die biometrische Verarbeitung zur eindeutigen Identifizierung.' },
+      { type: 'question', question: 'Welche Daten gehören zu den besonderen Kategorien nach Art. 9 DSGVO?', options: ['Name und Adresse', 'Kontonummer', 'Gesundheitsdaten und politische Meinungen', 'Öffentliche Webseite'], correct: 2, explanation: 'Art. 9 DSGVO nennt unter anderem Gesundheitsdaten, politische Meinungen und religiöse Überzeugungen als besondere Kategorien.' },
     ]),
 
-    explanation('b2-informationskategorien', 'Informationskategorien', 'classic', [
-      { type: 'text', content: 'Informationen lassen sich nach ihrem Schutzbedarf einordnen. Wichtig: Öffentlich und offen sind keine Synonyme.' },
+    explanation('b2-apersdat-bpersdat', 'APersDat und BPersDat', 'classic', [
+      { type: 'text', content: 'Im verwendeten Bundeswehr-/Kursmodell werden personenbezogene Daten unterschieden in allgemeine personenbezogene Daten (APersDat) und besondere personenbezogene Daten (BPersDat).' },
       { type: 'table', headers: ['Kategorie', 'Bedeutung', 'Beispiel'], rows: [
-        ['Öffentliche Informationen', 'Darf öffentlich zugänglich sein', 'Pressemitteilungen, Webseite'],
-        ['Offene Informationen', 'Nicht öffentlich, aber nicht als Verschlusssache eingestuft', 'Dienstanweisungen, interne Protokolle'],
-        ['Verschlusssachen', 'Staatlich oder behördlich klassifiziert', 'VS-Verschlusssache, Geheimnisse'],
+        ['APersDat', 'Allgemeine personenbezogene Daten', 'Name, Dienstgrad, dienstliche E-Mail, private Adresse, Kontonummer'],
+        ['BPersDat', 'Besondere personenbezogene Daten', 'Gesundheitsdaten, politische Meinung, religiöse Überzeugung, Gewerkschaftszugehörigkeit'],
       ] },
-      { type: 'text', content: '"Offen" bedeutet lediglich, dass keine Verschlusssachen-Einstufung vorliegt. Das ist nicht dasselbe wie öffentlich zugänglich.' },
+      { type: 'text', content: 'BPersDat orientieren sich an Art. 9 DSGVO, sind aber ein kurseigenes Kürzel. Diese Begriffe werden im Kursmodell verwendet, nicht als offizielle DSGVO-Terminologie dargestellt.' },
+      { type: 'question', question: 'Was ist ein typisches Beispiel für BPersDat?', options: ['Name und Dienstgrad', 'Gesundheitsdiagnose', 'Dienstliche E-Mail-Adresse', 'Gebäude- und Raumnummer'], correct: 1, explanation: 'Gesundheitsdaten sind besondere personenbezogene Daten und damit BPersDat. Name und Dienstgrad sind APersDat.' },
     ]),
+
+    explanation('b2-sb1', 'Schutzbereich 1', 'classic', [
+      { type: 'text', content: 'Schutzbereich 1 deckt personenbezogene Daten mit normalem Schutzbedarf ab. Dazu gehören typischerweise Funktionsträgerdaten.' },
+      { type: 'list', title: 'Typische SB1-Inhalte', items: [
+        'Name, Dienstgrad oder Amtsbezeichnung',
+        'Einheit / Organisationseinheit',
+        'Dienstliche Adresse und dienstliche Erreichbarkeit',
+        'Funktion / Tätigkeitsbereich',
+        'Personalnummer und bestimmte Teile der Personenkennziffer',
+      ] },
+      { type: 'text', content: 'SB1 ist nicht „ungeschützt“. Der Schutzbedarf ist nur gegenüber SB2 und SB3 niedriger.' },
+    ]),
+
+    explanation('b2-sb2', 'Schutzbereich 2', 'classic', [
+      { type: 'text', content: 'Schutzbereich 2 deckt personenbezogene Daten mit hohem Schutzbedarf ab. Im Kursmodell gilt: Was weder SB1 noch SB3 ist, fällt hierunter.' },
+      { type: 'list', title: 'Typische SB2-Inhalte', items: [
+        'Private Adresse',
+        'Private Telefonnummer oder E-Mail',
+        'Kontodaten',
+        'Steuerdaten',
+        'Familienstand, Kinderzahl, Geburtsdatum',
+      ] },
+      { type: 'text', content: 'SB2 enthält sensible private Daten und ist deutlich höher zu schützen als SB1.' },
+    ]),
+
+    explanation('b2-sb3', 'Schutzbereich 3', 'classic', [
+      { type: 'text', content: 'Schutzbereich 3 deckt personenbezogene Daten mit sehr hohem Schutzbedarf ab. Hierzu gehören alle BPersDat sowie besonders sensible allgemeine Daten.' },
+      { type: 'list', title: 'Typische SB3-Inhalte', items: [
+        'Alle BPersDat',
+        'Beurteilungen',
+        'Sicherheitsakte',
+        'Disziplinarakte',
+        'Verurteilungen / BZR-Auszüge',
+      ] },
+      { type: 'diagram', content: protectionAreasSvg },
+      { type: 'text', content: 'Alle BPersDat fallen mindestens in SB3. Aber: Nicht jedes SB3-Datum ist automatisch BPersDat. Beispiel: Eine Disziplinarakte kann SB3 sein, ohne Art. 9-Daten zu enthalten.' },
+    ]),
+
+    explanation('b2-hoechstprinzip', 'Höchstprinzip bei gemischten Daten', 'classic', [
+      { type: 'text', content: 'Enthält eine Datei, Liste oder Sammlung Daten aus mehreren Schutzbereichen, gilt für das gesamte Objekt der höchste enthaltene Schutzbereich.' },
+      { type: 'table', headers: ['Inhalt', 'Höchster Schutzbereich', 'Folge'], rows: [
+        ['Nur Name und Dienstgrad', 'SB1', 'Objekt wie SB1 behandeln'],
+        ['Name, private Adresse', 'SB2', 'Objekt wie SB2 behandeln'],
+        ['Name, private Adresse, Gesundheitsdatum', 'SB3', 'Objekt wie SB3 behandeln'],
+        ['Funktionsträgerdaten + Sicherheitsakte', 'SB3', 'Gesamte Sammlung sehr hoch schützen'],
+      ] },
+      { type: 'question', question: 'Eine Excel-Liste enthält Name, private Adresse und eine Gesundheitsangabe. Welcher Schutzbereich gilt für die gesamte Datei?', options: ['SB1', 'SB2', 'SB3', 'Der niedrigste, damit der Umgang einfacher bleibt'], correct: 2, explanation: 'Bei gemischten Daten gilt der höchste enthaltene Schutzbereich. Hier ist das Gesundheitsdatum BPersDat und damit SB3.' },
+    ]),
+
+    explanation('b2-informationskategorien', 'Öffentlich, offen, Verschlusssachen', 'classic', [
+      { type: 'text', content: 'Informationen lassen sich auch nach ihrer allgemeinen Einstufung einordnen. Wichtig: Öffentlich und offen sind keine Synonyme.' },
+      { type: 'table', headers: ['Kategorie', 'Bedeutung'], rows: [
+        ['Öffentliche Informationen', 'Offiziell von zuständiger Stelle veröffentlicht oder aus öffentlicher Quelle'],
+        ['Offene Informationen', 'Nicht öffentlich, nicht als Verschlusssache eingestuft, aber dienstlich schutzbedürftig'],
+        ['Verschlusssachen', 'Unterliegen Geheimhaltungsvorschriften'],
+      ] },
+      { type: 'text', content: 'Ein Dokument, das unerlaubt ins Internet hochgeladen wurde, wird dadurch nicht automatisch öffentlich. „Offen“ heißt lediglich, dass keine VS-Einstufung vorliegt.' },
+      { type: 'question', question: 'Was bedeuten „offene Informationen"?', options: ['Informationen, die jeder sehen darf', 'Interne Informationen ohne Verschlusssachen-Einstufung', 'Streng geheime Informationen', 'Informationen ohne Urheber'], correct: 1, explanation: 'Offen heißt nicht klassifiziert, muss aber nicht öffentlich sein.' },
+    ]),
+
+    explanation('b2-vs-stufen', 'Geheimhaltungsgrade', 'classic', [
+      { type: 'diagram', content: infoCategoriesSvg },
+      { type: 'text', content: 'Verschlusssachen sind in vier Geheimhaltungsgrade eingeteilt. Die mögliche Schadenswirkung bei Kenntnisnahme durch Unbefugte steigt von oben nach unten.' },
+      { type: 'table', headers: ['Stufe', 'vereinfachte Konsequenz'], rows: [
+        ['VS-NUR FÜR DEN DIENSTGEBRAUCH (VS-NfD)', 'nachteilig'],
+        ['VS-VERTRAULICH', 'schädlich'],
+        ['GEHEIM', 'Sicherheit gefährden / schwerer Schaden'],
+        ['STRENG GEHEIM', 'Bestand oder lebenswichtige Interessen gefährdet'],
+      ] },
+      { type: 'question', question: 'Welche Reihenfolge der VS-Stufen ist korrekt?', options: ['VS-NfD → VS-V → GEHEIM → STRENG GEHEIM', 'STRENG GEHEIM → GEHEIM → VS-V → VS-NfD', 'VS-V → VS-NfD → GEHEIM → STRENG GEHEIM', 'GEHEIM → STRENG GEHEIM → VS-V → VS-NfD'], correct: 0, explanation: 'Die Reihenfolge lautet VS-NfD, VS-VERTRAULICH, GEHEIM, STRENG GEHEIM.' },
+    ]),
+
+    explanation('b2-needtoknow', 'Need-to-know', 'classic', [
+      { type: 'text', content: 'Need-to-know bedeutet: Auch wer grundsätzlich für eine Geheimhaltungsstufe freigeschaltet ist, darf eine konkrete Information nur erfahren, wenn es für die jeweilige Aufgabe dienstlich notwendig ist.' },
+      { type: 'text', content: 'Freigabe für eine Stufe ersetzt keine Berechtigung für jede einzelne Information dieser Stufe.' },
+      { type: 'question', question: 'Ein Mitarbeiter ist für VS-VERTRAULICH freigegeben, arbeitet aber nicht an einem bestimmten Vorgang. Darf er die zugehörige VS-V-Datei lesen?', options: ['Ja, weil die Stufe passt', 'Nein, es fehlt die dienstliche Notwendigkeit', 'Ja, wenn er sie im selben Gebäude öffnet', 'Nur außerhalb der Dienstzeit'], correct: 1, explanation: 'Need-to-know verlangt eine dienstliche Notwendigkeit für die konkrete Information, nicht nur die allgemeine Freigabe.' },
+    ]),
+
+    explanation('b2-systemfreigabe', 'Systemfreigabe und Dateieinstufung', 'classic', [
+      { type: 'text', content: 'Ein IT-System hat eine zugelassene maximale Einstufung. Höher eingestufte Daten dürfen nicht in einem dafür nicht zugelassenen System verarbeitet werden.' },
+      { type: 'text', content: 'Aber: Eine Datei in einem höher eingestuften System wird dadurch nicht automatisch selbst höher eingestuft. Eine VS-NfD-Datei in einem GEHEIM-System bleibt VS-NfD, wenn sie entsprechend gekennzeichnet ist.' },
+      { type: 'question', question: 'Ein System ist maximal für OFFEN zugelassen. Was gilt für eine VS-NfD-Datei?', options: ['Sie darf dort gespeichert werden, weil VS-NfD niedrig ist', 'Sie darf dort nicht gespeichert werden, weil sie die maximale Systemeinstufung übersteigt', 'Sie wird automatisch OFFEN', 'Systemfreigaben gelten nur für Personen, nicht für Daten'], correct: 1, explanation: 'Das System ist nur für OFFEN zugelassen. VS-NfD übersteigt diese Einstufung und darf dort nicht verarbeitet werden.' },
+    ]),
+
+    explanation('b2-zusammenfassung', 'Zusammenfassung und Transfer', 'classic', [
+      { type: 'text', content: 'Beim Umgang mit Informationen folgst du einem Entscheidungsweg: Personenbezug erkennen, ggf. besondere Kategorie (BPersDat) prüfen, Schutzbereich bestimmen, bei gemischten Daten das Höchstprinzip anwenden, Geheimhaltungsstufe prüfen und Need-to-know sowie zulässiges System beachten.' },
+      { type: 'list', title: 'Wichtige Fehlannahmen', items: [
+        '„Nur Name und Geburtsdatum sind personenbezogen." → falsch',
+        '„Alle privaten Daten sind BPersDat." → falsch',
+        '„SB2 bedeutet niedriger Schutzbedarf." → falsch',
+        '„OFFEN bedeutet öffentlich." → falsch',
+        '„Internetfundstelle = öffentlich." → falsch',
+        '„Systemfreigabe für GEHEIM berechtigt zu jeder GEHEIM-Information." → falsch',
+      ] },
+    ]),
+  ];
+
+  const exercises = [
+    {
+      id: 'b2-personal-data-classify',
+      type: 'matching',
+      question: 'Ordne die Daten der richtigen Kategorie zu: personenbezogen, APersDat oder BPersDat.',
+      pairs: [
+        { left: 'Name', right: 'APersDat' },
+        { left: 'Personalnummer', right: 'APersDat' },
+        { left: 'IP-Adresse mit Nutzerzuordnung', right: 'APersDat' },
+        { left: 'Gesundheitsdiagnose', right: 'BPersDat' },
+        { left: 'Politische Meinung', right: 'BPersDat' },
+        { left: 'Vollständig anonymisierte Statistik', right: 'nicht personenbezogen' },
+      ],
+      explanation: 'Entscheidend ist die Zuordnung zu einer Person. Anonymisierte Statistiken sind nicht personenbezogen. Gesundheitsdaten und politische Meinung sind BPersDat.',
+    },
+    {
+      id: 'b2-protection-area-match',
+      type: 'matching',
+      question: 'Ordne die Daten dem passenden Schutzbereich zu.',
+      pairs: [
+        { left: 'Dienstgrad und dienstliche E-Mail', right: 'SB1' },
+        { left: 'Private Adresse', right: 'SB2' },
+        { left: 'Kontodaten', right: 'SB2' },
+        { left: 'Gesundheitsdaten', right: 'SB3' },
+        { left: 'Sicherheitsakte', right: 'SB3' },
+      ],
+      explanation: 'Funktionsträgerdaten sind SB1, private sensible Daten SB2, BPersDat und besonders sensible allgemeine Daten SB3.',
+    },
+    {
+      id: 'b2-highest-wins',
+      type: 'select-best',
+      question: 'Eine Datei enthält: Name (SB1), private Adresse (SB2), Gesundheitsdatum (SB3). Welcher Schutzbereich gilt für die gesamte Datei?',
+      options: ['SB1', 'SB2', 'SB3', 'Der Durchschnitt: SB2'],
+      correct: 2,
+      explanation: 'Bei gemischten Daten gilt der höchste enthaltene Schutzbereich. Das Gesundheitsdatum ist BPersDat und damit SB3.',
+    },
+    {
+      id: 'b2-public-vs-open',
+      type: 'select-best',
+      question: 'Ein dienstliches Dokument ist auf einem internen Portal als OFFEN verfügbar. Ein Mitarbeiter lädt es auf Social Media hoch. Was ist richtig?',
+      options: ['Es wird dadurch öffentlich.', 'Es bleibt intern/dienstlich; die private Veröffentlichung war nicht erlaubt.', 'OFFEN bedeutet, dass jeder es veröffentlichen darf.', 'Es wird automatisch VS-NfD.'],
+      correct: 1,
+      explanation: 'OFFEN bedeutet keine VS-Einstufung, aber nicht „öffentlich“. Eine private Veröffentlichung ist eine eigenmächtige Handlung, keine offizielle Freigabe.',
+    },
+    {
+      id: 'b2-vs-order',
+      type: 'ordering',
+      question: 'Bringe die VS-Stufen in die richtige Reihenfolge – von der niedrigsten zur höchsten Stufe.',
+      items: [
+        { id: 'vs-nfd', label: 'VS-NfD' },
+        { id: 'vs-v', label: 'VS-VERTRAULICH' },
+        { id: 'vs-g', label: 'GEHEIM' },
+        { id: 'vs-sg', label: 'STRENG GEHEIM' },
+      ],
+      explanation: 'Die Reihenfolge lautet VS-NfD, VS-VERTRAULICH, GEHEIM, STRENG GEHEIM.',
+    },
+    {
+      id: 'b2-needtoknow-system',
+      type: 'select-best',
+      question: 'Ein GEHEIM-freigeschalteter Mitarbeiter hat keine Aufgabe an einem bestimmten GEHEIM-Vorgang. Darf er die zugehörige Datei lesen?',
+      options: ['Ja, die Freigabe reicht.', 'Nein, es fehlt Need-to-know.', 'Ja, wenn er sie auf seinem privaten Laptop öffnet.', 'Ja, solange er sie nicht ausdruckt.'],
+      correct: 1,
+      explanation: 'Need-to-know verlangt eine dienstliche Notwendigkeit für die konkrete Information.' },
   ];
 
   const quiz = [
-    { question: 'Was ist der Unterschied zwischen Datenschutz und Informationssicherheit?', options: ['Keiner', 'Datenschutz schützt Personen, Informationssicherheit schützt Informationen', 'Informationssicherheit schützt Personen, Datenschutz schützt Daten', 'Beide schützen nur Geheimnisse'], correct: 1, explanation: 'Datenschutz zielt auf Personen, Informationssicherheit auf die Sicherheit der Information selbst.' },
-    { question: 'Welche Daten fallen unter Art. 9 DSGVO?', options: ['Nur Namen', 'Besondere Kategorien wie Gesundheit und Weltanschauung', 'Nur E-Mail-Adressen', 'Nur öffentliche Informationen'], correct: 1, explanation: 'Art. 9 DSGVO listet besondere Kategorien wie Gesundheitsdaten und religiöse Überzeugungen.' },
-    { question: 'Was bedeuten "offene Informationen"?', options: ['Informationen, die der Öffentlichkeit zugänglich sind', 'Interne Informationen ohne Verschlusssachen-Einstufung', 'Streng geheime Informationen', 'Informationen ohne Urheber'], correct: 1, explanation: 'Offen heißt nicht klassifiziert, muss aber nicht öffentlich sein.' },
+    { facet: 'datenschutz', question: 'Wem oder was dient der Datenschutz primär?', options: ['Schutz natürlicher Personen', 'Schutz von Softwarelizenzen', 'Schutz von Servern vor Ausfall', 'Schutz militärischer Geheimnisse'], correct: 0, explanation: 'Datenschutz schützt natürliche Personen bei der Verarbeitung ihrer Daten.' },
+    { facet: 'identifiability', question: 'Wann ist eine Information personenbezogen?', options: ['Nur wenn der Name direkt enthalten ist', 'Wenn sie sich auf eine identifizierte oder identifizierbare natürliche Person bezieht', 'Nur bei Daten in einem Personalsystem', 'Nur bei Angaben mit Geburtsdatum'], correct: 1, explanation: 'Personenbezogenheit hängt davon ab, ob eine Zuordnung zu einer Person möglich ist.' },
+    { facet: 'art9', question: 'Welche Daten gehören zu den besonderen Kategorien nach Art. 9 DSGVO?', options: ['Name und Adresse', 'Kontonummer', 'Gesundheitsdaten und politische Meinungen', 'Öffentliche Webseite'], correct: 2, explanation: 'Art. 9 DSGVO nennt Gesundheitsdaten, politische Meinungen und weitere Kategorien als besondere Kategorien.' },
+    { facet: 'apersdat', question: 'Was ist ein typisches Beispiel für BPersDat?', options: ['Name und Dienstgrad', 'Gesundheitsdiagnose', 'Dienstliche E-Mail-Adresse', 'Personalnummer'], correct: 1, explanation: 'Gesundheitsdaten sind besondere personenbezogene Daten und damit BPersDat.' },
+    { facet: 'schutzbereich', question: 'Eine Excel-Liste enthält Name, private Adresse und eine Gesundheitsangabe. Welcher Schutzbereich gilt für die gesamte Datei?', options: ['SB1', 'SB2', 'SB3', 'Der niedrigste enthaltene Bereich'], correct: 2, explanation: 'Bei gemischten Daten gilt der höchste enthaltene Schutzbereich. Das Gesundheitsdatum ist BPersDat und damit SB3.' },
+    { facet: 'open', question: 'Was bedeuten „offene Informationen"?', options: ['Informationen, die jeder sehen darf', 'Interne Informationen ohne Verschlusssachen-Einstufung', 'Streng geheime Informationen', 'Informationen ohne Urheber'], correct: 1, explanation: 'Offen heißt nicht klassifiziert, muss aber nicht öffentlich sein.' },
+    { facet: 'vs-order', question: 'Welche Reihenfolge der VS-Stufen ist korrekt?', options: ['VS-NfD → VS-V → GEHEIM → STRENG GEHEIM', 'STRENG GEHEIM → GEHEIM → VS-V → VS-NfD', 'VS-V → VS-NfD → GEHEIM → STRENG GEHEIM', 'GEHEIM → STRENG GEHEIM → VS-V → VS-NfD'], correct: 0, explanation: 'Die Reihenfolge lautet VS-NfD, VS-VERTRAULICH, GEHEIM, STRENG GEHEIM.' },
+    { facet: 'needtoknow', question: 'Ein Mitarbeiter ist für VS-VERTRAULICH freigegeben, arbeitet aber nicht an einem bestimmten Vorgang. Darf er die zugehörige VS-V-Datei lesen?', options: ['Ja, weil die Stufe passt', 'Nein, es fehlt die dienstliche Notwendigkeit', 'Ja, wenn er sie im selben Gebäude öffnet', 'Nur außerhalb der Dienstzeit'], correct: 1, explanation: 'Need-to-know verlangt eine dienstliche Notwendigkeit für die konkrete Information.' },
   ];
 
   const summary = [
-    'Datenschutz, Informationssicherheit und Geheimschutz sind getrennte Begriffe.',
-    'Interne Schutzbereiche personenbezogener Daten sind nicht deckungsgleich mit Art. 9 DSGVO.',
-    'Art. 9 DSGVO listet besondere Kategorien wie Gesundheitsdaten und politische Meinungen.',
-    'Öffentliche und offene Informationen sind nicht dasselbe: Offen heißt nicht klassifiziert, nicht unbedingt öffentlich.',
+    'Datenschutz, Schutzbereiche und Geheimhaltung/Informationskategorien sind drei getrennte Ebenen.',
+    'Personenbezogene Daten betreffen eine identifizierte oder identifizierbare natürliche Person – direkt oder indirekt.',
+    'BPersDat orientieren sich an Art. 9 DSGVO; APersDat sind allgemeine personenbezogene Daten.',
+    'SB1 = normaler Schutzbedarf, SB2 = hoher Schutzbedarf, SB3 = sehr hoher Schutzbedarf.',
+    'Bei gemischten Daten gilt der höchste enthaltene Schutzbereich.',
+    'Öffentlich, offen und Verschlusssache sind unterschiedliche Informationskategorien.',
+    'Die vier VS-Stufen sind VS-NfD, VS-VERTRAULICH, GEHEIM, STRENG GEHEIM.',
+    'Need-to-know und Systemfreigabe begrenzen, was womit verarbeitet werden darf.',
   ];
 
-  return { title, explanations, exercises: [], quiz, summary };
+  return { title, explanations, exercises, quiz, summary };
 }
 
 export function buildInformationSecurityIncidentsLesson() {
