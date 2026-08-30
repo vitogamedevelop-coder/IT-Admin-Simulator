@@ -28,6 +28,7 @@ import {
 } from '../lib/academyLessons/ipv4Generator';
 import { selectFinalQuiz } from '../lib/academyLessonData';
 import { selectDirectTheoryExercises } from '../lib/lessonExerciseSelector';
+import GuidedUiExercise from './GuidedUiExercise';
 
 const STYLE_SEQUENCE = ['classic', 'intuitive', 'example', 'visual', 'mnemonic'];
 
@@ -234,6 +235,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     if (ex.type === 'input') return <InputExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'cli-input') return <CliInputExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'select-best') return <SelectBestExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
+    if (ex.type === 'guided-ui') return <GuidedUiExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'guided-subnetting') return <GuidedSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'adaptive-subnetting') return <AdaptiveSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
     if (ex.type === 'difficulty-drill') return <DifficultyDrillExercise key={stateKey} exercise={ex} categoryId={categoryId} topicId={topicId} onComplete={() => completeExercise(stateKey)} />;

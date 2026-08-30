@@ -55,6 +55,15 @@ assert(topicSrc.includes('mode={activeSection}'), 'AcademyTopic passes the chose
 console.log('   Entry card exposes Theorie/Praxis/Fachgespräch, each wired to LessonRunner mode.');
 
 // ============================================================
+// 2a. Guided-UI exercise type is wired in
+// ============================================================
+console.log('2a. Testing guided-ui exercise type wiring...');
+assert(runnerSrc.includes("if (ex.type === 'guided-ui')"), 'LessonRunner branches on guided-ui exercises');
+assert(runnerSrc.includes("import GuidedUiExercise from './GuidedUiExercise'"), 'LessonRunner imports GuidedUiExercise');
+assert(fs.existsSync(path.join(srcDir, 'components', 'GuidedUiExercise.jsx')), 'GuidedUiExercise component file exists');
+console.log('   Guided-UI exercise type is wired into LessonRunner.');
+
+// ============================================================
 // 3. Themencheck stays untouched
 // ============================================================
 console.log('3. Testing Themencheck is unaffected...');
