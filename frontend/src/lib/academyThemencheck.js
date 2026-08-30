@@ -15,6 +15,7 @@
 import { LESSONS, hasLessonContent } from './academyLessonData.js';
 import { topicKey, topicsForCategory, ACADEMY_CATEGORIES, findTopic } from './academyTopics.js';
 import { getAllFullTopics } from './academyProgress.js';
+import { isTopicLearnedOrBeyond } from './academyEngine.js';
 import { LEARNING_MODES, readAcademyMode } from './academyMode.js';
 
 const RESULTS_KEY = 'cyberlearn:themencheck-results-v1';
@@ -156,13 +157,13 @@ export function getCategorySummary(categoryId) {
   // Estimate learning time: ~3 min per lesson + ~1 min per quiz question + ~2 min per exercise
   const estimatedMinutes = Math.round(lessonCount * 3 + quizCount * 1 + exerciseCount * 2);
 
-  // Completed count
+  // Completed count: must match the topic-card badge semantics (LEARNED+).
   let completedLessons = 0;
   let completedTopics = 0;
   for (const topic of topics) {
     if (!hasLessonContent(topic.categoryId, topic.topicId)) continue;
     const full = fullTopics.find(t => t.topicId === topic.topicId);
-    if (full && full.lessonCompletions >= 1) {
+    if (full && isTopicLearnedOrBeyond(full)) {
       completedLessons++;
       completedTopics++;
     }
@@ -284,7 +285,7 @@ export function isThemencheckAvailable(categoryId) {
   const fullTopics = getAllFullTopics().filter(t => t.categoryId === categoryId);
   for (const topic of lessonsInCategory) {
     const full = fullTopics.find(t => t.topicId === topic.topicId);
-    if (!full || !full.lessonCompletions || full.lessonCompletions < 1) return false;
+    if (!full || !isTopicLearnedOrBeyond(full)) return false;
   }
   return true;
 }

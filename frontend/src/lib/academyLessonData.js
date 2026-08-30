@@ -412,6 +412,46 @@ export function hasLessonContent(categoryId, topicId) {
   return !!LESSONS[key] || CUSTOM_LESSON_TOPICS.has(key);
 }
 
+// Maximum number of questions shown in the immediate end-of-theory final quiz.
+// The full pool remains available for practice, Fachgespräch and Themencheck.
+export const FINAL_QUIZ_MAX = 8;
+
+// Default number of final-quiz questions based on total pool size.
+export function defaultFinalQuizCount(totalQuestions) {
+  if (totalQuestions <= 8) return totalQuestions;
+  if (totalQuestions <= 15) return 7;
+  return FINAL_QUIZ_MAX;
+}
+
+// Picks a stable, facet-diverse subset for the immediate end-of-theory quiz.
+// Uses round-robin across facets so each selected batch covers distinct concepts.
+export function selectFinalQuiz(questions, explicitCount) {
+  if (!Array.isArray(questions) || questions.length === 0) return [];
+  const count = explicitCount ?? defaultFinalQuizCount(questions.length);
+  if (count >= questions.length) return questions;
+
+  const groups = new Map();
+  questions.forEach((q) => {
+    const facet = q.facet || 'general';
+    if (!groups.has(facet)) groups.set(facet, []);
+    groups.get(facet).push(q);
+  });
+
+  const selected = [];
+  let round = 0;
+  const keys = Array.from(groups.keys());
+  while (selected.length < count && round < 100) {
+    for (const key of keys) {
+      if (selected.length >= count) break;
+      const group = groups.get(key);
+      if (group[round]) selected.push(group[round]);
+    }
+    round += 1;
+  }
+
+  return selected;
+}
+
 export function getTopicScoreDimensions(categoryId, topicId) {
   const key = topicKey(categoryId, topicId);
   // Special interactive mini lessons that do not use the generic LessonRunner.

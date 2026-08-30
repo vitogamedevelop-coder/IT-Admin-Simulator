@@ -51,6 +51,12 @@ export function topicTheoryCompletion(topic) {
   return topic?.theoryCompletion ?? topic?.theoryScore ?? 0;
 }
 
+// Shared completion predicate used by category summaries and unlock checks.
+// A topic counts as completed once it reaches LEARNED or any higher status.
+export function isTopicLearnedOrBeyond(topic) {
+  return [TOPIC_STATUS.LEARNED, TOPIC_STATUS.APPLIED, TOPIC_STATUS.CONSOLIDATED].includes(topic?.status);
+}
+
 // Simple weighted overall competency value (0-100) derived from the three
 // separate scores - never stored, always computed on demand.
 export function overallScore(topic) {

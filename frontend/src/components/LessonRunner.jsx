@@ -26,6 +26,7 @@ import {
   generateQuestion, generateSubnettingQuestion, generateExamQuestions,
   checkAnswer, getRandomTip, DIFFICULTY_NAMES, DIFFICULTY_LABELS,
 } from '../lib/academyLessons/ipv4Generator';
+import { selectFinalQuiz } from '../lib/academyLessonData';
 
 const STYLE_SEQUENCE = ['classic', 'intuitive', 'example', 'visual', 'mnemonic'];
 
@@ -112,6 +113,8 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [quizResults, setQuizResults] = useState({});
   const [finished, setFinished] = useState(false);
+  // Final quiz is a stable, facet-diverse subset of the full quiz pool.
+  const finalQuiz = useMemo(() => selectFinalQuiz(lesson.quiz || [], lesson.finalQuizCount), [lesson.quiz, lesson.finalQuizCount]);
   // Comprehension check shown after every theory section (see
   // findSectionCheckQuestion below): either a real question reused from
   // that section's own content, or - if the section has none - a short
@@ -139,11 +142,11 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
 
   // Record the full quiz result once the player leaves the quiz phase.
   useEffect(() => {
-    if (phase !== 'help' || !lesson.quiz?.length || quizResultRecordedRef.current) return;
+    if (phase !== 'help' || !finalQuiz.length || quizResultRecordedRef.current) return;
     const correct = Object.values(quizResults).filter(Boolean).length;
-    recordQuizResult(categoryId, topicId, { total: lesson.quiz.length, correct });
+    recordQuizResult(categoryId, topicId, { total: finalQuiz.length, correct });
     quizResultRecordedRef.current = true;
-  }, [phase, categoryId, topicId, lesson.quiz, quizResults]);
+  }, [phase, categoryId, topicId, finalQuiz, quizResults]);
 
   // Each new explanation section starts with the default "classic" style so the
   // player always begins with "Warum", even if a different style was used before.
@@ -237,15 +240,15 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
   }
 
   // ---------- Quiz ----------
-  const currentQuizQuestion = lesson.quiz?.[currentQuizIndex];
-  const quizFinished = lesson.quiz && currentQuizIndex >= lesson.quiz.length;
+  const currentQuizQuestion = finalQuiz[currentQuizIndex];
+  const quizFinished = currentQuizIndex >= finalQuiz.length;
 
   function answerQuiz(index) {
     if (quizAnswers[currentQuizIndex] !== undefined) return;
     setQuizAnswers((prev) => ({ ...prev, [currentQuizIndex]: index }));
     const isCorrect = index === currentQuizShuffled.correct;
     setQuizResults((prev) => ({ ...prev, [currentQuizIndex]: isCorrect }));
-    recordQuestionAnswer(categoryId, topicId, `quiz-${currentQuizIndex}`, currentQuizIndex === lesson.quiz.length - 1 ? 'retention' : 'theory', isCorrect);
+    recordQuestionAnswer(categoryId, topicId, `quiz-${currentQuizIndex}`, currentQuizIndex === finalQuiz.length - 1 ? 'retention' : 'theory', isCorrect);
   }
 
   const currentQuizShuffled = useMemo(() => {
@@ -254,7 +257,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
   }, [currentQuizQuestion]);
 
   function nextQuiz() {
-    if (currentQuizIndex < lesson.quiz.length - 1) {
+    if (currentQuizIndex < finalQuiz.length - 1) {
       setCurrentQuizIndex((i) => i + 1);
     } else {
       setPhase('help');
@@ -433,7 +436,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
             {portrait ? <img src={portrait} alt="Sam" className="h-12 w-12 rounded-full border border-[#00f0ff] object-cover" /> : null}
             <div>
               <div className="text-xs text-[#00f0ff]">Sam Richter</div>
-              <p className="text-sm text-[#c9d1d9] mt-1">„Zeit für das Abschlussquiz. Frage {currentQuizIndex + 1} von {lesson.quiz.length}.“</p>
+              <p className="text-sm text-[#c9d1d9] mt-1">„Zeit für das Abschlussquiz. Frage {currentQuizIndex + 1} von {finalQuiz.length}.“</p>
             </div>
           </div>
         </div>
@@ -950,7 +953,7 @@ function SelectBestExercise({ exercise, index, onComplete }) {
       <div className="flex flex-col gap-2 mt-3">
         {exercise.options.map((opt, i) => (
           <button
-            key={i}
+            key={`${i}-${String(opt).slice(0, 24)}`}
             disabled={done}
             onClick={() => answer(i)}
             className={classNames(
