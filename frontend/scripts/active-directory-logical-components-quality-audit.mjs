@@ -72,9 +72,9 @@ for (const key of LESSON_KEYS) {
 
 // 4. No FSMO / Global Catalog / GUI procedure / later topics sneak in
 console.log('4. Checking for out-of-scope terms...');
-const forbiddenTerms = ['FSMO', 'RID Master', 'PDC Emulator', 'Infrastructure Master', 'Schema Master', 'Domain Naming Master', 'Global Catalog', 'Sysprep', 'NTDSUTIL', 'OU-GUI', 'MMC', 'Domain Join', 'GPO'];
+const forbiddenTerms = ['Sysprep', 'NTDSUTIL', 'OU-GUI', 'MMC', 'Domain Join', 'GPO'];
 const violations = [];
-for (const key of LESSON_KEYS) {
+for (const key of [DOMAIN_KEY, OU_KEY]) {
   const lessonText = JSON.stringify(LESSONS[key]).toLowerCase();
   for (const term of forbiddenTerms) {
     if (lessonText.includes(term.toLowerCase())) {
@@ -82,7 +82,7 @@ for (const key of LESSON_KEYS) {
     }
   }
 }
-assert.deepStrictEqual(violations, [], 'logical-components lessons must not contain out-of-scope terms');
+assert.deepStrictEqual(violations, [], 'domain and OU lessons must not contain out-of-scope terms');
 
 // 5. Knowledge items for these topics
 console.log('5. Checking logical-components knowledge items...');

@@ -161,6 +161,141 @@ const dcRedundancySvg = `<svg viewBox="0 0 320 170" class="w-full h-auto" xmlns=
   <text x="160" y="155" text-anchor="middle" fill="#8b949e" font-size="9">(Details folgen später)</text>
 </svg>`;
 
+const fsmoOverviewSvg = `<svg viewBox="0 0 320 220" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+  <rect x="20" y="15" width="280" height="50" rx="6" fill="#0d1117" stroke="#00f0ff" stroke-width="2"/>
+  <text x="160" y="32" text-anchor="middle" fill="#00f0ff" font-size="11" font-weight="bold">Forest (Gesamtstruktur)</text>
+  <text x="160" y="50" text-anchor="middle" fill="#8b949e" font-size="9">kann eine oder mehrere Domänen enthalten</text>
+
+  <rect x="40" y="78" width="100" height="36" rx="4" fill="#0d1117" stroke="#ffcc00" stroke-width="1.5"/>
+  <text x="90" y="94" text-anchor="middle" fill="#ffcc00" font-size="10" font-weight="bold">Schema Master</text>
+  <text x="90" y="107" text-anchor="middle" fill="#c9d1d9" font-size="8">1× pro Forest</text>
+
+  <rect x="180" y="78" width="100" height="36" rx="4" fill="#0d1117" stroke="#ffcc00" stroke-width="1.5"/>
+  <text x="230" y="94" text-anchor="middle" fill="#ffcc00" font-size="10" font-weight="bold">Domain Naming</text>
+  <text x="230" y="107" text-anchor="middle" fill="#c9d1d9" font-size="8">1× pro Forest</text>
+
+  <rect x="20" y="135" width="280" height="75" rx="6" fill="#0d1117" stroke="#8b949e" stroke-width="1.5"/>
+  <text x="160" y="155" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Domäne nexus.local</text>
+
+  <rect x="40" y="168" width="70" height="30" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="75" y="182" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">RID Master</text>
+  <text x="75" y="193" text-anchor="middle" fill="#c9d1d9" font-size="8">1× pro Domäne</text>
+
+  <rect x="125" y="168" width="70" height="30" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="160" y="182" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">PDC Emulator</text>
+  <text x="160" y="193" text-anchor="middle" fill="#c9d1d9" font-size="8">1× pro Domäne</text>
+
+  <rect x="210" y="168" width="70" height="30" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="245" y="182" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">Infrastructure</text>
+  <text x="245" y="193" text-anchor="middle" fill="#c9d1d9" font-size="8">1× pro Domäne</text>
+</svg>`;
+
+const ridPoolSvg = `<svg viewBox="0 0 320 190" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+  <rect x="90" y="10" width="140" height="42" rx="6" fill="#0d1117" stroke="#ffcc00" stroke-width="2"/>
+  <text x="160" y="28" text-anchor="middle" fill="#ffcc00" font-size="11" font-weight="bold">RID Master</text>
+  <text x="160" y="43" text-anchor="middle" fill="#8b949e" font-size="9">vergibt RID-Bereiche</text>
+
+  <line x1="160" y1="52" x2="160" y2="75" stroke="#ffcc00" stroke-width="1.5"/>
+  <line x1="80" y1="75" x2="240" y2="75" stroke="#ffcc00" stroke-width="1.5"/>
+
+  <rect x="30" y="90" width="110" height="42" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="85" y="107" text-anchor="middle" fill="#00f0ff" font-size="10" font-weight="bold">DC01</text>
+  <text x="85" y="121" text-anchor="middle" fill="#c9d1d9" font-size="8">RID-Pool 1000–1499</text>
+
+  <rect x="180" y="90" width="110" height="42" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="235" y="107" text-anchor="middle" fill="#00f0ff" font-size="10" font-weight="bold">DC02</text>
+  <text x="235" y="121" text-anchor="middle" fill="#c9d1d9" font-size="8">RID-Pool 1500–1999</text>
+
+  <rect x="30" y="155" width="260" height="30" rx="4" fill="#0d1117" stroke="#8b949e" stroke-width="1"/>
+  <text x="160" y="168" text-anchor="middle" fill="#c9d1d9" font-size="9">Domänen-SID-Anteil + RID = eindeutige Objekt-SID</text>
+  <text x="160" y="180" text-anchor="middle" fill="#8b949e" font-size="8">z. B. S-1-5-21-...-1001</text>
+</svg>`;
+
+const pdcSvg = `<svg viewBox="0 0 320 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+  <rect x="110" y="10" width="100" height="46" rx="6" fill="#0d1117" stroke="#ffcc00" stroke-width="2"/>
+  <text x="160" y="30" text-anchor="middle" fill="#ffcc00" font-size="11" font-weight="bold">PDC Emulator</text>
+  <text x="160" y="46" text-anchor="middle" fill="#8b949e" font-size="9">eine Rolle pro Domäne</text>
+
+  <line x1="160" y1="56" x2="160" y2="80" stroke="#ffcc00" stroke-width="1.5"/>
+  <line x1="60" y1="80" x2="260" y2="80" stroke="#ffcc00" stroke-width="1.5"/>
+
+  <rect x="20" y="95" width="85" height="44" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="62" y="112" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">Passwort-</text>
+  <text x="62" y="124" text-anchor="middle" fill="#00f0ff" font-size="9">änderungen</text>
+  <text x="62" y="136" text-anchor="middle" fill="#8b949e" font-size="8">schnelle Replikation</text>
+
+  <rect x="117" y="95" width="85" height="44" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="159" y="112" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">Zeit-</text>
+  <text x="159" y="124" text-anchor="middle" fill="#00f0ff" font-size="9">Hierarchie</text>
+  <text x="159" y="136" text-anchor="middle" fill="#8b949e" font-size="8">Kerberos braucht Zeit</text>
+
+  <rect x="215" y="95" width="85" height="44" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="257" y="112" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">GPO-Editor</text>
+  <text x="257" y="124" text-anchor="middle" fill="#00f0ff" font-size="9">/ Legacy</text>
+  <text x="257" y="136" text-anchor="middle" fill="#8b949e" font-size="8">bevorzugtes Ziel</text>
+
+  <rect x="20" y="160" width="280" height="38" rx="4" fill="#0d1117" stroke="#8b949e" stroke-width="1"/>
+  <text x="160" y="174" text-anchor="middle" fill="#c9d1d9" font-size="9">PDC = bevorzugter Koordinator,</text>
+  <text x="160" y="188" text-anchor="middle" fill="#c9d1d9" font-size="9">nicht exklusiver Alleinherrscher</text>
+</svg>`;
+
+const infrastructureSvg = `<svg viewBox="0 0 320 220" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+  <rect x="20" y="10" width="120" height="40" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="80" y="25" text-anchor="middle" fill="#00f0ff" font-size="10" font-weight="bold">Domäne A</text>
+  <text x="80" y="40" text-anchor="middle" fill="#8b949e" font-size="8">Benutzer Anna</text>
+
+  <rect x="180" y="10" width="120" height="40" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="240" y="25" text-anchor="middle" fill="#00f0ff" font-size="10" font-weight="bold">Domäne B</text>
+  <text x="240" y="40" text-anchor="middle" fill="#8b949e" font-size="8">Gruppe Vertrieb</text>
+
+  <line x1="80" y1="50" x2="80" y2="90" stroke="#00f0ff" stroke-width="1"/>
+  <rect x="20" y="90" width="120" height="30" rx="4" fill="#0d1117" stroke="#ffcc00" stroke-width="1.5"/>
+  <text x="80" y="104" text-anchor="middle" fill="#ffcc00" font-size="9" font-weight="bold">RID, PDC</text>
+  <text x="80" y="115" text-anchor="middle" fill="#c9d1d9" font-size="8">domain-weit</text>
+
+  <line x1="240" y1="50" x2="240" y2="90" stroke="#00f0ff" stroke-width="1"/>
+  <rect x="180" y="90" width="120" height="30" rx="4" fill="#0d1117" stroke="#ffcc00" stroke-width="1.5"/>
+  <text x="240" y="104" text-anchor="middle" fill="#ffcc00" font-size="9" font-weight="bold">Infrastructure</text>
+  <text x="240" y="115" text-anchor="middle" fill="#c9d1d9" font-size="8">domain-weit</text>
+
+  <path d="M140 30 L180 30" stroke="#8b949e" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowInfra)"/>
+  <text x="160" y="58" text-anchor="middle" fill="#8b949e" font-size="9">Anna ist Mitglied in</text>
+  <text x="160" y="71" text-anchor="middle" fill="#8b949e" font-size="9">Gruppe Vertrieb</text>
+
+  <rect x="20" y="150" width="280" height="55" rx="6" fill="#0d1117" stroke="#8b949e" stroke-width="1"/>
+  <text x="160" y="168" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">Infrastructure Master</text>
+  <text x="160" y="184" text-anchor="middle" fill="#c9d1d9" font-size="9">hält domänenübergreifende Referenzen aktuell</text>
+  <text x="160" y="198" text-anchor="middle" fill="#8b949e" font-size="8">besonders relevant in Multi-Domain-Umgebungen</text>
+  <defs><marker id="arrowInfra" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#8b949e"/></marker></defs>
+</svg>`;
+
+const globalCatalogSvg = `<svg viewBox="0 0 320 220" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+  <rect x="20" y="10" width="90" height="36" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="65" y="25" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">Domäne A</text>
+  <text x="65" y="37" text-anchor="middle" fill="#8b949e" font-size="8">volle Daten</text>
+
+  <rect x="115" y="10" width="90" height="36" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="160" y="25" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">Domäne B</text>
+  <text x="160" y="37" text-anchor="middle" fill="#8b949e" font-size="8">Teilinformationen</text>
+
+  <rect x="210" y="10" width="90" height="36" rx="4" fill="#0d1117" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="255" y="25" text-anchor="middle" fill="#00f0ff" font-size="9" font-weight="bold">Domäne C</text>
+  <text x="255" y="37" text-anchor="middle" fill="#8b949e" font-size="8">Teilinformationen</text>
+
+  <rect x="100" y="80" width="120" height="60" rx="6" fill="#0d1117" stroke="#ffcc00" stroke-width="2"/>
+  <text x="160" y="102" text-anchor="middle" fill="#ffcc00" font-size="11" font-weight="bold">DC mit Global Catalog</text>
+  <text x="160" y="120" text-anchor="middle" fill="#c9d1d9" font-size="9">eigene Domäne: vollständig</text>
+  <text x="160" y="135" text-anchor="middle" fill="#c9d1d9" font-size="9">andere Domänen: Partial Attribute Set</text>
+
+  <line x1="65" y1="46" x2="130" y2="80" stroke="#8b949e" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="160" y1="46" x2="160" y2="80" stroke="#8b949e" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="255" y1="46" x2="190" y2="80" stroke="#8b949e" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <rect x="40" y="170" width="240" height="42" rx="4" fill="#0d1117" stroke="#8b949e" stroke-width="1"/>
+  <text x="160" y="188" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">Global Catalog ≠ FSMO</text>
+  <text x="160" y="204" text-anchor="middle" fill="#8b949e" font-size="9">GC = Dienst auf einem DC, keine Masterrolle</text>
+</svg>`;
+
 // =============================================================================
 // Domain lesson
 // =============================================================================
@@ -451,6 +586,78 @@ function buildDomainControllerLesson() {
       { type: 'text', content: 'Ein Domain Controller ist ein Server, der AD DS hostet, Verzeichnisdaten hält und Authentifizierung ermöglicht. Mehrere DCs in einer Domäne erhöhen Verfügbarkeit. DC bedeutet als Serverrolle Domain Controller, im DN Domain Component.' },
       { type: 'question', question: 'Welche Aussage ist richtig?', options: ['Ein DC ist die Domäne', 'Ein DC ist ein Server, der AD DS bereitstellt; DC im DN heißt Domain Component', 'Ein DC ist eine OU', 'Ein DC ist ein Client'], correct: 1, explanation: 'Der Domain Controller ist die Serverrolle, im DN bedeutet DC etwas anderes.' },
     ]),
+    explanation('fsmo-einstieg-classic', 'NEXUS bekommt einen zweiten DC', 'classic', [
+      { type: 'text', content: 'NEXUS hat nun zwei Domain Controller: DC01 und DC02. Beide können Verzeichnisdaten halten, Benutzer authentifizieren und Änderungen verarbeiten. Mehrere DCs erhöhen Verfügbarkeit – aber jetzt entstehen spezielle Probleme: neue Sicherheitskennungen müssen eindeutig bleiben, ein soeben geändertes Passwort muss überall akzeptiert werden, und die Domänenzeit braucht eine verlässliche Hierarchie.' },
+      { type: 'question', question: 'Wenn mehrere DCs gleichzeitig arbeiten: Was fehlt dann trotzdem manchmal?', options: ['Ein eindeutig zuständiger DC für bestimmte Aufgaben', 'Schnellere CPU auf jedem DC', 'Mehr Festplattenplatz', 'Zusätzliche Domänen'], correct: 0, explanation: 'Bei einigen kritischen Aufgaben braucht AD eine eindeutige Zuständigkeit, damit Konflikte vermieden werden.' },
+    ]),
+    explanation('fsmo-einstieg-intuitive', 'Viele Kassen, aber ein Hauptbuch', 'intuitive', [
+      { type: 'text', content: 'Stell dir ein Restaurant vor, das an zwei Kassen gleichzeitig verkauft. Beide Kassen buchen Umsatz und drucken Quittungen. Das funktioniert, weil die meisten Abläufe unabhängig sind. Aber wenn es um fortlaufende Rechnungsnummern oder die zentrale Tagesabrechnung geht, braucht es einen eindeutigen Zuständigen.' },
+      { type: 'text', content: 'Active Directory arbeitet grundsätzlich verteilt über mehrere DCs. FSMO-Rollen sind gezielte Ausnahmen: Sie vergeben Aufgaben, bei denen eine eindeutige Instanz sinnvoll ist.' },
+    ]),
+    explanation('fsmo-ueberblick-classic', 'FSMO: Flexible Single Master Operations', 'classic', [
+      { type: 'text', content: 'AD DS verwendet normalerweise Multi-Master-Replikation: Viele Änderungen können auf jedem DC durchgeführt und später abgeglichen werden. FSMO-Rollen sind Ausnahmen für Aufgaben, bei denen ein eindeutiger Rolleninhaber Konflikte verhindert.' },
+      { type: 'list', title: 'Fünf FSMO-Rollen', items: [
+        'Forest-weit: Schema Master, Domain Naming Master',
+        'Domänen-weit: RID Master, PDC Emulator, Infrastructure Master',
+      ] },
+      { type: 'diagram', content: fsmoOverviewSvg },
+      { type: 'question', question: 'Was ist die Grundidee von FSMO-Rollen?', options: ['Alle DCs dürfen nur lesen', 'Bestimmte Aufgaben haben einen eindeutigen Zuständigen', 'FSMO ersetzt die Multi-Master-Replikation vollständig', 'Jeder DC muss jede Rolle halten'], correct: 1, explanation: 'FSMO-Rollen sind Ausnahmen von der verteilten Multi-Master-Replikation, nicht deren Ersatz.' },
+    ]),
+    explanation('rid-master-classic', 'RID Master: Eindeutige Sicherheitskennungen', 'classic', [
+      { type: 'text', content: 'Sicherheitsprinzipale in AD erhalten eine SID. Sie setzt sich vereinfacht aus einem domänenspezifischen Anteil und einem Relativen Identifikator (RID) zusammen. Damit zwei DCs nicht versehentlich denselben RID vergeben, verteilt der RID Master RID-Bereiche an die DCs.' },
+      { type: 'diagram', content: ridPoolSvg },
+      { type: 'text', content: 'Jeder DC verwendet RIDs aus seinem Pool, um eindeutige SIDs für neue Objekte zu erzeugen. Wenn der Pool knapp wird, fordert er einen neuen Bereich beim RID Master an.' },
+      { type: 'question', question: 'Welche FSMO-Rolle stellt sicher, dass neue Objekte in der Domäne eindeutige RIDs erhalten?', options: ['PDC Emulator', 'Infrastructure Master', 'RID Master', 'Schema Master'], correct: 2, explanation: 'Der RID Master verteilt RID-Bereiche an DCs, damit jede Objekt-SID eindeutig bleibt.' },
+    ]),
+    explanation('pdc-emulator-classic', 'PDC Emulator: Koordinationsaufgaben', 'classic', [
+      { type: 'text', content: 'Der PDC Emulator ist eine domänen-weite FSMO-Rolle mit mehreren besonderen Aufgaben. Er ist wichtig für kürzlich geänderte Kennwörter, die Zeit-Hierarchie in der Domäne und bestimmte administrative Vorgänge.' },
+      { type: 'diagram', content: pdcSvg },
+      { type: 'list', title: 'Wichtige Aufgaben des PDC Emulator', items: [
+        'Kennwortänderungen werden bevorzugt/schnell zum PDC repliziert; er kann bei Anmeldeproblemen nach einer frischen Änderung helfen.',
+        'Er spielt in der Domänenzeit-Hierarchie eine zentrale Rolle; große Zeitabweichungen können Kerberos-Authentifizierung verhindern.',
+        'Bestimmte Verwaltungstools verwenden den PDC bevorzugt, um Konflikte zu reduzieren.',
+      ] },
+      { type: 'question', question: 'Welche FSMO-Rolle ist besonders relevant, wenn ein Benutzer sein Passwort kurz vor der Anmeldung an einem anderen DC geändert hat?', options: ['RID Master', 'Infrastructure Master', 'PDC Emulator', 'Schema Master'], correct: 2, explanation: 'Der PDC Emulator ist für kürzliche Kennwortänderungen und Zeit-Hierarchie besonders wichtig.' },
+    ]),
+    explanation('infrastructure-master-classic', 'Infrastructure Master: Domänenübergreifende Referenzen', 'classic', [
+      { type: 'text', content: 'Der Infrastructure Master ist in einer Domäne zuständig für Referenzen auf Objekte anderer Domänen. Wenn sich ein referenziertes Objekt in einer anderen Domäne ändert, hilft der Infrastructure Master, diese Referenz aktuell zu halten.' },
+      { type: 'diagram', content: infrastructureSvg },
+      { type: 'text', content: 'In einer Single-Domain-Umgebung hat diese Rolle wenig domänenübergreifende Arbeit. In Multi-Domain-Umgebungen wird sie relevant.' },
+      { type: 'question', question: 'Wann ist der Infrastructure Master besonders wichtig?', options: ['Bei der Vergabe von RID-Bereichen', 'Wenn Objekte einer Domäne von Gruppen oder OUs einer anderen Domäne referenziert werden', 'Wenn die Domänenzeit synchronisiert werden muss', 'Wenn das AD-Schema erweitert wird'], correct: 1, explanation: 'Der Infrastructure Master hält domänenübergreifende Referenzen aktuell.' },
+    ]),
+    explanation('forest-roles-classic', 'Forest-weite FSMO-Rollen', 'classic', [
+      { type: 'text', content: 'Neben den drei domänen-weiten FSMO-Rollen gibt es zwei forest-weite Rollen. Eine Gesamtstruktur kann eine oder mehrere Domänen enthalten.' },
+      { type: 'list', title: 'Forest-weite Rollen', items: [
+        'Schema Master – kontrolliert Schemaänderungen für den gesamten Forest.',
+        'Domain Naming Master – besondere Verantwortung beim Hinzufügen oder Entfernen von Domänen im Forest.',
+      ] },
+      { type: 'text', content: 'Für diesen Block genügt der Überblick; Details zum Schema-Editor oder zur Domain-Naming-Prozedur folgen später.' },
+      { type: 'question', question: 'Welche FSMO-Rollen gelten für den gesamten Forest?', options: ['RID Master und PDC Emulator', 'Schema Master und Domain Naming Master', 'Infrastructure Master und RID Master', 'PDC Emulator und Infrastructure Master'], correct: 1, explanation: 'Schema Master und Domain Naming Master sind forest-weit; die anderen drei sind domänen-weit.' },
+    ]),
+    explanation('global-catalog-classic', 'Global Catalog: Forestweite Suche', 'classic', [
+      { type: 'text', content: 'Ein Global Catalog ist kein einzelner zentraler Server für den gesamten Forest. Ein oder mehrere Domain Controller können die Global-Catalog-Funktion bereitstellen. Sie halten ihre eigene Domäne vollständig und andere Domänen als Partial Attribute Set.' },
+      { type: 'diagram', content: globalCatalogSvg },
+      { type: 'list', title: 'Wichtige GC-Funktionen', items: [
+        'Forestweite Suche nach Objekten, ohne jede Domäne vollständig abfragen zu müssen.',
+        'Unterstützung bestimmter Anmeldeszenarien.',
+        'Kein Backup-Server, sondern gezielter Verzeichnisschnittstelle für Suche und Anmeldekontext.',
+      ] },
+      { type: 'text', content: 'Der Global Catalog ist keine FSMO-Rolle. Ein DC kann FSMO-Rollen halten, GC sein, beides oder keines von beidem.' },
+      { type: 'question', question: 'Was enthält ein Global Catalog?', options: ['Nur Objekte der eigenen Domäne', 'Alle Objekte aller Domänen vollständig', 'Eigene Domäne vollständig und andere Domänen als Partial Attribute Set', 'Nichts, er ist nur ein Backup'], correct: 2, explanation: 'Ein GC hält die eigene Domäne vollständig und andere Domänen als Teilattribute.' },
+    ]),
+    explanation('global-catalog-intuitive', 'Das Branchenverzeichnis', 'intuitive', [
+      { type: 'text', content: 'Stell dir einen Konzern mit mehreren Standorten. Jede Niederlassung hat ein eigenes, vollständiges Mitarbeiterverzeichnis. Damit man aber firmenweit nach einer Person suchen kann, ohne in jedem Standort extra nachzuschauen, gibt es ein zentrales Branchenverzeichnis mit den wichtigsten Daten aller Standorte.' },
+      { type: 'text', content: 'Der Global Catalog funktioniert ähnlich: Er speichert für den eigenen Standort alles und für andere Standorte ausgewählte Daten, damit forestweite Suchen schnell gehen.' },
+    ]),
+    explanation('fsmo-gc-zusammenfassung-classic', 'FSMO und Global Catalog im Vergleich', 'classic', [
+      { type: 'text', content: 'AD arbeitet grundsätzlich verteilt über mehrere DCs. FSMO-Rollen sind gezielte Ausnahmen mit eindeutigem Rolleninhaber für bestimmte Aufgaben. Der Global Catalog ist dagegen keine FSMO-Rolle, sondern eine Funktion auf einem DC, die forestweite Suche und Anmeldeszenarien ermöglicht.' },
+      { type: 'list', title: 'Wichtige Unterscheidungen', items: [
+        'FSMO = eindeutige Rolleninhaber für spezielle Aufgaben.',
+        'GC = Dienst auf einem DC für forestweite Verzeichnisinformationen.',
+        'Ein DC kann FSMO-Rollen halten, GC sein oder beides.',
+      ] },
+      { type: 'question', question: 'Welche Aussage trifft zu?', options: ['Global Catalog ist eine FSMO-Rolle', 'FSMO-Rollen ersetzen die Multi-Master-Replikation vollständig', 'Global Catalog ist ein Dienst auf einem DC, FSMO sind besondere Rollen', 'Es gibt genau einen GC pro Forest'], correct: 2, explanation: 'FSMO-Rollen und Global Catalog sind unterschiedliche Konzepte: FSMO = Rollen, GC = Dienst.' },
+    ]),
   ];
 
   const exercises = [
@@ -498,6 +705,38 @@ function buildDomainControllerLesson() {
       ],
       explanation: 'Domäne, OU und Objekt sind logische Strukturen. Der Domain Controller ist der Server, der AD DS bereitstellt.',
     },
+    {
+      id: 'ad-fsmo-scope-matching',
+      type: 'matching',
+      question: 'Ordne die FSMO-Rolle dem passenden Geltungsbereich zu.',
+      pairs: [
+        { left: 'Schema Master', right: 'gilt für den gesamten Forest' },
+        { left: 'Domain Naming Master', right: 'gilt für den gesamten Forest' },
+        { left: 'RID Master', right: 'gilt pro Domäne' },
+        { left: 'PDC Emulator', right: 'gilt pro Domäne' },
+        { left: 'Infrastructure Master', right: 'gilt pro Domäne' },
+      ],
+      explanation: 'Schema Master und Domain Naming Master sind forest-weit; RID Master, PDC Emulator und Infrastructure Master sind domänen-weit.',
+    },
+    {
+      id: 'ad-fsmo-szenarien-matching',
+      type: 'matching',
+      question: 'Ordne jedem Szenario die passende domänen-weite FSMO-Rolle zu.',
+      pairs: [
+        { left: 'DC02 braucht neue RIDs', right: 'RID Master' },
+        { left: 'Passwort gerade geändert, andere DC kennt es noch nicht', right: 'PDC Emulator' },
+        { left: 'Objekt aus anderer Domäne wird umbenannt', right: 'Infrastructure Master' },
+      ],
+      explanation: 'RID Master verteilt RIDs, PDC Emulator ist für Passwort-/Zeit-/Koordinationskontext wichtig, Infrastructure Master hält domänenübergreifende Referenzen aktuell.',
+    },
+    {
+      id: 'ad-gc-select',
+      type: 'select-best',
+      question: 'Welche Aufgabe erfüllt ein Global Catalog?',
+      options: ['Er ersetzt den PDC Emulator', 'Er ermöglicht forestweite Suche und bereitstellt Teildaten anderer Domänen', 'Er ist die einzige Quelle für FSMO-Rollen', 'Er dient ausschließlich als Backup aller DCs'],
+      correct: 1,
+      explanation: 'Ein Global Catalog enthält die eigene Domäne vollständig und andere Domänen als Partial Attribute Set, um forestweite Suchen und bestimmte Anmeldungen zu ermöglichen.',
+    },
   ];
 
   const quiz = [
@@ -507,17 +746,21 @@ function buildDomainControllerLesson() {
     { question: 'Welche Aussage zu Domäne und DC ist richtig?', options: ['Domäne und DC sind identisch', 'Domäne ist logisch, DC ist ein physischer/virtueller Server', 'Eine Domäne ist ein physischer Server', 'Ein DC ist logisch, die Domäne physisch'], correct: 1, explanation: 'Domäne = logisch, DC = Server, der AD DS bereitstellt.' },
     { question: 'Was bedeutet DC im DN?', options: ['Domain Controller', 'Domain Component', 'Data Center', 'Direct Connect'], correct: 1, explanation: 'Im DN bedeutet DC Domain Component.' },
     { question: 'Wofür steht DC als Serverrolle?', options: ['Domain Component', 'Domain Controller', 'Data Center', 'Direct Connect'], correct: 1, explanation: 'Als Serverrolle ist DC der Domain Controller.' },
+    { question: 'Was ist die Hauptaufgabe des RID Master?', options: ['Zeit-Synchronisation', 'Vergabe von RID-Bereichen an DCs', 'Verwaltung von Gruppenrichtlinien', 'Forestweite Suche'], correct: 1, explanation: 'Der RID Master verteilt RIDs, damit jede Objekt-SID eindeutig bleibt.' },
+    { question: 'Welche Aussage zu Global Catalog ist richtig?', options: ['Er ist eine FSMO-Rolle', 'Er enthält die eigene Domäne vollständig und andere Domänen als Partial Attribute Set', 'Er ist ein zentraler Backup-Server für alle DCs', 'Es gibt maximal einen GC pro Forest'], correct: 1, explanation: 'Ein GC ist keine FSMO-Rolle. Er stellt vollständige Daten der eigenen und Teildaten anderer Domänen bereit.' },
   ];
 
   const summary = [
     'Ein Domain Controller hostet AD DS.',
-    'Er hält Verzeichnisdaten und ermöglicht Authentifizierung.',
     'Eine Domäne kann mehrere DCs für Redundanz haben.',
+    'AD arbeitet grundsätzlich Multi-Master; FSMO-Rollen sind gezielte Ausnahmen.',
+    'Forest-weit: Schema Master, Domain Naming Master.',
+    'Domänen-weit: RID Master, PDC Emulator, Infrastructure Master.',
+    'Global Catalog ist keine FSMO-Rolle, sondern ein Dienst für forestweite Verzeichnisinformationen.',
     'DC als Serverrolle ≠ DC im Distinguished Name.',
-    'Domäne und DC sind eng verbunden, aber nicht identisch.',
   ];
 
-  return { title: 'Domain Controller', explanations, exercises, quiz, summary };
+  return { title: 'Domain Controller, FSMO & Global Catalog', explanations, exercises, quiz, summary };
 }
 
 export function buildAdDomainLesson() { return buildDomainLesson(); }
