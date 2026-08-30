@@ -863,66 +863,254 @@ export function buildInformationSecurityThreatsMalwareLesson() {
 export function buildInformationSecurityTechnicalMeasuresLesson() {
   const title = 'Block 5: Technische Schutzmaßnahmen';
 
+  const firewallHierarchySvg = `<svg viewBox="0 0 360 120" class="w-full h-auto max-h-40" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Firewall ist der Oberbegriff</text><rect x="110" y="28" width="140" height="28" rx="6" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><text x="180" y="47" text-anchor="middle" fill="#c9d1d9" font-size="10" font-weight="bold">FIREWALL</text><line x1="180" y1="56" x2="180" y2="70" stroke="#8b949e"/><rect x="30" y="78" width="85" height="28" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="72" y="96" text-anchor="middle" fill="#c9d1d9" font-size="8">Paketfilter</text><rect x="137" y="78" width="85" height="28" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="180" y="96" text-anchor="middle" fill="#c9d1d9" font-size="8">Stateful</text><rect x="245" y="78" width="85" height="28" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="288" y="96" text-anchor="middle" fill="#c9d1d9" font-size="8">ALG</text><line x1="160" y1="70" x2="115" y2="78" stroke="#8b949e"/><line x1="180" y1="70" x2="180" y2="78" stroke="#8b949e"/><line x1="200" y1="70" x2="287" y2="78" stroke="#8b949e"/></svg>`;
+
+  const statelessStatefulSvg = `<svg viewBox="0 0 360 110" class="w-full h-auto max-h-40" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Zustandslos vs. zustandsorientiert</text><g fill="#c9d1d9" font-size="8" text-anchor="middle"><text x="80" y="38" font-weight="bold">Stateless / Statisch</text><text x="80" y="53">Jedes Paket allein</text><text x="80" y="66">kein Return-Traffic</text><text x="280" y="38" font-weight="bold">Stateful / Dynamisch</text><text x="280" y="53">Verbindung merken</text><text x="280" y="66">Rückverkehr erlaubt</text></g><rect x="20" y="80" width="120" height="18" rx="4" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="80" y="92" text-anchor="middle" fill="#c9d1d9" font-size="8">Hin-Regel + Rück-Regel</text><rect x="220" y="80" width="120" height="18" rx="4" fill="#3fb950" fill-opacity="0.2" stroke="#3fb950"/><text x="280" y="92" text-anchor="middle" fill="#c9d1d9" font-size="8">Initiiert = Rückweg frei</text></svg>`;
+
+  const dmzSvg = `<svg viewBox="0 0 360 120" class="w-full h-auto max-h-40" xmlns="http://www.w3.org/2000/svg"><g fill="#1f6feb" fill-opacity="0.2" stroke="#58a6ff"><rect x="10" y="30" width="80" height="55" rx="6"/><rect x="140" y="35" width="80" height="50" rx="6"/><rect x="270" y="30" width="80" height="55" rx="6"/></g><g fill="#c9d1d9" font-size="8" text-anchor="middle"><text x="50" y="52">INTERNET</text><text x="50" y="65">(nicht vertrauensw.)</text><text x="180" y="52">DMZ</text><text x="180" y="65">öffentl. Dienste</text><text x="310" y="52">INTERNES NETZ</text><text x="310" y="65">(vertrauensw.)</text></g><line x1="90" y1="58" x2="140" y2="58" stroke="#f0883e" stroke-width="2"/><line x1="220" y1="58" x2="270" y2="58" stroke="#f0883e" stroke-width="2"/><text x="180" y="100" text-anchor="middle" fill="#8b949e" font-size="8">zwei Trennstufen, Schaden begrenzen</text></svg>`;
+
+  const idsIpsSvg = `<svg viewBox="0 0 360 110" class="w-full h-auto max-h-40" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Erkennen vs. Reagieren</text><rect x="25" y="35" width="120" height="28" rx="5" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="85" y="54" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">IDS</text><text x="85" y="85" text-anchor="middle" fill="#c9d1d9" font-size="8">erkennen + melden</text><rect x="215" y="35" width="120" height="28" rx="5" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="275" y="54" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">IPS</text><text x="275" y="85" text-anchor="middle" fill="#c9d1d9" font-size="8">erkennen + blocken</text><line x1="145" y1="49" x2="215" y2="49" stroke="#8b949e" stroke-dasharray="4"/><text x="180" y="68" text-anchor="middle" fill="#8b949e" font-size="8">Aber: IPS kann auch legitimen Traffic blocken</text></svg>`;
+
+  const defenseInDepthSvg = `<svg viewBox="0 0 360 140" class="w-full h-auto max-h-48" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Defense in Depth</text><g stroke="#8b949e" fill="none"><rect x="35" y="28" width="290" height="18" rx="4"/><rect x="35" y="48" width="290" height="18" rx="4"/><rect x="35" y="68" width="290" height="18" rx="4"/><rect x="35" y="88" width="290" height="18" rx="4"/><rect x="35" y="108" width="290" height="18" rx="4"/></g><g fill="#c9d1d9" font-size="8" text-anchor="middle"><text x="180" y="40">Internet</text><text x="180" y="60">Edge-Firewall / Paketfilter</text><text x="180" y="80">DMZ</text><text x="180" y="100">IPS / Stateful Firewall</text><text x="180" y="120">Internes Netz / Segmentierung</text></g></svg>`;
+
+  const vpnSvg = `<svg viewBox="0 0 360 120" class="w-full h-auto max-h-40" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">VPN-Verbindungsarten</text><rect x="15" y="30" width="85" height="24" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><rect x="15" y="66" width="85" height="24" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="57" y="45" text-anchor="middle" fill="#c9d1d9" font-size="8">Netz A</text><text x="57" y="82" text-anchor="middle" fill="#c9d1d9" font-size="8">Netz B</text><rect x="260" y="30" width="85" height="24" rx="5" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><rect x="260" y="66" width="85" height="24" rx="5" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><text x="302" y="45" text-anchor="middle" fill="#06111f" font-size="8">Mitarbeiter</text><text x="302" y="82" text-anchor="middle" fill="#06111f" font-size="8">Firmennetz</text><text x="180" y="40" text-anchor="middle" fill="#c9d1d9" font-size="8">Site-to-Site</text><text x="180" y="77" text-anchor="middle" fill="#c9d1d9" font-size="8">End-to-Site</text><line x1="100" y1="42" x2="260" y2="42" stroke="#f0883e" stroke-width="2"/><line x1="100" y1="78" x2="260" y2="78" stroke="#f0883e" stroke-width="2"/></svg>`;
+
+  const authSvg = `<svg viewBox="0 0 360 110" class="w-full h-auto max-h-40" xmlns="http://www.w3.org/2000/svg"><text x="180" y="18" text-anchor="middle" fill="#c9d1d9" font-size="12" font-weight="bold">Authentisierung → Authentifizierung → Autorisierung</text><rect x="10" y="40" width="100" height="30" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><rect x="130" y="40" width="100" height="30" rx="5" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><rect x="250" y="40" width="100" height="30" rx="5" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><text x="60" y="59" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Nachweis</text><text x="180" y="59" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Prüfung</text><text x="300" y="59" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Rechte</text><line x1="110" y1="55" x2="130" y2="55" stroke="#8b949e"/><line x1="230" y1="55" x2="250" y2="55" stroke="#8b949e"/><text x="60" y="85" text-anchor="middle" fill="#8b949e" font-size="7">Authentisierung</text><text x="180" y="85" text-anchor="middle" fill="#8b949e" font-size="7">Authentifizierung</text><text x="300" y="85" text-anchor="middle" fill="#8b949e" font-size="7">Autorisierung</text></svg>`;
+
   const explanations = [
+    explanation('b5-einstieg', 'Schutzarchitektur für NEXUS', 'classic', [
+      { type: 'text', content: 'Technische Schutzmaßnahmen sind ein Teil des Gesamtschutzes. Im OPTI-Modell gehören technische Maßnahmen dazu, ergänzt durch organisatorische, personelle und infrastrukturelle Maßnahmen. Sie alleine lösen keine Informationssicherheit, aber ohne sie lässt sich ein NEXUS-Netzwerk nicht verantwortungsvoll betreiben.' },
+      { type: 'question', question: 'Welche Aussage zu technischen Schutzmaßnahmen stimmt?', options: ['Sie ersetzen alle anderen Maßnahmen', 'Sie sind ein Teil des Gesamtschutzes', 'Sie betreffen nur Firewalls', 'Sie sind optional'], correct: 1, explanation: 'Technische Maßnahmen ergänzen organisatorische, personelle und infrastrukturelle Maßnahmen.' },
+    ]),
+
+    explanation('b5-netzplan', 'Netzplan als Ausgangspunkt', 'classic', [
+      { type: 'text', content: 'Bevor Schutzmaßnahmen geplant werden, muss klar sein, welche Komponenten, Server, Clients, Verbindungen und externen Anbindungen existieren. Ohne Netzplan lassen sich Angriffsflächen und Schutzbedarf nicht zuverlässig bewerten.' },
+      { type: 'list', title: 'Was ein Netzplan zeigt', items: ['Aktive Netzkomponenten', 'Server und Dienste', 'Clients und Endgeräte', 'Interne und externe Verbindungen', 'Vertrauensgrenzen'] },
+      { type: 'question', question: 'Was muss man zuerst verstehen, bevor man eine Schutzarchitektur plant?', options: ['Den genauen Preis der Firewall', 'Netz, Komponenten und Kommunikationsbeziehungen', 'Die Lieblingsfarbe der Nutzer', 'Den Hersteller jedes Kabels'], correct: 1, explanation: 'Netzplan und Kommunikationsbeziehungen sind die Basis für passende Maßnahmen.' },
+    ]),
+
+    explanation('b5-lan-schutz', 'LAN-Schutzmaßnahmen', 'classic', [
+      { type: 'text', content: 'Auch im lokalen Netz lassen sich Angriffsflächen verkleinern: ungenutzte Ports deaktivieren, Dummy-VLANs für offene Ports nutzen, eine saubere VLAN-Trennung betreiben und ACLs setzen. Port-Security und 802.1X sind weitere Mechanismen, die aber über den Kurs-Grundkurs hinausgehen.' },
+      { type: 'question', question: 'Warum sollten ungenutzte Switch-Ports deaktiviert oder in ein Dummy-VLAN gelegt werden?', options: ['Um Kabel einzusparen', 'Weil sie sonst eine unnötige Angriffsfläche bilden', 'Um die Farbe der LEDs zu ändern', 'Damit der Switch schneller wird'], correct: 1, explanation: 'Jeder ungenutzte, offene Port kann ein Einfallstor sein.' },
+    ]),
+
+    explanation('b5-cisco-transfer', 'Grenze zum Cisco-Block', 'classic', [
+      { type: 'text', content: 'Im Cisco-Bereich werden Konfiguration und Syntax gelehrt: wie man VLANs, ACLs und Filter einrichtet. In diesem Block geht es um das Warum: Welche Sicherheitswirkung hat eine Maßnahme? Wo wird sie platziert? Was kann sie nicht leisten? Wann kombiniert man sie mit anderen Maßnahmen?' },
+      { type: 'question', question: 'Was ist der Schwerpunkt dieses Blocks im Vergleich zur Cisco-Konfiguration?', options: ['Syntax auswendig lernen', 'Sicherheitswirkung, Platzierung und Grenzen verstehen', 'Kabel verlegen', 'Betriebssysteme installieren'], correct: 1, explanation: 'Hier geht es um Architekturentscheidungen und Wirkungsweise, nicht um Befehlszeilen.' },
+    ]),
+
+    explanation('b5-firewall-grundlagen', 'Firewall-Grundlagen', 'classic', [
+      { type: 'text', content: 'Eine Firewall ist ein Sicherungssystem zur kontrollierten Kopplung verschiedener Netze. Sie reglementiert Zugriffe, blockiert unerwünschte Verbindungen und lässt erlaubte Kommunikation zu. Die kontrollierte Kopplung ermöglicht es, Verkehr zwischen Netzen gezielt zu steuern. Eine Firewall kann als Netzwerkgerät, dedizierte Hardware oder als Personal Firewall auf einem Endgerät realisiert sein.' },
+      { type: 'question', question: 'Was ist die Kernaufgabe einer Firewall?', options: ['Viren automatisch entfernen', 'Kontrollierte Kopplung von Netzen', 'Backups erstellen', 'Passwörter vergeben'], correct: 1, explanation: 'Firewalls steuern und beschränken Verkehr zwischen Netzen.' },
+    ]),
+
+    explanation('b5-firewall-vs-paketfilter', 'Firewall vs Paketfilter', 'visual', [
+      { type: 'diagram', content: firewallHierarchySvg },
+      { type: 'text', content: 'Firewall ist der Oberbegriff. Ein Paketfilter ist eine konkrete Filtertechnik innerhalb einer Firewall. Ebenso können Stateful Inspection oder ein Application Layer Gateway Bestandteile einer Firewall sein. ACLs sind Regellisten, aber nicht automatisch die gesamte Firewall.' },
+      { type: 'question', question: 'Welche Aussage ist richtig?', options: ['Firewall und Paketfilter sind exakt dasselbe', 'Paketfilter ist eine Technik innerhalb einer Firewall', 'Eine Firewall kennt nur Paketfilter', 'Eine ACL ist immer die gesamte Firewall'], correct: 1, explanation: 'Paketfilter ist eine mögliche Komponente, nicht gleich dem Gesamtkonzept Firewall.' },
+    ]),
+
+    explanation('b5-paketfilter', 'Statischer Paketfilter', 'classic', [
+      { type: 'text', content: 'Ein statischer beziehungsweise zustandsloser Paketfilter prüft Headerinformationen wie Quelle, Ziel, Protokoll, Port und gegebenenfalls Header-Flags. Er arbeitet typischerweise auf den Schichten 2 bis 4. Da er keine Verbindung kennt, muss für Hin- und Rückverkehr oft separat geregelt werden.' },
+      { type: 'question', question: 'Was prüft ein Paketfilter typischerweise?', options: ['Nur den Inhalt von E-Mail-Anhängen', 'Headerinformationen wie Quelle, Ziel, Protokoll, Port', 'Nur die Farbe des Kabels', 'Die Stromspannung'], correct: 1, explanation: 'Paketfilter entscheiden anhand von Regeln pro Paket.' },
+    ]),
+
     explanation('b5-allowlist-denylist', 'Allowlist & Denylist', 'classic', [
-      { type: 'text', content: 'Allowlists und Denylists regeln, welche Objekte oder Aktionen erlaubt oder verboten sind. Manche Kurse nutzen die Begriffe Whitelist und Blacklist statt Allowlist und Denylist.' },
+      { type: 'text', content: 'Allowlists und Denylists regeln, welche Objekte oder Aktionen erlaubt oder verboten sind. Manche Kurse nutzen die Begriffe Whitelist und Blacklist. Eine Allowlist erlaubt nur explizit aufgeführte Objekte und ist damit strenger; eine Denylist blockiert nur bekannt Unerwünschtes und lässt den Rest grundsätzlich zu.' },
       { type: 'table', headers: ['Liste', 'Bedeutung', 'Strenge'], rows: [
         ['Allowlist (Whitelist)', 'Nur explizit erlaubte Objekte sind zugelassen', 'strenger'],
         ['Denylist (Blacklist)', 'Bekannte unerwünschte Objekte werden blockiert', 'weniger streng'],
       ] },
+      { type: 'question', question: 'Welche Strategie ist bei klar definierten erlaubten Diensten in der Regel sicherer?', options: ['Allowlist: nur Erlaubtes zulassen', 'Denylist: nur Verbotenes blockieren', 'Keine Liste verwenden', 'Beide sind gleich sicher'], correct: 0, explanation: 'Allowlist erlaubt nur das explizit Benötigte und verbietet implizit den Rest.' },
     ]),
 
-    explanation('b5-firewall', 'Firewall-Grundlagen', 'classic', [
-      { type: 'text', content: 'Firewalls kontrollieren Netzwerkverkehr anhand unterschiedlicher Verfahren.' },
-      { type: 'table', headers: ['Typ', 'Funktion'], rows: [
-        ['Paketfilter', 'Entscheidet anhand von Regeln pro Paket: Quelle, Ziel, Port, Protokoll'],
-        ['Stateful Inspection', 'Betrachtet den Zustand einer Verbindung, nicht nur einzelne Pakete'],
-        ['Application Layer Gateway (ALG)', 'Prüft Anwendungsprotokolle und Inhalte'],
+    explanation('b5-grenzen-statisch', 'Grenzen statischer Paketfilter', 'classic', [
+      { type: 'text', content: 'Statische Paketfilter kennen keinen Verbindungszustand, kein echtes Session-Verständnis und prüfen keine Anwendungsinhalte. Regeln gelten dauerhaft. Das macht sie nicht nutzlos, aber sie müssen durch andere Techniken ergänzt werden, wenn diese Fähigkeiten benötigt werden.' },
+      { type: 'question', question: 'Was kann ein statischer Paketfilter nicht automatisch erkennen?', options: ['Den Verbindungszustand', 'Quell-IP-Adressen', 'Ziel-Ports', 'Protokolltypen'], correct: 0, explanation: 'Er prüft jedes Paket isoliert, ohne Session-Kontext.' },
+    ]),
+
+    explanation('b5-stateful', 'Stateful Inspection', 'visual', [
+      { type: 'diagram', content: statelessStatefulSvg },
+      { type: 'text', content: 'Stateful Inspection merkt sich erlaubte Verbindungen. Wird eine Verbindung intern initiiert, wird der passende Rückverkehr temporär erlaubt und nach Ende der Sitzung wieder entfernt. Wichtig: Stateful Inspection versteht Verbindungszustände, Ports, Protokolle und Session-Kontext, nicht jedoch automatisch Anwendungsinhalte.' },
+      { type: 'question', question: 'Was ist der Vorteil von Stateful Inspection gegenüber einem reinen Paketfilter?', options: ['Sie blockiert alle Ports', 'Sie erlaubt zugehörigen Rückverkehr temporär', 'Sie prüft E-Mail-Anhänge', 'Sie verschlüsselt automatisch'], correct: 1, explanation: 'Der Verbindungszustand ermöglicht dynamische Rückweg-Freigaben.' },
+    ]),
+
+    explanation('b5-static-vs-stateful', 'Stateless vs Stateful', 'classic', [
+      { type: 'table', headers: ['Eigenschaft', 'Statisch / Stateless', 'Stateful / Dynamisch'], rows: [
+        ['Betrachtung', 'Jedes Paket einzeln', 'Verbindung als Ganzes'],
+        ['Rückverkehr', 'Separat regeln nötig', 'Temporär erlaubt'],
+        ['Session-Wissen', 'Nein', 'Ja'],
+        ['Anwendungsinhalte', 'Nein', 'Nein'],
       ] },
-      { type: 'question', question: 'Was unterscheidet Stateful Inspection von einem einfachen Paketfilter?', options: ['Nur die MAC-Adresse', 'Der Verbindungszustand wird berücksichtigt', 'Es werden keine Ports geprüft', 'Es arbeitet nur auf der Bitübertragungsschicht'], correct: 1, explanation: 'Stateful Inspection merkt sich den Zustand bestehender Verbindungen und prüft nicht nur einzelne Pakete.' },
+      { type: 'question', question: 'Warum braucht ein statischer Filter oft explizite Rückregeln?', options: ['Weil er jedes Paket isoliert betrachtet', 'Weil er zu langsam ist', 'Weil er Anwendungsdaten prüft', 'Weil er Stateful Inspection nutzt'], correct: 0, explanation: 'Ohne Session-Wissen kann er nicht wissen, dass Rückpakete zu einer erlaubten Verbindung gehören.' },
     ]),
 
-    explanation('b5-dmz', 'DMZ', 'classic', [
-      { type: 'text', content: 'Eine Demilitarisierte Zone (DMZ) ist ein abgetrenntes Netzwerksegment zwischen vertrauenswürdigem internem Netz und nicht vertrauenswürdigem Netz. Sie ermöglicht den kontrollierten Zugriff auf öffentliche Dienste. Eine DMZ ist jedoch nicht automatisch sicher; die genaue Topologie muss an der Quelle verifiziert werden.' },
+    explanation('b5-alg', 'Application Layer Gateway', 'classic', [
+      { type: 'text', content: 'Ein Application Layer Gateway arbeitet auf höheren OSI-Schichten und kann anwendungsbezogene Inhalte untersuchen. Je nach Implementierung kann es Protokolle, Dateianhänge, Schadinhalt oder Inhaltsregeln prüfen. Es ergänzt Paketfilter und Stateful Inspection, ersetzt sie aber nicht vollständig.' },
+      { type: 'list', title: 'Beispiele', items: ['HTTP / HTTPS', 'SMTP', 'DNS', 'IMAP', 'FTP', 'SSH'] },
+      { type: 'question', question: 'Wo arbeitet ein ALG typischerweise?', options: ['Nur auf der Bitübertragungsschicht', 'Auf Anwendungsebene', 'Nur im Router-Betriebssystemkern', 'Ausschließlich auf dem Client'], correct: 1, explanation: 'ALG prüft Anwendungsprotokolle und Inhalte.' },
     ]),
 
-    explanation('b5-ids-ips', 'IDS vs IPS', 'classic', [
-      { type: 'text', content: 'Intrusion Detection und Intrusion Prevention unterscheiden sich in der Reaktion auf erkannte Angriffe.' },
-      { type: 'table', headers: ['System', 'Funktion'], rows: [
-        ['IDS (Intrusion Detection System)', 'Erkennt Angriffe und meldet sie'],
-        ['IPS (Intrusion Prevention System)', 'Erkennt und blockiert Angriffe aktiv'],
+    explanation('b5-paketfilter-vs-alg', 'Paketfilter vs ALG', 'classic', [
+      { type: 'table', headers: ['Schutz', 'Fragestellung'], rows: [
+        ['Paketfilter', 'Wer spricht mit wem über welchen Dienst?'],
+        ['Stateful Inspection', 'Ist diese Antwort zu einer erlaubten Verbindung?'],
+        ['ALG', 'Was passiert innerhalb des Anwendungsprotokolls?'],
       ] },
-      { type: 'question', question: 'Was ist der wesentliche Unterschied zwischen IDS und IPS?', options: ['IDS ist schneller', 'IPS blockiert aktiv, IDS meldet nur', 'IDS ist keine echte Technik', 'IPS benötigt keine Regeln'], correct: 1, explanation: 'Ein IDS erkennt und meldet; ein IPS greift aktiv ein und verhindert den Angriff.' },
+      { type: 'question', question: 'TCP/80 ist erlaubt, aber eine HTTP-Antwort enthält schädliche Nutzdaten. Welche Technik kann den Inhalt prüfen?', options: ['Paketfilter', 'ALG / Application-Layer-Inspection', 'Spanning Tree', 'Ein Hub'], correct: 1, explanation: 'Paketfilter sieht den Anwendungsinhalt nicht; ALG kann ihn untersuchen.' },
     ]),
 
-    explanation('b5-mapping', 'Technische Maßnahmen & Schutzziele', 'classic', [
-      { type: 'text', content: 'Jede technische Maßnahme fördert bestimmte Schutzziele oder Sicherheitsfunktionen.' },
-      { type: 'table', headers: ['Maßnahme', 'Schutzziel oder Funktion'], rows: [
-        ['Verschlüsselung', 'Vertraulichkeit'],
-        ['Redundanz', 'Verfügbarkeit'],
-        ['Hash / Signatur', 'Integrität'],
-        ['Firewall', 'Kontrolle'],
-        ['IDS', 'Erkennung'],
-        ['IPS', 'Erkennung und Prävention'],
-      ] },
+    explanation('b5-dmz', 'DMZ', 'visual', [
+      { type: 'diagram', content: dmzSvg },
+      { type: 'text', content: 'Eine Demilitarisierte Zone ist ein separater Netzwerkbereich zwischen externem und internem Netz. Öffentlich erreichbare Dienste werden dort platziert, damit eine Kompromittierung möglichst begrenzte Auswirkungen auf das interne Netz hat. Eine DMZ bedeutet nicht, dass ein Server automatisch sicher ist.' },
+      { type: 'question', question: 'Warum platziert man einen öffentlichen Webserver typischerweise in eine DMZ?', options: ['Damit er schneller ist', 'Um eine Kompromittierung vom internen Netz abzuschirmen', 'Damit er keine Backups braucht', 'Weil die DMZ ihn automatisch unangreifbar macht'], correct: 1, explanation: 'Segmentierung begrenzt den möglichen Schadensradius.' },
     ]),
+
+    explanation('b5-dmz-tier', 'Einstufige und mehrstufige DMZ', 'classic', [
+      { type: 'text', content: 'Eine einstufige DMZ wird von einem Gerät getrennt; eine Fehlkonfiguration oder ein Ausfall können große Auswirkungen haben, da das eine Gerät ein Single Point of Failure bildet. Eine mehrstufige Architektur setzt mehrere Filterstufen hintereinander und ermöglicht granularere Regelwerke. Eine kombinierte Architektur kann beispielsweise außen einen Paketfilter und innen ein ALG nutzen. Mehrstufig schützt nicht automatisch vor jeder Fehlkonfiguration.' },
+      { type: 'question', question: 'Was ist ein Vorteil einer mehrstufigen DMZ?', options: ['Sie ist immer perfekt sicher', 'Mehrere Trennstufen begrenzen Fehlerauswirkungen', 'Sie braucht keine Regeln', 'Sie ersetzt Backups'], correct: 1, explanation: 'Verteilte Trennstufen erhöhen die Widerstandsfähigkeit gegen Fehler und Angriffe.' },
+    ]),
+
+    explanation('b5-defense-in-depth', 'Defense in Depth', 'visual', [
+      { type: 'diagram', content: defenseInDepthSvg },
+      { type: 'text', content: 'Defense in Depth setzt mehrere unabhängige Schutzschichten übereinander, damit der Ausfall einer Schicht nicht sofort alle Sicherheit aufhebt. Eine einzelne Maßnahme reicht nicht. Typische Schichten im NEXUS-Modell sind Edge-Firewall, DMZ, zusätzliche Stateful Firewall oder IPS, Segmentierung im internen Netz, verschlüsselte VPNs, regelmäßige Updates und Backups.' },
+      { type: 'question', question: 'Warum werden mehrere Sicherheitsmaßnahmen kombiniert?', options: ['Damit der Ausfall einer Schicht nicht sofort alles aufhebt', 'Weil Backups alle Angriffe verhindern', 'Weil Firewalls allein nie funktionieren', 'Um Kosten zu sparen'], correct: 0, explanation: 'Mehrere Schichten erhöhen die Wahrscheinlichkeit, dass ein Angriff früh erkannt oder aufgehalten wird.' },
+    ]),
+
+    explanation('b5-ids', 'Intrusion Detection System', 'classic', [
+      { type: 'text', content: 'Ein IDS erkennt verdächtige Aktivitäten und meldet sie. Es kann netzwerk- oder hostbasiert arbeiten und nutzt dabei unter anderem Signaturerkennung für bekannte Muster sowie heuristische oder anomaliebasierte Erkennung für ungewöhnliches Verhalten. Ein IDS blockiert nicht zwingend selbst.' },
+      { type: 'question', question: 'Was ist die Hauptaufgabe eines IDS?', options: ['Alle Angriffe automatisch blocken', 'Verdächtige Aktivitäten erkennen und melden', 'Backups erstellen', 'Passwörter vergeben'], correct: 1, explanation: 'IDS erkennt und meldet; die Reaktion obliegt anderen Stellen oder dem Admin.' },
+    ]),
+
+    explanation('b5-ips', 'Intrusion Prevention System', 'classic', [
+      { type: 'text', content: 'Ein IPS erkennt Angriffe und kann aktiv reagieren, etwa indem es IP-Adressen blockiert, Anfragen begrenzt oder Kommunikation stoppt. Das automatische Reagieren birgt das Risiko, dass auch legitimer Traffic fälschlich blockiert wird.' },
+      { type: 'question', question: 'Was unterscheidet ein IPS von einem IDS?', options: ['IPS kann aktiv reagieren', 'IPS ist langsamer', 'IDS blockt automatisch', 'IDS prüft keine Logs'], correct: 0, explanation: 'IPS kann zusätzlich zu Erkennung und Meldung Gegenmaßnahmen einleiten.' },
+    ]),
+
+    explanation('b5-ids-vs-ips', 'IDS vs IPS', 'visual', [
+      { type: 'diagram', content: idsIpsSvg },
+      { type: 'text', content: 'IDS erkennt und meldet, IPS erkennt und kann blocken. Beides hat seine Berechtigung: Ein IDS liefert Informationen ohne Eingriff in den Verkehr, ein IPS kann schneller wirksam werden, muss aber sorgfältig konfiguriert werden, um False Positives zu vermeiden.' },
+      { type: 'question', question: 'Ein System soll nur melden, damit ein Admin entscheidet. Welches passt?', options: ['IDS', 'IPS', 'Firewall', 'VPN'], correct: 0, explanation: 'Ein IDS blockiert nicht zwingend, sondern liefert Erkenntnisse.' },
+    ]),
+
+    explanation('b5-false-positive', 'False Positives', 'classic', [
+      { type: 'text', content: 'Ein False Positive tritt auf, wenn ein Schutzsystem legitimen Traffic als Angriff einstuft. Beispiel: Eine wichtige Meldung veröffentlicht sich, plötzlich gibt es sehr viele legitime Zugriffe, und ein IPS könnte diese fälschlich als Überlastungsangriff blockieren.' },
+      { type: 'question', question: 'Warum können automatisch reagierende Systeme wie ein IPS legitimen Traffic blocken?', options: ['Weil sie immer kaputt sind', 'Weil legitimer Traffic manchmal anomal wirkt', 'Weil sie keine Regeln haben', 'Weil sie nur auf Layer 1 arbeiten'], correct: 1, explanation: 'False Positives sind ein echtes Risiko automatischer Reaktion.' },
+    ]),
+
+    explanation('b5-vpn-grundlagen', 'VPN-Grundlagen', 'classic', [
+      { type: 'text', content: 'Ein Virtual Private Network ermöglicht eine geschützte logische Verbindung über eine weniger vertrauenswürdige Infrastruktur, typischerweise das Internet. VPN ist kein physisches Kabel und dient im Kurskontext primär sicherer Kopplung und geschützter Kommunikation, nicht dem bloßen Verstecken einer IP-Adresse.' },
+      { type: 'question', question: 'Was ist die Grundidee eines VPN?', options: ['Physisches Kabel durchs Internet legen', 'Geschützte logische Verbindung über unsicheres Netz', 'IP-Adresse automatisch ändern', 'Alle Viren entfernen'], correct: 1, explanation: 'VPN schützt die Kommunikation logisch über eine unsichere Infrastruktur.' },
+    ]),
+
+    explanation('b5-vpn-typen', 'VPN-Verbindungsarten', 'visual', [
+      { type: 'diagram', content: vpnSvg },
+      { type: 'table', headers: ['Typ', 'Verbindung'], rows: [
+        ['Site-to-Site', 'Netz ↔ Netz'],
+        ['End-to-Site', 'Client / Endgerät ↔ Unternehmensnetz'],
+        ['End-to-End', 'Endsystem ↔ Endsystem / Server'],
+      ] },
+      { type: 'question', question: 'Welcher VPN-Typ koppelt typischerweise zwei Unternehmensstandorte dauerhaft?', options: ['End-to-Site', 'Site-to-Site', 'End-to-End', 'Client-to-Cloud'], correct: 1, explanation: 'Site-to-Site verbindet zwei Netze miteinander.' },
+    ]),
+
+    explanation('b5-auth', 'Authentisierung, Authentifizierung, Autorisierung', 'visual', [
+      { type: 'diagram', content: authSvg },
+      { type: 'text', content: 'Authentisierung ist das Einbringen eines Identitätsnachweises, etwa Benutzername und Passwort oder ein Zertifikat. Authentifizierung prüft diesen Nachweis. Autorisierung entscheidet anschließend, welche Rechte die bestätigte Identität erhält.' },
+      { type: 'question', question: 'Welche Reihenfolge ist korrekt?', options: ['Autorisierung → Authentifizierung → Authentisierung', 'Authentisierung → Authentifizierung → Autorisierung', 'Authentifizierung → Autorisierung → Authentisierung', 'Authentisierung = Autorisierung'], correct: 1, explanation: 'Zuerst Nachweis, dann Prüfung, dann Rechtevergabe.' },
+    ]),
+
+    explanation('b5-vpn-protokolle', 'VPN-Protokolle im Überblick', 'classic', [
+      { type: 'table', headers: ['Protokoll', 'Einordnung'], rows: [
+        ['PPTP', 'Historisch, heute nicht mehr als sicher anzusehen'],
+        ['L2TP', 'Tunnel-Protokoll, allein ohne starke Verschlüsselung'],
+        ['IPsec', 'Sichere IP-basierte Kommunikation mit Vertraulichkeit, Integrität und Authentizität'],
+        ['WireGuard', 'Modern, schlank, gute Performance'],
+        ['TLS-VPN', 'TLS-basiert, häufig webbasiert / anwendungsnah'],
+      ] },
+      { type: 'text', content: 'Ein VPN-Typ beschreibt die Verbindungsform, ein Protokoll die technische Umsetzung. Site-to-Site kann beispielsweise mit IPsec realisiert werden, End-to-Site oft mit TLS-VPN oder IPsec-Clients.' },
+      { type: 'question', question: 'Welche Aussage zu L2TP ist korrekt?', options: ['L2TP allein bietet starke Verschlüsselung', 'L2TP benötigt für starke Verschlüsselung oft eine Ergänzung wie IPsec', 'L2TP ist ein modernes Protokoll', 'L2TP ersetzt Firewalls'], correct: 1, explanation: 'L2TP allein liefert typischerweise keine ausreichende Verschlüsselung.' },
+    ]),
+
+    explanation('b5-ipsec-modi', 'IPsec Tunnel- und Transportmodus', 'classic', [
+      { type: 'text', content: 'Im Tunnelmodus sichert IPsec typischerweise die Kommunikation zwischen Gateways oder ganzen Netzen, wie bei Site-to-Site. Im Transportmodus wird direkt zwischen Endpunkten verschlüsselt. Für den Einstieg genügt das Verständnis der unterschiedlichen Einsatzbereiche, ohne Details zum Header-Aufbau.' },
+      { type: 'question', question: 'Wann wird typischerweise der IPsec-Tunnelmodus eingesetzt?', options: ['Bei Site-to-Site zwischen Gateways oder Netzen', 'Nur bei End-to-End zwischen zwei Browsern', 'Immer bei Telnet', 'Nie bei VPNs'], correct: 0, explanation: 'Tunnelmodus verbindet Netze oder Gateways miteinander.' },
+    ]),
+
+    explanation('b5-optional-exkurs', 'Optionaler VPN-Exkurs', 'classic', [
+      { type: 'text', content: 'Einige Details wie IKE, Main Mode, Aggressive Mode, Security Associations, AH und ESP sind für den Grundkurs optional. Wer sie schon kennt: AH bietet Integrität und Authentizität, ESP zusätzlich Vertraulichkeit durch Verschlüsselung. Diese Begriffe dürfen im Unterricht auftauchen, dominieren aber nicht das Kernquiz.' },
+      { type: 'question', question: 'Was ist der Unterschied zwischen AH und ESP im IPsec-Kontext?', options: ['AH ist schneller, ESP langsamer', 'AH bietet Integrität/Authentizität, ESP zusätzlich Verschlüsselung', 'AH verschlüsselt, ESP nicht', 'Es gibt keinen Unterschied'], correct: 1, explanation: 'ESP ergänzt Vertraulichkeit, AH deckt Integrität und Authentizität ab.' },
+    ]),
+
+    explanation('b5-thema1-transfer', 'Transfer: Grundwerte', 'classic', [
+      { type: 'text', content: 'Technische Maßnahmen unterstützen unterschiedliche Grundwerte. Verschlüsselung schützt Vertraulichkeit, Redundanz und Verfügbarkeitskonzepte schützen Verfügbarkeit, Hash- oder Signaturverfahren schützen Integrität. Firewalls und VPNs können zudem Authentizität und Kontrolle unterstützen.' },
+      { type: 'question', question: 'Welcher Grundwert wird primär durch Verschlüsselung geschützt?', options: ['Vertraulichkeit', 'Verfügbarkeit', 'Integrität', 'Authentizität'], correct: 0, explanation: 'Verschlüsselung verhindert unbefugtes Lesen.' },
+    ]),
+
+    explanation('b5-thema2-transfer', 'Transfer: Daten und Schutzbereiche', 'classic', [
+      { type: 'text', content: 'Auch bei technischen Maßnahmen bleibt die Frage, welche Daten betroffen sind. Personenbezogene Daten, besondere Kategorien, VS-Informationen oder unterschiedliche Schutzbereiche erfordern angepasste technische Schutzstärken. Eine DMZ für einen öffentlichen Blog schützt anders als eine DMZ für ein internes VS-System.' },
+      { type: 'question', question: 'Warum reicht eine technische Maßnahme nicht für alle Daten gleich?', options: ['Weil unterschiedliche Daten unterschiedliche Schutzstärke brauchen', 'Weil Technik keine Daten kennt', 'Weil nur der Name der Datei zählt', 'Weil alle Daten gleich behandelt werden müssen'], correct: 0, explanation: 'Schutzbedarf hängt von der Informationskategorie ab.' },
+    ]),
+
+    explanation('b5-thema3-transfer', 'Transfer: Lücken, Verstöße, Vorkommnisse', 'classic', [
+      { type: 'text', content: 'Wenn ein IDS eine verdächtige Aktivität meldet, ist das ein mögliches Vorkommnis. Eine fehlende Patch-Maßnahme kann eine Lücke sein, auch wenn noch kein Schaden eingetreten ist. Eine fehlerhafte Firewall-Regel ist ein Verstoß gegen die Sicherheitskonfiguration. In jedem Fall gehört die Meldung an die zuständige Stelle, typischerweise den ISB.' },
+      { type: 'question', question: 'Was ist eine fehlerhafte Firewall-Regel im Sinne der Sicherheitsbegriffe?', options: ['Ein unvermeidbarer Hardwarefehler', 'Ein Verstoß gegen die Sicherheitskonfiguration', 'Ein garantierter Schaden', 'Ein Beispiel für Authentifizierung'], correct: 1, explanation: 'Eine Regel, die gegen Vorgaben verstößt, ist ein Verstoß.' },
+    ]),
+
+    explanation('b5-thema4-transfer', 'Transfer: Bedrohung, Schwachstelle, Maßnahme', 'classic', [
+      { type: 'text', content: 'Thema 4 zeigt: Bedrohung plus Schwachstelle ergibt Gefährdung. Thema 5 ergänzt die passende technische Maßnahme. Eine ungenutzte offene Schnittstelle ist eine Schwachstelle, ein Angreifer ist eine Bedrohung, und das Deaktivieren des Ports oder ein VLAN-Wechsel reduziert die Schwachstelle. Eine DMZ begrenzt die Auswirkung, ein IDS erhöht die Erkennungswahrscheinlichkeit.' },
+      { type: 'question', question: 'Welche Maßnahme reduziert eine Schwachstelle?', options: ['Ein neues Logo', 'Deaktivieren ungenutzter Ports', 'Mehr Benutzerkonten ohne Passwort', 'Ein größeres Monitorbild'], correct: 1, explanation: 'Schwachstellen können durch technische Maßnahmen verringert werden.' },
+    ]),
+
+    explanation('b5-zusammenfassung', 'Zusammenfassung', 'classic', [
+      { type: 'list', title: 'Wichtige Unterscheidungen', items: [
+        'Firewall ist der Oberbegriff; Paketfilter, Stateful Inspection und ALG sind Techniken.',
+        'Stateless prüft Pakete einzeln; Stateful kennt Verbindungen.',
+        'Paketfilter fragt nach Quelle/Ziel/Port/Protokoll; ALG prüft Anwendungsinhalte.',
+        'DMZ trennt öffentliche Dienste vom internen Netz und begrenzt Auswirkungen.',
+        'IDS erkennt und meldet; IPS kann aktiv reagieren und False Positives verursachen.',
+        'Defense in Depth kombiniert mehrere unabhängige Schutzschichten.',
+        'Site-to-Site, End-to-Site und End-to-End sind unterschiedliche VPN-Verbindungsarten.',
+        'Authentisierung = Nachweis, Authentifizierung = Prüfung, Autorisierung = Rechte.',
+      ] },
+      { type: 'question', question: 'Was ist das stärkere Sicherheitsprinzip bei klar definierten erlaubten Diensten?', options: ['Allowlist: nur Erlaubtes zulassen', 'Denylist: nur Verbotenes blocken', 'Keine Liste', 'Zufällige Regeln'], correct: 0, explanation: 'Allowlist erlaubt nur explizit benötigte Dienste.' },
+    ]),
+  ].map((entry) => ({ ...entry, sectionId: entry.id }));
+
+  const exercises = [
+    { id: 'b5-stateless-return', type: 'select-best', question: 'Ein Client öffnet eine HTTP-Verbindung nach außen. Warum braucht ein statischer Paketfilter oft eine separate Rückregel?', options: ['Weil er den Verbindungszustand nicht kennt', 'Weil er Anwendungsinhalte prüft', 'Weil er automatisch verschlüsselt', 'Weil er Stateful Inspection nutzt'], correct: 0, explanation: 'Stateless betrachtet jedes Paket isoliert und erkennt den zugehörigen Rückverkehr nicht automatisch.' },
+    { id: 'b5-allowlist-scenario', type: 'select-best', question: 'Ein Webserver darf nur HTTPS und DNS verwenden. Welche Strategie passt besser?', options: ['Allowlist', 'Denylist', 'Keine Liste', 'Zufällige Regeln'], correct: 0, explanation: 'Allowlist erlaubt nur das explizit Benötigte.' },
+    { id: 'b5-static-vs-stateful', type: 'matching', question: 'Ordne die Eigenschaft der Filtertechnik zu.', pairs: [{ left: 'Jedes Paket wird einzeln betrachtet', right: 'Stateless / Statisch' }, { left: 'Verbindungszustand wird gespeichert', right: 'Stateful / Dynamisch' }, { left: 'Rückverkehr braucht separate Regel', right: 'Stateless / Statisch' }, { left: 'Rückverkehr zur Session temporär erlaubt', right: 'Stateful / Dynamisch' }], explanation: 'Stateful merkt sich erlaubte Verbindungen, Stateless nicht.' },
+    { id: 'b5-paketfilter-vs-alg', type: 'select-best', question: 'TCP/80 ist erlaubt, aber eine HTTP-Antwort enthält schädliche Nutzdaten. Welche Schutztechnik kann den Anwendungsinhalt prüfen?', options: ['Paketfilter', 'ALG / Application-Layer-Inspection', 'Stateful Inspection allein', 'Spanning Tree'], correct: 1, explanation: 'ALG arbeitet auf Anwendungsebene und kann Inhalte untersuchen.' },
+    { id: 'b5-dmz-position', type: 'select-best', question: 'Ein öffentlich erreichbarer Webserver soll platziert werden. Wo?', options: ['Im internen Clientnetz', 'In der DMZ', 'Auf einem beliebigen Arbeitsplatzrechner', 'Im Managementnetz'], correct: 1, explanation: 'Eine DMZ trennt öffentliche Dienste vom internen Netz.' },
+    { id: 'b5-ids-vs-ips', type: 'select-best', question: 'Ein System soll verdächtige Verbindungen nur melden und keine eigenständigen Blockaktionen durchführen. Welches System passt?', options: ['IDS', 'IPS', 'VPN-Gateway', 'Load Balancer'], correct: 0, explanation: 'Ein IDS erkennt und meldet, blockiert aber nicht zwingend.' },
+    { id: 'b5-defense-in-depth-order', type: 'ordering', question: 'Bringe die typischen Defense-in-Depth-Schichten in sinnvolle Reihenfolge von außen nach innen.', items: [{ id: 'internet', label: 'Internet' }, { id: 'edge', label: 'Edge-Firewall' }, { id: 'dmz', label: 'DMZ' }, { id: 'ips', label: 'IPS / Stateful Firewall' }, { id: 'intern', label: 'Internes Netz / Segmentierung' }], correctOrder: ['internet', 'edge', 'dmz', 'ips', 'intern'], explanation: 'Schutzschichten folgen von der Peripherie zum internen Netz.' },
+    { id: 'b5-vpn-type', type: 'matching', question: 'Ordne das Szenario dem VPN-Typ zu.', pairs: [{ left: 'Zwei Unternehmensstandorte dauerhaft koppeln', right: 'Site-to-Site' }, { left: 'Mitarbeiter im Homeoffice', right: 'End-to-Site' }, { left: 'Direkte sichere Verbindung zwischen zwei Endsystemen', right: 'End-to-End' }], explanation: 'Site-to-Site = Netz↔Netz, End-to-Site = Client↔Netz, End-to-End = Endsystem↔Endsystem.' },
+    { id: 'b5-auth-trio', type: 'ordering', question: 'Bringe die Begriffe in die korrekte Reihenfolge.', items: [{ id: 'authentisierung', label: 'Authentisierung' }, { id: 'authentifizierung', label: 'Authentifizierung' }, { id: 'autorisierung', label: 'Autorisierung' }], correctOrder: ['authentisierung', 'authentifizierung', 'autorisierung'], explanation: 'Zuerst Nachweis, dann Prüfung, dann Rechtevergabe.' },
+    { id: 'b5-ipsec-modus', type: 'select-best', question: 'Ein Unternehmen möchte zwei Standortnetze sicher über das Internet koppeln. Welcher IPsec-Modus passt typischerweise?', options: ['Transportmodus zwischen zwei Endgeräten', 'Tunnelmodus zwischen den Standort-Gateways', 'Es gibt keinen Unterschied', 'Nur End-to-Site VPN'], correct: 1, explanation: 'Site-to-Site-Kopplungen nutzen typischerweise den IPsec-Tunnelmodus.' },
   ];
 
   const quiz = [
-    { question: 'Welche Liste ist in der Regel strenger?', options: ['Allowlist', 'Denylist', 'Blacklist', 'Keine'], correct: 0, explanation: 'Eine Allowlist erlaubt nur explizit aufgeführte Objekte und ist damit strenger.' },
-    { question: 'Auf welcher Schicht arbeitet ein Application Layer Gateway (ALG) typischerweise?', options: ['Anwendungsschicht', 'Bitübertragungsschicht', 'Netzzugangsschicht', 'Transportschicht'], correct: 0, explanation: 'Ein ALG prüft Anwendungsprotokolle und arbeitet daher auf der Anwendungsebene.' },
-    { question: 'Welchen Zweck hat eine DMZ?', options: ['Automatische Verschlüsselung aller Daten', 'Getrenntes Segment zwischen Vertrauenszonen', 'Viren auslöschen', 'Ersatz für Backups'], correct: 1, explanation: 'Eine DMZ trennt Netzbereiche mit unterschiedlichem Vertrauensniveau.' },
-    { question: 'Was ist der Hauptunterschied zwischen IPS und IDS?', options: ['IPS erkennt nur', 'IDS blockiert aktiv', 'IPS erkennt und verhindert', 'IDS ist kein Sicherheitssystem'], correct: 2, explanation: 'IPS erkennt und verhindert Angriffe aktiv, IDS erkennt nur.' },
-    { question: 'Welches Schutzziel erreicht Verschlüsselung primär?', options: ['Verfügbarkeit', 'Integrität', 'Vertraulichkeit', 'Authentizität'], correct: 2, explanation: 'Verschlüsselung schützt vor unbefugtem Lesen und sichert so die Vertraulichkeit.' },
+    { facet: 'firewall-vs-paketfilter', question: 'Welche Aussage trifft zu?', options: ['Firewall und Paketfilter sind exakt dasselbe', 'Paketfilter ist eine Technik innerhalb einer Firewall', 'Eine Firewall besteht nur aus Paketfiltern', 'Eine ACL ist immer die gesamte Firewall'], correct: 1, explanation: 'Paketfilter ist eine mögliche Komponente einer Firewall.' },
+    { facet: 'stateful', question: 'Was versteht eine Stateful Firewall besser als ein statischer Paketfilter?', options: ['Den Verbindungszustand', 'Den Inhalt von E-Mail-Anhängen', 'Die Farbe eines Kabels', 'Den Standort eines Nutzers'], correct: 0, explanation: 'Stateful Inspection merkt sich Verbindungen und erlaubt zugehörigen Rückverkehr temporär.' },
+    { facet: 'alg', question: 'Wofür ist ein Application Layer Gateway zuständig?', options: ['Anwendungsprotokolle und Inhalte prüfen', 'Physische Kabel verlegen', 'Passwörter vergeben', 'Alle Ports blockieren'], correct: 0, explanation: 'ALG prüft auf höheren Schichten als Paketfilter.' },
+    { facet: 'dmz', question: 'Warum nutzt man eine DMZ?', options: ['Um öffentliche Dienste vom internen Netz zu trennen', 'Um alle Firewalls zu ersetzen', 'Um Backups zu speichern', 'Um Passwörter zu verschlüsseln'], correct: 0, explanation: 'Segmentierung begrenzt die Auswirkungen einer Kompromittierung.' },
+    { facet: 'ids-vs-ips', question: 'Was ist der entscheidende Unterschied zwischen IDS und IPS?', options: ['IDS blockt automatisch', 'IPS kann aktiv reagieren', 'IDS ist kein Sicherheitssystem', 'IPS kann nichts erkennen'], correct: 1, explanation: 'IPS kann zusätzlich zu Erkennung und Meldung Gegenmaßnahmen einleiten.' },
+    { facet: 'false-positive', question: 'Warum kann ein IPS legitimen Traffic blocken?', options: ['Weil es keine Regeln hat', 'Weil legitimer Traffic manchmal anomal wirkt', 'Weil es nur auf Layer 1 arbeitet', 'Weil es keine Logs liest'], correct: 1, explanation: 'False Positives sind ein Risiko automatischer Reaktion.' },
+    { facet: 'vpn-types', question: 'Welcher VPN-Typ passt für einen Mitarbeiter im Homeoffice?', options: ['Site-to-Site', 'End-to-Site', 'End-to-End', 'Peer-to-Peer'], correct: 1, explanation: 'End-to-Site verbindet ein Endgerät mit dem Unternehmensnetz.' },
+    { facet: 'auth-trio', question: 'Welche Reihenfolge ist korrekt?', options: ['Authentisierung → Authentifizierung → Autorisierung', 'Autorisierung → Authentifizierung → Authentisierung', 'Authentifizierung → Autorisierung → Authentisierung', 'Authentisierung = Autorisierung'], correct: 0, explanation: 'Zuerst Nachweis, dann Prüfung, dann Rechtevergabe.' },
   ];
 
   const summary = [
-    'Allowlists sind strenger als Denylists, weil nur Erlaubtes zugelassen wird.',
-    'Firewalls filtern Verkehr; Stateful Inspection betrachtet den Verbindungszustand.',
-    'Eine DMZ ist ein abgetrenntes Segment zwischen internem und externem Netz.',
-    'IDS erkennt Angriffe, IPS erkennt und verhindert sie aktiv.',
-    'Jede technische Maßnahme fördert bestimmte Schutzziele wie Vertraulichkeit, Verfügbarkeit oder Integrität.',
+    'Technische Schutzmaßnahmen sind ein Teil des Gesamtschutzes; Netzplan und Schutzbedarf sind der Ausgangspunkt.',
+    'Firewall ist ein Oberbegriff; Paketfilter, Stateful Inspection und ALG sind Komponenten.',
+    'Stateless prüft jedes Paket einzeln; Stateful kennt Verbindungen und erlaubt temporären Rückverkehr.',
+    'ALG prüft Anwendungsprotokolle und Inhalte; Paketfilter prüft Header.',
+    'DMZ trennt öffentliche Dienste vom internen Netz und begrenzt Schadensauswirkungen.',
+    'IDS erkennt und meldet; IPS kann aktiv reagieren und dabei False Positives verursachen.',
+    'Defense in Depth kombiniert mehrere unabhängige Schutzschichten.',
+    'VPN-Typen: Site-to-Site, End-to-Site, End-to-End. IPsec bietet sichere IP-Kommunikation; Tunnelmodus typisch für Site-to-Site.',
+    'Authentisierung = Nachweis, Authentifizierung = Prüfung, Autorisierung = Rechte.',
   ];
 
-  return { title, explanations, exercises: [], quiz, summary };
+  return { title, explanations, exercises, quiz, summary };
 }
