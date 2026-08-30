@@ -397,47 +397,293 @@ export function buildInformationSecurityLegalDataLesson() {
 }
 
 export function buildInformationSecurityIncidentsLesson() {
-  const title = 'Block 3: Verstöße, Vorkommnisse & Meldewesen';
+  const title = 'Block 3: Informationssicherheitslücken, -verstöße, -vorkommnisse & Meldewesen';
+
+  const gapIncidentSvg = `<svg viewBox="0 0 360 220" class="w-full h-auto max-h-60" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Lücke, Verstoß, Vorkommnis</text><rect x="20" y="50" width="140" height="60" rx="8" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="90" y="80" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">LÜCKE</text><text x="90" y="98" text-anchor="middle" fill="#8b949e" font-size="9">Gefährdung</text><rect x="200" y="50" width="140" height="60" rx="8" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="270" y="80" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">VERSTOSS</text><text x="270" y="98" text-anchor="middle" fill="#8b949e" font-size="9">Regelwidrige Handlung</text><line x1="160" y1="80" x2="200" y2="80" stroke="#8b949e" stroke-dasharray="4"/><line x1="90" y1="110" x2="180" y2="160" stroke="#8b949e"/><line x1="270" y1="110" x2="180" y2="160" stroke="#8b949e"/><rect x="100" y="150" width="160" height="50" rx="8" fill="#1f6feb" fill-opacity="0.25" stroke="#58a6ff"/><text x="180" y="175" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">VORKOMMNIS</text><text x="180" y="190" text-anchor="middle" fill="#8b949e" font-size="9">Sicherheit gefährdet</text></svg>`;
+
+  const reportingPathSvg = `<svg viewBox="0 0 360 180" class="w-full h-auto max-h-52" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Meldeweg</text><rect x="110" y="35" width="140" height="26" rx="5" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><text x="180" y="53" text-anchor="middle" fill="#c9d1d9" font-size="10">Nutzer / Admin</text><rect x="110" y="72" width="140" height="26" rx="5" fill="#58a6ff" fill-opacity="0.25" stroke="#58a6ff"/><text x="180" y="90" text-anchor="middle" fill="#c9d1d9" font-size="10">ISB</text><rect x="110" y="109" width="140" height="26" rx="5" fill="#f0883e" fill-opacity="0.25" stroke="#f0883e"/><text x="180" y="127" text-anchor="middle" fill="#c9d1d9" font-size="10">CSOCBw</text><rect x="80" y="146" width="200" height="26" rx="5" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="180" y="164" text-anchor="middle" fill="#c9d1d9" font-size="10">Bei Bedarf: CERT / Forensik / BAMAD</text><line x1="180" y1="61" x2="180" y2="72" stroke="#8b949e"/><line x1="180" y1="98" x2="180" y2="109" stroke="#8b949e"/><line x1="180" y1="135" x2="180" y2="146" stroke="#8b949e"/></svg>`;
+
+  const rolesSvg = `<svg viewBox="0 0 360 250" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Rollen</text><text x="85" y="40" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Dezentral</text><text x="275" y="40" text-anchor="middle" fill="#c9d1d9" font-size="11" font-weight="bold">Zentral</text><rect x="20" y="50" width="130" height="28" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="85" y="69" text-anchor="middle" fill="#c9d1d9" font-size="10">ISB</text><rect x="20" y="84" width="130" height="28" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="85" y="103" text-anchor="middle" fill="#c9d1d9" font-size="10">ADSB</text><rect x="20" y="118" width="130" height="28" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="85" y="137" text-anchor="middle" fill="#c9d1d9" font-size="10">SiBe</text><rect x="20" y="152" width="130" height="28" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="85" y="171" text-anchor="middle" fill="#c9d1d9" font-size="10">KryVw</text><rect x="210" y="50" width="130" height="28" rx="5" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="275" y="69" text-anchor="middle" fill="#c9d1d9" font-size="10">CSOCBw</text><rect x="210" y="84" width="130" height="28" rx="5" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="275" y="103" text-anchor="middle" fill="#c9d1d9" font-size="10">CERTBw</text><rect x="210" y="118" width="130" height="28" rx="5" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="275" y="137" text-anchor="middle" fill="#c9d1d9" font-size="10">IT-Forensik</text><rect x="210" y="152" width="130" height="28" rx="5" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="275" y="171" text-anchor="middle" fill="#c9d1d9" font-size="10">BAMAD</text><line x1="150" y1="95" x2="210" y2="95" stroke="#8b949e"/><line x1="180" y1="124" x2="180" y2="220" stroke="#8b949e" stroke-dasharray="3"/><text x="180" y="235" text-anchor="middle" fill="#8b949e" font-size="9">Gesamtverantwortung: Dienststellenleiter / Kommandeur</text></svg>`;
+
+  const correlationSvg = `<svg viewBox="0 0 360 220" class="w-full h-auto max-h-60" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Einzelmeldung → Lagebild</text><rect x="20" y="40" width="70" height="30" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="55" y="60" text-anchor="middle" fill="#c9d1d9" font-size="9">Nutzer A</text><rect x="20" y="80" width="70" height="30" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="55" y="100" text-anchor="middle" fill="#c9d1d9" font-size="9">Nutzer B</text><rect x="20" y="120" width="70" height="30" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="55" y="140" text-anchor="middle" fill="#c9d1d9" font-size="9">Nutzer C</text><rect x="20" y="160" width="70" height="30" rx="5" fill="#58a6ff" fill-opacity="0.2" stroke="#58a6ff"/><text x="55" y="180" text-anchor="middle" fill="#c9d1d9" font-size="9">Sensoren</text><line x1="90" y1="55" x2="130" y2="105" stroke="#8b949e"/><line x1="90" y1="95" x2="130" y2="115" stroke="#8b949e"/><line x1="90" y1="135" x2="130" y2="125" stroke="#8b949e"/><line x1="90" y1="175" x2="130" y2="135" stroke="#8b949e"/><rect x="130" y="90" width="50" height="60" rx="5" fill="#f0883e" fill-opacity="0.2" stroke="#f0883e"/><text x="155" y="118" text-anchor="middle" fill="#c9d1d9" font-size="9">ISBs</text><line x1="180" y1="120" x2="230" y2="120" stroke="#8b949e"/><rect x="230" y="90" width="100" height="60" rx="5" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="280" y="118" text-anchor="middle" fill="#c9d1d9" font-size="9">CSOCBw</text><line x1="280" y1="150" x2="280" y2="180" stroke="#8b949e"/><text x="280" y="198" text-anchor="middle" fill="#8b949e" font-size="9">Gesamtlagebild</text></svg>`;
+
+  const incidentFlowSvg = `<svg viewBox="0 0 360 250" class="w-full h-auto max-h-64" xmlns="http://www.w3.org/2000/svg"><text x="180" y="20" text-anchor="middle" fill="#c9d1d9" font-size="13" font-weight="bold">Incident-Grundablauf</text><rect x="120" y="35" width="120" height="28" rx="6" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><text x="180" y="54" text-anchor="middle" fill="#c9d1d9" font-size="10">Auffälligkeit</text><line x1="180" y1="63" x2="180" y2="78" stroke="#8b949e"/><rect x="120" y="78" width="120" height="28" rx="6" fill="#3fb950" fill-opacity="0.25" stroke="#3fb950"/><text x="180" y="97" text-anchor="middle" fill="#c9d1d9" font-size="10">Erkennen</text><line x1="180" y1="106" x2="180" y2="121" stroke="#8b949e"/><rect x="120" y="121" width="120" height="28" rx="6" fill="#58a6ff" fill-opacity="0.25" stroke="#58a6ff"/><text x="180" y="140" text-anchor="middle" fill="#c9d1d9" font-size="10">Einordnen + Melden</text><line x1="180" y1="149" x2="180" y2="164" stroke="#8b949e"/><rect x="120" y="164" width="120" height="28" rx="6" fill="#f0883e" fill-opacity="0.25" stroke="#f0883e"/><text x="180" y="183" text-anchor="middle" fill="#c9d1d9" font-size="10">Sofortmaßnahmen</text><line x1="180" y1="192" x2="180" y2="207" stroke="#8b949e"/><rect x="105" y="207" width="150" height="28" rx="6" fill="#f85149" fill-opacity="0.2" stroke="#f85149"/><text x="180" y="226" text-anchor="middle" fill="#c9d1d9" font-size="10">Zentrale Bewertung + Weisung</text></svg>`;
 
   const explanations = [
-    explanation('b3-verstoss-vorkommnis', 'Verstoß vs Vorkommnis', 'classic', [
-      { type: 'text', content: 'Ein Informationssicherheitsverstoß ist ein Verstoß gegen geltende Sicherheitsvorschriften oder -anforderungen. Ein Sicherheitsvorkommnis ist ein Ereignis, das die Informationssicherheit negativ beeinflusst. Ein Verstoß kann ein Vorkommnis auslösen, muss es aber nicht.' },
-      { type: 'table', headers: ['Begriff', 'Beispiel'], rows: [
-        ['Verstoß', 'USB-Stick trotz Verbot an einen Dienst-PC angeschlossen'],
-        ['Vorkommnis', 'Server fällt nach Stromausfall aus und Daten sind kurzzeitig nicht erreichbar'],
-      ] },
-      { type: 'text', content: 'Die exakten Bundeswehr-Definitionen müssen an der Lehrgangsquelle verifiziert werden.' },
+    explanation('b3-belehrungen', 'Warum Regeln und Belehrungen?', 'classic', [
+      { type: 'text', content: 'Regeln und Belehrungen sind keine reine Formalität. Sie sollen Handlungssicherheit geben: Was ist erlaubt? Was ist verboten? Wann muss ich reagieren? Wann muss ich melden? Wen informiere ich?' },
+      { type: 'text', content: 'Wer die Regeln kennt, erkennt schneller, wenn etwas nicht passt, und weiß, welche Schritte folgen.' },
+      { type: 'question', question: 'Welchen Zweck erfüllen Belehrungen zur Informationssicherheit primär?', options: ['Sie ersetzen jede technische Maßnahme', 'Sie schaffen Handlungssicherheit', 'Sie dienen nur der Bürokratie', 'Sie sind optionaler Zusatzstoff'], correct: 1, explanation: 'Belehrungen zeigen, was erlaubt ist, wann reagiert und wann gemeldet werden muss.' },
     ]),
 
-    explanation('b3-meldewesen', 'Meldewesen', 'classic', [
-      { type: 'text', content: 'Frühzeitiges Melden hilft, Schaden zu begrenzen und das ISMS zu verbessern. Melden ist kein Angriff, sondern Schadensprävention.' },
-      { type: 'list', title: 'Wann sollte gemeldet werden?', items: [
-        'Verdächtiger Login oder Zugang',
-        'Verdächtige E-Mail oder Phishing',
-        'Verlorenes oder gestohlenes Speichermedium',
-        'Unbekannter USB-Stick',
-        'Jede Verletzung von Sicherheitsvorschriften',
-      ] },
+    explanation('b3-verantwortung', 'Verantwortung', 'classic', [
+      { type: 'text', content: 'Die Gesamtverantwortung für Informationssicherheit liegt beim Dienststellenleiter beziehungsweise Kommandeur. Er trägt die Verantwortung, den Betrieb so zu organisieren, dass Informationssicherheit gewährleistet werden kann.' },
+      { type: 'text', content: 'Das bedeutet nicht, dass jeder Einzelne keine Verantwortung hat. Jeder, der mit Informationen umgeht, muss die Regeln einhalten und Vorfälle melden. Die organisatorische Gesamtverantwortung liegt aber bei der Leitung.' },
+      { type: 'question', question: 'Wer trägt laut Kursmodell die Gesamtverantwortung für Informationssicherheit?', options: ['Jeder einzelne Mitarbeiter allein', 'Der ISB', 'Der Dienststellenleiter / Kommandeur', 'Das CERTBw'], correct: 2, explanation: 'Die organisatorische Gesamtverantwortung liegt bei der Dienststellenleitung.' },
     ]),
 
-    explanation('b3-szenarien', 'Natürliche Szenarien', 'classic', [
-      { type: 'text', content: 'Mara sieht einen ungewöhnlichen Login-Dialog und meldet ihn. David findet einen unbekannten USB-Stick und meldet ihn. In beiden Fällen kann ein Verstoß oder ein Vorkommnis vorliegen. Frühzeitiges Melden verbindet die Szenarien und hilft, Folgeschäden zu vermeiden.' },
+    explanation('b3-rollen-dezentral', 'Dezentrale InfoSichh-Rollen', 'classic', [
+      { type: 'text', content: 'Vor Ort gibt es spezialisierte Rollen, die bei Fragen und Vorfällen helfen. Sie kennen die örtlichen Gegebenheiten und sind die ersten Ansprechpartner.' },
+      { type: 'table', headers: ['Rolle', 'Kernaufgabe'], rows: [
+        ['ISB', 'Informationssicherheitsbeauftragter: berät, dokumentiert, belehrt, kontrolliert, unterstützt bei Freigaben; zentrale lokale Rolle im Meldewesen'],
+        ['ADSB', 'Administrativer Datenschutzbeauftragter: Datenschutzfragen, Beratung, Prüfung, Datenschutzverstöße'],
+        ['SiBe', 'Sicherheitsbeauftragter: militärische Sicherheit, Zutritt, Sicherheitsüberprüfung, Kasernen-/Sperrzonen'],
+        ['KryVw', 'Kryptoverwalter: Kryptomittel, Ausgabe, Nachweis, ordnungsgemäße Handhabung'],
+      ] },
+      { type: 'text', content: 'Der ISB ist im Meldewesen die zentrale lokale Rolle. Das heißt, Vorfälle werden typischerweise zunächst an den ISB gemeldet, der sie bewertet und weiterleitet.' },
+      { type: 'question', question: 'Wer ist im lokalen Meldewesen die zentrale Anlaufstelle?', options: ['CERTBw', 'ISB', 'CSOCBw', 'BAMAD'], correct: 1, explanation: 'Der ISB ist vor Ort die zentrale Rolle im Meldewesen und bewertet Vorfälle zunächst.' },
     ]),
+
+    explanation('b3-rollen-zentral', 'Zentrale InfoSichh-Organisation', 'classic', [
+      { type: 'text', content: 'Über die einzelne Dienststelle hinaus gibt es zentrale Spezialstellen. Sie werden eingeschaltet, wenn ein Vorfall größere technische, forensische oder sicherheitliche Dimensionen hat.' },
+      { type: 'table', headers: ['Stelle', 'Kernaufgabe'], rows: [
+        ['CSOCBw', 'Zentrale 24/7-Meldungs-, Lage- und Überwachungsstelle; sammelt Meldungen und erzeugt ein Gesamtlagebild'],
+        ['CERTBw', 'Computer Emergency Response Team: technische Notfallreaktion, Unterstützung bei Wiederinbetriebnahme'],
+        ['IT-Forensik', 'Ursachenermittlung und gerichtsfeste Beweissicherung'],
+        ['BAMAD', 'Bei extremistischen oder nachrichtendienstlichen Bezügen'],
+        ['ZCSBw', 'Zentrale Schutz-/Cybersicherheitsorganisation, übergeordneter Blick'],
+      ] },
+      { type: 'question', question: 'Welche Stelle erzeugt aus vielen Einzelmeldungen ein zentrales Lagebild?', options: ['CERTBw', 'CSOCBw', 'IT-Forensik', 'ADSB'], correct: 1, explanation: 'Das CSOCBw sammelt Meldungen und bewertet die Gesamtlage.' },
+    ]),
+
+    explanation('b3-luecke', 'Informationssicherheitslücke', 'classic', [
+      { type: 'text', content: 'Eine Informationssicherheitslücke liegt vor, wenn bestehende Vorgaben oder Maßnahmen nicht oder nur unzureichend umgesetzt wurden und dadurch mindestens ein Grundwert gefährdet werden kann.' },
+      { type: 'text', content: 'Wichtig: Bei einer Lücke muss noch kein Schaden eingetreten sein. Es reicht, dass ein Grundwert gefährdet werden könnte. Ebenso kann eine neu bekannt gewordene Gefährdung eine Lücke darstellen, wenn nicht zeitnah angemessen reagiert werden kann.' },
+      { type: 'list', title: 'Beispiele für Lücken', items: [
+        'Ein nicht benötigter USB-Port ist freigeschaltet.',
+        'Eine Passwortliste liegt unter der Tastatur.',
+        'Nutzer können beliebige Software installieren.',
+        'Eine neue kritische Software-Schwachstelle wird bekannt.',
+        'Falsch gesetzte Rechte ermöglichen theoretisch unerlaubten Zugriff.',
+      ] },
+      { type: 'question', question: 'Muss bei einer Informationssicherheitslücke bereits ein Schaden eingetreten sein?', options: ['Ja, sonst ist es keine Lücke', 'Nein, eine Gefährdung reicht aus', 'Nur bei Verstoß, nicht bei Lücke', 'Nur bei Vorkommnis'], correct: 1, explanation: 'Eine Lücke liegt vor, wenn ein Grundwert gefährdet werden könnte. Ein tatsächlicher Schaden ist nicht erforderlich.' },
+    ]),
+
+    explanation('b3-verstoss', 'Informationssicherheitsverstoß', 'classic', [
+      { type: 'text', content: 'Ein Informationssicherheitsverstoß liegt vor, wenn ein Grundwert verletzt wurde beziehungsweise der Verdacht darauf besteht. Typischerweise handelt es sich dabei um eine regelwidrige Handlung.' },
+      { type: 'list', title: 'Beispiele für Verstöße', items: [
+        'Passwort weitergegeben',
+        'Privater USB-Stick an Dienst-PC angeschlossen',
+        'Nicht genehmigte Software heruntergeladen oder ausgeführt',
+        'Dienstliche Informationen an Unberechtigte weitergegeben',
+      ] },
+      { type: 'question', question: 'Was kennzeichnet einen Informationssicherheitsverstoß?', options: ['Ein technischer Defekt', 'Eine regelwidrige Handlung oder Grundwertverletzung', 'Ein erfolgreicher Hackerangriff', 'Ein geplantes Wartungsfenster'], correct: 1, explanation: 'Ein Verstoß liegt vor, wenn Regeln missachtet wurden oder ein Grundwert verletzt wurde.' },
+    ]),
+
+    explanation('b3-vorkommnis', 'Informationssicherheitsvorkommnis', 'classic', [
+      { type: 'text', content: 'Ein Informationssicherheitsvorkommnis liegt vor, wenn die Informationssicherheit durch eine Informationssicherheitslücke, einen Informationssicherheitsverstoß oder ein Kryptosicherheitsvorkommnis gefährdet oder beeinträchtigt wird.' },
+      { type: 'text', content: 'Lücke und Verstoß sind unterschiedliche Auslöser, die jeweils ein Vorkommnis begründen können. Nicht jede Lücke führt automatisch zu einem Verstoß, und nicht jeder Verstoß führt automatisch zu einem größeren Schaden.' },
+      { type: 'question', question: 'Wann liegt ein Informationssicherheitsvorkommnis vor?', options: ['Nur bei erfolgreichem Angriff', 'Wenn die Sicherheit durch Lücke, Verstoß oder Kryptovorkommnis gefährdet oder beeinträchtigt wird', 'Nur bei Straftaten', 'Nur bei Datenschutzverstößen'], correct: 1, explanation: 'Ein Vorkommnis ist das übergeordnete Ereignis, bei dem die Sicherheit gefährdet oder beeinträchtigt ist.' },
+    ]),
+
+    explanation('b3-unterschied', 'Lücke vs. Verstoß vs. Vorkommnis', 'classic', [
+      { type: 'diagram', content: gapIncidentSvg },
+      { type: 'table', headers: ['Begriff', 'Kern', 'Beispiel'], rows: [
+        ['Lücke', 'Gefährdung durch unzureichende Maßnahmen; Schaden noch nicht eingetreten', 'USB-Port unnötig freigeschaltet'],
+        ['Verstoß', 'Regelwidrige Handlung / Grundwertverletzung oder Verdacht', 'Privaten USB-Stick eingesteckt'],
+        ['Vorkommnis', 'Sicherheit wurde gefährdet oder beeinträchtigt', 'Schadsoftware auf Dienstsystem gefunden'],
+      ] },
+      { type: 'text', content: 'Eine Lücke kann bestehen, ohne dass danach zwingend ein Verstoß passiert. Umgekehrt kann ein Verstoß vorliegen, auch wenn technische Maßnahmen anschließend einen größeren Schaden verhindern.' },
+      { type: 'question', question: 'Ein ungesperrter USB-Port ist an mehreren Dienst-PCs freigeschaltet. Noch wurde kein Stick eingesteckt. Was liegt vor?', options: ['Verstoß', 'Lücke', 'Vorkommnis', 'Keins davon'], correct: 1, explanation: 'Ein unnötig freigeschalteter USB-Port ist eine Gefährdung und damit eine Lücke. Ein Verstoß wäre das tatsächliche Anschließen.' },
+    ]),
+
+    explanation('b3-phishing', 'Phishing-Fall', 'classic', [
+      { type: 'text', content: 'Phishing eignet sich besonders gut, um zu zeigen, wie sich ein Vorfall verändert. Derselbe Vorgang kann je nach Handlung unterschiedlich bewertet werden.' },
+      { type: 'table', headers: ['Phase', 'Was passiert?', 'Bewertung'], rows: [
+        ['Phase 1', 'Verdächtige Mail trifft ein', 'mögliche Gefährdung; ggf. Lücke / Vorkommnis'],
+        ['Phase 2', 'Nutzer klickt auf den Link', 'Verdacht auf Verstoß; Grundwertverletzung wird wahrscheinlicher'],
+        ['Phase 3', 'Nutzer gibt Daten ein', 'Verstoß; Vertraulichkeit verletzt; Vorkommnis'],
+      ] },
+      { type: 'text', content: 'Frühzeitiges Melden in Phase 1 verhindert, dass es überhaupt zu Phase 2 oder 3 kommt. Selbst wenn bereits Daten eingegeben wurden, ist schnelles Melden entscheidend, um Folgeschäden zu begrenzen.' },
+      { type: 'question', question: 'Eine Phishingmail ist angekommen, aber noch nicht geöffnet. Warum trotzdem melden?', options: ['Damit andere gewarnt und der Vorfall früh gestoppt werden kann', 'Weil die Mail automatisch ein Verstoß ist', 'Weil sonst die Mailbox gelöscht wird', 'Weil jede Mail gemeldet werden muss'], correct: 0, explanation: 'Schon eine ungeöffnete Phishingmail ist eine Gefährdung; frühes Melden schützt andere.' },
+    ]),
+
+    explanation('b3-software', 'Schadsoftware- / Softwareverstoß-Fall', 'classic', [
+      { type: 'text', content: 'Ein Nutzer lädt nicht genehmigte Software herunter. Der Virenschutz erkennt die Datei und entfernt sie. Ist damit alles in Ordnung?' },
+      { type: 'text', content: 'Nein. Die technische Schutzmaßnahme kann funktioniert haben, aber die Regelverletzung – das Herunterladen nicht genehmigter Software – bleibt bestehen. Das ist ein Informationssicherheitsverstoß und kann meldepflichtig sein.' },
+      { type: 'text', content: 'Wichtige Fehlannahme: „Der Virenschutz hat es blockiert, also liegt kein Problem vor." Technische Abwehr und Regelverstoß sind zwei getrennte Ebenen.' },
+      { type: 'question', question: 'Der Virenschutz hat eine nicht genehmigte Datei blockiert. Was folgt daraus?', options: ['Es liegt kein Verstoß vor, weil kein Schaden entstanden ist', 'Es liegt trotzdem ein Regelverstoß vor, der gemeldet werden kann', 'Die Datei war automatisch erlaubt', 'Der Nutzer muss die Software jetzt auf einem anderen Weg installieren'], correct: 1, explanation: 'Technische Abwehr schützt vor Schaden, macht die Regelverletzung aber nicht ungeschehen.' },
+    ]),
+
+    explanation('b3-klein-meldung', 'Warum auch kleine Vorfälle gemeldet werden', 'classic', [
+      { type: 'diagram', content: correlationSvg },
+      { type: 'text', content: 'Der einzelne Mitarbeiter sieht vielleicht nur „eine verdächtige Mail". Die zentrale Stelle kann aber tausende identische Meldungen aus mehreren Dienststellen zusammenführen und so ein koordinierter Angriff oder ein größeres Muster erkennen.' },
+      { type: 'text', content: 'Deshalb gilt: Auch scheinbar kleine Vorfälle sind meldewürdig. „Kein großer Schaden sichtbar" bedeutet nicht „irrelevant".' },
+      { type: 'question', question: 'Warum soll eine einzelne verdächtige Mail gemeldet werden, auch wenn niemand geklickt hat?', options: ['Weil die zentrale Stelle viele Einzelmeldungen zu einem Gesamtlagebild verknüpfen kann', 'Weil jede Mail automatisch ein Vorkommnis ist', 'Damit der Absender verhaftet wird', 'Weil Melden Pflicht für jede E-Mail ist'], correct: 0, explanation: 'Einzelmeldungen ermöglichen zentrale Korrelation und Mustererkennung.' },
+    ]),
+
+    explanation('b3-meldeweg', 'Meldeweg', 'classic', [
+      { type: 'diagram', content: reportingPathSvg },
+      { type: 'text', content: 'Der klassische Meldeweg beginnt beim Nutzer oder Administrator, der einen Vorfall bemerkt. Er meldet an den ISB, der die Erstbewertung vornimmt. Bei Bedarf leitet der ISB an das CSOCBw weiter, das die zentrale Lage betrachtet. Von dort werden bei Bedarf Spezialstellen wie CERTBw, IT-Forensik oder BAMAD eingebunden.' },
+      { type: 'text', content: 'Der ISB ist also nicht der Endpunkt, sondern die zentrale lokale Drehscheibe. Das CSOCBw ist die übergeordnete 24/7-Stelle für das Lagebild.' },
+      { type: 'question', question: 'Wohin wird ein Vorfall typischerweise zuerst gemeldet?', options: ['Direkt an CERTBw', 'An den lokalen ISB', 'An BAMAD', 'An IT-Forensik'], correct: 1, explanation: 'Der ISB ist die zentrale lokale Rolle im Meldewesen und nimmt die Erstbewertung vor.' },
+    ]),
+
+    explanation('b3-erstbewertung', 'Erstbewertung', 'classic', [
+      { type: 'text', content: 'Für eine sinnvolle Erstbewertung werden bestimmte Informationen gebraucht. Je genauer die Meldung, desto schneller kann die zentrale Stelle eingreifen.' },
+      { type: 'list', title: 'Wichtige Erstinformationen', items: [
+        'Gibt es weitere Meldungen?',
+        'Haben Nutzer bereits gehandelt?',
+        'Welche Systeme sind betroffen?',
+        'Welche Informationskategorien sind betroffen?',
+        'Sind personenbezogene Daten betroffen?',
+        'Gibt es Hinweise auf Verschlusssachen?',
+        'Gibt es Hinweise auf Extremismus?',
+        'Gibt es Hinweise auf nachrichtendienstliche Aktivität?',
+        'Gibt es Hinweise auf Straftaten oder Dienstvergehen?',
+        'Sind andere Rollenträger notwendig?',
+        'Welche Sofortmaßnahmen wurden bereits getroffen?',
+      ] },
+      { type: 'text', content: 'Es geht nicht darum, ein spezifisches Formular auswendig zu lernen, sondern zu verstehen, welche Angaben für die Bewertung relevant sind.' },
+      { type: 'question', question: 'Welche Information ist für eine Erstbewertung am relevantesten?', options: ['Der Lieblingsbrowser des Mitarbeiters', 'Betroffene Systeme und Informationskategorien', 'Private Hobbyinformationen', 'Die Schuhgröße des Absenders'], correct: 1, explanation: 'Systeme, betroffene Datenkategorien und Nutzerhandlungen sind zentral für die Bewertung.' },
+    ]),
+
+    explanation('b3-sofortmassnahmen', 'Sofortmaßnahmen', 'classic', [
+      { type: 'text', content: 'Parallel zur Meldung kann es nötig sein, weiteren Schaden zu begrenzen. Sofortmaßnahmen verhindern nicht die Meldung, sondern ergänzen sie.' },
+      { type: 'list', title: 'Mögliche Sofortmaßnahmen', items: [
+        'Nutzer warnen, die verdächtige Mail nicht zu öffnen',
+        'Verdächtige Mail löschen oder nicht weiterbearbeiten',
+        'Kompromittierte Daten oder Konten sichern',
+        'Betroffene Systeme isolieren, wenn das fachlich angemessen ist',
+        'Weitere Nutzung stoppen',
+        'Beweise nicht unnötig zerstören',
+        'Anweisungen spezialisierter Stellen befolgen',
+      ] },
+      { type: 'text', content: 'Wichtig: Vorschnelles „selbst reparieren" kann mehr schaden als nützen. Wenn eine Fachstelle übernimmt, sollten deren Anweisungen befolgt werden.' },
+      { type: 'question', question: 'Was ist eine sinnvolle Sofortmaßnahme bei einer verdächtigen Mail?', options: ['Ignorieren, weil ja noch nichts passiert ist', 'Beweise löschen, damit niemand mehr reinguckt', 'Meldung absetzen und Nutzer warnen, nicht zu klicken', 'Alle Server sofort komplett abschalten'], correct: 2, explanation: 'Meldung plus gezielte Warnung verhindert Folgeschäden, ohne Beweise zu zerstören oder überzutreiben.' },
+    ]),
+
+    explanation('b3-stabsstruktur', 'Stabsstruktur', 'classic', [
+      { type: 'text', content: 'Die Stabsstruktur S1 bis S6 ist kein Kern des Informationssicherheitskurses. Für das Verständnis der Rollen reicht ein kurzer Hinweis:' },
+      { type: 'table', headers: ['Stab', 'häufig zugeordnet'], rows: [
+        ['S1', 'Personal; ADSB ist hier oft angesiedelt'],
+        ['S2', 'militärische Sicherheit; SiBe ist hier oft angesiedelt'],
+        ['S6', 'IT/Kommunikation; ISB/IT-Rollen sind hier oft angesiedelt'],
+      ] },
+      { type: 'text', content: 'Kein Abschlussquiz zu S1–S6. Das Thema wird hier nur als Kontextbox erwähnt.' },
+      { type: 'question', question: 'Wie wird die Stabsstruktur im Informationssicherheitskurs behandelt?', options: ['Als Kernquizthema', 'Nur als kurzer Kontext, kein Kernlernziel', 'Gar nicht', 'Als eigene Lesson'], correct: 1, explanation: 'S1–S6 gehören nicht zum Kern des Informationssicherheitskurses.' },
+    ]),
+
+    explanation('b3-zusammenfassung', 'Zusammenfassung und Transfer', 'classic', [
+      { type: 'diagram', content: incidentFlowSvg },
+      { type: 'text', content: 'Der Spieler soll am Ende dieses Blocks folgenden Denkweg sicher anwenden:' },
+      { type: 'list', title: 'Kernfragen bei jedem Vorfall', items: [
+        'Was ist passiert?',
+        'Lücke oder Verstoß?',
+        'Liegt ein Vorkommnis vor?',
+        'Welcher Grundwert ist betroffen?',
+        'Welche Informationskategorie / welche personenbezogenen Daten sind betroffen?',
+        'Welche Sofortmaßnahme ist sinnvoll?',
+        'Wen muss ich informieren?',
+        'Welche Informationen braucht die Meldung?',
+        'Welche zentrale Spezialstelle könnte später gebraucht werden?',
+      ] },
+      { type: 'text', content: 'Informationssicherheit lebt davon, dass Vorfälle früh erkannt, richtig eingeordnet und gemeldet werden. Jede Einzelmeldung ist ein Puzzleteil für das zentrale Lagebild.' },
+    ]),
+  ].map((entry) => ({ ...entry, sectionId: entry.id }));
+
+  const exercises = [
+    {
+      id: 'b3-begriffe-matchen',
+      type: 'matching',
+      question: 'Ordne die Begriffe ihrer Bedeutung zu.',
+      pairs: [
+        { left: 'Informationssicherheitslücke', right: 'Gefährdung durch unzureichende Maßnahmen' },
+        { left: 'Informationssicherheitsverstoß', right: 'Regelwidrige Handlung / Grundwertverletzung' },
+        { left: 'Informationssicherheitsvorkommnis', right: 'Sicherheit wurde gefährdet oder beeinträchtigt' },
+      ],
+      explanation: 'Lücke = mögliche Gefährdung; Verstoß = Regelbruch; Vorkommnis = übergeordnetes Ereignis mit Sicherheitsbeeinträchtigung.',
+    },
+    {
+      id: 'b3-rollen-matchen',
+      type: 'matching',
+      question: 'Ordne die Rollen ihrem zentralen Aufgabenbereich zu.',
+      pairs: [
+        { left: 'ISB', right: 'Lokale InfoSichh / Meldewesen' },
+        { left: 'ADSB', right: 'Datenschutz' },
+        { left: 'SiBe', right: 'Militärische Sicherheit' },
+        { left: 'KryVw', right: 'Kryptomittel' },
+        { left: 'CSOCBw', right: 'Zentrale Lage / Meldungen' },
+        { left: 'CERTBw', right: 'Technische Notfallreaktion' },
+        { left: 'IT-Forensik', right: 'Ursachen / Beweise' },
+        { left: 'BAMAD', right: 'Extremismus / Nachrichtendienst' },
+      ],
+      explanation: 'Der ISB ist vor Ort zentral. CSOCBw, CERTBw, Forensik und BAMAD sind Spezialstellen, die bei Bedarf eingeschaltet werden.',
+    },
+    {
+      id: 'b3-luecke-oder-verstoss',
+      type: 'select-best',
+      question: 'Ein nicht benötigter USB-Port ist an mehreren Dienst-PCs freigeschaltet. Noch wurde kein Stick eingesteckt. Was liegt vor?',
+      options: ['Informationssicherheitsverstoß', 'Informationssicherheitslücke', 'Informationssicherheitsvorkommnis', 'Keins davon'],
+      correct: 1,
+      explanation: 'Ein unnötig freigeschalteter USB-Port ist eine Gefährdung und damit eine Lücke. Ein Verstoß wäre das tatsächliche Anschließen.',
+    },
+    {
+      id: 'b3-passwort-verstoss',
+      type: 'select-best',
+      question: 'Ein Mitarbeiter gibt sein Passwort an einen Kollegen weiter. Was liegt vor?',
+      options: ['Lücke', 'Verstoß', 'Vorkommnis', 'Nur ein Versehen'],
+      correct: 1,
+      explanation: 'Das Weitergeben des Passworts ist eine regelwidrige Handlung und damit ein Verstoß.',
+    },
+    {
+      id: 'b3-phishing-progression',
+      type: 'select-best',
+      question: 'Eine Phishingmail ist angekommen, aber noch nicht geöffnet. Wie bewertest du den Fall am besten?',
+      options: ['Es liegt bereits ein Verstoß vor', 'Es liegt eine mögliche Gefährdung vor; Melden ist sinnvoll', 'Es ist erst relevant, wenn Daten gestohlen wurden', 'Die Mail kann ignoriert werden, solange keiner geklickt hat'],
+      correct: 1,
+      explanation: 'Schon eine ungeöffnete Phishingmail ist eine Gefährdung. Frühes Melden verhindert Folgeschäden.',
+    },
+    {
+      id: 'b3-antivirus-regelverstoss',
+      type: 'select-best',
+      question: 'Ein Nutzer lädt nicht genehmigte Software herunter. Der Virenschutz blockiert die Datei. Was folgt daraus?',
+      options: ['Es liegt kein Verstoß vor, weil die Datei blockiert wurde', 'Der Regelverstoß bleibt bestehen; Meldung kann nötig sein', 'Die Software ist jetzt erlaubt', 'Der Virenschutz ersetzt die Meldung'],
+      correct: 1,
+      explanation: 'Technische Abwehr verhindert Schaden, macht die Regelverletzung aber nicht ungeschehen.',
+    },
+    {
+      id: 'b3-erstbewertung-info',
+      type: 'select-best',
+      question: 'Welche Information ist für eine Erstbewertung besonders relevant?',
+      options: ['Lieblingsfarbe des Absenders', 'Betroffene Systeme, Informationskategorien und Nutzerhandlungen', 'Welches E-Mail-Programm optisch schöner ist', 'Private Telefonnummer des Mitarbeiters'],
+      correct: 1,
+      explanation: 'Für die Bewertung braucht man Informationen zum Vorfall, nicht irrelevante persönliche Details.',
+    },
+    {
+      id: 'b3-sofortmassnahme',
+      type: 'select-best',
+      question: 'Bei einer verdächtigen Mail mit vielen potenziell betroffenen Nutzern ist die beste Sofortmaßnahme:',
+      options: ['Ignorieren, bis ein Schaden sichtbar ist', 'Alle Server sofort und ohne Absprache abschalten', 'Meldung an ISB und Warnung der Nutzer, nicht zu klicken', 'Alle betroffenen Mails sofort unwiderruflich löschen'],
+      correct: 2,
+      explanation: 'Meldung und gezielte Warnung schützen vor Folgeschäden, ohne Beweise zu zerstören oder überzutreiben.',
+    },
   ];
 
   const quiz = [
-    { question: 'Was ist ein Informationssicherheitsverstoß?', options: ['Ein technischer Defekt', 'Ein Verstoß gegen Sicherheitsvorschriften', 'Ein erfolgreicher Hackerangriff', 'Ein geplantes Wartungsfenster'], correct: 1, explanation: 'Ein Verstoß liegt vor, wenn Vorschriften oder Anforderungen nicht eingehalten werden.' },
-    { question: 'Was ist ein Sicherheitsvorkommnis?', options: ['Ein Ereignis, das die Sicherheit negativ beeinflusst', 'Eine abgeschlossene Schulung', 'Ein genehmigtes Update', 'Ein Feiertag im Dienstbetrieb'], correct: 0, explanation: 'Ein Sicherheitsvorkommnis ist ein Ereignis, das die Informationssicherheit beeinträchtigt.' },
-    { question: 'Warum sollten Vorfälle möglichst früh gemeldet werden?', options: ['Um Kollegen zu beschuldigen', 'Um Schäden früh zu erkennen und zu begrenzen', 'Weil es in der Mittagspause Pflicht ist', 'Damit das Protokoll länger wird'], correct: 1, explanation: 'Frühzeitiges Melden ermöglicht schnelle Reaktion und Schadensbegrenzung.' },
+    { facet: 'luecke', question: 'Was ist eine Informationssicherheitslücke?', options: ['Ein erfolgreicher Angriff', 'Eine Gefährdung durch unzureichende Maßnahmen', 'Ein Regelverstoß', 'Ein genehmigtes Update'], correct: 1, explanation: 'Eine Lücke liegt vor, wenn Vorgaben oder Maßnahmen unzureichend umgesetzt sind und ein Grundwert gefährdet werden könnte.' },
+    { facet: 'verstoss', question: 'Was kennzeichnet einen Informationssicherheitsverstoß?', options: ['Ein technischer Defekt', 'Eine regelwidrige Handlung oder Verdacht auf Grundwertverletzung', 'Eine fehlende Schulung', 'Ein geplantes Wartungsfenster'], correct: 1, explanation: 'Ein Verstoß ist eine Regelverletzung oder der Verdacht auf eine Grundwertverletzung.' },
+    { facet: 'vorkommnis', question: 'Wann liegt ein Informationssicherheitsvorkommnis vor?', options: ['Nur bei einem Hackerangriff', 'Wenn Sicherheit durch Lücke, Verstoß oder Kryptovorkommnis gefährdet oder beeinträchtigt wird', 'Nur bei Datenschutzverstößen', 'Nur wenn personenbezogene Daten betroffen sind'], correct: 1, explanation: 'Ein Vorkommnis ist das übergeordnete Ereignis, bei dem die Informationssicherheit gefährdet oder beeinträchtigt ist.' },
+    { facet: 'rollen', question: 'Wer ist im lokalen Meldewesen die zentrale Rolle?', options: ['CERTBw', 'ISB', 'CSOCBw', 'BAMAD'], correct: 1, explanation: 'Der ISB nimmt vor Ort die Erstbewertung vor und leitet bei Bedarf weiter.' },
+    { facet: 'csoc', question: 'Welche Aufgabe hat das CSOCBw?', options: ['Technische Wiederinbetriebnahme', 'Zentrale 24/7-Lage- und Meldungsführung', 'Gerichtsfeste Beweissicherung', 'Kryptomittel-Ausgabe'], correct: 1, explanation: 'Das CSOCBw sammelt Meldungen und erzeugt ein zentrales Lagebild.' },
+    { facet: 'phishing', question: 'Eine Phishingmail ist angekommen, aber noch nicht geöffnet. Was ist richtig?', options: ['Es liegt bereits ein Verstoß vor', 'Es ist eine Gefährdung; Melden ist sinnvoll', 'Es ist irrelevant, solange niemand geklickt hat', 'Nur geöffnete Mails müssen gemeldet werden'], correct: 1, explanation: 'Schon eine ungeöffnete Phishingmail ist eine Gefährdung; frühes Melden schützt andere.' },
+    { facet: 'antivirus', question: 'Der Virenschutz blockiert nicht genehmigte Software. Was bleibt bestehen?', options: ['Kein Verstoß, weil kein Schaden entstand', 'Der Regelverstoß', 'Die Genehmigung der Software', 'Die Notwendigkeit einer forensischen Untersuchung'], correct: 1, explanation: 'Technische Abwehr schützt vor Schaden, hebt die Regelverletzung aber nicht auf.' },
+    { facet: 'correlation', question: 'Warum soll auch ein kleiner Vorfall gemeldet werden?', options: ['Weil die zentrale Stelle viele Meldungen zu einem Muster verknüpfen kann', 'Weil jeder Vorfall automatisch ein großer Angriff ist', 'Weil sonst die Mailbox gesperrt wird', 'Weil Melden jede Straftat verhindert'], correct: 0, explanation: 'Einzelmeldungen ermöglichen zentrale Korrelation und Mustererkennung.' },
   ];
 
   const summary = [
-    'Ein Verstoß verletzt Regeln; ein Vorkommnis beeinträchtigt die Sicherheit.',
-    'Meldungen sollen Schaden verhindern, nicht dem Suchen nach Schuld dienen.',
-    'Verdächtige Logins, Phishing, verlorene Medien und fremde USB-Sticks sollten gemeldet werden.',
+    'Regeln und Belehrungen schaffen Handlungssicherheit.',
+    'Die Gesamtverantwortung liegt beim Dienststellenleiter / Kommandeur.',
+    'Der ISB ist vor Ort die zentrale Rolle im Meldewesen.',
+    'CSOCBw, CERTBw, IT-Forensik und BAMAD sind zentrale Spezialstellen.',
+    'Eine Lücke ist eine Gefährdung; ein Verstoß ist eine Regelverletzung; ein Vorkommnis ist das übergeordnete Ereignis.',
+    'Lücke und Verstoß können jeweils ein Vorkommnis begründen.',
+    'Auch scheinbar kleine Vorfälle sind meldewürdig, weil sie zentrale Mustererkennung ermöglichen.',
+    'Sofortmaßnahmen ergänzen die Meldung, ersetzen sie aber nicht.',
+    'Transfer: Bei jedem Vorfall Grundwerte, Informationskategorien und personenbezogene Daten prüfen.',
   ];
 
-  return { title, explanations, exercises: [], quiz, summary };
+  return { title, explanations, exercises, quiz, summary };
 }
 
 export function buildInformationSecurityThreatsMalwareLesson() {
