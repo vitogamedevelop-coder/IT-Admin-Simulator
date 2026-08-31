@@ -1844,6 +1844,28 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-win-srv-conv-7', difficulty: 'medium', text: 'Was macht der Befehl Install-WindowsFeature?', options: ['Zeigt Rollen an', 'Installiert eine Rolle oder ein Feature', 'Startet den Server neu'], correct: 1, explanation: 'Install-WindowsFeature installiert die angegebene Rolle oder das Feature am lokalen Server.' },
     ],
   },
+  [topicKey('active-directory-virtualbox', 'ad-user-profiles')]: {
+    title: 'Benutzerkonten und Benutzerprofile',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'ad-foundation'), topicKey('active-directory-virtualbox', 'windows-server')],
+    introPool: [
+      'Was ist der Unterschied zwischen Benutzerkonto und Benutzerprofil?',
+      'Warum sieht ein Benutzer an zwei Clients unterschiedlich aus?',
+      'Wann ist ein servergespeichertes Profil sinnvoll?',
+      'Warum können große Profile problematisch sein?',
+      'Was unterscheidet Ordnerumleitung und servergespeichertes Profil?',
+      'Warum sollte ein Domain Admin nicht auf normalen Clients arbeiten?',
+    ],
+    samHelp: 'Ein Benutzerkonto ist die Identität in Active Directory. Ein Benutzerprofil ist die getrennte Benutzerumgebung. Lokale Profile bleiben auf dem jeweiligen Client. Servergespeicherte Profile liegen zentral und ermöglichen die gleiche Umgebung an mehreren Clients, sind aber von Netzwerk, Profilgröße und Last abhängig. Ordnerumleitung betrifft bestimmte Ordner und ist nicht dasselbe wie ein servergespeichertes Profil. Hochprivilegierte Konten sollten nicht auf weniger geschützten Clients verwendet werden.',
+    questions: [
+      { id: 'ad-up-conv-1', difficulty: 'easy', text: 'Was unterscheidet Benutzerkonto und Benutzerprofil?', options: ['Nichts, beides ist dasselbe.', 'Das Konto ist die Identität; das Profil ist die Benutzerumgebung.', 'Das Konto speichert den Desktop-Hintergrund.'], correct: 1, explanation: 'Das Konto ermöglicht Anmeldung und Rechte; das Profil enthält die persönliche Umgebung.' },
+      { id: 'ad-up-conv-2', difficulty: 'medium', text: 'Lisa meldet sich an CLIENT07 an, aber ihre Einstellungen fehlen. Sie hat sich aber an CLIENT01 angemeldet. Was ist der wahrscheinlichste Grund?', options: ['Ihr Konto wurde gelöscht.', 'CLIENT07 hat ein eigenes lokales Profil; Profile sind nicht automatisch zwischen Clients übertragen.', 'Active Directory ist nicht erreichbar.'], correct: 1, explanation: 'Lokale Profile bleiben auf dem jeweiligen Client. Ohne servergespeichertes Profil sind die Umgebungen getrennt.' },
+      { id: 'ad-up-conv-3', difficulty: 'medium', text: 'Was ist ein Vorteil eines servergespeicherten Profils?', options: ['schnellere lokale Anmeldung', 'gleiche Benutzerumgebung an mehreren Clients', 'keine Netzwerkabhängigkeit'], correct: 1, explanation: 'Servergespeicherte Profile ermöglichen die gleiche Umgebung an verschiedenen Clients.' },
+      { id: 'ad-up-conv-4', difficulty: 'hard', text: 'Was kann bei vielen gleichzeitigen Anmeldungen mit großen servergespeicherten Profilen passieren?', options: ['Anmeldung wird schneller.', 'Anmeldung kann länger dauern und Netzwerk/Server belasten.', 'Profile werden automatisch kleiner.'], correct: 1, explanation: 'Große Profile und viele gleichzeitige Anmeldungen können Performance-Probleme verursachen.' },
+      { id: 'ad-up-conv-5', difficulty: 'hard', text: 'Was ist der wesentliche Unterschied zwischen Ordnerumleitung und servergespeichertem Profil?', options: ['Beide machen dasselbe.', 'Ordnerumleitung betrifft bestimmte Ordner, servergespeichertes Profil das gesamte Profil.', 'Ordnerumleitung ist eine Backuplösung.'], correct: 1, explanation: 'Ordnerumleitung und servergespeichertes Profil sind unterschiedliche Mechanismen mit unterschiedlichem Umfang.' },
+      { id: 'ad-up-conv-6', difficulty: 'hard', text: 'Warum sollte ein Domain Admin nicht für normale Arbeiten auf einem Client benutzt werden?', options: ['Weil Clients keine Domänen sind', 'Weil Anmeldeinformationen auf Clients leichter kompromittiert werden können', 'Weil Clients keine Konten unterstützen'], correct: 1, explanation: 'Hochprivilegierte Konten sollten auf besser geschützten Systemen verwendet werden, um Risiken zu reduzieren.' },
+      { id: 'ad-up-conv-7', difficulty: 'medium', text: 'Ein umgeleiteter Ordner ist nicht erreichbar. Ist deshalb jede Anmeldung unmöglich?', options: ['Ja, immer.', 'Nein, Anmeldung und Erreichbarkeit umgeleiteter Ressourcen sind getrennt.', 'Nur bei lokalen Profilen nicht.'], correct: 1, explanation: 'Anmeldung funktioniert unabhängig; das Offline-Verhalten umgeleiteter Ressourcen hängt von weiteren Einstellungen ab.' },
+    ],
+  },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
     title: 'Domain Controller',
     relatedTopics: [topicKey('active-directory-virtualbox', 'domain'), topicKey('active-directory-virtualbox', 'ad-foundation')],
