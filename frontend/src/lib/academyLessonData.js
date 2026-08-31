@@ -55,6 +55,7 @@ import {
 } from './academyLessons/adLogicalComponents.js';
 import { buildAdWindowsServerLesson, AD_WINDOWS_SERVER_TOPIC_KEY } from './academyLessons/adWindowsServer.js';
 import { buildAdUserProfilesLesson, AD_USER_PROFILES_TOPIC_KEY } from './academyLessons/adUserProfiles.js';
+import { buildAdUsersLesson, AD_USERS_TOPIC_KEY } from './academyLessons/adUsers.js';
 import { buildAdPermissionsLesson, AD_PERMISSIONS_TOPIC_KEY } from './academyLessons/adPermissions.js';
 
 // Simple inline SVG diagrams for the five network topologies.
@@ -411,6 +412,7 @@ export const LESSONS = {
   [AD_DC_TOPIC_KEY]: buildAdDomainControllerLesson(),
   [AD_WINDOWS_SERVER_TOPIC_KEY]: buildAdWindowsServerLesson(),
   [AD_USER_PROFILES_TOPIC_KEY]: buildAdUserProfilesLesson(),
+  [AD_USERS_TOPIC_KEY]: buildAdUsersLesson(),
   [AD_PERMISSIONS_TOPIC_KEY]: buildAdPermissionsLesson(),
 };
 

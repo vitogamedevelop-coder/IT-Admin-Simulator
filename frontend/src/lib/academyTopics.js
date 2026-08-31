@@ -241,7 +241,7 @@ export const ACADEMY_TOPICS = [
   // networking fundamentals it actually needs (ipv4, dns). The windows-server
   // topic stays available as separate, optional preparation.
   topic('active-directory-virtualbox', 'domain-controller', 'Domain Controller', 'Rolle und Funktion des Domain Controllers.', ['active-directory-virtualbox/domain', 'fundamentals/ipv4', 'fundamentals/dns']),
-  topic('active-directory-virtualbox', 'users', 'Benutzer', 'Benutzerkonten in Active Directory anlegen.', ['domain-controller']),
+  topic('active-directory-virtualbox', 'users', 'Benutzer', 'Benutzerkonten in Active Directory anlegen.', ['organizational-units']),
   topic('active-directory-virtualbox', 'groups', 'Gruppen', 'Gruppen in Active Directory verwalten.', ['users']),
   topic('active-directory-virtualbox', 'organizational-units', 'Organisationseinheiten', 'Struktur der Domäne über OUs abbilden.', ['domain-controller']),
   topic('active-directory-virtualbox', 'group-policy', 'Gruppenrichtlinien', 'Einstellungen zentral per GPO verteilen.', ['organizational-units']),
