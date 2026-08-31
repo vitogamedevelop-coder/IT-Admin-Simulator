@@ -296,6 +296,38 @@ const globalCatalogSvg = `<svg viewBox="0 0 320 220" class="w-full h-auto" xmlns
   <text x="160" y="204" text-anchor="middle" fill="#8b949e" font-size="9">GC = Dienst auf einem DC, keine Masterrolle</text>
 </svg>`;
 
+const ouStandardContainerSvg = `<svg viewBox="0 0 320 260" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+  <text x="160" y="20" text-anchor="middle" fill="#00f0ff" font-size="14" font-weight="bold">nexus.local</text>
+  <rect x="20" y="35" width="280" height="95" rx="6" fill="#0d1117" stroke="#ffcc00" stroke-width="2"/>
+  <text x="160" y="55" text-anchor="middle" fill="#ffcc00" font-size="12" font-weight="bold">Standard-Container</text>
+  <text x="40" y="75" fill="#c9d1d9" font-size="10">Builtin</text>
+  <text x="40" y="92" fill="#c9d1d9" font-size="10">Computers</text>
+  <text x="40" y="109" fill="#c9d1d9" font-size="10">Users</text>
+  <rect x="20" y="145" width="280" height="100" rx="6" fill="#0d1117" stroke="#00f0ff" stroke-width="2"/>
+  <text x="160" y="165" text-anchor="middle" fill="#00f0ff" font-size="12" font-weight="bold">Eigene Organisationseinheiten</text>
+  <text x="40" y="185" fill="#c9d1d9" font-size="10">OU IT</text>
+  <text x="40" y="202" fill="#c9d1d9" font-size="10">OU Personal</text>
+  <text x="40" y="219" fill="#c9d1d9" font-size="10">OU Vertrieb</text>
+  <text x="40" y="236" fill="#c9d1d9" font-size="10">OU Entwicklung</text>
+</svg>`;
+
+const ouMoveObjectSvg = `<svg viewBox="0 0 320 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="10" width="140" height="160" rx="6" fill="#0d1117" stroke="#ffcc00" stroke-width="2"/>
+  <text x="80" y="32" text-anchor="middle" fill="#ffcc00" font-size="12" font-weight="bold">Vorher</text>
+  <text x="25" y="55" fill="#c9d1d9" font-size="10">nexus.local</text>
+  <text x="40" y="75" fill="#c9d1d9" font-size="10">Computers</text>
+  <text x="55" y="95" fill="#c9d1d9" font-size="10">SALES-PC01</text>
+  <text x="25" y="150" fill="#8b949e" font-size="9">DN enthält Container</text>
+  <rect x="170" y="10" width="140" height="160" rx="6" fill="#0d1117" stroke="#00ff66" stroke-width="2"/>
+  <text x="240" y="32" text-anchor="middle" fill="#00ff66" font-size="12" font-weight="bold">Nachher</text>
+  <text x="185" y="55" fill="#c9d1d9" font-size="10">nexus.local</text>
+  <text x="200" y="75" fill="#c9d1d9" font-size="10">OU Vertrieb</text>
+  <text x="215" y="95" fill="#c9d1d9" font-size="10">SALES-PC01</text>
+  <text x="185" y="150" fill="#8b949e" font-size="9">DN enthält OU</text>
+  <path d="M150 75 L170 75" stroke="#c9d1d9" stroke-width="2" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#c9d1d9"/></marker></defs>
+</svg>`;
+
 // =============================================================================
 // Domain lesson
 // =============================================================================
@@ -472,6 +504,44 @@ function buildOrganizationalUnitsLesson() {
       { type: 'text', content: 'OUs strukturieren Objekte innerhalb einer Domäne, sind aber keine Berechtigungsgruppen. Der Distinguished Name beschreibt die eindeutige Position eines Objekts in der Hierarchie. DC bedeutet im DN „Domain Component“, als Serverrolle „Domain Controller“.' },
       { type: 'question', question: 'Welche Aussage ist richtig?', options: ['Eine OU ist eine Sicherheitsgruppe', 'Ein DN zeigt die Position eines Objekts in der Struktur', 'DC im DN bedeutet immer Domain Controller', 'Objekte liegen über der Domäne'], correct: 1, explanation: 'Der DN beschreibt die Position in der Verzeichnisstruktur. OU und Gruppe sind unterschiedlich, und DC hat je nach Kontext zwei Bedeutungen.' },
     ]),
+    explanation('ou-standardcontainer-classic', 'Standard-Container vs. OU', 'classic', [
+      { type: 'text', content: 'Nach der Installation von Active Directory gibt es bereits vordefinierte Container wie Users, Computers und Builtin. Diese Standard-Container erfüllen Systemzwecke und eignen sich nicht, um die eigene Unternehmensstruktur sauber abzubilden.' },
+      { type: 'diagram', content: ouStandardContainerSvg },
+      { type: 'text', content: 'Eine Organisationseinheit ist zwar auch ein containerartiges Objekt, unterscheidet sich aber von diesen Standard-Containern. Für die Strukturierung von Abteilungen oder Standorten legt man eigene OUs an.' },
+      { type: 'text', content: 'Ein weiterer praktischer Unterschied ist, dass Gruppenrichtlinien später typischerweise an OUs verknüpft werden können, nicht an die eingebauten Container.' },
+      { type: 'question', question: 'Was ist der wichtigste Unterschied zwischen einer eigenen OU und dem Standard-Container Users?', options: ['Users ist für die zentrale Authentifizierung reserviert', 'Eine OU ist ein selbst angelegter organisatorischer Container; Users ist ein vordefinierter Systemcontainer', 'Eine OU darf keine Benutzer enthalten', 'Der Container Users ist eine Sicherheitsgruppe'], correct: 1, explanation: 'Users ist ein Standard-Container, während OUs selbst angelegt und für die Unternehmensstruktur genutzt werden.' },
+    ]),
+    explanation('ou-management-einstieg-classic', 'OUs praktisch verwalten', 'classic', [
+      { type: 'text', content: 'NEXUS wächst: Es gibt jetzt die Abteilungen IT, Personal, Vertrieb und Entwicklung. Bisher liegen viele Benutzer und Computer noch unsortiert in den Standard-Containern. Der nächste Schritt ist, eine saubere OU-Struktur aufzubauen und Objekte richtig zuzuordnen.' },
+      { type: 'text', content: 'Für die Verwaltung von Objekten und OUs verwendet man in diesem Szenario Active Directory Users and Computers. Es ist kein pixelgenauer Windows-Desktop, sondern eine didaktisch reduzierte Darstellung der relevanten Controls: Baum, Menü, Kontextmenü und Dialog.' },
+      { type: 'question', question: 'Welches Werkzeug dient typischerweise der Verwaltung von Benutzern, Computern und OUs in Active Directory?', options: ['DNS-Manager', 'Group Policy Management', 'Active Directory Users and Computers', 'Lokaler Datei-Explorer'], correct: 2, explanation: 'Active Directory Users and Computers ist das gängige Verwaltungswerkzeug für AD-Objekte und OUs.' },
+    ]),
+    explanation('ou-erstellen-classic', 'Eine OU anlegen', 'classic', [
+      { type: 'text', content: 'Um unter nexus.local die OU Vertrieb anzulegen, wählt man in der Baumansicht die Domäne, öffnet über das Kontextmenü New → Organizational Unit und gibt einen Namen ein. Dabei kann man den Schutz vor versehentlichem Löschen aktivieren.' },
+      { type: 'list', title: 'Wichtige Schritte', items: [
+        'Richtigen Parent wählen (hier nexus.local)',
+        'New → Organizational Unit',
+        'Namen vergeben',
+        'Schutz vor versehentlichem Löschen aktivieren',
+      ] },
+      { type: 'text', content: 'Der Schutz ist eine Sicherheitsmaßnahme gegen Bedienfehler: Er verhindert normale versehentliche Löschvorgänge, bis die Schutzoption mit ausreichenden Rechten entfernt wird.' },
+      { type: 'question', question: 'Warum ist der Schutz vor versehentlichem Löschen bei einer neuen OU sinnvoll?', options: ['Er verhindert jede Änderung', 'Er schützt vor unbeabsichtigtem Löschen durch Bedienfehler', 'Er erteilt Berechtigungen', 'Er ersetzt ein Backup'], correct: 1, explanation: 'Der Schutz verhindert nicht alle Löschvorgänge, sondern schützt vor normalen versehentlichen Bedienfehlern.' },
+    ]),
+    explanation('ou-verschieben-classic', 'Objekte zwischen OUs verschieben', 'classic', [
+      { type: 'text', content: 'Wenn der Computer SALES-PC01 bisher im Standard-Container Computers liegt, aber zur Vertriebsabteilung gehört, wird er in die OU Vertrieb verschoben. Dabei ändert sich seine Position im Verzeichnisbaum und sein Distinguished Name.' },
+      { type: 'diagram', content: ouMoveObjectSvg },
+      { type: 'text', content: 'Das Verschieben ist keine Neuanlage: Das Objekt behält seine Identität, aber sein DN enthält danach statt Computers die OU Vertrieb.' },
+      { type: 'question', question: 'Ein Benutzer wird von der OU Personal in die OU Vertrieb verschoben. Was ändert sich?', options: ['Der Benutzer bekommt ein neues Objekt', 'Der Distinguished Name spiegelt die neue Position wider', 'Der Benutzer verliert sein Kennwort', 'Die Domäne wird geändert'], correct: 1, explanation: 'Das Objekt bleibt dasselbe; sein DN zeigt die neue Position in der Hierarchie.' },
+    ]),
+    explanation('ou-design-classic', 'OU-Strukturen planen', 'classic', [
+      { type: 'text', content: 'Es gibt keine universelle Regel, dass OUs eins zu eins einem Organigramm folgen müssen. OUs werden nach administrativen Anforderungen geplant; die Organisationsstruktur kann dabei helfen, ist aber nicht der einzige mögliche Entwurfsgrund.' },
+      { type: 'text', content: 'OUs können auch verschachtelt werden, etwa nexus.local → Standorte → Berlin → Vertrieb. Dabei sollte die Struktur überschaubar bleiben, besonders auf mobilen Geräten.' },
+      { type: 'question', question: 'Was ist ein sinnvoller Grundsatz beim Entwurf von OUs?', options: ['OUs müssen immer exakt dem Organigramm entsprechen', 'OUs werden nach administrativen Anforderungen geplant, nicht nur nach der Hierarchie auf dem Papier', 'Eine OU darf nie weitere OUs enthalten', 'Jede OU erteigt automatisch Berechtigungen'], correct: 1, explanation: 'OUs sind administrative Strukturen; die Organisationsstruktur ist ein Orientierungspunkt, aber nicht zwingend der einzige Maßstab.' },
+    ]),
+    explanation('ou-neu-zusammenfassung-classic', 'Zusammenfassung OU-Verwaltung', 'classic', [
+      { type: 'text', content: 'Eine OU ist ein selbst angelegter organisatorischer Container in einer Domäne. Sie unterscheidet sich von den Standard-Containern Users, Computers und Builtin. OUs werden mit Active Directory Users and Computers angelegt, Objekte werden per Verschieben zugeordnet, und der Schutz vor versehentlichem Löschen verhindert Bedienfehler.' },
+      { type: 'question', question: 'Welche Aussage trifft auf OUs und Standard-Container zu?', options: ['OUs und Standard-Container sind identisch', 'Eigene OUs dienen der Strukturierung der Unternehmensorganisation; Standard-Container erfüllen Systemzwecke', 'Standard-Container können durch OUs ersetzt werden', 'OUs sind keine Container'], correct: 1, explanation: 'OUs sind selbst angelegte Struktur-Container; Standard-Container sind vordefiniert und erfüllen spezifische Systemaufgaben.' },
+    ]),
   ];
 
   const exercises = [
@@ -514,6 +584,209 @@ function buildOrganizationalUnitsLesson() {
       correct: 1,
       explanation: 'Der DN liest sich von klein nach groß: Objekt → OU → Domain Components.',
     },
+    {
+      id: 'ad-ou-vs-standardcontainer-select',
+      type: 'select-best',
+      question: 'Du möchtest die Benutzer der Abteilung Vertrieb strukturell organisieren und später gezielt verwalten. Was ist am passendsten?',
+      options: ['Den Standard-Container Users verwenden', 'Eine OU Vertrieb anlegen', 'Eine neue Domäne erstellen', 'Einen neuen Domain Controller installieren'],
+      correct: 1,
+      explanation: 'Eine OU ist ein selbst angelegter organisatorischer Container. Users ist ein vordefinierter Standard-Container.',
+    },
+    {
+      id: 'ad-ou-create-guided-ui',
+      type: 'guided-ui',
+      title: 'OU Vertrieb erstellen',
+      question: 'Erstelle unter nexus.local die Organisationseinheit Vertrieb.',
+      explanation: 'Im Server Manager öffnet man Active Directory Users and Computers, wählt die Domäne, legt eine neue OU an und aktiviert den Schutz vor versehentlichem Löschen.',
+      intro: 'NEXUS braucht eine OU Vertrieb unter nexus.local. Folge dem reduzierten ADUC-Ablauf.',
+      steps: [
+        {
+          id: 'ou-create-server-manager',
+          kind: 'navigation',
+          screen: { title: 'Server Manager', subtitle: 'Übersicht des Verwaltungsservers' },
+          instruction: 'Öffne das Verwaltungswerkzeug für Active-Directory-Objekte.',
+          targets: [
+            { id: 'dashboard', label: 'Dashboard', description: 'Zeigt nur Zusammenfassungen an' },
+            { id: 'local-server', label: 'Local Server' },
+            { id: 'all-servers', label: 'All Servers' },
+            { id: 'tools', label: 'Tools', description: 'Öffnet die Liste der Verwaltungsprogramme' },
+          ],
+          correctTarget: 'tools',
+          feedbackWrong: 'Das Dashboard zeigt nur Zusammenfassungen. Für Objektverwaltung brauchst du Tools.',
+          feedbackCorrect: 'Richtig: Tools öffnet die Verwaltungsprogramme.',
+        },
+        {
+          id: 'ou-create-tools-menu',
+          kind: 'navigation',
+          screen: { title: 'Tools', subtitle: 'Verfügbare Verwaltungsprogramme' },
+          instruction: 'Wähle das richtige Werkzeug für Benutzer, Computer und OUs.',
+          targets: [
+            { id: 'dns', label: 'DNS', description: 'Verwaltet Namensauflösung' },
+            { id: 'group-policy-management', label: 'Group Policy Management', description: 'Konfiguriert Gruppenrichtlinien' },
+            { id: 'aduc', label: 'Active Directory Users and Computers', description: 'Verwaltet AD-Objekte und OUs' },
+            { id: 'computer-management', label: 'Computer Management', description: 'Lokale Verwaltung eines Rechners' },
+          ],
+          correctTarget: 'aduc',
+          feedbackWrong: 'DNS verwaltet Namensauflösung. Für Benutzer, Computer und OUs brauchst du Active Directory Users and Computers.',
+          feedbackCorrect: 'Richtig: Active Directory Users and Computers verwaltet AD-Objekte und OUs.',
+        },
+        {
+          id: 'ou-create-parent',
+          kind: 'decision',
+          screen: { title: 'Active Directory Users and Computers', subtitle: 'nexus.local' },
+          instruction: 'Unter welchem Knoten soll die neue OU angelegt werden?',
+          targets: [
+            { id: 'builtin', label: 'Builtin' },
+            { id: 'computers', label: 'Computers' },
+            { id: 'domain-controllers', label: 'Domain Controllers' },
+            { id: 'users', label: 'Users' },
+            { id: 'nexus-local', label: 'nexus.local' },
+          ],
+          correctTarget: 'nexus-local',
+          feedbackWrong: 'Users ist ein vorhandener Standard-Container. Eine eigene Unternehmens-OU soll direkt unter der Domäne erstellt werden.',
+          feedbackCorrect: 'Richtig: Die OU wird direkt unter nexus.local angelegt.',
+        },
+        {
+          id: 'ou-create-context-new',
+          kind: 'navigation',
+          screen: { title: 'Kontextmenü', subtitle: 'nexus.local' },
+          instruction: 'Welche Kontextaktion startet das Anlegen eines neuen Objekts?',
+          targets: [
+            { id: 'new', label: 'New', description: 'Legt ein neues Objekt an' },
+            { id: 'find', label: 'Find', description: 'Sucht nach Objekten' },
+            { id: 'properties', label: 'Properties', description: 'Zeigt Eigenschaften an' },
+            { id: 'refresh', label: 'Refresh', description: 'Aktualisiert die Ansicht' },
+          ],
+          correctTarget: 'new',
+          feedbackWrong: 'Properties zeigt Eigenschaften; Find sucht; Refresh aktualisiert. Zum Erstellen brauchst du New.',
+          feedbackCorrect: 'Richtig: New öffnet das Untermenü zum Anlegen neuer Objekte.',
+        },
+        {
+          id: 'ou-create-object-type',
+          kind: 'navigation',
+          screen: { title: 'New', subtitle: 'Objekttyp wählen' },
+          instruction: 'Welcher Objekttyp entspricht einer Organisationseinheit?',
+          targets: [
+            { id: 'computer', label: 'Computer' },
+            { id: 'group', label: 'Group' },
+            { id: 'organizational-unit', label: 'Organizational Unit' },
+            { id: 'user', label: 'User' },
+          ],
+          correctTarget: 'organizational-unit',
+          feedbackWrong: 'Computer, Group und User sind Objekttypen, aber keine OU.',
+          feedbackCorrect: 'Richtig: Für eine Organisationseinheit wählst du Organizational Unit.',
+        },
+        {
+          id: 'ou-create-name',
+          kind: 'decision',
+          screen: { title: 'Neue OU', subtitle: 'Name eingeben' },
+          instruction: 'Vergib den Namen für die neue OU.',
+          targets: [
+            { id: 'vertrieb', label: 'Vertrieb' },
+            { id: 'marketing', label: 'Marketing' },
+            { id: 'it', label: 'IT' },
+            { id: 'personal', label: 'Personal' },
+          ],
+          correctTarget: 'vertrieb',
+          feedbackWrong: 'Der Auftrag lautet, eine OU für die Vertriebsabteilung anzulegen.',
+          feedbackCorrect: 'Richtig: Der Name Vertrieb passt zur Abteilung.',
+        },
+        {
+          id: 'ou-create-protection',
+          kind: 'decision',
+          screen: { title: 'Neue OU', subtitle: 'Schutzoption' },
+          instruction: 'Soll der Schutz vor versehentlichem Löschen aktiviert bleiben?',
+          targets: [
+            { id: 'protect-active', label: 'Schutz aktiviert', description: 'Verhindert normale versehentliche Löschvorgänge' },
+            { id: 'protect-inactive', label: 'Schutz deaktiviert', description: 'Erhöht das Risiko eines Bedienfehlers' },
+          ],
+          correctTarget: 'protect-active',
+          feedbackWrong: 'Bei einer produktiven OU ist der Schutz vor versehentlichem Löschen die sicherere Standardeinstellung.',
+          feedbackCorrect: 'Richtig: Der Schutz verhindert normale versehentliche Löschvorgänge. Die OU Vertrieb wird unter nexus.local angelegt.',
+        },
+      ],
+    },
+    {
+      id: 'ad-ou-move-object-guided-ui',
+      type: 'guided-ui',
+      title: 'SALES-PC01 der OU Vertrieb zuordnen',
+      question: 'Der Computer SALES-PC01 liegt im Standard-Container Computers. Ordne ihn der OU Vertrieb zu.',
+      explanation: 'Objekte werden per Rechtsklick → Verschieben in die gewünschte OU verschoben. Dabei ändert sich ihre Position im Verzeichnisbaum und ihr Distinguished Name.',
+      intro: 'SALES-PC01 gehört zur Vertriebsabteilung. Verschiebe ihn in die passende OU.',
+      steps: [
+        {
+          id: 'ou-move-select-object',
+          kind: 'decision',
+          screen: { title: 'Active Directory Users and Computers', subtitle: 'Objekt wählen' },
+          instruction: 'Welches Objekt soll verschoben werden?',
+          targets: [
+            { id: 'it-pc', label: 'IT-PC01' },
+            { id: 'finance-pc', label: 'FINANCE-PC01' },
+            { id: 'sales-pc', label: 'SALES-PC01' },
+            { id: 'dev-pc', label: 'DEV-PC02' },
+          ],
+          correctTarget: 'sales-pc',
+          feedbackWrong: 'Der Auftrag bezieht sich auf den SALES-PC01.',
+          feedbackCorrect: 'Richtig: SALES-PC01 soll verschoben werden.',
+        },
+        {
+          id: 'ou-move-context-action',
+          kind: 'navigation',
+          screen: { title: 'Kontextmenü', subtitle: 'Aktion wählen' },
+          instruction: 'Welche Kontextaktion startet das Verschieben?',
+          targets: [
+            { id: 'delete', label: 'Löschen', description: 'Entfernt das Objekt' },
+            { id: 'properties', label: 'Eigenschaften', description: 'Zeigt Details an' },
+            { id: 'move', label: 'Verschieben', description: 'Ändert die Position im Verzeichnisbaum' },
+            { id: 'disable', label: 'Deaktivieren', description: 'Sperrt das Konto' },
+          ],
+          correctTarget: 'move',
+          feedbackWrong: 'Löschen entfernt das Objekt; Eigenschaften zeigt nur Details. Zum Umsortieren nutzt man Verschieben.',
+          feedbackCorrect: 'Richtig: Verschieben öffnet die Zielauswahl.',
+        },
+        {
+          id: 'ou-move-target',
+          kind: 'decision',
+          screen: { title: 'Ziel-OU wählen', subtitle: 'nexus.local' },
+          instruction: 'Wähle die Ziel-OU für SALES-PC01.',
+          targets: [
+            { id: 'it', label: 'OU IT' },
+            { id: 'personal', label: 'OU Personal' },
+            { id: 'vertrieb', label: 'OU Vertrieb' },
+            { id: 'entwicklung', label: 'OU Entwicklung' },
+            { id: 'computers', label: 'Computers', description: 'Standard-Container, keine OU' },
+          ],
+          correctTarget: 'vertrieb',
+          feedbackWrong: 'Der Computer gehört laut Auftrag zur Vertriebsabteilung. Der Standard-Container Computers ist keine Ziel-OU.',
+          feedbackCorrect: 'Richtig: SALES-PC01 wird in die OU Vertrieb verschoben.',
+        },
+        {
+          id: 'ou-move-confirm',
+          kind: 'navigation',
+          screen: { title: 'Verschieben bestätigen', subtitle: 'Aktion abschließen' },
+          instruction: 'Bestätige die Verschiebung.',
+          targets: [
+            { id: 'cancel', label: 'Abbrechen', description: 'Aktion wird nicht ausgeführt' },
+            { id: 'confirm', label: 'Bestätigen', description: 'Objekt wird verschoben' },
+          ],
+          correctTarget: 'confirm',
+          feedbackWrong: 'Mit Abbrechen wird die Aktion nicht ausgeführt.',
+          feedbackCorrect: 'SALES-PC01 ist jetzt in der OU Vertrieb. Seine Position im Verzeichnisbaum und der Distinguished Name haben sich geändert.',
+        },
+      ],
+    },
+    {
+      id: 'ad-ou-structure-matching',
+      type: 'matching',
+      question: 'Ordne die Mitarbeiter und Computer der passenden OU zu.',
+      pairs: [
+        { left: 'Anna', right: 'Personal' },
+        { left: 'Max', right: 'Vertrieb' },
+        { left: 'IT-PC01', right: 'IT' },
+        { left: 'DEV-PC02', right: 'Entwicklung' },
+      ],
+      explanation: 'Objekte werden nach Abteilung oder Verwendungszweck in die passende OU einsortiert.',
+    },
   ];
 
   const quiz = [
@@ -524,18 +797,23 @@ function buildOrganizationalUnitsLesson() {
     { question: 'Was bedeutet DC im DN CN=Max,OU=IT,DC=nexus,DC=local?', options: ['Domain Controller als Server', 'Domain Component als Bestandteil der Domäne', 'Data Center', 'Disk Controller'], correct: 1, explanation: 'Im DN steht DC für Domain Component.' },
     { question: 'Wie lautet der Objektname im DN CN=Lisa Meyer,OU=Personal,DC=nexus,DC=local?', options: ['Personal', 'nexus.local', 'Lisa Meyer', 'OU=Personal'], correct: 2, explanation: 'CN steht für Common Name und benennt das Objekt selbst.' },
     { question: 'Warum ist eine OU keine Sicherheitsgruppe?', options: ['Weil sie keine Objekte enthalten darf', 'Weil ihre primäre Aufgabe die Strukturierung ist, nicht die Berechtigungsvergabe', 'Weil sie größer als eine Domäne ist', 'Weil sie nur Computer enthalten darf'], correct: 1, explanation: 'OUs strukturieren. Berechtigungen werden über Gruppen vergeben.' },
+    { question: 'Warum sollte man eigene OUs statt des Standard-Containers Users verwenden?', options: ['Weil Users keine Objekte enthalten darf', 'Weil eigene OUs die Unternehmensstruktur abbilden und später gezielt administriert werden können', 'Weil OUs automatisch Berechtigungen vergeben', 'Weil der Container Users kein AD-Objekt ist'], correct: 1, explanation: 'Users ist ein Standard-Container; eigene OUs dienen der strukturierten Verwaltung.' },
   ];
 
   const summary = [
     'Eine OU organisiert Objekte innerhalb einer Domäne.',
     'OUs spiegeln oft Abteilungen oder Standorte wider.',
     'OUs sind keine Sicherheitsgruppen.',
+    'OUs unterscheiden sich von Standard-Containern wie Users oder Computers.',
+    'OUs werden mit Active Directory Users and Computers verwaltet.',
+    'Objekte werden zwischen OUs verschoben; ihr Distinguished Name ändert sich.',
+    'Der Schutz vor versehentlichem Löschen schützt vor Bedienfehlern.',
     'Die Hierarchie lautet Domäne → OU → Objekt.',
     'Ein Distinguished Name beschreibt die Position eines Objekts.',
     'DC im DN bedeutet Domain Component, als Serverrolle Domain Controller.',
   ];
 
-  return { title: 'Organisationseinheiten', explanations, exercises, quiz, summary };
+  return { title: 'Organisationseinheiten verwalten', explanations, exercises, quiz, summary };
 }
 
 // =============================================================================

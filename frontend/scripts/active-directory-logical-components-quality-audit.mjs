@@ -149,9 +149,10 @@ assert(domainTopic.prerequisites.includes('active-directory-virtualbox/ad-founda
 assert(dcTopic.prerequisites.includes('active-directory-virtualbox/domain'), 'domain-controller should depend on domain');
 assert(ouTopic.prerequisites.includes('domain-controller'), 'organizational-units should depend on domain-controller');
 
-// 8. No guided-ui exercises in these lessons
-console.log('8. Checking no guided-ui in logical-components lessons...');
-for (const key of LESSON_KEYS) {
+// 8. guided-ui is allowed in organizational-units (practical OU management block),
+// but should remain absent from the conceptual domain and domain-controller lessons.
+console.log('8. Checking guided-ui scope...');
+for (const key of [DOMAIN_KEY, DC_KEY]) {
   const guided = (LESSONS[key].exercises || []).filter((ex) => ex.type === 'guided-ui');
   assert.strictEqual(guided.length, 0, `${key} must not contain guided-ui exercises`);
 }

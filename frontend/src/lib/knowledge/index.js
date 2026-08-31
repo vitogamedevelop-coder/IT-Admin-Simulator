@@ -47,6 +47,7 @@ import { adUserProfilesKnowledgeItems } from './items/adUserProfiles.js';
 import { adPermissionsKnowledgeItems } from './items/adPermissions.js';
 import { adLogicalComponentsKnowledgeItems } from './items/adLogicalComponents.js';
 import { adFsmoGcKnowledgeItems } from './items/adFsmoGc.js';
+import { adOuManagementKnowledgeItems } from './items/adOuManagement.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
@@ -120,6 +121,7 @@ const PILOT_ITEMS = [
   ...adFoundationKnowledgeItems,
   ...adLogicalComponentsKnowledgeItems,
   ...adFsmoGcKnowledgeItems,
+  ...adOuManagementKnowledgeItems,
   ...adUserProfilesKnowledgeItems,
   ...adPermissionsKnowledgeItems,
 ];
