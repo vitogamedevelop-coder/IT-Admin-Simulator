@@ -1823,6 +1823,27 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-ou-conv-14', difficulty: 'medium', text: 'Wie beschreibt man das Verschieben eines Objekts in Active Directory Users and Computers?', options: ['Per Rechtsklick → Verschieben in die Ziel-OU wählen', 'Per Drag & Drop auf den Desktop', 'Mit dem Befehl gpupdate', 'Mit einem DNS-Refresh'], correct: 0, explanation: 'In ADUC verschiebt man Objekte typischerweise per Rechtsklick → Verschieben und wählt die Ziel-OU aus.' },
     ],
   },
+  [topicKey('active-directory-virtualbox', 'windows-server')]: {
+    title: 'Windows Server Core verwalten',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'domain-controller'), topicKey('active-directory-virtualbox', 'organizational-units')],
+    introPool: [
+      'Was ist der Unterschied zwischen Windows Server mit GUI und Server Core?',
+      'Wie verwaltet man einen Server Core am einfachsten fern?',
+      'Warum muss FILE01 im Server Manager auf DC01 hinzugefügt werden?',
+      'Was bedeutet „Zielserver prüfen“ im Rollen-Installationswizard?',
+      'Wo liegt das Verwaltungstool, wenn die Rolle auf FILE01 läuft?',
+    ],
+    samHelp: 'Windows Server Core bietet keine vollständige lokale grafische Verwaltung. Man kann ihn lokal über PowerShell oder remote über den Server Manager eines GUI-Servers verwalten. Über Manage → Add Servers werden Core-Server wie FILE01 in die zentrale Serverliste aufgenommen. Bei Rolleninstallationen muss der Zielserver bewusst geprüft werden, damit Änderungen auf dem richtigen Rechner landen. Eine Rolle läuft auf dem Zielserver, das grafische Verwaltungstool muss auf dem Rechner installiert sein, von dem aus verwaltet wird. PowerShell-Befehle: Get-WindowsFeature zeigt Rollen an, Install-WindowsFeature installiert sie.',
+    questions: [
+      { id: 'ad-win-srv-conv-1', difficulty: 'easy', text: 'Was ist der wesentliche Unterschied zwischen Windows Server mit GUI und Server Core?', options: ['Server Core ist kein echter Server.', 'Server Core hat keine vollständige lokale grafische Verwaltung.', 'Server Core kann keine Rollen ausführen.'], correct: 1, explanation: 'Server Core ist ein reduziertes Server-Image ohne vollständige lokale GUI, aber mit voller Serverfunktionalität.' },
+      { id: 'ad-win-srv-conv-2', difficulty: 'medium', text: 'Wie kann man einen Server Core remote verwalten?', options: ['Nur über RDP', 'Über den Server Manager eines GUI-Servers', 'Gar nicht'], correct: 1, explanation: 'Ein anderer Windows Server mit Server Manager kann einen Core-Server fernverwalten.' },
+      { id: 'ad-win-srv-conv-3', difficulty: 'medium', text: 'Warum muss FILE01 im Server Manager von DC01 hinzugefügt werden?', options: ['Damit DC01 die IP von FILE01 vergisst', 'Damit FILE01 in der Serverliste sichtbar und fernverwaltbar wird', 'Damit FILE01 automatisch Domain Controller wird'], correct: 1, explanation: 'Nur wenn FILE01 in der Serverliste steht, kann DC01 ihn fernverwalten.' },
+      { id: 'ad-win-srv-conv-4', difficulty: 'hard', text: 'Warum muss der Zielserver im Add-Roles-Wizard geprüft werden?', options: ['Weil Rollen immer auf DC01 landen sollen', 'Weil Start auf DC01 nicht automatisch Ziel DC01 bedeutet', 'Weil der Wizard keine Zielserver kennt'], correct: 1, explanation: 'Der Wizard bietet mehrere Server an; der Administrator muss FILE01 bewusst wählen.' },
+      { id: 'ad-win-srv-conv-5', difficulty: 'hard', text: 'Eine Rolle läuft auf FILE01. Wo muss das grafische Verwaltungstool liegen, um sie von DC01 aus zu nutzen?', options: ['Auf FILE01', 'Auf DC01', 'Auf jedem Client'], correct: 1, explanation: 'Das Verwaltungstool muss auf dem Verwaltungsrechner installiert sein, von dem aus verwaltet wird.' },
+      { id: 'ad-win-srv-conv-6', difficulty: 'medium', text: 'Was macht der Befehl Get-WindowsFeature?', options: ['Installiert eine Rolle', 'Zeigt verfügbare und installierte Rollen an', 'Öffnet den Server Manager'], correct: 1, explanation: 'Get-WindowsFeature listet Rollen und Features auf; Install-WindowsFeature installiert sie.' },
+      { id: 'ad-win-srv-conv-7', difficulty: 'medium', text: 'Was macht der Befehl Install-WindowsFeature?', options: ['Zeigt Rollen an', 'Installiert eine Rolle oder ein Feature', 'Startet den Server neu'], correct: 1, explanation: 'Install-WindowsFeature installiert die angegebene Rolle oder das Feature am lokalen Server.' },
+    ],
+  },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
     title: 'Domain Controller',
     relatedTopics: [topicKey('active-directory-virtualbox', 'domain'), topicKey('active-directory-virtualbox', 'ad-foundation')],

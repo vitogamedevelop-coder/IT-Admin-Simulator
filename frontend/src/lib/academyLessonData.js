@@ -53,6 +53,7 @@ import {
   AD_DC_TOPIC_KEY,
   AD_OU_TOPIC_KEY,
 } from './academyLessons/adLogicalComponents.js';
+import { buildAdWindowsServerLesson, AD_WINDOWS_SERVER_TOPIC_KEY } from './academyLessons/adWindowsServer.js';
 import { buildAdUserProfilesLesson, AD_USER_PROFILES_TOPIC_KEY } from './academyLessons/adUserProfiles.js';
 import { buildAdPermissionsLesson, AD_PERMISSIONS_TOPIC_KEY } from './academyLessons/adPermissions.js';
 
@@ -408,6 +409,7 @@ export const LESSONS = {
   [AD_DOMAIN_TOPIC_KEY]: buildAdDomainLesson(),
   [AD_OU_TOPIC_KEY]: buildAdOrganizationalUnitsLesson(),
   [AD_DC_TOPIC_KEY]: buildAdDomainControllerLesson(),
+  [AD_WINDOWS_SERVER_TOPIC_KEY]: buildAdWindowsServerLesson(),
   [AD_USER_PROFILES_TOPIC_KEY]: buildAdUserProfilesLesson(),
   [AD_PERMISSIONS_TOPIC_KEY]: buildAdPermissionsLesson(),
 };

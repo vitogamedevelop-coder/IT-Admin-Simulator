@@ -232,7 +232,7 @@ export const ACADEMY_TOPICS = [
   topic('active-directory-virtualbox', 'ad-foundation', 'Active Directory – Grundlagen', 'Verzeichnisdienste, Objekte/Attribute, zentrale Verwaltung, AD DS, DNS, Kerberos, LDAP, SMB/NTFS und Replikation.', ['virtualbox-lab']),
   topic('active-directory-virtualbox', 'ad-user-profiles', 'Benutzerprofile', 'Benutzer- und Computerkonten, Profile, Ordnerumleitung, Home-Verzeichnis, UNC und Admin-Tier-Modell.', ['active-directory-virtualbox/ad-foundation']),
   topic('active-directory-virtualbox', 'ad-permissions', 'Berechtigungsverwaltung', 'Gruppen, Gruppenbereiche, A-G-DL-P, A-G-G-P und das Least-Privilege-Prinzip.', ['active-directory-virtualbox/ad-user-profiles']),
-  topic('active-directory-virtualbox', 'windows-server', 'Windows Server', 'Grundlegende Bedienung von Windows Server.', ['virtualbox-lab', 'ad-foundation']),
+  topic('active-directory-virtualbox', 'windows-server', 'Windows Server Core', 'Verwaltung von Server Core: lokal über PowerShell und remote über den Server Manager.', ['active-directory-virtualbox/domain-controller']),
   // Domain builds directly on the AD foundation for the logical-components
   // block. Windows Server remains a separate topic; the playable chain here
   // is ad-foundation -> domain -> domain-controller -> organizational-units.
