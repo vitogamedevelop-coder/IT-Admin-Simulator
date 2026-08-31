@@ -46,6 +46,7 @@ import { adFoundationKnowledgeItems } from './items/adFoundation.js';
 import { adUserProfilesKnowledgeItems } from './items/adUserProfiles.js';
 import { adUsersKnowledgeItems } from './items/adUsers.js';
 import { adSharesKnowledgeItems } from './items/adShares.js';
+import { adNtfsPermissionsKnowledgeItems } from './items/adNtfsPermissions.js';
 import { adPermissionsKnowledgeItems } from './items/adPermissions.js';
 import { adLogicalComponentsKnowledgeItems } from './items/adLogicalComponents.js';
 import { adFsmoGcKnowledgeItems } from './items/adFsmoGc.js';
@@ -129,6 +130,7 @@ const PILOT_ITEMS = [
   ...adUserProfilesKnowledgeItems,
   ...adUsersKnowledgeItems,
   ...adSharesKnowledgeItems,
+  ...adNtfsPermissionsKnowledgeItems,
   ...adPermissionsKnowledgeItems,
 ];
 
