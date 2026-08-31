@@ -19,6 +19,8 @@
 //    new topic.
 // =============================================================================
 import { ACADEMY_TOPICS, topicKey } from './academyTopics.js';
+import { LESSONS } from './academyLessonData.js';
+import { APP_VERSION } from './version.js';
 
 const KEY = 'cyberlearn:academy-progress-v1';
 // v4 adds per-topic lesson resume/tracking fields (startedAt, lastCompletedSectionId,
@@ -42,7 +44,11 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // smaller knowledge-check bumps stored in theoryScore. Existing saves are
 // migrated: a previously completed lesson (contentSeenPercent 100 or
 // lessonCompletions >= 1) becomes theoryCompletion 100.
-const STATE_VERSION = 9;
+// v10 (Stability & Save-Hygiene): introduces load-time sanitization of
+// completedSectionIds, completedExerciseIds and completedQuestionIds against
+// the current LESSONS registry. Removes phantom IDs and recomputes
+// theoryCompletion/contentSeenPercent only from currently existing sections.
+const STATE_VERSION = 10;
 
 // Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
 // advanced status across a group of legacy topics being merged into one.
@@ -182,7 +188,58 @@ function migrateProgress(saved) {
     });
     merged.topics[key] = migrated;
   });
-  return merged;
+  return sanitizeProgress(merged);
+}
+
+function uniqueNonEmpty(arr) {
+  return [...new Set((arr || []).filter((x) => x && typeof x === 'string'))];
+}
+
+function sanitizeTopicProgress(key, progress) {
+  const lesson = LESSONS[key];
+  const validSectionIds = new Set(lesson?.explanations?.map((e) => e.id) || []);
+  const validExerciseIds = new Set(lesson?.exercises?.map((e) => e.id) || []);
+
+  const sectionIds = uniqueNonEmpty(progress.completedSectionIds).filter((id) => validSectionIds.has(id));
+  const exerciseIds = uniqueNonEmpty(progress.completedExerciseIds).filter((id) => validExerciseIds.has(id));
+  const questionIds = uniqueNonEmpty(progress.completedQuestionIds);
+
+  let lastSectionId = progress.lastCompletedSectionId;
+  let lastSectionTitle = progress.lastCompletedSectionTitle;
+  if (!validSectionIds.has(lastSectionId)) {
+    lastSectionId = sectionIds.length ? sectionIds[sectionIds.length - 1] : null;
+    lastSectionTitle = null;
+  }
+
+  const totalSections = validSectionIds.size;
+  const nextTheoryCompletion = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : progress.theoryCompletion || 0;
+  const nextContentSeen = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : progress.contentSeenPercent || 0;
+
+  return {
+    ...progress,
+    completedSectionIds: sectionIds,
+    completedQuestionIds: questionIds,
+    completedExerciseIds: exerciseIds,
+    lastCompletedSectionId: lastSectionId,
+    lastCompletedSectionTitle: lastSectionTitle,
+    theoryCompletion: nextTheoryCompletion,
+    contentSeenPercent: nextContentSeen,
+  };
+}
+
+function sanitizeProgress(data) {
+  if (!data || typeof data !== 'object' || !data.topics) return cloneDefaults();
+  const next = { ...data, stateVersion: STATE_VERSION, topics: {} };
+  ACADEMY_TOPICS.forEach((topicDef) => {
+    const key = topicKey(topicDef.categoryId, topicDef.topicId);
+    const progress = data.topics[key];
+    if (!progress || typeof progress !== 'object') {
+      next.topics[key] = defaultProgressForTopic(topicDef);
+    } else {
+      next.topics[key] = sanitizeTopicProgress(key, { ...defaultProgressForTopic(topicDef), ...progress });
+    }
+  });
+  return next;
 }
 
 export function readAcademyProgress() {
@@ -248,4 +305,63 @@ export function resetTopicLessonState(categoryId, topicId) {
     lastExplanationStyle: null,
   });
   writeAcademyProgress(data);
+}
+
+const ALLOWED_IMPORT_KEYS = [
+  'cyberlearn:academy-progress-v1',
+  'cyberlearn:academy-mode-v1',
+  'cyberlearn:themencheck-results-v1',
+  'cyberlearn:academy-intro-seen',
+];
+
+function isAllowedImportKey(key) {
+  if (ALLOWED_IMPORT_KEYS.includes(key)) return true;
+  return typeof key === 'string' && (key.startsWith('cyberlearn:') || key === 'academy-intro-seen');
+}
+
+export function exportAcademySave() {
+  const storage = {};
+  for (let i = 0; i < (localStorage?.length || 0); i += 1) {
+    const k = localStorage.key(i);
+    if (k && isAllowedImportKey(k)) {
+      storage[k] = localStorage.getItem(k);
+    }
+  }
+  return {
+    format: 'cyberlearn-save-v1',
+    appVersion: APP_VERSION,
+    stateVersion: STATE_VERSION,
+    exportedAt: new Date().toISOString(),
+    storage,
+  };
+}
+
+function safeJsonParse(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function importAcademySave(payload) {
+  if (!payload || typeof payload !== 'object') throw new Error('Ungültiges Import-Format');
+  if (payload.format !== 'cyberlearn-save-v1') throw new Error('Unbekanntes Save-Format');
+  if (!payload.storage || typeof payload.storage !== 'object') throw new Error('Kein gespeicherter Inhalt');
+
+  Object.entries(payload.storage).forEach(([key, raw]) => {
+    if (!isAllowedImportKey(key)) return;
+    if (typeof raw !== 'string' && typeof raw !== 'object') return;
+    const value = typeof raw === 'string' ? raw : JSON.stringify(raw);
+    if (key === 'cyberlearn:academy-progress-v1') {
+      const parsed = safeJsonParse(value);
+      if (parsed && (typeof parsed !== 'object' || !parsed.topics)) {
+        throw new Error('Academy-Progress enthält keine gültigen Topics');
+      }
+    }
+    localStorage.setItem(key, value);
+  });
+
+  window.dispatchEvent(new Event('cyberlearn:academy-progress'));
+  return true;
 }

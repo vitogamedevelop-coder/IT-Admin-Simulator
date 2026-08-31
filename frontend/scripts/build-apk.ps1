@@ -16,6 +16,17 @@ Write-Host "=== Capacitor Sync ===" -ForegroundColor Cyan
 npx cap sync
 if ($LASTEXITCODE -ne 0) { throw "Cap sync failed" }
 
+Write-Host "=== Android versionName/versionCode ===" -ForegroundColor Cyan
+$packageJson = Get-Content (Join-Path $frontend "package.json") | ConvertFrom-Json
+$versionParts = $packageJson.version -split '\.'
+$versionCode = [int]$versionParts[0] * 10000 + [int]$versionParts[1] * 100 + [int]$versionParts[2]
+$buildGradle = Join-Path $frontend "android\app\build.gradle"
+$gradle = Get-Content $buildGradle
+$gradle = $gradle -replace 'versionCode\s+\d+', "versionCode $versionCode"
+$gradle = $gradle -replace 'versionName\s+"[^"]*"', "versionName `"$($packageJson.version)`""
+$gradle | Set-Content $buildGradle
+Write-Host "versionCode $versionCode versionName $($packageJson.version)" -ForegroundColor Green
+
 Write-Host "=== Gradle assembleDebug ===" -ForegroundColor Cyan
 $env:JAVA_HOME = $JavaHome
 Set-Location (Join-Path $frontend "android")

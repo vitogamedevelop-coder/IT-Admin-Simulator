@@ -145,10 +145,10 @@ function buildExercises() {
   exs.push(inputExercise(
     'supernetting-prefix',
     'Gemeinsamer Präfix',
-    `Welchen Präfix haben ${p1.networks.join(' und ')} gemeinsam?`,
+    `Bestimme die Präfixlänge des kleinsten gemeinsamen Supernetzes für ${p1.networks.join(' und ')}.`,
     p1.superPrefix,
-    `Erste Netz-ID ${p1.ranges[0].networkId}, letzte Broadcast ${p1.ranges[p1.ranges.length - 1].broadcast}. Gemeinsame Bits: ${p1.commonBits}.`,
-    '/__'
+    `Die Netze ${p1.networks.join(' und ')} teilen die ersten ${p1.commonBits} Bits. Das kleinste gemeinsame Supernetz ist ${p1.superNetwork}/${p1.commonBits}.`,
+    '/xx'
   ));
 
   exs.push(inputExercise(

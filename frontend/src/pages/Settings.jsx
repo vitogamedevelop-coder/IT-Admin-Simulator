@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { RotateCcw, Trash2, AlertTriangle, Info, Volume2, ExternalLink } from 'lucide-react';
 import { resetOnboarding } from '../components/Onboarding';
 import { getVersionLabel } from '../lib/version';
+import { exportAcademySave, importAcademySave } from '../lib/academyProgress';
 import BackBar from '../components/BackBar';
 import { useAppBack } from '../lib/useAppBack';
 import {
@@ -87,6 +88,8 @@ export default function Settings() {
   const [diagnostics, setDiagnostics] = useState('');
   const [diagLoading, setDiagLoading] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState(null);
+  const [importStatus, setImportStatus] = useState(null);
+  const fileInputRef = useRef(null);
   const hasTts = isSupported();
   const hasNativeTts = isNativeTtsSupported();
 
@@ -149,6 +152,36 @@ export default function Settings() {
 
   function handleLanguageChange(lang) {
     setSelectedLanguage(lang);
+  }
+
+  function exportSave() {
+    const payload = exportAcademySave();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CyberLearn_Save_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportFile(file) {
+    setImportStatus(null);
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const payload = JSON.parse(e.target.result);
+        importAcademySave(payload);
+        setImportStatus({ ok: true, message: 'Spielstand erfolgreich importiert.' });
+      } catch (err) {
+        setImportStatus({ ok: false, message: err?.message || 'Import fehlgeschlagen.' });
+      }
+    };
+    reader.onerror = () => setImportStatus({ ok: false, message: 'Datei konnte nicht gelesen werden.' });
+    reader.readAsText(file);
   }
 
   function resetAllProgress() {
@@ -348,6 +381,32 @@ export default function Settings() {
         <h3 className="font-bold text-[#00f0ff] text-sm flex items-center gap-2"><RotateCcw size={16} />Onboarding wiederholen</h3>
         <p className="mt-1 text-xs text-[#8b949e]">Sam wird dich beim nächsten Start erneut begrüßen und die Einführung zeigen.</p>
         <button onClick={resetOnboarding} className="cyber-btn-outline text-xs mt-3 px-3 py-2">Onboarding zurücksetzen</button>
+      </div>
+
+      <div className="cyber-card p-4">
+        <h3 className="font-bold text-[#00f0ff] text-sm flex items-center gap-2"><ExternalLink size={16} />Spielstand</h3>
+        <p className="mt-1 text-xs text-[#8b949e]">Exportiere deinen lokalen Fortschritt als JSON-Datei oder importiere einen früheren Stand.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button onClick={exportSave} className="cyber-btn-outline text-xs px-3 py-2 flex items-center gap-1">
+            <ExternalLink size={12} />Exportieren
+          </button>
+          <button onClick={() => fileInputRef.current?.click()} className="cyber-btn-outline text-xs px-3 py-2 flex items-center gap-1">
+            <RotateCcw size={12} />Importieren
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              handleImportFile(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+        </div>
+        {importStatus && (
+          <p className={`mt-2 text-xs ${importStatus.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}`}>{importStatus.message}</p>
+        )}
       </div>
 
       <div className="cyber-card p-4 border-[#ff3355]/30">

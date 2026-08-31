@@ -671,9 +671,15 @@ function SectionCheckQuestion({ question, onContinue, answer, setAnswer, categor
 
 // ---------- Ordering exercise ----------
 function OrderingExercise({ exercise, index, onComplete }) {
-  const [items, setItems] = useState(() => [...exercise.items].sort(() => Math.random() - 0.5));
+  const orderedItems = (exercise.items || []).map((item, i) =>
+    typeof item === 'string'
+      ? { id: String(i), label: item }
+      : { ...item, id: item.id ?? String(i), label: item.label ?? item.text ?? item.title ?? item.id ?? String(i) }
+  );
+  const correctOrderIds = Array.isArray(exercise.correctOrder) ? exercise.correctOrder : orderedItems.map((it) => it.id);
+  const [items, setItems] = useState(() => [...orderedItems].sort(() => Math.random() - 0.5));
   const [done, setDone] = useState(false);
-  const correct = items.every((item, i) => item.id === exercise.correctOrder[i]);
+  const correct = items.every((item, i) => item.id === correctOrderIds[i]);
 
   function move(pos, dir) {
     const next = pos + dir;
