@@ -407,7 +407,7 @@ function generateQuestionFromCandidate(candidate, seed, contextType, difficulty,
 
 function splitIntoCoreAndContext(text) {
   if (!text) return { core: '', context: '' };
-  const m = text.match(/^([\\s\\S]*?)(?:\\s+)?([^?]*\?)\\s*$/);
+  const m = text.match(/^([\s\S]*?)(?:\s+)?([^?]*\?)\s*$/);
   if (m) {
     const core = m[2].trim();
     const context = m[1].trim();
@@ -1897,6 +1897,29 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-up-conv-10', difficulty: 'hard', text: 'Lisas H:-Laufwerk zeigt auf \\FILE01\\Home$\\lisa.berger. Wo liegen die Daten tatsächlich?', options: ['Lokal auf Laufwerk H:', 'Auf FILE01', 'Im Active Directory'], correct: 1, explanation: 'H: ist nur die lokale Darstellung; die Daten liegen auf der Netzwerkressource FILE01.' },
       { id: 'ad-up-conv-11', difficulty: 'hard', text: 'Schützt ein $ am Ende eines Freigabenamens vor unberechtigtem Zugriff?', options: ['Ja, vollständig', 'Nein, es versteckt die Freigabe nur in Standardlisten', 'Nur für lokale Benutzer'], correct: 1, explanation: '$ versteckt die Freigabe, schützt aber nicht vor Zugriff. Berechtigungen entscheiden.' },
       { id: 'ad-up-conv-12', difficulty: 'hard', text: 'Was muss passen, damit ein eingetragener Homepfad funktioniert?', options: ['Nur der AD-Eintrag', 'Der Verweis muss auf eine existierende, erreichbare Netzwerkressource zeigen', 'Der Client muss neu gestartet werden'], correct: 1, explanation: 'Ein UNC-Pfad allein erzeugt keine Ressource; Server, Freigabe und Pfad müssen erreichbar sein.' },
+    ],
+  },
+  [topicKey('active-directory-virtualbox', 'shares')]: {
+    title: 'Fileserver und Freigaben',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'windows-server'), topicKey('active-directory-virtualbox', 'ad-user-profiles')],
+    introPool: [
+      'Was macht einen Ordner zur Netzwerkfreigabe?',
+      'Was unterscheidet lokalen Pfad und UNC?',
+      'Warum muss der Zielserver beim Share-Wizard stimmen?',
+      'Muss der Freigabename gleich dem Ordnernamen sein?',
+      'Was bedeutet $ am Ende eines Freigabenamens?',
+      'Warum ist eine versteckte Freigabe nicht automatisch sicher?',
+      'Wozu dient SMB?',
+    ],
+    samHelp: 'Ein Fileserver stellt Dateien und Ordner zentral für Netzwerkclients bereit. Ein lokaler Ordner auf FILE01 wird erst durch eine Freigabe zur Netzwerkressource. SMB ist das Windows-typische Protokoll für Freigaben; NFS ist eine alternative, häufig aus Unix/Linux bekannte Variante. Der UNC-Pfad setzt sich aus Server und Freigabename zusammen, zum Beispiel \\FILE01\\Befehle. Ordnername und Freigabename können unterschiedlich sein. Ein $ am Freigabenamen versteckt die Freigabe in Standardlisten, schützt aber nicht. Access-Based Enumeration blendet nicht berechtigte Inhalte aus der Anzeige, ersetzt aber keine Berechtigungen.',
+    questions: [
+      { id: 'ad-shares-conv-1', difficulty: 'easy', text: 'Was macht einen lokalen Ordner auf einem Server zur Netzwerkfreigabe?', options: ['Er liegt auf D:', 'Er wird freigegeben', 'Er heißt Befehle'], correct: 1, explanation: 'Ein Ordner muss freigegeben werden, damit Netzwerkclients ihn verwenden können.' },
+      { id: 'ad-shares-conv-2', difficulty: 'medium', text: 'Was unterscheidet lokalen Pfad und UNC?', options: ['Keins', 'Lokaler Pfad zeigt auf die lokale Festplatte; UNC adressiert Server + Freigabe', 'UNC ist immer ein lokaler Pfad'], correct: 1, explanation: 'Lokale Pfade wie D:\\... zeigen lokal; UNC wie \\FILE01\\Befehle adressiert Netzwerkressourcen.' },
+      { id: 'ad-shares-conv-3', difficulty: 'medium', text: 'Warum muss der Zielserver im Share-Wizard stimmen?', options: ['Weil er nur DC01 akzeptiert', 'Weil die Freigabe auf dem gewünschten Fileserver erstellt werden muss', 'Weil der Client der Zielserver ist'], correct: 1, explanation: 'Der Assistent muss wissen, auf welchem Server die Freigabe erstellt werden soll, also FILE01.' },
+      { id: 'ad-shares-conv-4', difficulty: 'hard', text: 'Lokaler Ordner heißt Befehle, Freigabename heißt Dokumente. Wie lautet der UNC-Pfad?', options: ['\\FILE01\\Befehle', '\\FILE01\\Dokumente', 'D:\\Freigaben\\Dokumente'], correct: 1, explanation: 'Der UNC verwendet den Freigabenamen, nicht den lokalen Ordnernamen.' },
+      { id: 'ad-shares-conv-5', difficulty: 'hard', text: 'Was bedeutet $ am Ende eines Freigabenamens?', options: ['Die Freigabe ist vollständig geschützt', 'Sie wird normal nicht in Browsing-Listen angezeigt', 'Nur Administratoren dürfen Freigaben mit $ anlegen'], correct: 1, explanation: '$ versteckt die Freigabe in Standardlisten; Berechtigungen bestimmen den Zugriff.' },
+      { id: 'ad-shares-conv-6', difficulty: 'hard', text: 'Warum reicht eine versteckte Freigabe nicht allein für Sicherheit?', options: ['Weil $ den Zugriff blockiert', 'Weil $ nur versteckt; wer den UNC kennt und berechtigt ist, kann zugreifen', 'Weil versteckte Freigaben keine Berechtigungen kennen'], correct: 1, explanation: 'Verstecken ist keine Berechtigungskontrolle. Berechtigungen entscheiden.' },
+      { id: 'ad-shares-conv-7', difficulty: 'hard', text: 'Was tut Access-Based Enumeration?', options: ['Gibt Berechtigungen', 'Blendet Inhalte ohne Zugriff aus der Auflistung', 'Verschlüsselt Freigaben'], correct: 1, explanation: 'ABE beeinflusst nur die Sichtbarkeit, ersetzt aber Berechtigungen nicht.' },
     ],
   },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {

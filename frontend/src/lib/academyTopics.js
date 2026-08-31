@@ -248,7 +248,7 @@ export const ACADEMY_TOPICS = [
   topic('active-directory-virtualbox', 'active-directory-dns', 'AD-integriertes DNS', 'Zusammenspiel von Active Directory und DNS.', ['domain-controller']),
   topic('active-directory-virtualbox', 'ldap', 'LDAP', 'Verzeichniszugriff über das LDAP-Protokoll.', ['active-directory-dns']),
   topic('active-directory-virtualbox', 'kerberos', 'Kerberos', 'Authentifizierung über das Kerberos-Protokoll.', ['domain-controller']),
-  topic('active-directory-virtualbox', 'shares', 'Freigaben', 'Netzwerkfreigaben einrichten und verwalten.', ['domain-controller']),
+  topic('active-directory-virtualbox', 'shares', 'Freigaben', 'Netzwerkfreigaben einrichten und verwalten.', ['windows-server']),
   topic('active-directory-virtualbox', 'ntfs-permissions', 'NTFS-Berechtigungen', 'Zugriffsrechte auf Dateisystemebene steuern.', ['shares']),
   topic('active-directory-virtualbox', 'domain-join', 'Domänenbeitritt', 'Einen Client in die Domäne aufnehmen.', ['domain-controller']),
   topic('active-directory-virtualbox', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche in der Domäne.', ['domain-join']),
