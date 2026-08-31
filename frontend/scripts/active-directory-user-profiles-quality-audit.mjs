@@ -6,7 +6,7 @@ import { getAllKnowledgeItems } from '../src/lib/knowledge/index.js';
 import { CONVERSATION_TOPICS } from '../src/lib/employeeConversations.js';
 
 const UP_KEY = topicKey('active-directory-virtualbox', 'ad-user-profiles');
-const OUT_OF_SCOPE = /\b(new-aduser|aduc|home-verzeichnis|basisordner|unc-pfad|smb|ntfs|share permissions|new user|create user|user anlegen)\b/i;
+const OUT_OF_SCOPE = /\b(ntfs|share permission|smb|gpo|agdlp|everyone|authenticated users)\b/i;
 
 console.log('=== Active Directory User Profiles Quality Audit ===');
 
@@ -25,6 +25,15 @@ const requiredSections = [
   'adup-ordnerumleitung',
   'adup-ordnerumleitung-vs-roaming',
   'adup-offline-nuance',
+  'adup-pfad-einstieg',
+  'adup-profilpfad',
+  'adup-homeordner',
+  'adup-home-vs-profil',
+  'adup-unc',
+  'adup-lokal-vs-unc',
+  'adup-username-variable',
+  'adup-pfad-abhaengigkeit',
+  'adup-dollar-nuance',
   'adup-admin-tier',
 ];
 const explanationIds = lesson.explanations.map((e) => e.id);
@@ -34,19 +43,21 @@ for (const s of requiredSections) {
 
 console.log('3. Checking lesson structure...');
 assert(typeof lesson.title === 'string' && lesson.title.length > 0, 'title required');
-assert(Array.isArray(lesson.explanations) && lesson.explanations.length >= 8, 'at least 8 explanations');
-assert(Array.isArray(lesson.exercises) && lesson.exercises.length >= 3, 'at least 3 exercises');
+assert(Array.isArray(lesson.explanations) && lesson.explanations.length >= 12, 'at least 12 explanations');
+assert(Array.isArray(lesson.exercises) && lesson.exercises.length >= 5, 'at least 5 exercises');
 assert(Array.isArray(lesson.quiz) && lesson.quiz.length >= 6 && lesson.quiz.length <= 8, 'quiz 6-8');
 assert(Array.isArray(lesson.summary) && lesson.summary.length > 0, 'summary required');
 
-console.log('4. Checking no guided-ui...');
+console.log('4. Checking guided-ui...');
 const guided = lesson.exercises.filter((ex) => ex.type === 'guided-ui');
-assert.strictEqual(guided.length, 0, 'no guided-ui for this block');
+assert(guided.length >= 1, `expected at least 1 guided-ui for this block, got ${guided.length}`);
+const pathGuided = lesson.exercises.find((ex) => ex.id === 'ad-user-profile-home-path-guided-ui');
+assert(pathGuided, 'ad-user-profile-home-path-guided-ui must exist');
 
 console.log('5. Checking direct exercise load...');
 const selected = selectDirectTheoryExercises(lesson.exercises || [], UP_KEY);
 const limit = getDirectExerciseLimit(lesson.exercises.length);
-assert(selected.length >= 3 && selected.length <= 4, `direct exercises should be 3-4, got ${selected.length}`);
+assert(selected.length >= 3 && selected.length <= 5, `direct exercises should be 3-5, got ${selected.length}`);
 assert.strictEqual(selected.length, Math.min(lesson.exercises.length, limit), 'selector consistency');
 
 console.log('6. Checking out-of-scope terms...');
@@ -56,7 +67,7 @@ assert(!match, `lesson contains out-of-scope term: ${match?.[0]}`);
 
 console.log('7. Checking knowledge items...');
 const upKnowledge = getAllKnowledgeItems().filter((it) => it.topicKey === UP_KEY);
-assert(upKnowledge.length >= 5, `expected at least 5 knowledge items, got ${upKnowledge.length}`);
+assert(upKnowledge.length >= 8, `expected at least 8 knowledge items, got ${upKnowledge.length}`);
 for (const it of upKnowledge) {
   assert(explanationIds.includes(it.sourceSection), `knowledge item ${it.id} references missing section ${it.sourceSection}`);
 }

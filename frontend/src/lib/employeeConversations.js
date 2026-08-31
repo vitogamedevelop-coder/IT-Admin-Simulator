@@ -407,7 +407,7 @@ function generateQuestionFromCandidate(candidate, seed, contextType, difficulty,
 
 function splitIntoCoreAndContext(text) {
   if (!text) return { core: '', context: '' };
-  const m = text.match(/^([\s\S]*?)(?:\s+)?([^?]*\?)\s*$/);
+  const m = text.match(/^([\\s\\S]*?)(?:\\s+)?([^?]*\?)\\s*$/);
   if (m) {
     const core = m[2].trim();
     const context = m[1].trim();
@@ -1876,9 +1876,14 @@ export const CONVERSATION_TOPICS = {
       'Wann ist ein servergespeichertes Profil sinnvoll?',
       'Warum können große Profile problematisch sein?',
       'Was unterscheidet Ordnerumleitung und servergespeichertes Profil?',
+      'Was unterscheidet Homeordner und Profilpfad?',
+      'Woran erkennst du einen UNC-Pfad?',
+      'Warum ist H: nicht zwingend ein lokales Laufwerk?',
+      'Warum hilft %username% bei vielen Benutzern?',
+      'Warum schützt $ nicht vor unberechtigtem Zugriff?',
       'Warum sollte ein Domain Admin nicht auf normalen Clients arbeiten?',
     ],
-    samHelp: 'Ein Benutzerkonto ist die Identität in Active Directory. Ein Benutzerprofil ist die getrennte Benutzerumgebung. Lokale Profile bleiben auf dem jeweiligen Client. Servergespeicherte Profile liegen zentral und ermöglichen die gleiche Umgebung an mehreren Clients, sind aber von Netzwerk, Profilgröße und Last abhängig. Ordnerumleitung betrifft bestimmte Ordner und ist nicht dasselbe wie ein servergespeichertes Profil. Hochprivilegierte Konten sollten nicht auf weniger geschützten Clients verwendet werden.',
+    samHelp: 'Ein Benutzerkonto ist die Identität in Active Directory. Ein Benutzerprofil ist die getrennte Benutzerumgebung. Lokale Profile bleiben auf dem jeweiligen Client. Servergespeicherte Profile liegen zentral und ermöglichen die gleiche Umgebung an mehreren Clients, sind aber von Netzwerk, Profilgröße und Last abhängig. Profilpfad und Homeordner verweisen aus dem Benutzerkonto auf zentrale Netzwerkressourcen; die eigentlichen Daten liegen auf dem Server. UNC-Pfade verwenden \\Server\\Freigabe. Homeordner ist für persönliche Dateien, Profilpfad für die Benutzerumgebung. Ein $ am Freigabenamen versteckt die Freigabe, schützt aber nicht. Hochprivilegierte Konten sollten nicht auf weniger geschützten Clients verwendet werden.',
     questions: [
       { id: 'ad-up-conv-1', difficulty: 'easy', text: 'Was unterscheidet Benutzerkonto und Benutzerprofil?', options: ['Nichts, beides ist dasselbe.', 'Das Konto ist die Identität; das Profil ist die Benutzerumgebung.', 'Das Konto speichert den Desktop-Hintergrund.'], correct: 1, explanation: 'Das Konto ermöglicht Anmeldung und Rechte; das Profil enthält die persönliche Umgebung.' },
       { id: 'ad-up-conv-2', difficulty: 'medium', text: 'Lisa meldet sich an CLIENT07 an, aber ihre Einstellungen fehlen. Sie hat sich aber an CLIENT01 angemeldet. Was ist der wahrscheinlichste Grund?', options: ['Ihr Konto wurde gelöscht.', 'CLIENT07 hat ein eigenes lokales Profil; Profile sind nicht automatisch zwischen Clients übertragen.', 'Active Directory ist nicht erreichbar.'], correct: 1, explanation: 'Lokale Profile bleiben auf dem jeweiligen Client. Ohne servergespeichertes Profil sind die Umgebungen getrennt.' },
@@ -1887,6 +1892,11 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-up-conv-5', difficulty: 'hard', text: 'Was ist der wesentliche Unterschied zwischen Ordnerumleitung und servergespeichertem Profil?', options: ['Beide machen dasselbe.', 'Ordnerumleitung betrifft bestimmte Ordner, servergespeichertes Profil das gesamte Profil.', 'Ordnerumleitung ist eine Backuplösung.'], correct: 1, explanation: 'Ordnerumleitung und servergespeichertes Profil sind unterschiedliche Mechanismen mit unterschiedlichem Umfang.' },
       { id: 'ad-up-conv-6', difficulty: 'hard', text: 'Warum sollte ein Domain Admin nicht für normale Arbeiten auf einem Client benutzt werden?', options: ['Weil Clients keine Domänen sind', 'Weil Anmeldeinformationen auf Clients leichter kompromittiert werden können', 'Weil Clients keine Konten unterstützen'], correct: 1, explanation: 'Hochprivilegierte Konten sollten auf besser geschützten Systemen verwendet werden, um Risiken zu reduzieren.' },
       { id: 'ad-up-conv-7', difficulty: 'medium', text: 'Ein umgeleiteter Ordner ist nicht erreichbar. Ist deshalb jede Anmeldung unmöglich?', options: ['Ja, immer.', 'Nein, Anmeldung und Erreichbarkeit umgeleiteter Ressourcen sind getrennt.', 'Nur bei lokalen Profilen nicht.'], correct: 1, explanation: 'Anmeldung funktioniert unabhängig; das Offline-Verhalten umgeleiteter Ressourcen hängt von weiteren Einstellungen ab.' },
+      { id: 'ad-up-conv-8', difficulty: 'medium', text: 'Was unterscheidet Homeordner und Profilpfad?', options: ['Nichts', 'Homeordner = persönliche Dateien; Profilpfad = Benutzerumgebung', 'Beide sind lokale Pfade'], correct: 1, explanation: 'Homeordner ist für persönliche Dateien, Profilpfad für Einstellungen und Profildaten.' },
+      { id: 'ad-up-conv-9', difficulty: 'medium', text: 'Worin besteht ein UNC-Pfad?', options: ['C:\\Benutzer\\Lisa', '\\\\Server\\Freigabe\\optionaler Unterordner', 'nur Benutzername'], correct: 1, explanation: 'UNC verwendet \\Server\\Freigabe und kann Unterordner enthalten.' },
+      { id: 'ad-up-conv-10', difficulty: 'hard', text: 'Lisas H:-Laufwerk zeigt auf \\FILE01\\Home$\\lisa.berger. Wo liegen die Daten tatsächlich?', options: ['Lokal auf Laufwerk H:', 'Auf FILE01', 'Im Active Directory'], correct: 1, explanation: 'H: ist nur die lokale Darstellung; die Daten liegen auf der Netzwerkressource FILE01.' },
+      { id: 'ad-up-conv-11', difficulty: 'hard', text: 'Schützt ein $ am Ende eines Freigabenamens vor unberechtigtem Zugriff?', options: ['Ja, vollständig', 'Nein, es versteckt die Freigabe nur in Standardlisten', 'Nur für lokale Benutzer'], correct: 1, explanation: '$ versteckt die Freigabe, schützt aber nicht vor Zugriff. Berechtigungen entscheiden.' },
+      { id: 'ad-up-conv-12', difficulty: 'hard', text: 'Was muss passen, damit ein eingetragener Homepfad funktioniert?', options: ['Nur der AD-Eintrag', 'Der Verweis muss auf eine existierende, erreichbare Netzwerkressource zeigen', 'Der Client muss neu gestartet werden'], correct: 1, explanation: 'Ein UNC-Pfad allein erzeugt keine Ressource; Server, Freigabe und Pfad müssen erreichbar sein.' },
     ],
   },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
