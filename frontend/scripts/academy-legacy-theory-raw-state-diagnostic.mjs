@@ -85,7 +85,7 @@ function printTopic(label, key, raw) {
     console.log('  DIAGNOSIS: A full-lesson marker (contentSeenPercent/lessonCompletions) is present and reconstructible to 100 %.');
   }
   if (raw.theoryCompletion === 0 && raw.theoryScore > 0) {
-    console.log(`  DIAGNOSIS: theoryScore=${raw.theoryScore} exists but was never stored as theoryCompletion. After the UI fix it displays as ${display} instead of 0.`);
+    console.log(`  DIAGNOSIS: theoryScore=${raw.theoryScore} is a mastery/quiz score, NOT theory completion. It is deliberately not displayed as theory percent.`);
   }
 }
 
@@ -113,7 +113,7 @@ store.set('cyberlearn:academy-progress-v1', JSON.stringify(buildLegacySave({
 migrated = readAcademyProgress();
 printTopic('B. DNS – still 0 % stored (learned + theoryScore only)', dnsKey, migrated.topics[dnsKey]);
 assert.strictEqual(migrated.topics[dnsKey].theoryCompletion, 0, 'B. DNS must NOT be invented as 100');
-assert.strictEqual(topicTheoryCompletion(migrated.topics[dnsKey]), 30, 'B. DNS displayed theory must fall back to theoryScore');
+assert.strictEqual(topicTheoryCompletion(migrated.topics[dnsKey]), 0, 'B. DNS displayed theory must NOT use theoryScore as completion');
 
 // C. completedSectionIds still valid -> 100 %
 const topKey = topicKey('fundamentals', 'topologien');
@@ -141,12 +141,12 @@ store.set('cyberlearn:academy-progress-v1', JSON.stringify(buildLegacySave({
   [commKey]: { status: 'started', theoryScore: 22, theoryCompletion: 25, contentSeenPercent: 30, lessonCompletions: 0, completedSectionIds: [] },
 })));
 migrated = readAcademyProgress();
-printTopic('E. Kommunikation/Übertragung – partial (theoryScore fallback)', commKey, migrated.topics[commKey]);
+printTopic('E. Kommunikation/Übertragung – partial (contentSeenPercent preserved)', commKey, migrated.topics[commKey]);
 assert(migrated.topics[commKey].theoryCompletion >= 25, `E. Partial theoryCompletion must not jump to 100 (got ${migrated.topics[commKey].theoryCompletion})`);
 assert(topicTheoryCompletion(migrated.topics[commKey]) >= 22, `E. Display at least theoryScore (got ${topicTheoryCompletion(migrated.topics[commKey])})`);
 
 console.log('\n=== Diagnostic summary ===');
 console.log('- Recovered to 100 % only where a full-lesson marker exists (contentSeenPercent, lessonCompletions, all sections).');
 console.log('- Learned status or theoryScore alone does NOT grant 100 %.');
-console.log('- Topics with only theoryScore now display that score via topicTheoryCompletion() instead of 0 %.');
+console.log('- Topics with only theoryScore display 0 % theory completion; theoryScore is a separate mastery value.');
 console.log('=== Academy Legacy Theory Raw State Diagnostic passed ===');

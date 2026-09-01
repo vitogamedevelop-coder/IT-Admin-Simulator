@@ -114,17 +114,17 @@ assert.strictEqual(trunk.contentSeenPercent, 100, `Trunk contentSeenPercent must
 
 // E. Cisco SSH: learned via theoryScore with no full lesson completion
 // The stored theoryCompletion/contentSeenPercent must not be invented as 100,
-// but the displayed theory must fall back to theoryScore instead of showing 0.
+// and the displayed theory must stay 0 because theoryScore is not completion.
 store.clear();
 store.set('cyberlearn:academy-progress-v1', JSON.stringify(buildLegacySave({
   [sshKey]: { status: 'learned', theoryScore: 25, practiceScore: 18, theoryCompletion: 0, contentSeenPercent: 0, lessonCompletions: 0, completedSectionIds: [] },
 })));
 migrated = readAcademyProgress();
 const ssh = migrated.topics[sshKey];
-console.log('E. Cisco SSH partial learned falls back to theoryScore...');
+console.log('E. Cisco SSH partial learned: theoryScore is not theory completion...');
 assert.strictEqual(ssh.theoryCompletion, 0, `SSH stored theoryCompletion must remain 0, got ${ssh.theoryCompletion}`);
 assert.strictEqual(ssh.contentSeenPercent, 0, `SSH stored contentSeenPercent must remain 0, got ${ssh.contentSeenPercent}`);
-assert.strictEqual(topicTheoryCompletion(ssh), 25, `SSH displayed theory must fall back to theoryScore 25, got ${topicTheoryCompletion(ssh)}`);
+assert.strictEqual(topicTheoryCompletion(ssh), 0, `SSH displayed theory must NOT fall back to theoryScore, got ${topicTheoryCompletion(ssh)}`);
 
 // F. Partial theory preservation
 store.clear();

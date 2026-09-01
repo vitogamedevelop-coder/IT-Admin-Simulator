@@ -13,7 +13,7 @@ import {
 import { shuffleOptions } from '../lib/shuffleOptions';
 import { collectQuestionsFromLesson, collectCliTasksFromLesson } from '../lib/academyThemencheck';
 import { checkCiscoInput } from '../lib/ciscoCli';
-import { speak, stop, ttsTextFromBlocks, normalizeCiscoText } from '../lib/speechSynthesis';
+import { speakAs, resolveCharacterVoice, stop, ttsTextFromBlocks, normalizeCiscoText } from '../lib/speechSynthesis';
 import {
   calculateNetworkId, calculateBroadcast, calculateFirstHost, calculateLastHost,
   calculateJumpSize, getRelevantOctet, generateUniqueSubnetProblems, generateSubnetRequirementProblem,
@@ -33,7 +33,7 @@ import GuidedUiExercise from './GuidedUiExercise';
 const STYLE_SEQUENCE = ['classic', 'intuitive', 'example', 'visual', 'mnemonic'];
 
 // Small reusable TTS button for lesson blocks.
-function SpeakButton({ text, label }) {
+function SpeakButton({ text, label, speaker = '' }) {
   const [speaking, setSpeaking] = useState(false);
   if (!text) return null;
 
@@ -43,11 +43,24 @@ function SpeakButton({ text, label }) {
       setSpeaking(false);
       return;
     }
+    const speakerId = resolveCharacterVoice(speaker);
     setSpeaking(true);
-    await speak(text, {
-      onEnd: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
-    });
+    if (speakerId) {
+      await speakAs(text, {
+        speakerId,
+        speechText: text,
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+        onError: () => setSpeaking(false),
+      });
+    } else {
+      await speakAs(text, {
+        speechText: text,
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+        onError: () => setSpeaking(false),
+      });
+    }
   }
 
   return (

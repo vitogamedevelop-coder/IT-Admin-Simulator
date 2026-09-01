@@ -25,39 +25,13 @@
 // catalog, no second persistence, no second status machine was introduced.
 // =============================================================================
 import { ACADEMY_TOPICS, TOPIC_STATUS, resolvePrerequisiteRef, topicKey } from './academyTopics.js';
-import { ACADEMY_THRESHOLDS, ACTIVITY_SCORE_DELTAS, SCORE_MIN, SCORE_MAX, PLACEMENT_PASS_SCORE } from './academyThresholds.js';
+import { ACADEMY_THRESHOLDS, ACTIVITY_SCORE_DELTAS, PLACEMENT_PASS_SCORE } from './academyThresholds.js';
 import { readAcademyProgress, writeAcademyProgress, updateTopicProgress, getTopicProgress } from './academyProgress.js';
 import { hasConversationMastery } from './conversationMastery.js';
-
-// Ranks used to enforce monotonic (never-downgrade) status progression once
-// a topic is unlocked (LOCKED/AVAILABLE are handled separately, since they
-// depend on prerequisites rather than activity).
-const STATUS_RANK = {
-  [TOPIC_STATUS.AVAILABLE]: 0,
-  [TOPIC_STATUS.STARTED]: 1,
-  [TOPIC_STATUS.LEARNED]: 2,
-  [TOPIC_STATUS.APPLIED]: 3,
-  [TOPIC_STATUS.CONSOLIDATED]: 4,
-};
-
-export function clampScore(value) {
-  return Math.max(SCORE_MIN, Math.min(SCORE_MAX, Math.round(value)));
-}
-
-// Helper for the theory dimension: the dedicated completion value (0-100) takes
-// precedence while it is non-zero. If no completion percentage has been recorded
-// yet (0), fall back to the older fine-grained theoryScore so that legacy saves
-// whose theory completion was never explicitly set still show their earned
-// theory progress instead of 0 %.
-export function topicTheoryCompletion(topic) {
-  return topic?.theoryCompletion || topic?.theoryScore || 0;
-}
-
-// Shared completion predicate used by category summaries and unlock checks.
-// A topic counts as completed once it reaches LEARNED or any higher status.
-export function isTopicLearnedOrBeyond(topic) {
-  return [TOPIC_STATUS.LEARNED, TOPIC_STATUS.APPLIED, TOPIC_STATUS.CONSOLIDATED].includes(topic?.status);
-}
+import {
+  clampScore, topicTheoryCompletion, computeNextStatus,
+  rankOf, upgradeStatus,
+} from './academyStatus.js';
 
 // Simple weighted overall competency value (0-100) derived from the three
 // separate scores - never stored, always computed on demand.
@@ -66,43 +40,6 @@ export function overallScore(topic) {
   return clampScore(theory * 0.3 + topic.practiceScore * 0.4 + topic.retentionScore * 0.3);
 }
 
-function rankOf(status) {
-  return STATUS_RANK[status] ?? -1;
-}
-
-function upgradeStatus(current, candidate) {
-  return rankOf(candidate) > rankOf(current) ? candidate : current;
-}
-
-// Computes the next status for a topic that is already AVAILABLE or beyond
-// (LOCKED topics are handled by refreshUnlocks/prerequisitesMet instead).
-// Transitions only ever move forward - scores dipping back down (which
-// doesn't happen today, but might once decay/forgetting is modeled) never
-// silently demotes a topic the player already reached.
-export function computeNextStatus(progress) {
-  if (progress.status === TOPIC_STATUS.LOCKED) return progress.status;
-  let next = progress.status;
-  const theoryCompleted = topicTheoryCompletion(progress);
-  const { theoryScore, practiceScore, retentionScore, appliedCount, repetitionCount } = progress;
-
-  if (theoryScore >= ACADEMY_THRESHOLDS.started.minAnyScore || practiceScore >= ACADEMY_THRESHOLDS.started.minAnyScore) {
-    next = upgradeStatus(next, TOPIC_STATUS.STARTED);
-  }
-  if (theoryCompleted >= 100 || theoryScore >= ACADEMY_THRESHOLDS.learned.minTheoryScore) {
-    next = upgradeStatus(next, TOPIC_STATUS.LEARNED);
-  }
-  if (rankOf(next) >= rankOf(TOPIC_STATUS.LEARNED)
-    && practiceScore >= ACADEMY_THRESHOLDS.applied.minPracticeScore
-    && appliedCount >= ACADEMY_THRESHOLDS.applied.minApplications) {
-    next = upgradeStatus(next, TOPIC_STATUS.APPLIED);
-  }
-  if (rankOf(next) >= rankOf(TOPIC_STATUS.APPLIED)
-    && retentionScore >= ACADEMY_THRESHOLDS.consolidated.minRetentionScore
-    && repetitionCount >= ACADEMY_THRESHOLDS.consolidated.minRepetitions) {
-    next = upgradeStatus(next, TOPIC_STATUS.CONSOLIDATED);
-  }
-  return next;
-}
 
 // Whether every prerequisite of a topic is fulfilled. A prerequisite counts
 // as fulfilled once it reaches 15% overall progress OR has been completed at
@@ -502,3 +439,7 @@ export function evaluatePlacementTest(correctCount, totalCount) {
 export function markLearnedFromPlacement(topicRefs) {
   return topicRefs.map(({ categoryId, topicId }) => markTopicLearned(categoryId, topicId));
 }
+
+// Re-export the stable status/completion helpers that other modules already
+// import from this file so existing imports keep working.
+export { clampScore, topicTheoryCompletion, isTopicLearnedOrBeyond, computeNextStatus, rankOf, upgradeStatus } from './academyStatus.js';

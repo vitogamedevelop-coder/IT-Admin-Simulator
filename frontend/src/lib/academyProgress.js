@@ -21,6 +21,7 @@
 import { ACADEMY_TOPICS, topicKey } from './academyTopics.js';
 import { LESSONS } from './academyLessonData.js';
 import { APP_VERSION } from './version.js';
+import { computeNextStatus } from './academyStatus.js';
 
 const KEY = 'cyberlearn:academy-progress-v1';
 // v4 adds per-topic lesson resume/tracking fields (startedAt, lastCompletedSectionId,
@@ -285,7 +286,7 @@ function sanitizeTopicProgress(key, progress, currentVersion) {
   const nextTheoryCompletion = Math.max(progress.theoryCompletion || 0, computedTheory, legacyTheoryFloor);
   const nextContentSeen = Math.max(progress.contentSeenPercent || 0, computedSeen, legacyTheoryFloor);
 
-  return {
+  const normalized = {
     ...progress,
     completedSectionIds: sectionIds,
     completedQuestionIds: questionIds,
@@ -296,6 +297,8 @@ function sanitizeTopicProgress(key, progress, currentVersion) {
     contentSeenPercent: nextContentSeen,
     version: currentVersion,
   };
+  normalized.status = computeNextStatus(normalized);
+  return normalized;
 }
 
 function sanitizeProgress(data) {
