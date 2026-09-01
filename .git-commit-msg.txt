@@ -1,27 +1,25 @@
-feat: Active Directory FSMO & Global Catalog block (v1.68.0)
+Release 1.79.0: Thema 14 - Gruppen praktisch anlegen und verschachteln
 
-- Extend the existing `active-directory-virtualbox/domain-controller` lesson
-  instead of creating a new visible topic.
-- Add conceptual sections: Multi-Master vs. FSMO, five FSMO roles overview,
-  RID Master, PDC Emulator, Infrastructure Master, forest-wide roles,
-  Global Catalog, and FSMO/GC comparison.
-- Add five new SVG diagrams: FSMO overview, RID pools, PDC tasks,
-  Infrastructure cross-domain references, and Global Catalog partial replica.
-- Add 3 new exercises covering forest/domain scope, role-to-scenario matching,
-  and Global Catalog selection; full pool now 8, direct flow 4.
-- Extend final quiz to 8 questions covering DC basics, RID Master, and GC.
-- Add 15 new Knowledge Items for `ad.fsmo`, `ad.gc`, and `ad.sid` concept
-  clusters in `frontend/src/lib/knowledge/items/adFsmoGc.js`.
-- Extend the existing domain-controller conversation topic with FSMO/GC
-  transfer questions and update Sam help text.
-- Update `active-directory-logical-components-quality-audit.mjs` so
-  FSMO/GC terms are allowed in the domain-controller lesson but still
-  forbidden in domain/OU lessons.
-- Add `active-directory-fsmo-gc-quality-audit.mjs` validating the new content,
-  factual precision keywords, knowledge source links, and absence of
-  NTDSUTIL/Sysprep/MMC/Domain Join procedures.
-- No guided-ui, no PowerShell procedure, no transfer/seize/NTDSUTIL steps.
-- Version bump to 1.68.0.
+Inhalt:
+- Neues Topic active-directory-virtualbox/ad-group-practice:
+  "Gruppen praktisch anlegen und verschachteln"
+- Voraussetzung: ad-permissions (Thema 13)
+- Theory: Wiederholung Funktionsgruppe, Berechtigungsgruppe, Global, Domain Local, Sicherheitsgruppe, ADUC
+- Guided UI 1: Globale Funktionsgruppe erstellen
+- Guided UI 2: Domänenlokale Berechtigungsgruppe erstellen
+- Guided UI 3: Benutzer einer globalen Gruppe hinzufügen
+- Guided UI 4: Globale Gruppe in DL-Gruppe verschachteln
+- Admin Challenge: AGDLP-Auftrag selbst erstellen/verknüpfen
+- Troubleshooting: falscher Gruppenbereich, falsche OU, Benutzer direkt in DL,
+  Members vs. Member Of, falsche Berechtigungsgruppe
+- 6 Quizfragen und Summary
+- Neuer Audit: active-directory-group-practice-audit.mjs
+
+Hardening:
+- Service-Worker-Versionierung und appUpgrade.js unverändert erhalten
+- Cache-Bucket cyberlearn-v1.79.0, versionCode 17900
+
+Version: 1.79.0
 
 Generated with [Devin](https://devin.ai)
 
