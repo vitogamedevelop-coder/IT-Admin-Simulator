@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Lock, ChevronRight, GraduationCap, CheckCircle2, ClipboardCheck, BookOpen, HelpCircle, Star } from 'lucide-react';
 import { findTopic, topicsForCategory, ACADEMY_CATEGORIES, TOPIC_STATUS } from '../lib/academyTopics';
 import { getAllFullTopics } from '../lib/academyProgress';
+import { topicTheoryCompletion } from '../lib/academyEngine';
 import { LEARNING_MODES, readAcademyMode } from '../lib/academyMode';
 import { getTopicScoreDimensions, hasLessonContent } from '../lib/academyLessonData';
 import { isThemencheckAvailable, getCategorySummary, isThemencheckPassed, getBestScore } from '../lib/academyThemencheck';
@@ -191,7 +192,7 @@ export default function AcademyCategory() {
                 <p className="text-[10px] text-[#8b949e]">Voraussetzungen: {prereqTitles.length ? prereqTitles.join(', ') : 'keine'}</p>
               ) : dimCount > 0 ? (
                 <div className={`grid gap-3 mt-1 ${dimCount === 1 ? 'grid-cols-1' : dimCount === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                  {dims.theory && <ScoreBar label="Theorie" value={(topic.theoryCompletion ?? topic.theoryScore) ?? 0} />}
+                  {dims.theory && <ScoreBar label="Theorie" value={topicTheoryCompletion(topic)} />}
                   {dims.practice && <ScoreBar label="Praxis" value={topic.practiceScore} />}
                   {dims.retention && <ScoreBar label="Festigung" value={topic.retentionScore} />}
                 </div>

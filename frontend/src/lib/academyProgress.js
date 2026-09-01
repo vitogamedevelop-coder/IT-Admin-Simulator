@@ -195,6 +195,34 @@ function uniqueNonEmpty(arr) {
   return [...new Set((arr || []).filter((x) => x && typeof x === 'string'))];
 }
 
+// Returns the derived section ids and total section count for a lesson.
+// Sections are identified by the short `sectionId` (part before the last dash
+// in an explanation's id) because `LessonRunner` records completions per
+// section, not per individual explanation style.
+function getLessonSectionInfo(key) {
+  const lesson = LESSONS[key];
+  if (!lesson || !Array.isArray(lesson.explanations)) {
+    return { validSectionIds: new Set(), validExplanationIds: new Set(), total: 0 };
+  }
+  const validExplanationIds = new Set(lesson.explanations.map((e) => e.id).filter(Boolean));
+  const validSectionIds = new Set();
+  lesson.explanations.forEach((e) => {
+    const dash = (e.id || '').lastIndexOf('-');
+    const sid = e.sectionId || (dash > 0 ? e.id.slice(0, dash) : e.id);
+    if (sid) validSectionIds.add(sid);
+  });
+  return { validSectionIds, validExplanationIds, total: validSectionIds.size };
+}
+
+// Normalizes a saved section/explanation id to the short section id we use.
+function normalizeToSectionId(id, validSectionIds, validExplanationIds) {
+  if (validSectionIds.has(id)) return id;
+  if (!validExplanationIds.has(id)) return null;
+  const dash = id.lastIndexOf('-');
+  const sid = dash > 0 ? id.slice(0, dash) : id;
+  return validSectionIds.has(sid) ? sid : null;
+}
+
 // Derives a legacy floor for theory completion / content seen from all
 // historically reliable completion markers. A full (100 %) floor is only
 // returned for evidence that the learner finished the entire lesson:
@@ -207,10 +235,10 @@ function uniqueNonEmpty(arr) {
 // used here: theoryScore is a fine-grained knowledge score, not proof of full
 // content completion, and `learned` status only needs minTheoryScore 25.
 function deriveLegacyTheoryFloor(progress, key) {
-  const lesson = LESSONS[key];
-  const validSectionIds = new Set(lesson?.explanations?.map((e) => e.id) || []);
-  const completedSectionIds = uniqueNonEmpty(progress.completedSectionIds).filter((id) => validSectionIds.has(id));
-  const totalSections = validSectionIds.size;
+  const { validSectionIds, validExplanationIds, total: totalSections } = getLessonSectionInfo(key);
+  const completedSectionIds = uniqueNonEmpty(progress.completedSectionIds)
+    .map((id) => normalizeToSectionId(id, validSectionIds, validExplanationIds))
+    .filter(Boolean);
   const computed = totalSections > 0 ? Math.round((completedSectionIds.length / totalSections) * 100) : 0;
 
   const lessonCompleted = (progress.lessonCompletions || 0) >= 1;
@@ -224,11 +252,18 @@ function deriveLegacyTheoryFloor(progress, key) {
 }
 
 function sanitizeTopicProgress(key, progress, currentVersion) {
-  const lesson = LESSONS[key];
-  const validSectionIds = new Set(lesson?.explanations?.map((e) => e.id) || []);
-  const validExerciseIds = new Set(lesson?.exercises?.map((e) => e.id) || []);
+  const { validSectionIds, validExplanationIds, total: totalSections } = getLessonSectionInfo(key);
+  const validExerciseIds = new Set(LESSONS[key]?.exercises?.map((e) => e.id) || []);
 
-  const sectionIds = uniqueNonEmpty(progress.completedSectionIds).filter((id) => validSectionIds.has(id));
+  const seenSectionIds = new Set();
+  const sectionIds = [];
+  uniqueNonEmpty(progress.completedSectionIds).forEach((id) => {
+    const sid = normalizeToSectionId(id, validSectionIds, validExplanationIds);
+    if (sid && !seenSectionIds.has(sid)) {
+      seenSectionIds.add(sid);
+      sectionIds.push(sid);
+    }
+  });
   const exerciseIds = uniqueNonEmpty(progress.completedExerciseIds).filter((id) => validExerciseIds.has(id));
   const questionIds = uniqueNonEmpty(progress.completedQuestionIds);
 
@@ -239,7 +274,6 @@ function sanitizeTopicProgress(key, progress, currentVersion) {
     lastSectionTitle = null;
   }
 
-  const totalSections = validSectionIds.size;
   // Monotonic theory rule: a previously measured theory or content-seen value
   // is never reduced just because the underlying section IDs no longer match
   // the current lesson registry. This preserves legitimate player progress

@@ -50,14 +50,14 @@ function buildExplanations() {
     { type: 'text', content: 'Bei "ip helper-address" werden in der Praxis am häufigsten zwei Dinge verwechselt - diese Unterscheidung ist der Kern dieser Lektion:' },
     { type: 'table', headers: ['Frage', 'Antwort'], rows: [
       ['A) WO wird der Befehl konfiguriert?', 'Auf dem Layer-3-Interface, das die DHCP-Broadcasts des Client-Netzes empfängt - also dem Gateway-Interface dieses Client-Netzes (physisches Interface, Subinterface oder SVI).'],
-      ['B) WELCHE IP steht hinter dem Befehl?', 'Die IP-Adresse des DHCP-SERVERS - NICHT die eigene Gateway-IP des Interfaces, auf dem der Befehl steht.'],
+      ['B) WELCHE IP steht hinter dem Befehl?', 'Die IP-Adresse des DHCP-SERVERS - NICHT die eigene Interface-IP des Interfaces, auf dem der Befehl steht.'],
     ] },
-    { type: 'text', content: 'Beispiel: Clientnetz 192.168.100.0/24, Gateway 192.168.100.254, DHCP-Server 10.10.10.10.' },
+    { type: 'text', content: 'Beispiel: Clientnetz 192.168.100.0/24, Default Gateway für die Clients 192.168.100.254, DHCP-Server 10.10.10.10.' },
     { type: 'list', title: 'Richtig vs. falsch', items: [
       'Richtig, auf dem Gateway-Interface des Clientnetzes: "ip helper-address 10.10.10.10"',
-      'Falsch: "ip helper-address 192.168.100.254" - das wäre die eigene Gateway-IP, nicht die IP des DHCP-Servers.',
+      'Falsch: "ip helper-address 192.168.100.254" - das wäre die eigene Interface-IP, nicht die IP des DHCP-Servers.',
     ] },
-    { type: 'question', question: 'Clientnetz 192.168.100.0/24 mit Gateway 192.168.100.254, DHCP-Server unter 10.10.10.10. Welcher Befehl ist auf dem Gateway-Interface des Clientnetzes korrekt?', options: ['ip helper-address 192.168.100.254', 'ip helper-address 10.10.10.10', 'ip helper-address 192.168.100.0', 'ip address helper 10.10.10.10'], correct: 1, explanation: 'Hinter "ip helper-address" steht immer die IP-Adresse des DHCP-SERVERS (10.10.10.10) - nicht die eigene Gateway-IP des Interfaces (192.168.100.254).' },
+    { type: 'question', question: 'Clientnetz 192.168.100.0/24, Default Gateway für die Clients 192.168.100.254, DHCP-Server unter 10.10.10.10. Welcher Befehl ist auf dem Gateway-Interface des Clientnetzes korrekt?', options: ['ip helper-address 192.168.100.254', 'ip helper-address 10.10.10.10', 'ip helper-address 192.168.100.0', 'ip address helper 10.10.10.10'], correct: 1, explanation: 'Hinter "ip helper-address" steht immer die IP-Adresse des DHCP-SERVERS (10.10.10.10) - nicht die eigene Interface-IP des Interfaces (192.168.100.254).' },
   ]));
 
   exps.push(explanation('szenario-a-classic', 'Szenario A: physisches Router-/L3-Interface', 'classic', [
@@ -83,7 +83,7 @@ function buildExplanations() {
       'Router(config-subif)# ip address 192.168.200.1 255.255.255.0',
     ] },
     { type: 'text', content: 'Wichtig: Existieren mehrere Subinterfaces, gehört der Helper NUR auf das Subinterface des Client-VLANs (hier 100) - nicht auf jedes Subinterface pauschal, und nicht auf das physische Hauptinterface (das bei Router on a Stick selbst keine IP-Adresse trägt).' },
-    { type: 'question', question: 'Ein Router hat drei Subinterfaces: fa0/0.10 (VLAN 10, Clients, Gateway 192.168.10.1), fa0/0.20 (VLAN 20, Server, Gateway 192.168.20.1) und fa0/0.30 (VLAN 30, Voice-Clients, Gateway 192.168.30.1). Der DHCP-Server 172.16.0.10 soll sowohl VLAN 10 als auch VLAN 30 versorgen. Auf welchen Subinterfaces muss "ip helper-address 172.16.0.10" konfiguriert werden?', options: ['Nur auf fa0/0.10', 'Auf fa0/0.10 UND fa0/0.30 - jeweils dort, wo tatsächlich DHCP-Clients stehen', 'Auf allen drei Subinterfaces inklusive fa0/0.20', 'Auf dem physischen Hauptinterface fa0/0'], correct: 1, explanation: 'Der Helper gehört auf jedes Gateway-Interface, dessen Netz tatsächlich DHCP-Clients enthält - hier VLAN 10 und VLAN 30. VLAN 20 (Server, keine DHCP-Clients) braucht ihn nicht, und das physische Hauptinterface hat bei Router on a Stick ohnehin keine eigene IP.' },
+    { type: 'question', question: 'Ein Router hat drei Subinterfaces: fa0/0.10 (VLAN 10, Clients, IP 192.168.10.1 - Default Gateway für VLAN 10), fa0/0.20 (VLAN 20, Server, IP 192.168.20.1) und fa0/0.30 (VLAN 30, Voice-Clients, IP 192.168.30.1 - Default Gateway für VLAN 30). Der DHCP-Server 172.16.0.10 soll sowohl VLAN 10 als auch VLAN 30 versorgen. Auf welchen Subinterfaces muss "ip helper-address 172.16.0.10" konfiguriert werden?', options: ['Nur auf fa0/0.10', 'Auf fa0/0.10 UND fa0/0.30 - jeweils dort, wo tatsächlich DHCP-Clients stehen', 'Auf allen drei Subinterfaces inklusive fa0/0.20', 'Auf dem physischen Hauptinterface fa0/0'], correct: 1, explanation: 'Der Helper gehört auf jedes Gateway-Interface, dessen Netz tatsächlich DHCP-Clients enthält - hier VLAN 10 und VLAN 30. VLAN 20 (Server, keine DHCP-Clients) braucht ihn nicht, und das physische Hauptinterface hat bei Router on a Stick ohnehin keine eigene IP.' },
   ]));
 
   exps.push(explanation('szenario-c-classic', 'Szenario C: Multilayer-Switch / SVI', 'classic', [
@@ -133,7 +133,7 @@ function buildExplanations() {
     { type: 'table', headers: ['Symptom', 'Mögliche Ursache'], rows: [
       ['Client bekommt gar keine IP-Adresse per DHCP', '"ip helper-address" fehlt komplett auf dem Gateway-Interface des Clientnetzes.'],
       ['Client bekommt weiterhin keine IP, obwohl irgendwo ein Helper konfiguriert ist', 'Der Helper wurde auf dem FALSCHEN Interface konfiguriert (z. B. auf einem anderen VLAN/Subinterface als dem des Clients).'],
-      ['Client bekommt eine Fehlermeldung / keine Antwort vom Server', 'Hinter "ip helper-address" steht versehentlich die eigene Gateway-IP statt der DHCP-Server-IP.'],
+      ['Client bekommt eine Fehlermeldung / keine Antwort vom Server', 'Hinter "ip helper-address" steht versehentlich die eigene Interface-IP statt der DHCP-Server-IP.'],
       ['Bei Router on a Stick: nur ein VLAN funktioniert, ein anderes nicht', 'Der Helper wurde nur auf einem Subinterface gesetzt, fehlt aber auf dem Subinterface des zweiten Client-VLANs.'],
       ['Bei einem Multilayer-Switch: Clients im VLAN bekommen keine IP', 'Der Helper fehlt auf der SVI des Client-VLANs (evtl. wurde er versehentlich auf einer anderen SVI konfiguriert).'],
       ['Client bekommt eine IP, aber falsches Gateway/Subnetz', 'Der DHCP-Pool verwendet ein falsches Default Gateway oder eine falsche Netz-/Maskenkonfiguration.'],
@@ -147,7 +147,7 @@ function buildExplanations() {
       ['ip dhcp excluded-address <IP> oder <Start> <Ende>', 'Schließt feste Adressen (z. B. Gateway oder Server) von der dynamischen Vergabe aus.'],
       ['ip dhcp pool <Name>', 'Legt auf dem Router selbst einen DHCP-Pool an (Router als eigener DHCP-Server statt Relay zu einem externen Server).'],
       ['network <Netz> <Maske>', 'Definiert innerhalb des Pools das zu vergebende Adressnetz.'],
-      ['default-router <Gateway-IP>', 'Legt innerhalb des Pools das Gateway fest, das die Clients bekommen.'],
+      ['default-router <Default-Gateway-IP>', 'Legt innerhalb des Pools das Default Gateway fest, das die Clients bekommen.'],
       ['dns-server <DNS-IP>', 'Legt optional einen DNS-Server fest, den die Clients verwenden.'],
       ['ip address dhcp', 'Konfiguriert ein Interface so, dass es selbst per DHCP eine Adresse bezieht (Router als DHCP-Client).'],
     ] },
@@ -170,7 +170,7 @@ function buildExplanations() {
       'DHCP-Clients senden anfangs Broadcasts - Router leiten Broadcasts normalerweise nicht in andere Netze weiter.',
       'Lösung: "ip helper-address <DHCP-Server-IP>" auf dem Gateway-Interface des Client-Netzes.',
       'WO: auf dem Layer-3-Interface, das Gateway des Client-Netzes ist (physisches Interface, Subinterface oder SVI).',
-      'WELCHE IP: immer die IP-Adresse des DHCP-SERVERS - niemals die eigene Gateway-IP.',
+      'WELCHE IP: immer die IP-Adresse des DHCP-SERVERS - niemals die eigene Interface-IP.',
       'Drei gleichwertige Szenarien: physisches Interface, Router-on-a-Stick-Subinterface, Multilayer-Switch-SVI.',
       'Mehrere Client-VLANs brauchen mehrere Helper - einer pro clientseitigem Gateway-Interface.',
       'DHCP Relay ersetzt kein Routing: Der Router/MLS muss den DHCP-Server routingmäßig erreichen können.',
@@ -187,10 +187,10 @@ function buildExercises() {
     {
       id: 'dhcp-wo-welche-select',
       type: 'select-best',
-      question: 'Clientnetz 192.168.50.0/24, Gateway 192.168.50.1, DHCP-Server 10.20.20.20. Welcher Befehl ist am Gateway-Interface korrekt?',
+      question: 'Clientnetz 192.168.50.0/24, Default Gateway für die Clients 192.168.50.1, DHCP-Server 10.20.20.20. Welcher Befehl ist am Gateway-Interface korrekt?',
       options: ['ip helper-address 192.168.50.1', 'ip helper-address 10.20.20.20', 'ip helper-address 192.168.50.0', 'ip dhcp-relay 10.20.20.20'],
       correct: 1,
-      explanation: 'Hinter "ip helper-address" steht die IP-Adresse des DHCP-Servers (10.20.20.20), nicht die eigene Gateway-IP.',
+      explanation: 'Hinter "ip helper-address" steht die IP-Adresse des DHCP-Servers (10.20.20.20), nicht die eigene Interface-IP.'
     },
     {
       id: 'dhcp-begriffe-matching',
@@ -207,25 +207,25 @@ function buildExercises() {
       startContext: 'Globaler Konfigurationsmodus',
       id: 'dhcp-physisch-cli',
       type: 'cli-input',
-      question: 'Konfiguriere fa0/0 mit der Gateway-IP 192.168.10.1/24 und richte den DHCP Relay zum Server 172.16.0.10 ein.',
+      question: 'Konfiguriere fa0/0 mit der IP-Adresse 192.168.10.1/24. Diese Interface-IP dient den Clients als Default Gateway. Richte außerdem den DHCP Relay zum Server 172.16.0.10 ein.',
       expectedLines: ['interface fa0/0', 'ip address 192.168.10.1 255.255.255.0', 'ip helper-address 172.16.0.10', 'no shutdown'],
-      explanation: 'Der Helper gehört auf das Gateway-Interface des Client-Netzes - hier das physische Interface fa0/0.',
+      explanation: 'Das physische Interface erhält die IP-Adresse, die den Clients als Default Gateway dient. Der Helper gehört auf das Gateway-Interface des Client-Netzes - hier das physische Interface fa0/0.'
     },
     {
       startContext: 'Globaler Konfigurationsmodus',
       id: 'dhcp-subinterface-cli',
       type: 'cli-input',
-      question: 'Router on a Stick: Konfiguriere das Subinterface fa0/0.100 für VLAN 100 (Clients) mit Gateway 192.168.100.1/24 und DHCP Relay zum Server 172.16.0.10.',
+      question: 'Router on a Stick: Konfiguriere das Subinterface fa0/0.100 für VLAN 100 (Clients) mit der IP-Adresse 192.168.100.1/24. Diese Subinterface-IP dient den Clients in VLAN 100 als Default Gateway. Konfiguriere außerdem DHCP Relay zum Server 172.16.0.10.',
       expectedLines: ['interface fa0/0.100', 'encapsulation dot1Q 100', 'ip address 192.168.100.1 255.255.255.0', 'ip helper-address 172.16.0.10'],
-      explanation: 'Der Helper gehört auf das Subinterface DES Client-VLANs - nicht auf das physische Hauptinterface und nicht auf andere Subinterfaces ohne DHCP-Clients.',
+      explanation: 'Das Subinterface erhält die IP-Adresse, die den Clients als Default Gateway dient. Der Helper gehört auf das Subinterface DES Client-VLANs - nicht auf das physische Hauptinterface und nicht auf andere Subinterfaces ohne DHCP-Clients.',
     },
     {
       startContext: 'Globaler Konfigurationsmodus',
       id: 'dhcp-svi-cli',
       type: 'cli-input',
-      question: 'Multilayer-Switch: Konfiguriere die SVI für VLAN 100 mit Gateway 192.168.100.1/24 und DHCP Relay zum Server 172.16.0.10.',
+      question: 'Multilayer-Switch: Konfiguriere die SVI für VLAN 100 mit der IP-Adresse 192.168.100.1/24. Diese SVI dient den Clients in VLAN 100 als Default Gateway. Konfiguriere außerdem DHCP Relay zum Server 172.16.0.10.',
       expectedLines: ['interface vlan 100', 'ip address 192.168.100.1 255.255.255.0', 'ip helper-address 172.16.0.10', 'no shutdown'],
-      explanation: 'Auf einem Multilayer-Switch ist die SVI des Client-VLANs das Gateway - der Helper gehört dorthin.',
+      explanation: 'Die SVI erhält die IP-Adresse, die den Clients als Default Gateway dient. Der Helper gehört auf die SVI des Client-VLANs - die eigene SVI-IP ist also niemals das Ziel von "ip helper-address".',
     },
     {
       id: 'dhcp-mehrfach-subinterface-select',
@@ -246,10 +246,10 @@ function buildExercises() {
     {
       id: 'dhcp-wrong-server-ip-select',
       type: 'select-best',
-      question: 'Clients bekommen keine IP. In "show running-config | include helper" siehst du "ip helper-address 192.168.10.1". Das ist aber die eigene Gateway-IP des Interfaces. Was ist zu tun?',
+      question: 'Clients bekommen keine IP. In "show running-config | include helper" siehst du "ip helper-address 192.168.10.1". Das ist aber die eigene Interface-IP des Interfaces. Was ist zu tun?',
       options: ['Nichts, das ist korrekt', 'Auf die DHCP-Server-IP ändern (z. B. 172.16.0.10)', 'Den Helper auf ein anderes Interface verschieben', 'Das Interface neu starten'],
       correct: 1,
-      explanation: 'Hinter "ip helper-address" muss die DHCP-Server-IP stehen, nicht die eigene Gateway-IP.',
+      explanation: 'Hinter "ip helper-address" muss die DHCP-Server-IP stehen, nicht die eigene Interface-IP.',
     },
     {
       id: 'dhcp-routing-dependency-select',
@@ -289,11 +289,11 @@ function buildExercises() {
 function buildQuiz() {
   return [
     { question: 'Warum kommt eine DHCP-Discover-Anfrage eines Clients nicht automatisch bei einem DHCP-Server in einem anderen Netz an?', options: ['DHCP-Server akzeptieren grundsätzlich keine Anfragen aus anderen Netzen', 'Die Anfrage wird als Broadcast gesendet, und Router leiten Broadcasts normalerweise nicht in andere Netze weiter', 'DHCP funktioniert nur innerhalb desselben Switches', 'Der Client kennt die IP-Adresse des Servers nicht'], correct: 1, explanation: 'Discover ist ein Broadcast, und Broadcasts werden von Routern grundsätzlich nicht in andere Netze weitergeleitet.' },
-    { question: 'Welche IP-Adresse steht hinter "ip helper-address"?', options: ['Die Gateway-IP des Interfaces, auf dem der Befehl steht', 'Die IP-Adresse des DHCP-Servers', 'Die IP-Adresse des Clients', 'Die Broadcast-Adresse des Client-Netzes'], correct: 1, explanation: 'Der Wert hinter "ip helper-address" ist immer die IP-Adresse des DHCP-Servers - nie die eigene Gateway-IP.' },
+    { question: 'Welche IP-Adresse steht hinter "ip helper-address"?', options: ['Die eigene Interface-IP des Geräts, auf dem der Befehl steht', 'Die IP-Adresse des DHCP-Servers', 'Die IP-Adresse des Clients', 'Die Broadcast-Adresse des Client-Netzes'], correct: 1, explanation: 'Der Wert hinter "ip helper-address" ist immer die IP-Adresse des DHCP-Servers - nie die eigene Interface-IP.' },
     { question: 'Auf welchem Interface wird "ip helper-address" bei Router on a Stick konfiguriert?', options: ['Auf dem physischen Hauptinterface', 'Auf dem Subinterface des Client-VLANs', 'Auf jedem beliebigen Subinterface', 'Auf dem Subinterface des DHCP-Server-VLANs'], correct: 1, explanation: 'Der Helper gehört auf das Subinterface, das Gateway des VLANs mit den DHCP-Clients ist.' },
     { question: 'Was trägt man im Packet-Tracer-DHCP-Pool unter "Default Gateway" ein?', options: ['Die IP-Adresse des DHCP-Servers selbst', 'Das Gateway des Client-Netzes (dieselbe IP wie am Interface mit ip helper-address)', 'Die IP-Adresse eines beliebigen Routers', 'Die Subnetzmaske des Client-Netzes'], correct: 1, explanation: 'Das Default Gateway im Pool ist das Gateway des Client-Netzes - unabhängig von der DHCP-Server-IP.' },
     { question: 'Ein Multilayer-Switch hat SVIs für VLAN 10 (Clients) und VLAN 20 (Server). Wo muss der DHCP-Relay-Befehl stehen, damit VLAN-10-Clients eine IP bekommen?', options: ['Auf der SVI von VLAN 20', 'Auf der SVI von VLAN 10', 'Auf beiden SVIs gleichzeitig', 'Auf keiner SVI, das erfolgt automatisch'], correct: 1, explanation: 'Der Helper gehört auf das Gateway-Interface DES Client-VLANs - hier die SVI von VLAN 10.' },
-    { question: 'Ein Client bekommt trotz korrekt konfiguriertem Helper keine IP-Adresse. Der Helper zeigt auf 192.168.10.1 - das ist aber die eigene Gateway-IP des Interfaces. Was ist das Problem?', options: ['Nichts, die Konfiguration ist korrekt', 'Hinter "ip helper-address" wurde versehentlich die eigene Gateway-IP statt der DHCP-Server-IP eingetragen', 'Der Client braucht eine statische IP', 'Das Interface muss neu gestartet werden'], correct: 1, explanation: 'Der Helper muss auf die IP-Adresse des DHCP-SERVERS zeigen - eine Gateway-IP an dieser Stelle ist ein klassischer Konfigurationsfehler.' },
+    { question: 'Ein Client bekommt trotz korrekt konfiguriertem Helper keine IP-Adresse. Der Helper zeigt auf 192.168.10.1 - das ist aber die eigene Interface-IP des Interfaces. Was ist das Problem?', options: ['Nichts, die Konfiguration ist korrekt', 'Hinter "ip helper-address" wurde versehentlich die eigene Interface-IP statt der DHCP-Server-IP eingetragen', 'Der Client braucht eine statische IP', 'Das Interface muss neu gestartet werden'], correct: 1, explanation: 'Der Helper muss auf die IP-Adresse des DHCP-SERVERS zeigen - eine Interface-IP an dieser Stelle ist ein klassischer Konfigurationsfehler.' },
     { question: 'Ein Router-on-a-Stick bedient VLAN 10 und VLAN 20 von DHCP. Der DHCP-Server ist 10.0.0.2. Auf wie vielen Subinterfaces muss "ip helper-address" stehen?', options: ['Nur auf fa0/0.10', 'Nur auf fa0/0.20', 'Auf fa0/0.10 und fa0/0.20', 'Auf dem physischen fa0/0'], correct: 2, explanation: 'Jedes Client-VLAN braucht einen eigenen Helper auf seinem Subinterface. Ein einzelner Helper reicht nicht für alle VLANs.' },
     { question: 'Warum bekommt ein Client trotz "ip helper-address" keine IP, wenn der DHCP-Server in einem anderen Netz liegt und "show ip route" keine Route dorthin zeigt?', options: ['Der DHCP-Server ist defekt', 'Der Relay-Agent kann den Server nicht erreichen, weil Routing fehlt', 'Der Client muss neu gestartet werden', 'Der Helper steht auf dem falschen Interface'], correct: 1, explanation: 'DHCP Relay setzt funktionierendes Routing zum DHCP-Server voraus. Ohne Route kann die Anfrage nicht weitergeleitet werden.' },
     { question: 'Welcher Befehl zeigt am schnellsten, auf welchen Interfaces ein DHCP-Helper konfiguriert ist?', options: ['show ip route', 'show running-config | include helper', 'show ip interface brief', 'show vlan brief'], correct: 1, explanation: '"show running-config | include helper" filtert die Konfiguration auf alle Zeilen, die "helper" enthalten.' },
@@ -312,7 +312,7 @@ function buildCliTasks() {
     },
     {
       startContext: 'Globaler Konfigurationsmodus',
-      prompt: 'Sam: "Auf dem physischen Interface fa0/0 hängt das Clientnetz 192.168.20.0/24, Gateway 192.168.20.1. Der DHCP-Server ist unter 172.16.0.10 erreichbar. Richte den Relay ein."',
+      prompt: 'Sam: "Auf dem physischen Interface fa0/0 hängt das Clientnetz 192.168.20.0/24, Default Gateway für die Clients 192.168.20.1. Der DHCP-Server ist unter 172.16.0.10 erreichbar. Richte den Relay ein."',
       expectedLines: ['interface fa0/0', 'ip helper-address 172.16.0.10'],
       explanation: 'Der Helper gehört auf das Gateway-Interface des Client-Netzes und zeigt auf die DHCP-Server-IP.',
     },

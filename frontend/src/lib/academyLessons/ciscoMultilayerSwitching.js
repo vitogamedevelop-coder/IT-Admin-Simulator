@@ -57,7 +57,7 @@ function buildExplanations() {
     { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
       ['ip routing', 'Aktiviert globales Routing auf dem Switch - ohne diesen Befehl routet der Switch nicht zwischen VLANs.'],
       ['interface vlan <VLAN-ID>', 'Legt die SVI für ein VLAN an bzw. wechselt in deren Konfiguration, z. B. "interface vlan 10".'],
-      ['ip address <IP-Adresse> <Subnetzmaske>', 'Vergibt der SVI die Gateway-IP-Adresse für dieses VLAN.'],
+      ['ip address <IP-Adresse> <Subnetzmaske>', 'Vergibt der SVI die IP-Adresse, die den Hosts in diesem VLAN als Default Gateway dient.'],
       ['no shutdown', 'Aktiviert die SVI - wie bei jeder anderen Schnittstelle.'],
     ] },
     { type: 'list', title: 'Beispiel: SVIs für VLAN 10 und VLAN 20 auf einem Multilayer-Switch', items: [
@@ -128,7 +128,7 @@ function buildExplanations() {
       '"show ip route" - Enthält der Switch Connected- und ggf. statische Routen?',
       '"show interfaces status" - Zeigt der Port-Modus (access / trunk / routed) das Gewünschte?',
     ] },
-    { type: 'text', content: 'Wichtig: Ein erfolgreicher Ping auf die Gateway-IP-Adresse beweist noch nicht, dass Inter-VLAN-Routing funktioniert. Teste immer End-to-End zwischen zwei Hosts in unterschiedlichen VLANs.' },
+    { type: 'text', content: 'Wichtig: Ein erfolgreicher Ping auf die SVI-IP-Adresse beweist noch nicht, dass Inter-VLAN-Routing funktioniert. Teste immer End-to-End zwischen zwei Hosts in unterschiedlichen VLANs.' },
   ]));
 
   exps.push(explanation('summary-classic', 'Zusammenfassung', 'classic', [
@@ -138,7 +138,7 @@ function buildExplanations() {
       'Ein Routed Port entsteht mit "no switchport" und bekommt seine IP direkt auf dem physischen Interface.',
       'Routed Port ≠ SVI: Routed Port = physisches Layer-3-Interface; SVI = virtuelles Gateway pro VLAN.',
       'Default Route ("ip route 0.0.0.0 0.0.0.0") ist auf einem routenden MLS der richtige Weg für fremde Netze, nicht "ip default-gateway".',
-      'End-to-End-Tests zwischen Hosts unterschiedlicher VLANs beweisen funktionierendes Routing - ein Gateway-Ping allein reicht nicht.',
+      'End-to-End-Tests zwischen Hosts unterschiedlicher VLANs beweisen funktionierendes Routing - ein Ping auf die eigene SVI-IP allein reicht nicht.'
     ] },
   ]));
 
@@ -193,10 +193,10 @@ function buildExercises() {
     {
       id: 'mls-gateway-ping-select',
       type: 'select-best',
-      question: 'Ein Host kann seine SVI-Gateway-IP anpingen, aber nicht einen Host im anderen VLAN. Was sagt das aus?',
+      question: 'Ein Host kann seine SVI-IP anpingen, aber nicht einen Host im anderen VLAN. Was sagt das aus?',
       options: ['Inter-VLAN-Routing funktioniert', 'Nur die lokale SVI ist erreichbar - Routing zwischen VLANs funktioniert möglicherweise noch nicht', 'Das Kabel ist defekt', 'Die Subnetzmaske ist falsch'],
       correct: 1,
-      explanation: 'Ein Ping auf das eigene Gateway beweist nur, dass die SVI erreichbar ist. End-to-End zwischen VLANs testet erst das eigentliche Routing.',
+      explanation: 'Ein Ping auf die eigene SVI-IP beweist nur, dass die SVI erreichbar ist. End-to-End zwischen VLANs testet erst das eigentliche Routing.'
     },
     {
       id: 'mls-routed-vs-trunk-select',
@@ -236,7 +236,7 @@ function buildExercises() {
 function buildQuiz() {
   return [
     { question: 'Was kann ein Multilayer-Switch zusätzlich zu einem normalen L2-Switch?', options: ['Er kann mehr Kabel gleichzeitig anschließen', 'Er kann selbst zwischen VLANs routen (Layer 3)', 'Er benötigt kein Betriebssystem', 'Er kann keine VLANs anlegen'], correct: 1, explanation: 'Der zentrale Unterschied ist die Fähigkeit zum Layer-3-Routing.' },
-    { question: 'Wie wird die Gateway-Schnittstelle für ein VLAN auf einem Multilayer-Switch genannt?', options: ['Subinterface', 'Trunk', 'SVI (Switched Virtual Interface)', 'Access-Port'], correct: 2, explanation: 'Die SVI ("interface vlan <ID>") ist das VLAN-Gateway direkt auf dem Switch.' },
+    { question: 'Wie wird die Schnittstelle auf einem Multilayer-Switch genannt, die einem VLAN als Default Gateway dient?', options: ['Subinterface', 'Trunk', 'SVI (Switched Virtual Interface)', 'Access-Port'], correct: 2, explanation: 'Die SVI ("interface vlan <ID>") ist das Default Gateway für das VLAN direkt auf dem Switch.' },
     { question: 'Welcher Befehl aktiviert das globale Routing auf einem Multilayer-Switch?', options: ['ip route', 'ip routing', 'router ospf', 'switchport mode routed'], correct: 1, explanation: '"ip routing" schaltet die Layer-3-Funktion des Switches grundsätzlich ein.' },
     { question: 'Wann ist ein MLS gegenüber Router on a Stick oft im Vorteil?', options: ['Wenn nur ein einziges VLAN existiert', 'Bei hohem Datenverkehr zwischen VLANs, da das Routing in Hardware erfolgt', 'Wenn kein VLAN benötigt wird', 'MLS ist nie im Vorteil'], correct: 1, explanation: 'Hardware-basiertes Routing auf einem MLS ist bei viel Inter-VLAN-Verkehr meist performanter.' },
     { question: 'Ersetzt eine SVI das Anlegen eines VLANs mit "vlan <ID>"?', options: ['Ja, die SVI erstellt das VLAN automatisch', 'Nein, das VLAN muss weiterhin separat angelegt werden', 'Nur bei VLAN 1', 'Nur wenn "ip routing" aktiv ist'], correct: 1, explanation: 'Die SVI ergänzt ein bereits angelegtes VLAN um ein Layer-3-Gateway, ersetzt aber nicht das Anlegen des VLANs selbst.' },
@@ -244,7 +244,7 @@ function buildQuiz() {
     { question: 'Welcher Zustand zeigt eine SVI an, die zwar konfiguriert und "no shutdown" ist, aber deren VLAN keinen aktiven Port hat?', options: ['up/up', 'administratively down/down', 'up/down', 'down/down'], correct: 2, explanation: 'Das SVI ist administrativ aktiv (up), aber operativ nicht vollständig, weil das VLAN im Moment nicht aktiv ist (down).'
     },
     { question: 'Was ist der Unterschied zwischen "ip default-gateway" und "ip route 0.0.0.0 0.0.0.0" auf einem Multilayer-Switch?', options: ['Keiner', '"ip default-gateway" ist für nicht-routende Switches, "ip route" für Geräte mit "ip routing"', 'Beide aktivieren Routing', 'Beide sind für Management gedacht'], correct: 1, explanation: '"ip default-gateway" dient reinem L2-Management; auf einem routenden MLS verwendet man eine Default Route.' },
-    { question: 'Warum beweist ein erfolgreicher Ping auf die Gateway-IP kein funktionierendes Inter-VLAN-Routing?', options: ['Weil Gateways nicht antworten', 'Weil damit nur die lokale SVI getestet wird, nicht die Weiterleitung zwischen VLANs', 'Weil Ping generell kein Routing testet', 'Weil das Gateway immer up ist'], correct: 1, explanation: 'Ein Gateway-Ping zeigt nur, dass die eigene SVI erreichbar ist. End-to-End zwischen VLANs testet das eigentliche Routing.' },
+    { question: 'Warum beweist ein erfolgreicher Ping auf die SVI-IP kein funktionierendes Inter-VLAN-Routing?', options: ['Weil SVIs nicht antworten', 'Weil damit nur die lokale SVI getestet wird, nicht die Weiterleitung zwischen VLANs', 'Weil Ping generell kein Routing testet', 'Weil das Gateway immer up ist'], correct: 1, explanation: 'Ein Ping auf die eigene SVI-IP zeigt nur, dass die SVI erreichbar ist. End-to-End zwischen VLANs testet das eigentliche Routing.' },
   ];
 }
 
@@ -252,15 +252,15 @@ function buildCliTasks() {
   return [
     {
       startContext: 'Globaler Konfigurationsmodus',
-      prompt: 'Sam: "Aktiviere auf dem Multilayer-Switch das Routing und richte die SVI für VLAN 10 mit Gateway 192.168.10.1/24 ein."',
+      prompt: 'Sam: "Aktiviere auf dem Multilayer-Switch das Routing und richte die SVI für VLAN 10 mit der IP-Adresse 192.168.10.1/24 ein. Diese SVI dient den Clients in VLAN 10 als Default Gateway."',
       expectedLines: ['ip routing', 'interface vlan 10', 'ip address 192.168.10.1 255.255.255.0', 'no shutdown'],
-      explanation: 'ip routing zuerst, dann SVI anlegen, IP vergeben, aktivieren.',
+      explanation: 'ip routing zuerst, dann SVI anlegen, IP vergeben, aktivieren. Die SVI-IP ist das Gateway der Clients, nicht der L3-Switch selbst.',
     },
     {
       startContext: 'Globaler Konfigurationsmodus',
-      prompt: 'Sam: "Jetzt noch die SVI für VLAN 20, Gateway 192.168.20.1/24 - "ip routing" ist schon aktiv."',
+      prompt: 'Sam: "Jetzt noch die SVI für VLAN 20 mit der IP-Adresse 192.168.20.1/24 - "ip routing" ist schon aktiv. Diese SVI dient den Clients in VLAN 20 als Default Gateway."',
       expectedLines: ['interface vlan 20', 'ip address 192.168.20.1 255.255.255.0', 'no shutdown'],
-      explanation: '"ip routing" muss nur einmal global aktiviert werden, danach reicht pro VLAN die SVI-Konfiguration.',
+      explanation: '"ip routing" muss nur einmal global aktiviert werden, danach reicht pro VLAN die SVI-Konfiguration. Die SVI-IP ist das Gateway der Clients.',
     },
     {
       startContext: 'Globaler Konfigurationsmodus',

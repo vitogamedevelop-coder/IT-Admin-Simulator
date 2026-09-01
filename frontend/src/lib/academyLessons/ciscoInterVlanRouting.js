@@ -36,7 +36,7 @@ function buildExplanations() {
   ]));
 
   exps.push(explanation('subinterface-classic', 'Subinterfaces und 802.1Q-Encapsulation', 'classic', [
-    { type: 'text', content: 'Auf der einen physischen Schnittstelle des Routers werden mehrere logische Subinterfaces angelegt - eines pro VLAN. Jedes Subinterface bekommt eine eigene IP-Adresse (das Gateway für genau dieses VLAN) und wird per 802.1Q-Encapsulation demselben VLAN zugeordnet, das auch der Switch dafür verwendet.' },
+    { type: 'text', content: 'Auf der einen physischen Schnittstelle des Routers werden mehrere logische Subinterfaces angelegt - eines pro VLAN. Jedes Subinterface bekommt eine eigene IP-Adresse, die den Hosts in diesem VLAN als Default Gateway dient, und wird per 802.1Q-Encapsulation demselben VLAN zugeordnet, das auch der Switch dafür verwendet.' },
     { type: 'list', title: 'Wichtig', items: [
       'Ein Subinterface wird mit einem Punkt an den physischen Interface-Namen angehängt, z. B. "g0/0.10" für das Subinterface, das zu VLAN 10 gehört - die Zahl nach dem Punkt ist frei wählbar, wird aber üblicherweise gleich der VLAN-ID gewählt.',
       'Die physische Schnittstelle selbst (z. B. "g0/0") bekommt in diesem Modell KEINE eigene IP-Adresse - nur "no shutdown", damit sie aktiv ist.',
@@ -49,7 +49,7 @@ function buildExplanations() {
     { type: 'table', headers: ['Befehl', 'Bedeutung'], rows: [
       ['interface <Interface>.<Nummer>', 'Legt ein Subinterface an bzw. wechselt in dessen Konfiguration, z. B. "interface g0/0.10".'],
       ['encapsulation dot1q <VLAN-ID>', 'Legt fest, für welches VLAN dieses Subinterface zuständig ist und dass 802.1Q-Tagging verwendet wird - muss der erste Befehl im Subinterface sein.'],
-      ['ip address <IP-Adresse> <Subnetzmaske>', 'Vergibt dem Subinterface die Gateway-IP-Adresse für dieses VLAN.'],
+      ['ip address <IP-Adresse> <Subnetzmaske>', 'Vergibt dem Subinterface die IP-Adresse, die den Hosts in diesem VLAN als Default Gateway dient.'],
       ['no shutdown (auf der physischen Schnittstelle)', 'Aktiviert die zugrunde liegende physische Schnittstelle - ohne sie funktioniert keines der Subinterfaces.'],
     ] },
     { type: 'list', title: 'Beispiel: Router on a Stick für VLAN 10 und VLAN 20 über g0/0', items: [
@@ -70,7 +70,7 @@ function buildExplanations() {
   exps.push(explanation('summary-classic', 'Zusammenfassung', 'classic', [
     { type: 'list', title: 'Die wichtigsten Punkte', items: [
       'Router on a Stick löst Inter-VLAN-Routing über eine einzige physische Verbindung mit mehreren Subinterfaces.',
-      'Jedes Subinterface (z. B. g0/0.10) gehört per "encapsulation dot1q <VLAN-ID>" zu genau einem VLAN und bekommt seine eigene Gateway-IP.',
+      'Jedes Subinterface (z. B. g0/0.10) gehört per "encapsulation dot1q <VLAN-ID>" zu genau einem VLAN und bekommt seine eigene IP-Adresse, die den Hosts in diesem VLAN als Default Gateway dient.',
       'Die physische Schnittstelle bleibt IP-los, braucht aber "no shutdown".',
       'Der switch-seitige Port muss ein Trunk sein, der alle beteiligten VLANs erlaubt.',
     ] },
@@ -97,7 +97,7 @@ function buildExercises() {
       id: 'router-on-stick-select',
       type: 'select-best',
       question: 'Welche IP-Adresse bekommt die physische Schnittstelle g0/0 bei Router on a Stick?',
-      options: ['Die Gateway-Adresse von VLAN 1', 'Eine Adresse außerhalb aller VLANs', 'Keine - nur die Subinterfaces bekommen IP-Adressen', 'Dieselbe Adresse wie alle Subinterfaces'],
+      options: ['Die Default-Gateway-Adresse von VLAN 1', 'Eine Adresse außerhalb aller VLANs', 'Keine - nur die Subinterfaces bekommen IP-Adressen', 'Dieselbe Adresse wie alle Subinterfaces'],
       correct: 2,
       explanation: 'Die physische Schnittstelle bleibt IP-los, jedes VLAN bekommt sein Gateway über ein eigenes Subinterface.',
     },
@@ -105,14 +105,14 @@ function buildExercises() {
       startContext: 'Globaler Konfigurationsmodus',
       id: 'router-on-stick-cli',
       type: 'cli-input',
-      question: 'Konfiguriere ein Subinterface für VLAN 30 auf g0/0 mit der Gateway-Adresse 192.168.30.1/24.',
+      question: 'Konfiguriere ein Subinterface für VLAN 30 auf g0/0 mit der IP-Adresse 192.168.30.1/24. Diese Subinterface-IP dient den Clients in VLAN 30 als Default Gateway.',
       expectedLines: ['interface g0/0.30', 'encapsulation dot1q 30', 'ip address 192.168.30.1 255.255.255.0'],
-      explanation: 'Subinterface wählen, VLAN per Encapsulation zuordnen, Gateway-IP vergeben.',
+      explanation: 'Subinterface wählen, VLAN per Encapsulation zuordnen, IP-Adresse vergeben. Die Subinterface-IP ist das Default Gateway der Clients, nicht ein eigener "default-gateway"-Befehl auf dem Router.'
     },
     {
       id: 'roas-trunk-missing-select',
       type: 'select-best',
-      question: 'Die Subinterfaces und Gateway-IPs sind korrekt, aber VLAN 10 und 20 können nicht kommunizieren. Was prüfst du zuerst auf dem Switch?',
+      question: 'Die Subinterfaces und ihre IP-Adressen sind korrekt, aber VLAN 10 und 20 können nicht kommunizieren. Was prüfst du zuerst auf dem Switch?',
       options: ['Ob der Switch-Port zum Router ein Trunk ist, der VLAN 10 und 20 erlaubt', 'Ob VLAN 1 gelöscht wurde', 'Ob das Router-Interface eine MAC-Adresse hat', 'Ob der Switch neu gestartet werden muss'],
       correct: 0,
       explanation: 'Router-on-a-Stick braucht einen Trunk, der alle beteiligten VLANs erlaubt. Ohne Trunk erreichen die getaggten Frames den Router nicht.',
@@ -158,15 +158,15 @@ function buildCliTasks() {
   return [
     {
       startContext: 'Globaler Konfigurationsmodus',
-      prompt: 'Sam: "VLAN 10 und VLAN 20 sollen über Router on a Stick auf g0/0 kommunizieren können. Fang mit VLAN 10 an: Gateway 192.168.10.1/24."',
+      prompt: 'Sam: "VLAN 10 und VLAN 20 sollen über Router on a Stick auf g0/0 kommunizieren können. Fang mit VLAN 10 an: Subinterface für VLAN 10 mit IP 192.168.10.1/24. Diese IP dient den Clients in VLAN 10 als Default Gateway."',
       expectedLines: ['interface g0/0.10', 'encapsulation dot1q 10', 'ip address 192.168.10.1 255.255.255.0'],
-      explanation: 'Subinterface für VLAN 10 mit Encapsulation und Gateway-IP.',
+      explanation: 'Subinterface für VLAN 10 mit Encapsulation und IP-Adresse. Die Subinterface-IP ist das Default Gateway der Clients.'
     },
     {
       startContext: 'Globaler Konfigurationsmodus',
-      prompt: 'Sam: "Jetzt das Subinterface für VLAN 20, Gateway 192.168.20.1/24."',
+      prompt: 'Sam: "Jetzt das Subinterface für VLAN 20 mit IP 192.168.20.1/24. Diese IP dient den Clients in VLAN 20 als Default Gateway."',
       expectedLines: ['interface g0/0.20', 'encapsulation dot1q 20', 'ip address 192.168.20.1 255.255.255.0'],
-      explanation: 'Gleiches Muster wie bei VLAN 10, nur mit VLAN-ID 20 und der passenden Gateway-Adresse.',
+      explanation: 'Gleiches Muster wie bei VLAN 10, nur mit VLAN-ID 20 und der passenden Subinterface-IP, die den Clients als Default Gateway dient.'
     },
     {
       startContext: 'Globaler Konfigurationsmodus',

@@ -22,9 +22,15 @@ const targetTopic = ACADEMY_TOPICS.find((t) => LESSONS[topicKey(t.categoryId, t.
 assert(targetTopic, 'need at least one topic with a lesson');
 const key = topicKey(targetTopic.categoryId, targetTopic.topicId);
 const lesson = LESSONS[key];
-const validSections = new Set(lesson.explanations.map((e) => e.id));
+
+function getSectionId(e) {
+  const dash = (e.id || '').lastIndexOf('-');
+  return e.sectionId || (dash > 0 ? e.id.slice(0, dash) : e.id);
+}
+
+const validSectionIds = new Set(lesson.explanations.map((e) => getSectionId(e)));
 const validExercises = new Set(lesson.exercises.map((e) => e.id));
-const firstSection = Array.from(validSections)[0];
+const firstSection = Array.from(validSectionIds)[0];
 const firstExercise = Array.from(validExercises)[0];
 
 // Simulate an old save that contains valid current AND obsolete removed IDs
@@ -66,6 +72,6 @@ assert.strictEqual(new Set(topic.completedQuestionIds).size, topic.completedQues
 assert(!topic.completedExerciseIds.includes('removed-exercise-1'), 'removed exercise id is filtered');
 assert(topic.completedExerciseIds.includes(firstExercise), 'current exercise id is kept');
 assert(!data.topics['removed-topic/obsolete'], 'removed topic is dropped');
-assert(!topic.lastCompletedSectionId || validSections.has(topic.lastCompletedSectionId), 'lastCompletedSectionId is valid');
+assert(!topic.lastCompletedSectionId || validSectionIds.has(topic.lastCompletedSectionId), 'lastCompletedSectionId is valid');
 
 console.log('=== Academy Update Sanitization Test passed ===');
