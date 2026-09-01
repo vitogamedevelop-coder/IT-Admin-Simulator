@@ -449,7 +449,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
         <div className="cyber-card p-4">
           <div className="flex items-center justify-between">
             <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Quiz</div>
-            <SpeakButton text={normalizeCiscoText(currentQuizQuestion.question + '. ' + (currentQuizQuestion.options || []).join('. '))} label="Frage vorlesen" />
+            <SpeakButton text={normalizeCiscoText(currentQuizQuestion.question + '. ' + (currentQuizQuestion.options || []).join('. '))} speaker="Sam" label="Frage vorlesen" />
           </div>
           <p className="text-sm text-white font-bold mt-2">{currentQuizQuestion.question}</p>
           {answered === undefined ? (
@@ -564,7 +564,7 @@ function StaticBlock({ block }) {
   const speakableText = ttsTextFromBlocks([block]);
   const header = (
     <div className="flex items-start justify-end -mt-1 mb-1">
-      <SpeakButton text={speakableText} label="Block vorlesen" />
+      <SpeakButton text={speakableText} speaker="Sam" label="Block vorlesen" />
     </div>
   );
 

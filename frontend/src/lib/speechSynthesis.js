@@ -737,8 +737,31 @@ function scoreVoiceForProfile(voice, profile) {
   return score;
 }
 
+const CHARACTER_NAME_ALIASES = {
+  sam: ['sam', 'sam richter', 'senior admin sam', 'senior admin'],
+  mara: ['mara'],
+  david: ['david'],
+  aylin: ['aylin'],
+  thomas: ['thomas'],
+};
+
+// Resolves a free-form speaker name/identifier (e.g. "Sam", "Sam Richter",
+// "Senior Admin Sam") to the canonical character id used in
+// CHARACTER_VOICE_PROFILES. Returns null if no known character matches.
+export function resolveCharacterVoice(identifier) {
+  if (!identifier || typeof identifier !== 'string') return null;
+  const needle = identifier.trim().toLowerCase();
+  for (const [id, aliases] of Object.entries(CHARACTER_NAME_ALIASES)) {
+    if (aliases.includes(needle)) return id;
+  }
+  // If the input is already a known profile id, accept it as-is.
+  if (CHARACTER_VOICE_PROFILES[needle]) return needle;
+  return null;
+}
+
 export async function getCharacterVoice(speakerId) {
-  const profile = CHARACTER_VOICE_PROFILES[speakerId];
+  const canonical = resolveCharacterVoice(speakerId);
+  const profile = CHARACTER_VOICE_PROFILES[canonical || speakerId];
   if (!profile) return null;
   const voices = await getVoices();
   if (!voices.length) return null;
@@ -747,7 +770,7 @@ export async function getCharacterVoice(speakerId) {
   return scored[0]?.voice || null;
 }
 
-export async function speakAs(text, { speakerId, speechText } = {}) {
+export async function speakAs(text, { speakerId, speechText, ...callbacks } = {}) {
   if (!ENABLE_SAM_TTS_TEST || !isTtsEnabled()) return;
   await stop();
 
@@ -756,9 +779,9 @@ export async function speakAs(text, { speakerId, speechText } = {}) {
 
   if (settings.useSystemVoice) {
     if (isNativePlatform() && (await checkNativeTts())) {
-      await speakNative(normalized, -1, true, {});
+      await speakNative(normalized, -1, true, callbacks);
     } else if (isWebSpeechSupported()) {
-      speakWeb(normalized, null, {});
+      speakWeb(normalized, null, callbacks);
     }
     return;
   }
@@ -766,16 +789,16 @@ export async function speakAs(text, { speakerId, speechText } = {}) {
   const characterVoice = speakerId ? await getCharacterVoice(speakerId) : null;
   if (characterVoice) {
     if (isNativePlatform() && (await checkNativeTts())) {
-      await speakNative(normalized, characterVoice.index, false, {});
+      await speakNative(normalized, characterVoice.index, false, callbacks);
     } else if (isWebSpeechSupported()) {
-      speakWeb(normalized, characterVoice, {});
+      speakWeb(normalized, characterVoice, callbacks);
     }
     return;
   }
 
   const selected = await selectVoice();
   if (isNativePlatform() && (await checkNativeTts())) {
-    await speakNative(normalized, selected.index, selected.useSystemVoice, {});
+    await speakNative(normalized, selected.index, selected.useSystemVoice, callbacks);
   } else if (isWebSpeechSupported()) {
     speakWeb(normalized, selected.voice, {});
   }

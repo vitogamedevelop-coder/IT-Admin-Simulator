@@ -211,7 +211,7 @@ function GrundbegriffeLesson({ mode = 'theory', onDone }) {
       <p className="text-sm text-[#c9d1d9] mt-2">{beat.text}</p>
       {beat.visual && <BasicsVisual type={beat.visual} />}
       <div className="flex items-center justify-between mt-3">
-        <SpeakButton text={beat.text} />
+        <SpeakButton text={beat.text} speaker="Sam" />
         <button onClick={advance} className="cyber-btn py-2 px-4 text-sm">Weiter</button>
       </div>
     </div>
