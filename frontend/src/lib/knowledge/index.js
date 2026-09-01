@@ -52,6 +52,7 @@ import { adLogicalComponentsKnowledgeItems } from './items/adLogicalComponents.j
 import { adFsmoGcKnowledgeItems } from './items/adFsmoGc.js';
 import { adOuManagementKnowledgeItems } from './items/adOuManagement.js';
 import { adWindowsServerKnowledgeItems } from './items/adWindowsServer.js';
+import { adMmcBasicsKnowledgeItems } from './items/adMmcBasics.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
@@ -132,6 +133,7 @@ const PILOT_ITEMS = [
   ...adSharesKnowledgeItems,
   ...adNtfsPermissionsKnowledgeItems,
   ...adPermissionsKnowledgeItems,
+  ...adMmcBasicsKnowledgeItems,
 ];
 
 const REGISTRY = new Map(PILOT_ITEMS.map((item) => [item.id, item]));

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { APP_VERSION } from '../src/lib/version.js';
 
 const localStore = new Map();
 const sessionStore = new Map();
@@ -89,7 +90,7 @@ console.log('B. Progress after upgrade ...');
 assert.strictEqual(migrated.theoryCompletion, 0, 'theoryCompletion must not be invented from theoryScore');
 assert.strictEqual(topicTheoryCompletion(migrated), 0, 'displayed theory must not use theoryScore');
 assert.strictEqual(migrated.status, 'started', 'status must not be promoted to learned without theory completion');
-assert.strictEqual(localStore.get('cyberlearn:app-version'), '1.77.4', 'app version marker updated');
+assert.strictEqual(localStore.get('cyberlearn:app-version'), APP_VERSION, 'app version marker updated');
 
 console.log('C. Second handleAppUpgrade must be a no-op ...');
 sessionStore.clear();

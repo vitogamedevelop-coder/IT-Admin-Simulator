@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { APP_VERSION } from '../src/lib/version.js';
 
 // A full simulated old 1.77.3 app state: save, cache, version marker.
 const localStore = new Map();
@@ -83,7 +84,7 @@ localStore.set('cyberlearn:academy-progress-v1', JSON.stringify({
 cacheStore.set('cyberlearn-v1.77.3', new Map([['index.html', { body: 'old index' }]]));
 cacheStore.set('browser-other-cache', new Map());
 
-console.log('A. Simulated update from 1.77.3 to 1.77.4 ...');
+console.log(`A. Simulated update from 1.77.3 to ${APP_VERSION} ...`);
 const reloading = await handleAppUpgrade();
 
 console.log('B. Verify cache invalidation ...');
@@ -91,7 +92,7 @@ assert(reloading, 'harness must trigger a reload');
 assert(reloaded, 'window.location.reload must be called exactly once');
 assert(!cacheStore.has('cyberlearn-v1.77.3'), 'old cyberlearn cache must be dropped');
 assert(cacheStore.has('browser-other-cache'), 'non-app cache must survive');
-assert.strictEqual(localStore.get('cyberlearn:app-version'), '1.77.4', 'version marker must be current');
+assert.strictEqual(localStore.get('cyberlearn:app-version'), APP_VERSION, 'version marker must be current');
 
 console.log('C. Verify save preservation & normalization ...');
 const after = readAcademyProgress().topics[topKey];

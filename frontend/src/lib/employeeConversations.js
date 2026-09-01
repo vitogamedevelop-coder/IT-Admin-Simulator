@@ -1982,7 +1982,25 @@ export const CONVERSATION_TOPICS = {
       { id: 'adp-conv-5', difficulty: 'hard', text: 'Stimmt es: "Eine globale Gruppe hat automatisch Zugriff auf alle Ressourcen der Gesamtstruktur"?', options: ['Ja', 'Nein, Berechtigungen müssen explizit vergeben werden', 'Nur in Multi-Domain-Umgebungen', 'Nur mit Universalgruppen'], correct: 1, explanation: 'Der Gruppenbereich allein erzeugt keinen Zugriff. Erst eine Berechtigungszuweisung auf einer Ressource schafft effektive Rechte.' },
       { id: 'adp-conv-6', difficulty: 'hard', text: 'A-G-G-P unterscheidet sich von A-G-DL-P dadurch, dass ...', options: ['nur Accounts verwendet werden', 'als Berechtigungsgruppe eine globale Gruppe dient', 'nur Verteilergruppen erlaubt sind', 'keine Gruppenverschachtelung möglich ist'], correct: 1, explanation: 'A-G-G-P nutzt eine globale Funktions- und eine globale Berechtigungsgruppe; A-G-DL-P verwendet eine domänenlokale Berechtigungsgruppe.' },
       { id: 'adp-conv-7', difficulty: 'hard', text: 'Ein Mitarbeiter wechselt die Funktion. Was muss im Gruppenmodell primär passieren?', options: ['Jede NTFS-ACL neu setzen', 'Funktionsgruppenmitgliedschaft anpassen', 'Alle Freigaben löschen', 'Domäne migrieren'], correct: 1, explanation: 'Ressourcenberechtigungen bleiben bestehen; die Funktionsgruppenmitgliedschaft wird geändert.' },
-      { id: 'adp-conv-8', difficulty: 'medium', text: 'Welche Gruppe erhält typischerweise im A-G-DL-P-Modell die NTFS-Berechtigung?', options: ['G_Stab', 'DL_Befehle_AE', 'S1Offz direkt', 'Universal_Stab'], correct: 1, explanation: 'Die domänenlokale Berechtigungsgruppe bekommt die Rechte auf der Ressource zugewiesen.' },
+      { id: 'adp-conv-8', difficulty: 'medium', text: 'Welche Gruppe erhält typikerweise im A-G-DL-P-Modell die NTFS-Berechtigung?', options: ['G_Stab', 'DL_Befehle_AE', 'S1Offz direkt', 'Universal_Stab'], correct: 1, explanation: 'Die domänenlokale Berechtigungsgruppe bekommt die Rechte auf der Ressource zugewiesen.' },
+    ],
+  },
+  [topicKey('active-directory-virtualbox', 'ad-mmc-basics')]: {
+    title: 'Microsoft Management Console & Snap-Ins',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'ad-group-practice'), topicKey('active-directory-virtualbox', 'ad-permissions')],
+    introPool: [
+      'Was ist der Unterschied zwischen MMC und Snap-In?',
+      'Warum würdest du einem Hilfsadmin eine eigene MMC bauen?',
+      'Reicht eine eingeschränkte MMC, um Rechte zu entziehen?',
+      'Welches Snap-In nimmst du, um AD-Benutzer zu verwalten?',
+    ],
+    samHelp: 'Die Microsoft Management Console (MMC) ist ein Verwaltungsrahmen, kein Verwaltungstool. Ein Snap-In ist ein Werkzeug, das in der MMC ausgeführt wird, zum Beispiel Active Directory-Benutzer und -Computer, DNS-Manager, Ereignisanzeige oder Dienste. Gespeicherte Konsolen haben oft die Endung .msc. Snap-Ins fügt man über Datei → Snap-In hinzufügen/entfernen hinzu. Konsolenmodi: Autorenmodus erlaubt das Umbaen der Konsole, Benutzermodi reduzieren den Bedienumfang. Eine eingeschränkte Oberfläche ersetzt keine AD-Berechtigungen; Rechte müssen separat delegiert werden.',
+    questions: [
+      { id: 'ad-mmc-conv-1', difficulty: 'easy', text: 'Was ist die MMC?', options: ['Ein Verwaltungsrahmen für Snap-Ins', 'Das eigentliche AD-Benutzerverwaltungstool', 'Ein Berechtigungsmodell', 'Ein Serverdienst'], correct: 0, explanation: 'Die MMC hostet Snap-Ins, führt selbst aber keine Verwaltungsaufgaben aus.' },
+      { id: 'ad-mmc-conv-2', difficulty: 'easy', text: 'Was ist ein Snap-In?', options: ['Ein in die MMC eingebundenes Verwaltungstool', 'Ein Sicherheitsmodell', 'Ein Benutzerkonto', 'Eine Netzwerkkarte'], correct: 0, explanation: 'Ein Snap-In ist ein Verwaltungstool, das innerhalb der MMC läuft.' },
+      { id: 'ad-mmc-conv-3', difficulty: 'medium', text: 'Welches Snap-In verwendest du, um DNS-Zonen zu verwalten?', options: ['Active Directory-Benutzer und -Computer', 'DNS-Manager', 'Ereignisanzeige', 'Dienste'], correct: 1, explanation: 'Für DNS-Zonen ist der DNS-Manager zuständig.' },
+      { id: 'ad-mmc-conv-4', difficulty: 'medium', text: 'In welchem Menü findest du "Snap-In hinzufügen/entfernen"?', options: ['Datei', 'Bearbeiten', 'Ansicht', 'Extras'], correct: 0, explanation: 'Der Punkt liegt im Datei-Menü der MMC.' },
+      { id: 'ad-mmc-conv-5', difficulty: 'hard', text: 'Eine eingeschränkte MMC-Oberfläche ersetzt ...', options: ['AD-Berechtigungen', 'Netzwerkkabel', 'Nichts, sie beschränkt nur die UI', 'Windows-Updates'], correct: 2, explanation: 'Eine eingeschränkte MMC beschränkt nur die Oberfläche. Rechte müssen separat delegiert werden.' },
     ],
   },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
