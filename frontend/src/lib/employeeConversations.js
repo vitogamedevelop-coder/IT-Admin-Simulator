@@ -2003,6 +2003,24 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-mmc-conv-5', difficulty: 'hard', text: 'Eine eingeschränkte MMC-Oberfläche ersetzt ...', options: ['AD-Berechtigungen', 'Netzwerkkabel', 'Nichts, sie beschränkt nur die UI', 'Windows-Updates'], correct: 2, explanation: 'Eine eingeschränkte MMC beschränkt nur die Oberfläche. Rechte müssen separat delegiert werden.' },
     ],
   },
+  [topicKey('active-directory-virtualbox', 'ad-delegation')]: {
+    title: 'Delegation & Objektverwaltung',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'ad-mmc-basics'), topicKey('active-directory-virtualbox', 'ad-group-practice')],
+    introPool: [
+      'Warum delegiert man Aufgaben statt Domain Admin zu vergeben?',
+      'Warum nicht direkt an S6Offz delegieren?',
+      'Was ist der Unterschied zwischen MMC-Einschränkung und Delegation?',
+      'Warum ist OU Stab der richtige Scope?',
+    ],
+    samHelp: 'Delegation bedeutet, eine klar definierte Verwaltungsaufgabe auf einen bestimmten Scope zu übertragen, ohne Vollzugriff zu gewähren. Für das Szenario gilt: S6Offz ist Mitglied der globalen Funktionsgruppe G_S6, G_S6 ist Mitglied der domänenlokalen Berechtigungsgruppe DL_StabPwReset. Über Objektverwaltung zuweisen in ADUC wird DL_StabPwReset auf der OU Stab das Recht zum Zurücksetzen von Benutzerkennwörtern delegiert. Delegation ist eine echte AD-Berechtigung; eine eingeschränkte MMC-Oberfläche allein erteilt keine Rechte. Bei Personalwechsel ändert man die Funktionsgruppenmitgliedschaft, die Delegation bleibt bestehen.',
+    questions: [
+      { id: 'ad-del-conv-1', difficulty: 'easy', text: 'Warum wird in AD Delegation statt Domain Admin verwendet?', options: ['Damit jeder alle Rechte bekommt', 'Damit nur die nötige Aufgabe im nötigen Scope vergeben wird', 'Damit Passwörter automatisch gesetzt werden', 'Damit keine Gruppen gebraucht werden'], correct: 1, explanation: 'Delegation ermöglicht gezielte Rechtevergabe ohne Vollzugriff.' },
+      { id: 'ad-del-conv-2', difficulty: 'medium', text: 'Welche Kette wird für das Passwortreset-Szenario verwendet?', options: ['S6Offz direkt → OU Stab', 'S6Offz → G_S6 → DL_StabPwReset → OU Stab', 'DL_StabPwReset → G_S6 → S6Offz', 'Domänenadmin → S6Offz'], correct: 1, explanation: 'Account in Funktionsgruppe, diese in Berechtigungsgruppe, diese auf OU delegiert.' },
+      { id: 'ad-del-conv-3', difficulty: 'medium', text: 'Auf welchem Scope wird das Passwortreset-Recht delegiert?', options: ['Auf der gesamten Domäne', 'Auf der OU Stab', 'Auf dem Domain Controller', 'Auf dem Schema'], correct: 1, explanation: 'Scope ist die OU Stab, um Least Privilege zu wahren.' },
+      { id: 'ad-del-conv-4', difficulty: 'hard', text: 'Ein Hilfsadmin sieht Benutzer in einer eingeschränkten MMC, kann aber Passwörter nicht zurücksetzen. Was fehlt?', options: ['Eine noch kleinere MMC', 'Das Delegationsrecht auf der OU', 'Mehr RAM', 'Neuer DNS-Server'], correct: 1, explanation: 'Sichtbarkeit in der MMC erteilt keine Rechte; die Delegation fehlt.' },
+      { id: 'ad-del-conv-5', difficulty: 'hard', text: 'Eine neue Mitarbeiterin übernimmt die S6-Rolle. Was ändert man primär?', options: ['Die Delegation auf der OU neu erstellen', 'Die Mitgliedschaft in G_S6', 'Die OU Struktur', 'Das Schema'], correct: 1, explanation: 'Man ändert die Funktionsgruppenmitgliedschaft; die Delegation bleibt bestehen.' },
+    ],
+  },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
     title: 'Domain Controller',
     relatedTopics: [topicKey('active-directory-virtualbox', 'domain'), topicKey('active-directory-virtualbox', 'ad-foundation')],
