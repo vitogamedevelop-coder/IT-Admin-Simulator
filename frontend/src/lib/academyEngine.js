@@ -44,11 +44,13 @@ export function clampScore(value) {
   return Math.max(SCORE_MIN, Math.min(SCORE_MAX, Math.round(value)));
 }
 
-// Helper for the theory dimension: a dedicated completion value (0-100) takes
-// precedence over the older fine-grained theoryScore so that a full theory
-// pass is always represented as 100 % theory progress.
+// Helper for the theory dimension: the dedicated completion value (0-100) takes
+// precedence while it is non-zero. If no completion percentage has been recorded
+// yet (0), fall back to the older fine-grained theoryScore so that legacy saves
+// whose theory completion was never explicitly set still show their earned
+// theory progress instead of 0 %.
 export function topicTheoryCompletion(topic) {
-  return topic?.theoryCompletion ?? topic?.theoryScore ?? 0;
+  return topic?.theoryCompletion || topic?.theoryScore || 0;
 }
 
 // Shared completion predicate used by category summaries and unlock checks.

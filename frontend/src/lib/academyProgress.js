@@ -195,6 +195,34 @@ function uniqueNonEmpty(arr) {
   return [...new Set((arr || []).filter((x) => x && typeof x === 'string'))];
 }
 
+// Derives a legacy floor for theory completion / content seen from all
+// historically reliable completion markers. A full (100 %) floor is only
+// returned for evidence that the learner finished the entire lesson:
+//   - the topic was recorded as completed at least once (lessonCompletions >= 1)
+//   - the stored theoryCompletion is already 100 %
+//   - the stored contentSeenPercent is already 100 %
+//   - all currently known sections were recorded as completed
+// For everything else the floor is the best partial value we can derive from
+// the same content markers. `theoryScore` and `status` are intentionally NOT
+// used here: theoryScore is a fine-grained knowledge score, not proof of full
+// content completion, and `learned` status only needs minTheoryScore 25.
+function deriveLegacyTheoryFloor(progress, key) {
+  const lesson = LESSONS[key];
+  const validSectionIds = new Set(lesson?.explanations?.map((e) => e.id) || []);
+  const completedSectionIds = uniqueNonEmpty(progress.completedSectionIds).filter((id) => validSectionIds.has(id));
+  const totalSections = validSectionIds.size;
+  const computed = totalSections > 0 ? Math.round((completedSectionIds.length / totalSections) * 100) : 0;
+
+  const lessonCompleted = (progress.lessonCompletions || 0) >= 1;
+  const theoryCompletion = progress.theoryCompletion || 0;
+  const contentSeenPercent = progress.contentSeenPercent || 0;
+
+  if (lessonCompleted || theoryCompletion >= 100 || contentSeenPercent >= 100) return 100;
+  if (totalSections > 0 && completedSectionIds.length >= totalSections) return 100;
+
+  return Math.max(theoryCompletion, contentSeenPercent, computed);
+}
+
 function sanitizeTopicProgress(key, progress, currentVersion) {
   const lesson = LESSONS[key];
   const validSectionIds = new Set(lesson?.explanations?.map((e) => e.id) || []);
@@ -217,15 +245,11 @@ function sanitizeTopicProgress(key, progress, currentVersion) {
   // the current lesson registry. This preserves legitimate player progress
   // across content updates while still back-filling exact section progress
   // when the saved IDs are still valid.
-  // Additionally, a recorded full lesson completion (lessonCompletions >= 1)
-  // is reliable evidence that the topic was once fully seen. This recovers
-  // theory state that may have been zeroed by a buggy sanitization run.
   const computedTheory = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : 0;
   const computedSeen = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : 0;
-  const lessonCompleted = (progress.lessonCompletions || 0) >= 1;
-  const floor = lessonCompleted ? 100 : 0;
-  const nextTheoryCompletion = Math.max(progress.theoryCompletion || 0, computedTheory, floor);
-  const nextContentSeen = Math.max(progress.contentSeenPercent || 0, computedSeen, floor);
+  const legacyTheoryFloor = deriveLegacyTheoryFloor(progress, key);
+  const nextTheoryCompletion = Math.max(progress.theoryCompletion || 0, computedTheory, legacyTheoryFloor);
+  const nextContentSeen = Math.max(progress.contentSeenPercent || 0, computedSeen, legacyTheoryFloor);
 
   return {
     ...progress,

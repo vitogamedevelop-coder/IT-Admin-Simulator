@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Volume2, Square } from 'lucide-react';
-import { speak, stop, isSupported, isTtsEnabled } from '../lib/speechSynthesis';
+import { speak, speakAs, stop, isSupported, isTtsEnabled, resolveCharacterVoice } from '../lib/speechSynthesis';
 
-export default function SpeakButton({ text, className = '' }) {
+export default function SpeakButton({ text, className = '', speaker = '' }) {
   const [speaking, setSpeaking] = useState(false);
   const supported = isSupported() && isTtsEnabled();
 
@@ -22,11 +22,22 @@ export default function SpeakButton({ text, className = '' }) {
       setSpeaking(false);
       return;
     }
-    await speak(text, {
-      onStart: () => setSpeaking(true),
-      onEnd: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
-    });
+    const characterId = resolveCharacterVoice(speaker);
+    if (characterId) {
+      await speakAs(text, {
+        speakerId: characterId,
+        speechText: text,
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+        onError: () => setSpeaking(false),
+      });
+    } else {
+      await speak(text, {
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+        onError: () => setSpeaking(false),
+      });
+    }
   }
 
   return (
