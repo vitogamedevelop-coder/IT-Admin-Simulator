@@ -6,7 +6,7 @@ import { getAllKnowledgeItems } from '../src/lib/knowledge/index.js';
 import { CONVERSATION_TOPICS } from '../src/lib/employeeConversations.js';
 
 const USERS_KEY = topicKey('active-directory-virtualbox', 'users');
-const OUT_OF_SCOPE = /\b(profile path|home folder|home-laufwerk|basisordner|unc-pfad|\\file01|home\$|profile\$|smb|ntfs|share permission|freigabe|gpo|agdlp|aggp|group scope)\b/i;
+const OUT_OF_SCOPE = /\b(gpo|agdlp)\b/i;
 
 console.log('=== Active Directory User Management Quality Audit ===');
 
@@ -38,9 +38,9 @@ for (const s of requiredSections) {
 
 console.log('3. Checking lesson structure...');
 assert(typeof lesson.title === 'string' && lesson.title.length > 0, 'title required');
-assert(Array.isArray(lesson.explanations) && lesson.explanations.length >= 8, 'at least 8 explanations');
-assert(Array.isArray(lesson.exercises) && lesson.exercises.length >= 3, 'at least 3 exercises');
-assert(Array.isArray(lesson.quiz) && lesson.quiz.length >= 6 && lesson.quiz.length <= 8, 'quiz 6-8');
+assert(Array.isArray(lesson.explanations) && lesson.explanations.length >= 10, 'at least 10 explanations');
+assert(Array.isArray(lesson.exercises) && lesson.exercises.length >= 6, 'at least 6 exercises');
+assert(Array.isArray(lesson.quiz) && lesson.quiz.length >= 6, 'quiz at least 6');
 assert(Array.isArray(lesson.summary) && lesson.summary.length > 0, 'summary required');
 
 console.log('4. Checking guided-ui exercises...');
@@ -57,7 +57,7 @@ for (const ex of guided) {
 console.log('5. Checking direct exercise load...');
 const selected = selectDirectTheoryExercises(lesson.exercises || [], USERS_KEY);
 const limit = getDirectExerciseLimit(lesson.exercises.length);
-assert(selected.length >= 3 && selected.length <= 4, `direct exercises should be 3-4, got ${selected.length}`);
+assert(selected.length >= 3 && selected.length <= 6, `direct exercises should be 3-6, got ${selected.length}`);
 assert.strictEqual(selected.length, Math.min(lesson.exercises.length, limit), 'selector consistency');
 
 console.log('6. Checking out-of-scope terms...');

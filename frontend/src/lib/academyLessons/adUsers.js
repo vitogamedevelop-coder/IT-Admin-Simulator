@@ -1,4 +1,10 @@
 import { topicKey } from '../academyTopics.js';
+import {
+  buildAdUserTemplateExplanations,
+  buildAdUserTemplateExercises,
+  buildAdUserTemplateQuiz,
+  buildAdUserTemplateSummary,
+} from './adUserTemplates.js';
 
 // =============================================================================
 // Active Directory – Benutzer anlegen & Benutzerkonto konfigurieren
@@ -467,9 +473,9 @@ function buildSummary() {
 export function buildAdUsersLesson() {
   return {
     title: 'Benutzer anlegen & Benutzerkonto konfigurieren',
-    explanations: buildExplanations(),
-    exercises: buildExercises(),
-    quiz: buildQuiz(),
-    summary: buildSummary(),
+    explanations: [...buildExplanations(), ...buildAdUserTemplateExplanations()],
+    exercises: [...buildExercises(), ...buildAdUserTemplateExercises()],
+    quiz: [...buildQuiz(), ...buildAdUserTemplateQuiz()],
+    summary: [...buildSummary(), ...buildAdUserTemplateSummary()],
   };
 }
