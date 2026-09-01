@@ -7,8 +7,8 @@ android {
         applicationId "com.cyberlearn.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 17600
-        versionName "1.76.0"
+        versionCode 17601
+        versionName "1.76.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

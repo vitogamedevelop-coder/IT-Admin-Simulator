@@ -195,7 +195,7 @@ function uniqueNonEmpty(arr) {
   return [...new Set((arr || []).filter((x) => x && typeof x === 'string'))];
 }
 
-function sanitizeTopicProgress(key, progress) {
+function sanitizeTopicProgress(key, progress, currentVersion) {
   const lesson = LESSONS[key];
   const validSectionIds = new Set(lesson?.explanations?.map((e) => e.id) || []);
   const validExerciseIds = new Set(lesson?.exercises?.map((e) => e.id) || []);
@@ -212,8 +212,20 @@ function sanitizeTopicProgress(key, progress) {
   }
 
   const totalSections = validSectionIds.size;
-  const nextTheoryCompletion = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : progress.theoryCompletion || 0;
-  const nextContentSeen = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : progress.contentSeenPercent || 0;
+  // Monotonic theory rule: a previously measured theory or content-seen value
+  // is never reduced just because the underlying section IDs no longer match
+  // the current lesson registry. This preserves legitimate player progress
+  // across content updates while still back-filling exact section progress
+  // when the saved IDs are still valid.
+  // Additionally, a recorded full lesson completion (lessonCompletions >= 1)
+  // is reliable evidence that the topic was once fully seen. This recovers
+  // theory state that may have been zeroed by a buggy sanitization run.
+  const computedTheory = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : 0;
+  const computedSeen = totalSections > 0 ? Math.round((sectionIds.length / totalSections) * 100) : 0;
+  const lessonCompleted = (progress.lessonCompletions || 0) >= 1;
+  const floor = lessonCompleted ? 100 : 0;
+  const nextTheoryCompletion = Math.max(progress.theoryCompletion || 0, computedTheory, floor);
+  const nextContentSeen = Math.max(progress.contentSeenPercent || 0, computedSeen, floor);
 
   return {
     ...progress,
@@ -224,6 +236,7 @@ function sanitizeTopicProgress(key, progress) {
     lastCompletedSectionTitle: lastSectionTitle,
     theoryCompletion: nextTheoryCompletion,
     contentSeenPercent: nextContentSeen,
+    version: currentVersion,
   };
 }
 
@@ -236,7 +249,7 @@ function sanitizeProgress(data) {
     if (!progress || typeof progress !== 'object') {
       next.topics[key] = defaultProgressForTopic(topicDef);
     } else {
-      next.topics[key] = sanitizeTopicProgress(key, { ...defaultProgressForTopic(topicDef), ...progress });
+      next.topics[key] = sanitizeTopicProgress(key, { ...defaultProgressForTopic(topicDef), ...progress }, topicDef.version);
     }
   });
   return next;
