@@ -203,6 +203,7 @@ export const ACADEMY_TOPICS = [
   topic('active-directory-virtualbox', 'ad-user-profiles', 'Benutzerprofile', 'Benutzer- und Computerkonten, Profile, Ordnerumleitung, Home-Verzeichnis, UNC und Admin-Tier-Modell.', ['active-directory-virtualbox/ad-foundation']),
   topic('active-directory-virtualbox', 'ad-permissions', 'Gruppen & Berechtigungsverwaltung', 'Gruppen, Gruppenbereiche, A-G-DL-P, A-G-G-P und das Least-Privilege-Prinzip.', ['active-directory-virtualbox/ad-user-profiles']),
   topic('active-directory-virtualbox', 'ad-group-practice', 'Gruppen praktisch anlegen & verschachteln', 'ADUC: globale Funktionsgruppen, domänenlokale Berechtigungsgruppen, Mitglieder verwalten, Verschachtelung und AGDLP-Challenge.', ['active-directory-virtualbox/ad-permissions']),
+  topic('active-directory-virtualbox', 'ad-mmc-basics', 'Microsoft Management Console & Snap-Ins', 'MMC als Verwaltungsrahmen, Snap-Ins, .msc, Konsolenmodi und die Grenze zwischen UI-Einschränkung und Berechtigungsdelegation.', ['active-directory-virtualbox/ad-group-practice']),
   topic('active-directory-virtualbox', 'windows-server', 'Windows Server Core', 'Verwaltung von Server Core: lokal über PowerShell und remote über den Server Manager.', ['active-directory-virtualbox/domain-controller']),
   // Domain builds directly on the AD foundation for the logical-components
   // block. Windows Server remains a separate topic; the playable chain here

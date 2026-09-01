@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { APP_VERSION } from '../src/lib/version.js';
 
 // Mock persistence globals needed by the upgrade layer.
 const localStore = new Map();
@@ -46,10 +47,11 @@ const { handleAppUpgrade } = await import('../src/lib/appUpgrade.js');
 
 console.log('=== App Cache Version Invalidation Test ===');
 
-// Simulate the old version's cache bucket, a bucket for the new version,
+// Simulate an older version, an intermediate version, the current version bucket,
 // and an unrelated browser cache that must be left alone.
 cacheStore.set('cyberlearn-v1.77.3', new Map());
 cacheStore.set('cyberlearn-v1.77.4', new Map());
+cacheStore.set(`cyberlearn-v${APP_VERSION}`, new Map());
 cacheStore.set('other-site-cache', new Map());
 
 // User save must NOT be touched.
@@ -66,9 +68,10 @@ const reloading = await handleAppUpgrade();
 
 assert(reloading, 'handleAppUpgrade must request a reload on version change');
 assert(!cacheStore.has('cyberlearn-v1.77.3'), 'stale cyberlearn-v1.77.3 cache must be deleted');
-assert(cacheStore.has('cyberlearn-v1.77.4'), 'current cyberlearn-v1.77.4 cache must be preserved');
+assert(!cacheStore.has('cyberlearn-v1.77.4'), 'stale cyberlearn-v1.77.4 cache must be deleted');
+assert(cacheStore.has(`cyberlearn-v${APP_VERSION}`), `current cyberlearn-v${APP_VERSION} cache must be preserved`);
 assert(cacheStore.has('other-site-cache'), 'non-cyberlearn caches must not be touched');
-assert.strictEqual(localStore.get('cyberlearn:app-version'), '1.77.4', 'app version marker must be updated');
+assert.strictEqual(localStore.get('cyberlearn:app-version'), APP_VERSION, 'app version marker must be updated');
 assert(sessionStore.get('cyberlearn:upgrade-reloaded'), '1', 'upgrade-reloaded flag must be set to prevent reload loop');
 assert(reloaded, 'window.location.reload must be called once');
 
