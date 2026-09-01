@@ -3,6 +3,8 @@ import fs from 'node:fs';
 const { buildAdMmcBasicsLesson, AD_MMC_BASICS_TOPIC_KEY } = await import('../src/lib/academyLessons/adMmcBasics.js');
 const { LESSONS } = await import('../src/lib/academyLessonData.js');
 const { ACADEMY_TOPICS } = await import('../src/lib/academyTopics.js');
+const { getKnowledgeItemsByTopic } = await import('../src/lib/knowledge/index.js');
+const { adMmcBasicsKnowledgeItems } = await import('../src/lib/knowledge/items/adMmcBasics.js');
 
 function auditRequires(predicate, message) {
   if (!predicate) throw new Error(`AD MMC Basics Audit failed: ${message}`);
@@ -79,7 +81,28 @@ auditRequires(lesson.quiz.length >= 5, `expected at least 5 quiz questions, got 
 console.log('I. Summary ...');
 auditRequires(lesson.summary.length >= 5, `expected at least 5 summary points, got ${lesson.summary.length}`);
 
-console.log('J. Version check ...');
+console.log('J. Knowledge items ...');
+const explanationIds = new Set(lesson.explanations.map((e) => e.id));
+const topicItems = getKnowledgeItemsByTopic(AD_MMC_BASICS_TOPIC_KEY);
+const topicItemIds = new Set(topicItems.map((i) => i.id));
+const expectedItemIds = new Set(adMmcBasicsKnowledgeItems.map((i) => i.id));
+
+for (const id of expectedItemIds) {
+  auditRequires(topicItemIds.has(id), `knowledge item ${id} must be registered in knowledge/index.js`);
+}
+auditRequires(adMmcBasicsKnowledgeItems.length >= 10, `expected at least 10 knowledge items, got ${adMmcBasicsKnowledgeItems.length}`);
+
+for (const item of adMmcBasicsKnowledgeItems) {
+  auditRequires(item.topicKey === AD_MMC_BASICS_TOPIC_KEY, `knowledge item ${item.id} must use ad-mmc-basics topicKey`);
+  auditRequires(explanationIds.has(item.sourceSection), `knowledge item ${item.id} must reference an existing explanation (got ${item.sourceSection})`);
+}
+
+console.log('K. Conversation topic integration ...');
+const employeeConversations = fs.readFileSync(new URL('../src/lib/employeeConversations.js', import.meta.url), 'utf8');
+auditRequires(employeeConversations.includes("topicKey('active-directory-virtualbox', 'ad-mmc-basics')"), 'ad-mmc-basics conversation topic must exist in employeeConversations.js');
+auditRequires(employeeConversations.includes('Microsoft Management Console & Snap-Ins'), 'conversation title must match ad-mmc-basics topic title');
+
+console.log('L. Version check ...');
 {
   const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
   auditRequires(/versionCode 18000/.test(buildGradle), 'versionCode must be 18000 for 1.80.0');
