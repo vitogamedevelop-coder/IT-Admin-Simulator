@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import { showDailyReminderIfDue } from './lib/offline'
 import { enableUiSounds } from './lib/sound'
+import { handleAppUpgrade } from './lib/appUpgrade'
 
 // GitHub Pages SPA redirect restoration: if a 404 redirect stored the
 // intended path, navigate there after the app has loaded.
@@ -21,7 +22,6 @@ function restoreGitHubPagesRedirect(navigate) {
 }
 
 window.addEventListener('load', () => {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(console.error)
   showDailyReminderIfDue()
   enableUiSounds()
 })
@@ -44,12 +44,17 @@ window.addEventListener('vite:preloadError', (event) => {
   }
 })
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL || '/'}>
-      <App />
-    </BrowserRouter>
-  </StrictMode>,
-)
+// Controlled startup: migrate save and purge stale caches before mounting.
+// If an upgrade reload is requested, we never render the old build.
+handleAppUpgrade().then((reloading) => {
+  if (reloading) return
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <BrowserRouter basename={import.meta.env.BASE_URL || '/'}>
+        <App />
+      </BrowserRouter>
+    </StrictMode>,
+  )
+})
 
 export { restoreGitHubPagesRedirect }
