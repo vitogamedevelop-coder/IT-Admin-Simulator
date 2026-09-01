@@ -59,7 +59,7 @@ auditRequires(lesson.quiz.length >= 5, `expected at least 5 quiz questions, got 
 console.log('F. Version check ...');
 {
   const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-  auditRequires(/versionCode 17900/.test(buildGradle), 'versionCode must be 17900');
+  auditRequires(/versionCode 17901/.test(buildGradle), 'versionCode must be 17901 for 1.79.1');
 }
 
 console.log('=== Active Directory Group Practice Audit passed ===');
