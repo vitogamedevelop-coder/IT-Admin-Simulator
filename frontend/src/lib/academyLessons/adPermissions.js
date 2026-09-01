@@ -7,7 +7,7 @@ function explanation(id, title, style, blocks) {
 }
 
 export function buildAdPermissionsLesson() {
-  const title = 'Berechtigungsverwaltung';
+  const title = 'Gruppen & Berechtigungsverwaltung';
 
   const explanations = [
     explanation('adp-problem', 'Das Ausgangsproblem', 'classic', [
@@ -81,6 +81,131 @@ export function buildAdPermissionsLesson() {
     { question: 'Was passiert bei Personalwechsel im Gruppenmodell?', options: ['jede Ressource neu verrechten', 'nur Gruppenmitgliedschaft anpassen', 'Computer neu aufsetzen', 'Domäne neu erstellen'], correct: 1, explanation: 'Im Gruppenmodell ändert man hauptsächlich die Gruppenmitgliedschaft.' },
   ];
 
+function buildExercises() {
+  return [
+    {
+      id: 'adp-ex-direct-vs-group',
+      type: 'select-best',
+      question: '20 Mitarbeiter derselben Abteilung benötigen Leserechte auf dieselben 8 Ordner. Was ist der sinnvollste administrative Ansatz?',
+      options: ['Jeden Mitarbeiter einzeln auf jedem Ordner berechtigen', 'Mitarbeiter in eine Funktionsgruppe organisieren und Berechtigungen über Gruppenstruktur vergeben', 'Allen automatisch Vollzugriff geben', 'Jeden Ordner auf einem einzelnen PC speichern'],
+      correct: 1,
+      explanation: 'Gruppenmodelle reduzieren den Verwaltungsaufwand erheblich: Mitgliedschaften ändern sich, Ressourcenberechtigungen bleiben.',
+    },
+    {
+      id: 'adp-ex-group-type',
+      type: 'select-best',
+      question: 'Eine Gruppe soll Zugriff auf einen SMB-Ordner erhalten. Welche Gruppenart ist dafür vorgesehen?',
+      options: ['Verteilergruppe', 'Sicherheitsgruppe', 'Universelle Gruppe', 'Globale Gruppe'],
+      correct: 1,
+      explanation: 'Sicherheitsgruppen werden für Berechtigungen und Ressourcenzugriff verwendet. Verteilergruppen dienen der Adressierung.',
+    },
+    {
+      id: 'adp-ex-least-privilege',
+      type: 'select-best',
+      question: 'Ein Sachbearbeiter muss in einem Ordner Dateien lesen und ändern, aber nicht löschen. Was wäre im Sinne von Least Privilege passend?',
+      options: ['Vollzugriff', 'Ändern', 'Lesen', 'Verweigern'],
+      correct: 1,
+      explanation: 'Least Privilege bedeutet: nur die Rechte vergeben, die tatsächlich benötigt werden. Ändern reicht, wenn Löschen nicht nötig ist.',
+    },
+    {
+      id: 'adp-ex-global-role',
+      type: 'select-best',
+      question: 'Alle Mitarbeiter des Stabs sollen unabhängig von konkreter Ressource als organisatorische Rolle zusammengefasst werden. Beste Wahl?',
+      options: ['Domänenlokale Gruppe', 'Globale Gruppe', 'Universelle Gruppe', 'Verteilergruppe'],
+      correct: 1,
+      explanation: 'Globale Gruppen eignen sich besonders, um Benutzer mit gleicher Funktion innerhalb einer Domäne zu organisieren.',
+    },
+    {
+      id: 'adp-ex-domain-local-role',
+      type: 'select-best',
+      question: 'Für den Ordner "Befehle" wird eine Gruppe benötigt, die das Recht "Ändern" repräsentiert. Klassische AGDLP-Antwort?',
+      options: ['G_Stab', 'DL_Befehle_AE', 'Universal_Befehle_L', 'G_Befehle_AE'],
+      correct: 1,
+      explanation: 'Domänenlokale Gruppen dienen im AGDLP-Modell als Berechtigungsgruppen für Ressourcen.',
+    },
+    {
+      id: 'adp-ex-scope-misconception',
+      type: 'select-best',
+      question: '"Eine globale Gruppe hat automatisch Zugriff auf alle Ressourcen der Gesamtstruktur." Stimmt das?',
+      options: ['Ja, weil sie global ist', 'Nein, der Bereich allein gibt keine Berechtigung', 'Nur, wenn sie universell ist', 'Ja, aber nur für Domänen-Admins'],
+      correct: 1,
+      explanation: 'Gruppenbereich bestimmt nicht automatisch einen Zugriffsrecht. Zugriff entsteht erst durch Berechtigungszuweisung auf der Ressource.',
+    },
+    {
+      id: 'adp-ex-agdlp-ordering',
+      type: 'ordering',
+      question: 'Bringe die A-G-DL-P-Kette in die korrekte Reihenfolge.',
+      items: [
+        { id: 'a', label: 'Account' },
+        { id: 'g', label: 'Globale Gruppe' },
+        { id: 'dl', label: 'Domänenlokale Gruppe' },
+        { id: 'p', label: 'Permission' },
+      ],
+      correctOrder: ['a', 'g', 'dl', 'p'],
+      explanation: 'A-G-DL-P: Account → globale Funktionsgruppe → domänenlokale Berechtigungsgruppe → Permission.',
+    },
+    {
+      id: 'adp-ex-aggp-chain',
+      type: 'select-best',
+      question: 'A-G-G-P unterscheidet sich von A-G-DL-P vor allem dadurch, dass ...',
+      options: ['zwei globale Gruppenebenen verwendet werden', 'nur domänenlokale Gruppen erlaubt sind', 'Berechtigungen an Accounts direkt vergeben werden', 'Verteilergruppen eingesetzt werden'],
+      correct: 0,
+      explanation: 'A-G-G-P nutzt eine globale Funktionsgruppe und eine globale Berechtigungsgruppe; A-G-DL-P setzt auf domänenlokale Berechtigungsgruppen.',
+    },
+    {
+      id: 'adp-ex-nesting',
+      type: 'select-best',
+      question: 'Wie entsteht ein indirekter Zugriff durch Gruppenverschachtelung?',
+      options: ['Automatisch, sobald eine Gruppe existiert', 'Wenn Gruppe A Mitglied von Gruppe B ist und Gruppe B an einer Ressource berechtigt wurde', 'Durch den Computernamen', 'Nur für Universalgruppen'],
+      correct: 1,
+      explanation: 'Verschachtelte Gruppen geben effektive Berechtigungen weiter, wenn die übergeordnete Gruppe tatsächlich an einer Ressource berechtigt wurde.',
+    },
+    {
+      id: 'adp-ex-personnel-change',
+      type: 'select-best',
+      question: 'Lisa verlässt den Stab, Tom übernimmt. Was muss im AGDLP-Modell geändert werden?',
+      options: ['Jeder Ordner muss neu verrechtet werden', 'Lisa aus G_Stab entfernen und Tom in G_Stab aufnehmen', 'Neue DL-Gruppen anlegen', 'Domäne migrieren'],
+      correct: 1,
+      explanation: 'Der Vorteil des Gruppenmodells: Funktionswechsel = Mitgliedschaftswechsel. Ressourcenberechtigungen bleiben unverändert.',
+    },
+    {
+      id: 'adp-ex-naming',
+      type: 'select-best',
+      question: 'Welche Gruppe folgt dem Lehrgangsnamensschema für eine domänenlokale Berechtigungsgruppe mit Leserecht auf den Ordner "Befehle"?',
+      options: ['G_Stab', 'DL_Befehle_L', 'G_F_Befehle', 'DL_Stab_VZ'],
+      correct: 1,
+      explanation: 'DL_Befehle_L entspricht dem Muster DL_<Freigabe>_<Recht>; L steht für Lesen.',
+    },
+    {
+      id: 'adp-ex-universal',
+      type: 'select-best',
+      question: 'Wann sind universelle Gruppen besonders relevant?',
+      options: ['Nur für E-Mail-Verteiler', 'Bei domänenübergreifenden Strukturen innerhalb einer Gesamtstruktur', 'Wenn eine Gruppe automatisch alle Ressourcen erhält', 'Nur für lokale Arbeitsplatzfreigaben'],
+      correct: 1,
+      explanation: 'Universelle Gruppen sind sinnvoll, wenn Mitglieder oder Gruppen aus verschiedenen Domänen derselben Gesamtstruktur zusammengefasst werden müssen.',
+    },
+    {
+      id: 'adp-ex-aggp-build',
+      type: 'select-best',
+      question: 'Lisa → G_F_Stab → G_P_Befehle_L → Lesen. Welches Modell zeigt diese Kette?',
+      options: ['A-G-DL-P', 'A-G-G-P', 'A-G-U-DL-P', 'Direktberechtigung'],
+      correct: 1,
+      explanation: 'A-G-G-P verwendet eine globale Funktionsgruppe (G_F_) und eine globale Berechtigungsgruppe (G_P_).',
+    },
+    {
+      id: 'adp-ex-naming-function',
+      type: 'matching',
+      question: 'Ordne die Gruppenbenennung ihrer Rolle im Modell zu.',
+      pairs: [
+        { left: 'G_Stab', right: 'Globale Funktionsgruppe' },
+        { left: 'DL_Befehle_VZ', right: 'Domänenlokale Berechtigungsgruppe' },
+        { left: 'G_P_Befehle_AE', right: 'Globale Berechtigungsgruppe (A-G-G-P)' },
+      ],
+      explanation: 'G_ markiert Funktionsgruppen; DL_ domänenlokale Berechtigungsgruppen; G_P_ globale Berechtigungsgruppen im A-G-G-P-Modell.',
+    },
+  ];
+}
+
   const summary = [
     'Direkte Benutzerberechtigungen skalieren schlecht; Gruppen lösen das Problem.',
     'Least Privilege gibt nur die tatsächlich benötigten Rechte.',
@@ -91,5 +216,6 @@ export function buildAdPermissionsLesson() {
     'Gruppenverschachtelung ermöglicht indirekte Berechtigungen.',
   ];
 
-  return { title, explanations, exercises: [], quiz, summary };
+  const exercises = buildExercises();
+  return { title, explanations, exercises, quiz, summary };
 }

@@ -1965,6 +1965,26 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-np-conv-10', difficulty: 'hard', text: 'Warum braucht ein Profil Schreibrechte?', options: ['Damit Windows Profiländerungen speichern kann', 'Damit andere Profile gelöscht werden', 'Damit Netzwerk schneller wird'], correct: 0, explanation: 'Ohne Schreibrecht kann Windows Änderungen beim Abmelden nicht in den Profilordner zurückschreiben.' },
     ],
   },
+  [topicKey('active-directory-virtualbox', 'ad-permissions')]: {
+    title: 'Gruppen & Berechtigungsverwaltung',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'ad-user-profiles'), topicKey('active-directory-virtualbox', 'ntfs-permissions')],
+    introPool: [
+      'Warum sollte man nicht jeden Benutzer direkt auf jede Freigabe berechtigen?',
+      'Wie funktioniert A-G-DL-P nochmal konkret?',
+      'Was ist der Unterschied zwischen Funktionsgruppe und Berechtigungsgruppe?',
+    ],
+    samHelp: 'Direkte Benutzerberechtigungen skalieren schlecht. Gruppenmodell: Benutzer in globale Funktionsgruppen, diese in Berechtigungsgruppen, Berechtigungen an domänenlokale Gruppen. A-G-DL-P: Account → Global → Domain Local → Permission. A-G-G-P: Account → globale Funktionsgruppe → globale Berechtigungsgruppe → Permission. Least Privilege = nur die tatsächlich benötigten Rechte.',
+    questions: [
+      { id: 'adp-conv-1', difficulty: 'easy', text: '20 Mitarbeiter brauchen dieselben Rechte auf mehreren Ordnern. Was ist der Hauptvorteil von Gruppen?', options: ['Weniger Ordner anlegen', 'Nur eine Mitgliedschaft anpassen statt jede Ressource', 'Automatisch Vollzugriff', 'Weniger Backups'], correct: 1, explanation: 'Gruppenmodelle reduzieren den Pflegeaufwand bei Personal- oder Funktionswechsel.' },
+      { id: 'adp-conv-2', difficulty: 'medium', text: 'Welche Gruppenart ist für Ressourcenberechtigungen vorgesehen?', options: ['Verteilergruppe', 'Sicherheitsgruppe', 'Mail-Gruppe', 'Organisationsgruppe'], correct: 1, explanation: 'Sicherheitsgruppen dienen der Zugriffssteuerung. Verteilergruppen dienen der Adressierung.' },
+      { id: 'adp-conv-3', difficulty: 'medium', text: 'Was bedeutet Least Privilege?', options: ['Jeder bekommt maximale Rechte', 'Jeder bekommt nur die wirklich nötigen Rechte', 'Gäste haben keine Rechte', 'Administratoren alles'], correct: 1, explanation: 'Least Privilege gewährt genau die Rechte, die für die Aufgabe erforderlich sind.' },
+      { id: 'adp-conv-4', difficulty: 'medium', text: 'Im A-G-DL-P-Modell ist G_Stab eine globale Gruppe. Was ist ihre Aufgabe?', options: ['Sie erhält NTFS-Rechte', 'Sie sammelt Benutzer nach Funktion', 'Sie ersetzt den Domain Controller', 'Sie ist eine Verteilergruppe'], correct: 1, explanation: 'Globale Funktionsgruppen sammeln Benutzer; Berechtigungen erhält die domänenlokale Gruppe.' },
+      { id: 'adp-conv-5', difficulty: 'hard', text: 'Stimmt es: "Eine globale Gruppe hat automatisch Zugriff auf alle Ressourcen der Gesamtstruktur"?', options: ['Ja', 'Nein, Berechtigungen müssen explizit vergeben werden', 'Nur in Multi-Domain-Umgebungen', 'Nur mit Universalgruppen'], correct: 1, explanation: 'Der Gruppenbereich allein erzeugt keinen Zugriff. Erst eine Berechtigungszuweisung auf einer Ressource schafft effektive Rechte.' },
+      { id: 'adp-conv-6', difficulty: 'hard', text: 'A-G-G-P unterscheidet sich von A-G-DL-P dadurch, dass ...', options: ['nur Accounts verwendet werden', 'als Berechtigungsgruppe eine globale Gruppe dient', 'nur Verteilergruppen erlaubt sind', 'keine Gruppenverschachtelung möglich ist'], correct: 1, explanation: 'A-G-G-P nutzt eine globale Funktions- und eine globale Berechtigungsgruppe; A-G-DL-P verwendet eine domänenlokale Berechtigungsgruppe.' },
+      { id: 'adp-conv-7', difficulty: 'hard', text: 'Ein Mitarbeiter wechselt die Funktion. Was muss im Gruppenmodell primär passieren?', options: ['Jede NTFS-ACL neu setzen', 'Funktionsgruppenmitgliedschaft anpassen', 'Alle Freigaben löschen', 'Domäne migrieren'], correct: 1, explanation: 'Ressourcenberechtigungen bleiben bestehen; die Funktionsgruppenmitgliedschaft wird geändert.' },
+      { id: 'adp-conv-8', difficulty: 'medium', text: 'Welche Gruppe erhält typischerweise im A-G-DL-P-Modell die NTFS-Berechtigung?', options: ['G_Stab', 'DL_Befehle_AE', 'S1Offz direkt', 'Universal_Stab'], correct: 1, explanation: 'Die domänenlokale Berechtigungsgruppe bekommt die Rechte auf der Ressource zugewiesen.' },
+    ],
+  },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
     title: 'Domain Controller',
     relatedTopics: [topicKey('active-directory-virtualbox', 'domain'), topicKey('active-directory-virtualbox', 'ad-foundation')],
