@@ -6,7 +6,6 @@ import { getAllKnowledgeItems } from '../src/lib/knowledge/index.js';
 import { CONVERSATION_TOPICS } from '../src/lib/employeeConversations.js';
 
 const NTFS_KEY = topicKey('active-directory-virtualbox', 'ntfs-permissions');
-const BAD_HOME_ACL = /Home\$|Profile\$|Creator\s+Owner/i;
 
 console.log('=== Active Directory File Permissions Quality Audit ===');
 
@@ -33,6 +32,15 @@ const requiredSections = [
   'adn-disable-inheritance',
   'adn-convert-remove',
   'adn-deny',
+  'adn-home-profile-einstieg',
+  'adn-home-vs-profile',
+  'adn-dollar-nuance',
+  'adn-root-vs-child',
+  'adn-home-practice',
+  'adn-profile-practice',
+  'adn-authenticated-users-nuance',
+  'adn-creation',
+  'adn-verification',
   'adn-no-home-profile',
 ];
 const explanationIds = lesson.explanations.map((e) => e.id);
@@ -53,23 +61,22 @@ assert(guided.length >= 2, `expected at least 2 guided-ui, got ${guided.length}`
 assert(lesson.exercises.find((ex) => ex.id === 'ad-ntfs-permission-guided-ui'), 'ad-ntfs-permission-guided-ui must exist');
 assert(lesson.exercises.find((ex) => ex.id === 'ad-share-permission-guided-ui'), 'ad-share-permission-guided-ui must exist');
 assert(lesson.exercises.find((ex) => ex.id === 'ad-effective-permission-guided-ui'), 'ad-effective-permission-guided-ui must exist');
+assert(lesson.exercises.find((ex) => ex.id === 'ad-home-share-permissions-guided-ui'), 'ad-home-share-permissions-guided-ui must exist');
+assert(lesson.exercises.find((ex) => ex.id === 'ad-profile-share-permissions-guided-ui'), 'ad-profile-share-permissions-guided-ui must exist');
 
 console.log('5. Checking direct exercise load...');
 const selected = selectDirectTheoryExercises(lesson.exercises || [], NTFS_KEY);
 const limit = getDirectExerciseLimit(lesson.exercises.length);
-assert(selected.length >= 3 && selected.length <= 4, `direct exercises should be 3-4, got ${selected.length}`);
+assert(selected.length >= 3 && selected.length <= 6, `direct exercises should be 3-6, got ${selected.length}`);
 assert.strictEqual(selected.length, Math.min(lesson.exercises.length, limit), 'selector consistency');
 
-console.log('6. Checking source precision (home/profile ACLs and source correction)...');
+console.log('6. Checking source precision (source correction)...');
 const sourceCorrection = lesson.explanations.find((e) => e.id === 'adn-source-correction');
 assert(sourceCorrection, 'adn-source-correction section must exist to address misleading source claim');
 assert(JSON.stringify(sourceCorrection).toLowerCase().includes('restriktivere'), 'source correction must explain restrictive combination');
 assert(JSON.stringify(sourceCorrection).toLowerCase().includes('wirken beide zusammen'), 'source correction must explain both share and NTFS apply');
 const noHomeAcl = lesson.explanations.find((e) => e.id === 'adn-no-home-profile');
 assert(noHomeAcl, 'adn-no-home-profile section must exist');
-const contentExplanations = JSON.stringify(lesson.explanations.filter((e) => e.id !== 'adn-no-home-profile'));
-const match = contentExplanations.match(BAD_HOME_ACL);
-assert(!match, `lesson contains home/profile ACL special case: ${match?.[0]}`);
 
 console.log('7. Checking knowledge items...');
 const ntfsKnowledge = getAllKnowledgeItems().filter((it) => it.topicKey === NTFS_KEY);
