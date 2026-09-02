@@ -62,6 +62,7 @@ import { buildAdPermissionsLesson, AD_PERMISSIONS_TOPIC_KEY } from './academyLes
 import { buildAdGroupPracticeLesson, AD_GROUP_PRACTICE_TOPIC_KEY } from './academyLessons/adGroupPractice.js';
 import { buildAdMmcBasicsLesson, AD_MMC_BASICS_TOPIC_KEY } from './academyLessons/adMmcBasics.js';
 import { buildAdDelegationLesson, AD_DELEGATION_TOPIC_KEY } from './academyLessons/adDelegation.js';
+import { buildAdMmcHelpdeskLesson, AD_MMC_HELPDESK_TOPIC_KEY } from './academyLessons/adMmcHelpdesk.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -424,6 +425,7 @@ export const LESSONS = {
   [AD_GROUP_PRACTICE_TOPIC_KEY]: buildAdGroupPracticeLesson(),
   [AD_MMC_BASICS_TOPIC_KEY]: buildAdMmcBasicsLesson(),
   [AD_DELEGATION_TOPIC_KEY]: buildAdDelegationLesson(),
+  [AD_MMC_HELPDESK_TOPIC_KEY]: buildAdMmcHelpdeskLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

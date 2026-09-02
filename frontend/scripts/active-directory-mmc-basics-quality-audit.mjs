@@ -105,7 +105,7 @@ auditRequires(employeeConversations.includes('Microsoft Management Console & Sna
 console.log('L. Version check ...');
 {
   const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-  auditRequires(/versionCode 18100/.test(buildGradle), 'versionCode must be 18100 for 1.81.0');
+  auditRequires(/versionCode 18200/.test(buildGradle), 'versionCode must be 18200 for 1.82.0');
 }
 
 console.log('=== Active Directory MMC Basics Quality Audit passed ===');
