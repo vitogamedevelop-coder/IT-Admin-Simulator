@@ -2039,6 +2039,23 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-mmc-hd-conv-5', difficulty: 'hard', text: 'Warum ist das Speichern der .msc nicht dasselbe wie das Verteilen von Rechten?', options: ['Weil .msc nur eine Datei ist, keine Berechtigungen', 'Weil .msc Domänenadmin-Rechte enthält', 'Weil .msc Gruppen anlegt', 'Weil .msc die OU ändert'], correct: 0, explanation: 'Die .msc ist nur die Oberfläche; Rechte bleiben in AD.' },
     ],
   },
+  [topicKey('active-directory-virtualbox', 'ad-tree-forest')]: {
+    title: 'Trees, Forests & Subdomänen',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'ad-foundation'), topicKey('active-directory-virtualbox', 'domain')],
+    introPool: [
+      'Was ist der Unterschied zwischen einer Domain und einem Tree?',
+      'Warum ist ausbildung.its.bw eine Child Domain von its.bw?',
+      'Kann ein Forest nur einen Tree haben?',
+      'Können zwei unterschiedliche DNS-Namensräume im gleichen Forest liegen?',
+    ],
+    samHelp: 'Eine Domäne ist ein logischer Verwaltungs- und Namensbereich. Mehrere Domänen mit zusammenhängendem DNS-Namensraum bilden einen Tree, z. B. its.bw, ausbildung.its.bw und verwaltung.its.bw. Die oberste logische Einheit ist der Forest; er kann einen oder mehrere Trees enthalten. Mehrere Trees im selben Forest können unterschiedliche DNS-Namensräume haben, z. B. its.bw und partner.local. Domänen in einem Forest teilen Schema und Konfigurationspartition, können aber eigene Benutzer, Gruppen und Richtlinien besitzen. Child Domain bedeutet, dass der DNS-Name auf der Parent Domain aufbaut.',
+    questions: [
+      { id: 'ad-tf-conv-1', difficulty: 'easy', text: 'Was ist der Unterschied zwischen Domain und Tree?', options: ['Domain ist ein einzelner Bereich, Tree verbindet Domänen mit gleichem DNS-Namensraum', 'Domain und Tree sind identisch', 'Tree ist nur eine OU', 'Domain ist immer ein Forest'], correct: 0, explanation: 'Eine Domain ist ein Bereich; ein Tree vereint Domänen mit zusammenhängendem DNS-Namensraum.' },
+      { id: 'ad-tf-conv-2', difficulty: 'medium', text: 'Was zeichnet ausbildung.its.bw als Child Domain aus?', options: ['Sie hat einen ganz anderen Namen', 'Sie erweitert den DNS-Namensraum von its.bw', 'Sie ist eine OU', 'Sie ist ein Forest'], correct: 1, explanation: 'ausbildung.its.bw baut auf its.bw auf.' },
+      { id: 'ad-tf-conv-3', difficulty: 'medium', text: 'Kann ein Forest nur einen Tree haben?', options: ['Ja', 'Nein'], correct: 0, explanation: 'Ein Forest kann auch aus nur einem Tree bestehen.' },
+      { id: 'ad-tf-conv-4', difficulty: 'hard', text: 'Können zwei unterschiedliche DNS-Namensräume im selben Forest liegen?', options: ['Ja, als verschiedene Trees', 'Nein, niemals', 'Nur innerhalb einer OU', 'Nur wenn sie identisch sind'], correct: 0, explanation: 'Unterschiedliche Trees im selben Forest können unterschiedliche DNS-Namensräume haben.' },
+    ],
+  },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
     title: 'Domain Controller',
     relatedTopics: [topicKey('active-directory-virtualbox', 'domain'), topicKey('active-directory-virtualbox', 'ad-foundation')],

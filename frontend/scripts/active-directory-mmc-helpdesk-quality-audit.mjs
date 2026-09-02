@@ -138,7 +138,7 @@ auditRequires(!/G_S6.*anlegen|DL_StabPwReset.*anlegen/i.test(allText), 'adMmcHel
 console.log('P. Version check ...');
 {
   const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-  auditRequires(/versionCode 18200/.test(buildGradle), 'versionCode must be 18200 for 1.82.0');
+  auditRequires(/versionCode 18300/.test(buildGradle), 'versionCode must be 18300 for 1.83.0');
 }
 
 console.log('=== Active Directory MMC Helpdesk Quality Audit passed ===');
