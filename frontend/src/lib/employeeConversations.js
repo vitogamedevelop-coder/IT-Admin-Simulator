@@ -2021,6 +2021,24 @@ export const CONVERSATION_TOPICS = {
       { id: 'ad-del-conv-5', difficulty: 'hard', text: 'Eine neue Mitarbeiterin übernimmt die S6-Rolle. Was ändert man primär?', options: ['Die Delegation auf der OU neu erstellen', 'Die Mitgliedschaft in G_S6', 'Die OU Struktur', 'Das Schema'], correct: 1, explanation: 'Man ändert die Funktionsgruppenmitgliedschaft; die Delegation bleibt bestehen.' },
     ],
   },
+  [topicKey('active-directory-virtualbox', 'ad-mmc-helpdesk')]: {
+    title: 'MMC für Hilfsadmin',
+    relatedTopics: [topicKey('active-directory-virtualbox', 'ad-delegation'), topicKey('active-directory-virtualbox', 'ad-mmc-basics')],
+    introPool: [
+      'Warum reicht die Delegation allein noch nicht für eine gute Helpdesk-Lösung?',
+      'Was macht ein Taskpad?',
+      'Warum ist Restricted Single keine Sicherheitsgrenze?',
+      'Was prüfst du, wenn die MMC angezeigt wird, aber Passwortreset nicht funktioniert?',
+    ],
+    samHelp: 'Thema 17 baut eine passende MMC für den Hilfsadmin: ADUC Snap-In, OU Stab, Aufgabenblockansicht mit dem Menübefehl „Kennwort zurücksetzen", Filter auf Benutzer, Konsolenmodus „Benutzermodus – beschränkter Zugriff, Einzelfenster" mit deaktiviertem Speichern, Speichern als .msc-Datei und Bereitstellung, z. B. im Homelaufwerk. Wichtig: MMC ist nur Oberfläche. Sichtbarkeit, Filter und Konsolenmodus erteilen keine Rechte; echte Berechtigungen kommen aus der Delegation. Verification prüft, dass der Hilfsadmin nur die gewünschten Objekte sieht und Passwortreset tatsächlich funktioniert.',
+    questions: [
+      { id: 'ad-mmc-hd-conv-1', difficulty: 'easy', text: 'Warum reicht die Delegation allein nicht für eine gute Helpdesk-Lösung?', options: ['Weil sie die Oberfläche nicht reduziert', 'Weil sie keine Benutzer anzeigt', 'Weil sie die MMC startet', 'Weil sie DNS verwalten muss'], correct: 0, explanation: 'Delegation erteigt Rechte, die MMC reduziert die Bedienoberfläche.' },
+      { id: 'ad-mmc-hd-conv-2', difficulty: 'medium', text: 'Was ist der Zweck eines Taskpads?', options: ['Berechtigungen vergeben', 'Ausgewählte Aktionen als vereinfachte Aufgaben bereitstellen', 'Neue OUs erstellen', 'DNS auflösen'], correct: 1, explanation: 'Ein Taskpad zeigt die benötigten Aktionen vereinfacht.' },
+      { id: 'ad-mmc-hd-conv-3', difficulty: 'medium', text: 'Warum ist „Restricted Single Window" keine Sicherheitsgrenze?', options: ['Es erteilt Domänenadmin-Rechte', 'Es beschränkt nur die Oberfläche, nicht die AD-Berechtigungen', 'Es verhindert Netzwerkzugriff', 'Es speichert die Konsole'], correct: 1, explanation: 'Konsolenmodus schützt die UI, nicht die tatsächlichen Rechte.' },
+      { id: 'ad-mmc-hd-conv-4', difficulty: 'hard', text: 'Die MMC zeigt OU Stab und Benutzer, Passwortreset funktioniert aber nicht. Wo suchst du zuerst?', options: ['Im DNS-Manager', 'In der Delegation aus Thema 16', 'Im Gruppen-Symbol', 'Im Windows-Explorer'], correct: 1, explanation: 'Sichtbarkeit ist UI; funktionierendes Passwortreset braucht delegierte Berechtigungen.' },
+      { id: 'ad-mmc-hd-conv-5', difficulty: 'hard', text: 'Warum ist das Speichern der .msc nicht dasselbe wie das Verteilen von Rechten?', options: ['Weil .msc nur eine Datei ist, keine Berechtigungen', 'Weil .msc Domänenadmin-Rechte enthält', 'Weil .msc Gruppen anlegt', 'Weil .msc die OU ändert'], correct: 0, explanation: 'Die .msc ist nur die Oberfläche; Rechte bleiben in AD.' },
+    ],
+  },
   [topicKey('active-directory-virtualbox', 'domain-controller')]: {
     title: 'Domain Controller',
     relatedTopics: [topicKey('active-directory-virtualbox', 'domain'), topicKey('active-directory-virtualbox', 'ad-foundation')],

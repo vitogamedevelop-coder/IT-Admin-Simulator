@@ -205,6 +205,7 @@ export const ACADEMY_TOPICS = [
   topic('active-directory-virtualbox', 'ad-group-practice', 'Gruppen praktisch anlegen & verschachteln', 'ADUC: globale Funktionsgruppen, domänenlokale Berechtigungsgruppen, Mitglieder verwalten, Verschachtelung und AGDLP-Challenge.', ['active-directory-virtualbox/ad-permissions']),
   topic('active-directory-virtualbox', 'ad-mmc-basics', 'Microsoft Management Console & Snap-Ins', 'MMC als Verwaltungsrahmen, Snap-Ins, .msc, Konsolenmodi und die Grenze zwischen UI-Einschränkung und Berechtigungsdelegation.', ['active-directory-virtualbox/ad-group-practice']),
   topic('active-directory-virtualbox', 'ad-delegation', 'Delegation & Objektverwaltung', 'Delegation nach Least Privilege: Gruppenmodell, OU Scope, Delegation Wizard und Passwortreset für Hilfsadmins.', ['active-directory-virtualbox/ad-mmc-basics']),
+  topic('active-directory-virtualbox', 'ad-mmc-helpdesk', 'MMC für Hilfsadmin', 'Eingeschränkte MMC für Hilfsadmins: ADUC Snap-In, OU Stab, Taskpad, Filter, Konsolenmodus, speichern und bereitstellen.', ['active-directory-virtualbox/ad-delegation']),
   topic('active-directory-virtualbox', 'windows-server', 'Windows Server Core', 'Verwaltung von Server Core: lokal über PowerShell und remote über den Server Manager.', ['active-directory-virtualbox/domain-controller']),
   // Domain builds directly on the AD foundation for the logical-components
   // block. Windows Server remains a separate topic; the playable chain here
