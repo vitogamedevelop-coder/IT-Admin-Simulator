@@ -242,7 +242,7 @@ export function buildAdReplicationBasicsLesson() {
       id: 'ad-repl-full-ntds-misconception',
       type: 'select-best',
       question: '„Bei jeder Änderung wird die komplette NTDS.DIT übertragen." Stimmt das?',
-      options: ['Ja, damit die Datenbank konsistent bleibt', 'Nein, es werden nur Änderungen als Deltas repliziert', 'Ja, aber nur bei Objektlöschungen', 'Nein, nur neue Objekte werden jemals repliziert'],
+      options: ['Ja, damit die Datenbank konsistent bleibt', 'Nein, das ist falsch – es werden nur Änderungen als Deltas repliziert', 'Ja, aber nur bei Objektlöschungen', 'Nein, nur neue Objekte werden jemals repliziert'],
       correct: 1,
       explanation: 'Delta-Replikation überträgt nur die tatsächlichen Änderungen, nicht die komplette Datenbank.',
     },

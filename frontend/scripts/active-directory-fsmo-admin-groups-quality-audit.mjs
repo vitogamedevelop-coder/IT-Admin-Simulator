@@ -77,9 +77,10 @@ const conv = CONVERSATION_TOPICS[TOPIC_ID];
 auditRequires(!!conv, 'Topic has conversation entry');
 auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has at least 5 conversation questions (found ${conv?.questions?.length || 0})`);
 
-auditRequires(/versionCode 18701/.test(buildGradle), 'versionCode must be 18701 for 1.87.1');
+auditRequires(/versionCode 18800/.test(buildGradle), 'versionCode must be 18800 for 1.88.0');
 
 console.log('\n=== Active Directory FSMO & Admin Groups Quality Audit passed ===');
+
 
 
 
