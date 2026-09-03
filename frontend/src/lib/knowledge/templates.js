@@ -1648,7 +1648,10 @@ const PHASE7_PREFIXES = new Set([
 ]);
 
 function isPhase7Item(item) {
-  const first = item.conceptCluster.split('.')[0];
+  const cluster = item.conceptCluster || '';
+  // Dedicated command-recall templates handle all cisco.command.* items.
+  if (cluster.startsWith('cisco.command.')) return false;
+  const first = cluster.split('.')[0];
   return PHASE7_PREFIXES.has(first);
 }
 
@@ -2451,8 +2454,7 @@ function ciscoVlanPracticeTemplates() {
       archetype: QUESTION_ARCHETYPES.SELECT_BEST,
       matches: (item) => item.id === 'vlanCli.idRanges',
       supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.MAPPING],
-      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
-        const proto = rng.pick(item.data.ranges);
+      generate: (item, _allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const directPrompt = `Aus welchem Bereich vergibst du in der Praxis fast immer deine VLAN-IDs?`;
         const prompt = contextType === 'coworker_question'
           ? withCoworkerLead(directPrompt, vlanCliLeads, rng)
@@ -2913,9 +2915,60 @@ function fillCommandPlaceholders(str, params) {
     .replace(/<TEXT>/g, 'Uplink-CORE');
 }
 
+function commandRecallSanitizeSkeleton(str) {
+  return String(str).replace(/<[^>]+>/g, '[...]');
+}
+
 function commandRecallPeers(item, allItemsById) {
   return Object.values(allItemsById)
     .filter((o) => o && o.id !== item.id && o.conceptCluster?.startsWith('cisco.command.'));
+}
+
+const GENERIC_PARAMETER_DISTRACTORS = [
+  'VLAN-ID',
+  'IP-Adresse und Subnetzmaske',
+  'Schnittstellenkennung, z. B. GigabitEthernet0/1',
+  'Next-Hop-IP-Adresse',
+  'Name oder Beschreibung',
+  'ACL-Nummer/-Name und Richtung',
+  'OSPF-Prozess-ID',
+  'Domänenname',
+  'Passwort',
+  'Benutzername und Passwort',
+  'IP-Adresse des DHCP-Servers',
+  'IP-Adresse des Default Gateways',
+  'Netz, Wildcard-Maske und Area',
+  'VLAN-ID und Priority (in 4096er-Schritten)',
+];
+
+function isValidParameterLabel(v) {
+  if (v == null) return false;
+  const s = String(v).trim().toLowerCase();
+  return s.length > 0 && s !== 'null' && s !== 'undefined' && s !== 'nan';
+}
+
+function makeParameterDistractors(item, allItemsById, params, correct, rng) {
+  const peers = commandRecallPeers(item, allItemsById);
+  const seen = new Set([correct]);
+  const result = [];
+  for (const peer of peers) {
+    if (result.length >= 3) break;
+    const v = fillCommandPlaceholders(peer.data.parameter, params);
+    if (isValidParameterLabel(v) && !seen.has(v)) {
+      result.push(v);
+      seen.add(v);
+    }
+  }
+  if (result.length < 3) {
+    const pool = GENERIC_PARAMETER_DISTRACTORS.filter((v) => v !== correct && !seen.has(v));
+    rng.shuffle(pool);
+    for (const v of pool) {
+      if (result.length >= 3) break;
+      result.push(v);
+      seen.add(v);
+    }
+  }
+  return result.slice(0, 3);
 }
 
 function makeCommandDistractorValues(item, allItemsById, params, valueKey, fallbackValueFn) {
@@ -3003,7 +3056,7 @@ function ciscoCommandRecallTemplates() {
       supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const params = generateCommandParams(rng);
-        const commandLabel = fillCommandPlaceholders(item.data.command, params);
+        const commandLabel = fillCommandPlaceholders(item.data.example || item.data.command, params);
         const correct = fillCommandPlaceholders(item.data.purpose, params);
         const explicit = (item.data.distractorPurposes || []).map((v) => fillCommandPlaceholders(v, params));
         const peers = commandRecallPeers(item, allItemsById);
@@ -3035,33 +3088,61 @@ function ciscoCommandRecallTemplates() {
       },
     },
     {
-      id: 'cisco.command.parameter',
+      id: 'cisco.command.parameterType',
       archetype: QUESTION_ARCHETYPES.RECALL,
       matches: (item) => isCommand(item) && item.data.parameter,
       supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
       generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
         const params = generateCommandParams(rng);
-        const commandLabel = fillCommandPlaceholders(item.data.command, params);
+        const commandSkeleton = commandRecallSanitizeSkeleton(item.data.command);
         const correct = fillCommandPlaceholders(item.data.parameter, params);
-        const peerParams = commandRecallPeers(item, allItemsById)
-          .map((peer) => fillCommandPlaceholders(peer.data.parameter, params))
-          .filter((v) => v && v !== correct);
-        const distractors = [...new Set(peerParams)].slice(0, 3);
-        const directPrompt = `Was gehört hinter "${commandLabel}"?`;
+        const distractors = makeParameterDistractors(item, allItemsById, params, correct, rng);
+        const directPrompt = `Welche Parameter erwartet der Befehl "${commandSkeleton}"?`;
         const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, commandRecallLeads, rng) : directPrompt;
         return buildMcInstance({
-          templateId: 'cisco.command.parameter',
+          templateId: 'cisco.command.parameterType',
           item,
           archetype: QUESTION_ARCHETYPES.SELECT_BEST,
           seed,
           prompt,
           correctValue: correct,
           distractorValues: distractors,
-          explanation: `"${commandLabel}" erwartet als Parameter: ${correct}.`,
+          explanation: `"${commandSkeleton}" erwartet als Argument: ${correct}.`,
           contextType,
           rng,
           learningObjective: `${item.conceptCluster}.parameter`,
-          knowledgeFacet: `${item.conceptCluster}.parameter`,
+          knowledgeFacet: `${item.conceptCluster}.parameterType`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: commandRecallLeads,
+        });
+      },
+    },
+    {
+      id: 'cisco.command.parameterValue',
+      archetype: QUESTION_ARCHETYPES.RECALL,
+      matches: (item) => isCommand(item) && item.data.parameter,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const params = generateCommandParams(rng);
+        const filledExample = fillCommandPlaceholders(item.data.example, params);
+        const correct = fillCommandPlaceholders(item.data.parameter, params);
+        const distractors = makeParameterDistractors(item, allItemsById, params, correct, rng);
+        const directPrompt = `Was repräsentieren die eingesetzten Werte in "${filledExample}"?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, commandRecallLeads, rng) : directPrompt;
+        return buildMcInstance({
+          templateId: 'cisco.command.parameterValue',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: `Die Werte in "${filledExample}" legen fest: ${correct}.`,
+          contextType,
+          rng,
+          learningObjective: `${item.conceptCluster}.parameter`,
+          knowledgeFacet: `${item.conceptCluster}.parameterValue`,
           promptStyle: PROMPT_STYLES.SELF_CONTAINED,
           contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
           conversationLeads: commandRecallLeads,

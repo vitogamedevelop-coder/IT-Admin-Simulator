@@ -25,6 +25,70 @@ export class QuestionGenerationError extends Error {
   }
 }
 
+export class QuestionValidationError extends Error {
+  constructor(message, knowledgeItemId, templateId) {
+    super(message);
+    this.name = 'QuestionValidationError';
+    this.knowledgeItemId = knowledgeItemId;
+    this.templateId = templateId;
+  }
+}
+
+const LEAK_PATTERNS = [
+  /\bnull\b/i,
+  /\bundefined\b/i,
+  /\bNaN\b/,
+  /\[object Object\]/,
+  /<[^>]+>/,
+  /\bQUESTION_ARCHETYPES\b/,
+  /\bDIFFICULTY\b/,
+];
+
+function hasLeak(value) {
+  if (typeof value !== 'string') return true;
+  return LEAK_PATTERNS.some((re) => re.test(value));
+}
+
+/**
+ * Validate a generated multiple-choice instance before it is returned.
+ * Throws QuestionValidationError if any sanity rule is violated.
+ */
+export function validateQuestionInstance(instance, knowledgeItemId, templateId) {
+  if (!instance || typeof instance !== 'object') {
+    throw new QuestionValidationError('Instance is not an object', knowledgeItemId, templateId);
+  }
+  const { prompt, options, correct, correctAnswer } = instance;
+  if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+    throw new QuestionValidationError('Prompt is missing or empty', knowledgeItemId, templateId);
+  }
+  if (hasLeak(prompt)) {
+    throw new QuestionValidationError(`Prompt contains leaked placeholder or invalid value: ${prompt}`, knowledgeItemId, templateId);
+  }
+  if (!Array.isArray(options) || options.length < 2) {
+    throw new QuestionValidationError(`Options must have at least 2 entries (got ${options?.length || 0})`, knowledgeItemId, templateId);
+  }
+  const labels = options.map((o) => (o && typeof o.label === 'string' ? o.label.trim() : null));
+  for (const label of labels) {
+    if (!label || label.length === 0) {
+      throw new QuestionValidationError('Option label is empty', knowledgeItemId, templateId);
+    }
+    if (hasLeak(label)) {
+      throw new QuestionValidationError(`Option label contains leaked placeholder or invalid value: ${label}`, knowledgeItemId, templateId);
+    }
+  }
+  const uniqueLabels = new Set(labels);
+  if (uniqueLabels.size !== labels.length) {
+    throw new QuestionValidationError('Duplicate option labels detected', knowledgeItemId, templateId);
+  }
+  if (typeof correct !== 'number' || correct < 0 || correct >= options.length) {
+    throw new QuestionValidationError(`Correct option index is invalid: ${correct}`, knowledgeItemId, templateId);
+  }
+  const correctLabel = labels[correct];
+  if (correctAnswer && correctAnswer.label !== correctLabel) {
+    throw new QuestionValidationError('Correct answer label mismatch', knowledgeItemId, templateId);
+  }
+}
+
 /**
  * Generate a Question Instance from a Knowledge Item and a template.
  *
@@ -78,6 +142,9 @@ export function generateQuestion(knowledgeItemId, templateId = null, options = {
   const instance = template.generate(item, allItemsById, rng, { contextType, seed, difficulty: effectiveDifficulty, recentValues });
   if (!instance || typeof instance !== 'object') {
     throw new QuestionGenerationError(`Template ${template.id} returned no instance`, knowledgeItemId, template.id);
+  }
+  if (instance.type === 'mc' || Array.isArray(instance.options)) {
+    validateQuestionInstance(instance, knowledgeItemId, template.id);
   }
   return instance;
 }

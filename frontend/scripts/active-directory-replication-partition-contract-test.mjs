@@ -41,3 +41,4 @@ auditRequires(classif.options[classif.correct].toLowerCase().includes('schemaatt
 
 console.log('\n=== Active Directory Replication Partition Contract Test passed ===');
 
+
