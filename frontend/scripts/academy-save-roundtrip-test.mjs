@@ -44,3 +44,4 @@ const secondTopic = second.topics[key];
 assert.strictEqual(secondTopic.theoryScore, 42, 'theoryScore stable after second import');
 
 console.log('=== Academy Save Roundtrip Test passed ===');
+

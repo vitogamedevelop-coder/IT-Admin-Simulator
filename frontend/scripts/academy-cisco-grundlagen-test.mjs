@@ -81,3 +81,4 @@ assert(lesson.quiz.length >= 20, `Quiz has at least 20 questions (has ${lesson.q
 console.log(`   Theory covers all ${REQUIRED_TOPICS.length} required terms. Quiz has ${lesson.quiz.length} questions.`);
 
 console.log('\n=== Cisco "Grundlagen" lesson verified ===');
+

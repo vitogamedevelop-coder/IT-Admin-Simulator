@@ -238,3 +238,4 @@ if (failed > 0) {
 } else {
   console.log('All tests passed.');
 }
+

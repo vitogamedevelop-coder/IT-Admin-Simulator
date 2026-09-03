@@ -92,3 +92,4 @@ assert(recovery.completed, 'retry after wrong click must complete');
 assert(recovery.wrongClicked, 'wrong click must be registered but retried');
 
 console.log('\n=== AD User Profile Path Guided-UI Contract Tests passed ===');
+

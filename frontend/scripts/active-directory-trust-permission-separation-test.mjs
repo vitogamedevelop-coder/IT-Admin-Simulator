@@ -52,3 +52,4 @@ assert(trustVsAccess, 'ad-trusts-trust-vs-access exercise must exist');
 assert(trustVsAccess.correct !== 0, 'trust-vs-access correct answer must be "no" (access requires permissions)');
 
 console.log('=== Active Directory Trust Permission Separation Test passed ===');
+

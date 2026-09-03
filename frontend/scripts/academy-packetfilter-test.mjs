@@ -75,3 +75,4 @@ console.log(`  - ${lesson.cliTasks.length} cli tasks`);
 console.log(`  - ${lesson.summary.length} summary lines`);
 console.log('  - all six learning objectives found');
 console.log('  - all cli tasks accepted by checkCiscoInput');
+

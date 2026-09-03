@@ -80,3 +80,4 @@ if (problems.length > 0) {
 }
 
 console.log('Settings TDZ regression test passed: no const/let used in hook dependency array before declaration.');
+

@@ -58,6 +58,7 @@ import { adDelegationKnowledgeItems } from './items/adDelegation.js';
 import { adMmcHelpdeskKnowledgeItems } from './items/adMmcHelpdesk.js';
 import { adTreeForestKnowledgeItems } from './items/adTreeForest.js';
 import { adTrustsKnowledgeItems } from './items/adTrusts.js';
+import { adFsmoAdminGroupsKnowledgeItems } from './items/adFsmoAdminGroups.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
@@ -144,6 +145,7 @@ const PILOT_ITEMS = [
   ...adMmcHelpdeskKnowledgeItems,
   ...adTreeForestKnowledgeItems,
   ...adTrustsKnowledgeItems,
+  ...adFsmoAdminGroupsKnowledgeItems,
 ];
 
 const REGISTRY = new Map(PILOT_ITEMS.map((item) => [item.id, item]));

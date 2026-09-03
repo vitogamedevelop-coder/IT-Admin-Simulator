@@ -77,3 +77,4 @@ assert(conversation.questions.some((question) => question.id === 'dhcp-7' && que
 assert(conversation.questions.some((question) => question.id === 'dhcp-10' && question.text.includes('DORA')), 'DORA-Erklärungsfrage ist vorhanden');
 
 console.log(`dhcp-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${lesson.quiz.length} quiz questions, ${allItems.filter((item) => item.topicKey === topicKey).length} knowledge items)`);
+

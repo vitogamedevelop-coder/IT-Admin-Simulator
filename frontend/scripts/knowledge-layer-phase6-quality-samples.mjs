@@ -64,3 +64,4 @@ printCategory('OSI', CATEGORIES.osi);
 printCategory('Binary / Subnetting', CATEGORIES.binarySubnet);
 printCategory('Switching / VLAN', CATEGORIES.switchingVlan);
 printCategory('SSH', CATEGORIES.ssh);
+

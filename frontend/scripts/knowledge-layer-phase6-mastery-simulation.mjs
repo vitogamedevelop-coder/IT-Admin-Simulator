@@ -197,3 +197,4 @@ for (const [name, profile] of Object.entries(profiles)) {
 setFacetMasteryOverride(null);
 
 console.log('\n✅ Mastery simulation completed');
+

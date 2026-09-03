@@ -160,3 +160,4 @@ console.log('\nMode-sensitive resolution');
 }
 
 console.log(`\n${passed} tests passed`);
+

@@ -167,3 +167,4 @@ assert(rCopyPriv.success, 'copy run start in PRIVILEGED_EXEC should succeed');
 assert(d8.startupConfig !== null, 'copy should save startup config');
 
 console.log('Mission V2 CLI editor tests passed.');
+

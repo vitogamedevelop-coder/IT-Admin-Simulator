@@ -112,3 +112,4 @@ assert.notStrictEqual(p.status, TOPIC_STATUS.LEARNED, 'quiz points alone must no
 assert(p.theoryCompletion < 100, 'theoryCompletion stays below 100 when only questions were answered');
 
 console.log('=== Academy Topic Status Contract Test passed ===');
+

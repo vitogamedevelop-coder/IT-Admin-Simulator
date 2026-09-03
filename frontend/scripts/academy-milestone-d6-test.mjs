@@ -323,3 +323,4 @@ assert(workspaceSrc.includes("pointerEvents: 'none'"), 'pointer-events blocked u
 console.log('   Touch-through guard verified.');
 
 console.log('\n=== All Milestone D6 Tests PASSED ===');
+

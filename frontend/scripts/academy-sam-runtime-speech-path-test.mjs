@@ -81,3 +81,4 @@ assert(lastUtterance.voice, 'Fallback utterance must have a voice');
 assert.strictEqual(lastUtterance.voice.lang.toLowerCase().startsWith('de'), true, 'Fallback voice must still be German');
 
 console.log('=== Academy Sam Runtime Speech Path Test passed ===');
+

@@ -80,3 +80,4 @@ const save = JSON.parse(localStore.get('cyberlearn:academy-progress-v1'));
 assert(save, 'academy save must still exist');
 
 console.log('=== App Cache Version Invalidation Test passed ===');
+

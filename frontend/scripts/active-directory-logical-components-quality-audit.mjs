@@ -158,3 +158,4 @@ for (const key of [DOMAIN_KEY, DC_KEY]) {
 }
 
 console.log('\n=== Active Directory Logical Components Quality Audit passed ===');
+

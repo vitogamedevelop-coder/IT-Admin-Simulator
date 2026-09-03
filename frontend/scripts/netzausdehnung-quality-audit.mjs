@@ -53,3 +53,4 @@ for (const id of requiredKnowledgeIds) {
 }
 
 console.log(`netzausdehnung-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${questions.length} questions)`);
+

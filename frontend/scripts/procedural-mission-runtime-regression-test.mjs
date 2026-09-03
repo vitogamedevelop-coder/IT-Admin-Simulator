@@ -250,3 +250,4 @@ console.log('✅ Old-instance migration regression passed');
 }
 
 console.log('\n🎉 All procedural mission runtime regression tests passed');
+

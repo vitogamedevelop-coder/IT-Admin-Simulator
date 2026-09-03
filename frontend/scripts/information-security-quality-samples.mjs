@@ -94,3 +94,4 @@ samples.push(...sampleFor(pick(securityItems, [
 ], 1), 'tech'));
 
 console.log(JSON.stringify(samples, null, 2));
+

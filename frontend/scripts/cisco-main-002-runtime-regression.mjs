@@ -147,3 +147,4 @@ for (const saveCmd of ['do write', 'do wr', 'do write memory', 'do copy running-
 }
 
 console.log('cisco-main-002 runtime regression: PASS');
+

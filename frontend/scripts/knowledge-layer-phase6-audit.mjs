@@ -264,3 +264,4 @@ for (const s of conversationSamples.slice(0, 10)) {
   console.log(`[${s.templateId}] ${s.learningObjective}/${s.knowledgeFacet} [${s.roleHints?.join(',')}]`);
   console.log(`  ${s.text}`);
 }
+

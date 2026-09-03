@@ -42,3 +42,4 @@ const learnedFull = full.filter((t) => ['learned', 'applied', 'consolidated'].in
 assert.strictEqual(learnedFull.length, 0, 'getAllFullTopics has no learned topics on fresh install');
 
 console.log('=== Academy Fresh Install State Audit passed ===');
+

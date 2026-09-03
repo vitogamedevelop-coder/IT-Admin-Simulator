@@ -62,3 +62,4 @@ for (const [key, lesson] of Object.entries(LESSONS)) {
 console.log(`\nSummary: ${pass} passed, ${fail} failed out of ${pass + fail} lessons with theory sections.`);
 if (fail > 0) process.exit(1);
 console.log('=== Academy Live Theory Completion Audit passed ===');
+

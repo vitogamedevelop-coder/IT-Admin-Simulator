@@ -95,3 +95,4 @@ console.log('\nInvalid ranges are rejected');
 }
 
 console.log(`\n${passed} tests passed`);
+

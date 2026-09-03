@@ -117,3 +117,4 @@ assert(missionHintSystem.includes('revealedSolution: true'), 'Solution reveal mu
 assert(missionHintSystem.includes("subskillPath: 'cisco.basic_configuration.interface_enable'"), 'no shutdown hint ladder should exist');
 
 console.log('Mission V2 foundation test passed.');
+

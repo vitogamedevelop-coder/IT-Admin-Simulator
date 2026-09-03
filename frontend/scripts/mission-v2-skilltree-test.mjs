@@ -78,3 +78,4 @@ assert(skillTree.includes('function migrateSkillTree'), 'Migration function shou
 assert(skillTree.includes('if (parsed && parsed.schemaVersion === SKILL_TREE_SCHEMA_VERSION)'), 'Read should check schema version');
 
 console.log('Skill tree granularization test passed.');
+

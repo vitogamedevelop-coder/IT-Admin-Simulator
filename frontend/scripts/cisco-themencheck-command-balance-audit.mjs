@@ -72,3 +72,4 @@ if (minCommand < 1) {
 }
 
 console.log('\n=== Cisco Themencheck Command Balance Audit passed ===');
+

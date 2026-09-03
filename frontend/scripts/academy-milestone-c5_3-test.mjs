@@ -179,3 +179,4 @@ for (const name of summary.topicNames) {
 console.log(`   Category summary: ${summary.lessonCount} lessons, ${summary.totalQuestions} questions, no duplicates.`);
 
 console.log('\n=== All Milestone C5.3 Tests PASSED ===');
+

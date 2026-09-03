@@ -152,3 +152,4 @@ const placeholderDims = getTopicScoreDimensions('information-security', 'securit
 assert(!placeholderDims.theory && !placeholderDims.practice && !placeholderDims.retention, 'Placeholder shows no scores');
 
 console.log('All Milestone D1 tests passed.');
+

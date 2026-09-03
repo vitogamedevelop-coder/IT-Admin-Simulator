@@ -170,3 +170,4 @@ if (failures === 0) {
   console.log(`${failures} Fehler gefunden.`);
   process.exit(1);
 }
+

@@ -154,3 +154,4 @@ assertGreaterEqual(topicOverallProgress(progress), 15, 'overall progress reaches
 assertGreaterEqual(overallScore(progress), 0, 'overallScore is non-negative');
 
 console.log('progression-quality-audit: PASS');
+

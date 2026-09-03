@@ -76,7 +76,8 @@ if (optionalSchemaMaster) {
 }
 
 const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-check(/versionCode 18410/.test(buildGradle), 'versionCode must be 18410 for 1.84.1');
+check(/versionCode 18500/.test(buildGradle), 'versionCode must be 18500 for 1.85.0');
 
 console.log('\nBerechtigungsverwaltung.txt: FACHLICH ABGESCHLOSSEN ✅');
 console.log('=== Active Directory Berechtigungsverwaltung Source Completion Audit passed ===');
+

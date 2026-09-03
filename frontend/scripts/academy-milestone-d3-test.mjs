@@ -263,3 +263,4 @@ const after = getRecommendedLearningTopic().progress;
 assert(after > before, 'learning recommendation progress increases after mentor lesson');
 
 console.log('All Milestone D3 tests passed.');
+

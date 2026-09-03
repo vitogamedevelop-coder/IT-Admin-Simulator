@@ -105,3 +105,4 @@ for (const item of knowledgeItems) {
 }
 console.log(`Total issues: ${issueCount}`);
 process.exit(issueCount === 0 ? 0 : 1);
+

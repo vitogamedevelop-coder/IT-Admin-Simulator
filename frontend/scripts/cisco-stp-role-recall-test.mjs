@@ -48,3 +48,4 @@ if (!foundMeaningToName) {
 
 console.log('All generated options stayed within Root/Designated/Alternate roles.');
 console.log('\n=== Cisco STP Role Recall Test passed ===');
+

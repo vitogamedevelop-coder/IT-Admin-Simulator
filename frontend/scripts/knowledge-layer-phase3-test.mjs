@@ -394,3 +394,4 @@ for (const item of calcItems) {
 console.log('\n✅ Phase 3 Knowledge Layer Calculation System tests passed');
 console.log(`   Calculation families: ${getSupportedCalculationFamilies().join(', ')}`);
 console.log(`   Calculation items tested: ${calcItems.length}`);
+

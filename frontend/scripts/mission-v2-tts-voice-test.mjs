@@ -57,3 +57,4 @@ assert(dialogView.includes('loadVoices'), 'DialogView should still import loadVo
 assert(speechSynthesis.includes('export function loadVoices'), 'loadVoices must be exported from speechSynthesis');
 
 console.log('TTS voice persistence regression test passed.');
+

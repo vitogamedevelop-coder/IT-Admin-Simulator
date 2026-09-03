@@ -96,3 +96,4 @@ console.log('\nTickets badge (real state, no separate counter)');
 }
 
 console.log(`\n${passed} tests passed`);
+

@@ -146,3 +146,4 @@ assert(progress12.total === 5, 'Total is 5');
 assert(typeof progress12.checks === 'object', 'Progress checks still exist for Prüfen/Feedback');
 
 console.log('Mission V2 CLI/UX tests passed.');
+

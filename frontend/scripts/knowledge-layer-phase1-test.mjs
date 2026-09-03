@@ -234,3 +234,4 @@ console.log(`   Total Knowledge Items: ${allItems.length}`);
 console.log(`   OSI: ${osiItems.length}, Binary: ${binaryItems.length}`);
 console.log(`   IPv4: ${ipv4Items.length}, Subnet-Masks: ${subnetMaskItems.length}, Subnetting: ${subnettingItems.length}`);
 console.log(`   Switching: ${switchingItems.length}, VLAN: ${vlanItems.length}, SSH: ${sshItems.length}`);
+

@@ -401,3 +401,4 @@ console.log('\nPersistence / migration: existing savegames are unaffected (item 
 }
 
 console.log(`\n${passed} tests passed`);
+

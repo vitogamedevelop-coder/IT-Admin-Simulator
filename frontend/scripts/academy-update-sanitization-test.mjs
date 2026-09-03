@@ -75,3 +75,4 @@ assert(!data.topics['removed-topic/obsolete'], 'removed topic is dropped');
 assert(!topic.lastCompletedSectionId || validSectionIds.has(topic.lastCompletedSectionId), 'lastCompletedSectionId is valid');
 
 console.log('=== Academy Update Sanitization Test passed ===');
+

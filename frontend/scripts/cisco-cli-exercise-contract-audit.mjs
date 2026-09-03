@@ -125,3 +125,4 @@ if (failures === 0) {
 }
 console.log(`${failures} failures.`);
 process.exit(1);
+

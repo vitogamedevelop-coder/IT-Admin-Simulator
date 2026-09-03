@@ -77,3 +77,4 @@ const currentObjective = activeMission
 assert(currentObjective.title === missionTitle, 'Active mission should take priority over learning goal');
 
 console.log('Goal panel tests passed.');
+

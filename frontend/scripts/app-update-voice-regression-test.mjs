@@ -67,3 +67,4 @@ assert(lastUtterance, 'speakAs must produce an utterance');
 assert.strictEqual(lastUtterance.voice.voiceURI, samVoice.voiceURI, 'utterance must use Sam voice');
 
 console.log('=== App Update Voice Regression Test passed ===');
+

@@ -157,3 +157,4 @@ assert.strictEqual(second.topics[osiKey].theoryCompletion, first.topics[osiKey].
 assert.strictEqual(second.topics[osiKey].contentSeenPercent, first.topics[osiKey].contentSeenPercent, 'repeated load stable');
 
 console.log('=== Academy Theory Legacy Marker Recovery Test passed ===');
+

@@ -300,3 +300,4 @@ const helpLines = rEnq.output.split('\n').filter((line) => line.trim() === 'enab
 assert(helpLines.length === 1, 'enable should appear exactly once in en? output');
 
 console.log('Cisco CLI Engine tests passed.');
+

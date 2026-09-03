@@ -406,3 +406,4 @@ assert(allowedBlock.includes('Gi0/1       10,20,30'), 'the "allowed" section sho
 assert(activeBlock.trim() === 'Gi0/1       10', 'the "active" section only shows VLAN 10, since 20/30 were never created');
 
 console.log('Phase 1G fix: switchport trunk allowed vlan no longer auto-creates VLANs; show interfaces trunk distinguishes allowed vs. active.');
+

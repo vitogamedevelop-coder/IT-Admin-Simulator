@@ -146,3 +146,4 @@ assert.strictEqual(second.topics[grundKey].theoryCompletion, first.topics[grundK
 assert.strictEqual(second.topics[grundKey].contentSeenPercent, first.topics[grundKey].contentSeenPercent, 'repeated load does not change contentSeenPercent');
 
 console.log('=== Academy Theory Update Preservation Test passed ===');
+

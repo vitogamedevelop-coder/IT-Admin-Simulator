@@ -131,3 +131,4 @@ console.log('\nGenerated instances respect unlocks');
 }
 
 console.log(`\n${passed} tests passed`);
+

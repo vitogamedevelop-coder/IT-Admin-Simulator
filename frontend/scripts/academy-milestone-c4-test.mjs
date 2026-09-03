@@ -71,3 +71,4 @@ assert(supernettingLesson.exercises.length > 0, 'Supernetting exercises exist');
 assert(supernettingLesson.quiz.length > 0, 'Supernetting quiz exists');
 
 console.log('All Milestone C4 tests passed.');
+

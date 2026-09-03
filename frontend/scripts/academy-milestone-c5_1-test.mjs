@@ -212,3 +212,4 @@ assert(prefixExercise.answers.includes('26'), 'Answer is 26');
 console.log('   Subnet mask prefix exercises verified.');
 
 console.log('\n=== All Milestone C5.1 Tests PASSED ===');
+

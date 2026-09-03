@@ -74,3 +74,4 @@ if (errors.length > 0) {
 assertTrue(generated >= TARGET_QUESTIONS, `Only generated ${generated}/${TARGET_QUESTIONS} questions`);
 assertTrue(issueCount === 0, `Found ${issueCount} solvability issues`);
 console.log('\n✅ Phase 7.2 structured-question solvability audit passed');
+

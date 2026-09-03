@@ -80,3 +80,4 @@ assert(!hasLesson(vbox.categoryId, vbox.topicId), 'virtualbox-lab must have no l
 assert(!adProductive.some((t) => t.prerequisites.some((pre) => resolveKey(pre, t.categoryId) === vboxKey)), 'virtualbox-lab must not be a direct prerequisite of any productive AD topic');
 
 console.log('\n=== Active Directory Prerequisite Graph Audit passed ===');
+

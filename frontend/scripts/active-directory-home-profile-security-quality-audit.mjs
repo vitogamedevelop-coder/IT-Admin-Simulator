@@ -109,3 +109,4 @@ for (const ex of lesson.exercises) {
 }
 
 console.log('\n=== Active Directory Home & Profile Share Security Quality Audit passed ===');
+

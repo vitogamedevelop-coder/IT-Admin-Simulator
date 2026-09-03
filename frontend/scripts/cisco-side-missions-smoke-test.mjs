@@ -57,3 +57,4 @@ assert(e.allCorrect, 'Side 003 evaluation should be all correct');
 console.log('Side 003 passed');
 
 console.log('All side mission smoke tests passed.');
+

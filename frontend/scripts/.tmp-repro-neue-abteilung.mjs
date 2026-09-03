@@ -74,3 +74,4 @@ console.log('\n--- evaluate ---');
 const evaluation = evaluateMainMission(state);
 console.log(JSON.stringify(evaluation.checks, null, 2));
 console.log('allCorrect:', evaluation.allCorrect);
+

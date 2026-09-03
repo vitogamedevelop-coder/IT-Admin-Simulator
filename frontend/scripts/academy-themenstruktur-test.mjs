@@ -133,3 +133,4 @@ for (const term of [
 console.log('   DNS, DHCP and Grundkonfiguration cover all required terms from the course notes.');
 
 console.log('\n=== Themenstruktur-Anpassung verified ===');
+

@@ -142,3 +142,4 @@ for (let i = 0; i < 20; i += 1) {
 assertTrue(weakCount >= 10, `weak facet should be preferred (${weakCount}/20)`);
 
 console.log('✅ Phase 5.1 Knowledge Facet & Context tests passed');
+

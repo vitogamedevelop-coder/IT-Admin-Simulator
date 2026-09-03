@@ -149,3 +149,4 @@ assert(LESSONS[topicId('osi-model')].exercises.length > 0, 'OSI exercises exist'
 assert(LESSONS[topicId('tcp-ip-model')].exercises.length > 0, 'TCP/IP exercises exist');
 
 console.log('All Milestone C2 tests passed.');
+
