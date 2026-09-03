@@ -79,3 +79,4 @@ assert(skillTree.includes('if (parsed && parsed.schemaVersion === SKILL_TREE_SCH
 
 console.log('Skill tree granularization test passed.');
 
+

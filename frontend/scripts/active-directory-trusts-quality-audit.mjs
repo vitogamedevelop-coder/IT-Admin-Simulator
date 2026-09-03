@@ -109,8 +109,9 @@ auditRequires(!/external trust|realm trust|shortcut trust|forest trust|inter-for
 console.log('L. Version check ...');
 {
   const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-  auditRequires(/versionCode 18500/.test(buildGradle), 'versionCode must be 18500 for 1.85.0');
+  auditRequires(/versionCode 18600/.test(buildGradle), 'versionCode must be 18600 for 1.86.0');
 }
 
 console.log('=== Active Directory Trusts Quality Audit passed ===');
+
 

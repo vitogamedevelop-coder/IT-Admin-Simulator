@@ -96,3 +96,4 @@ for (const exercise of exercises) {
 
 console.log('\n=== AD User Template Guided-UI Contract Tests passed ===');
 
+

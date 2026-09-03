@@ -62,3 +62,4 @@ if (problems.length > 0) {
 
 console.log('Mission V2 terminal scroll regression test passed: fixed-height internal scroll, manual scroll respected, own commands re-anchor to bottom.');
 
+

@@ -95,3 +95,4 @@ console.log('\nshow interfaces status is dynamic');
 
 console.log(`\n${passed} tests passed`);
 
+

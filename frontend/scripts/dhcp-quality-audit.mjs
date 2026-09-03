@@ -78,3 +78,4 @@ assert(conversation.questions.some((question) => question.id === 'dhcp-10' && qu
 
 console.log(`dhcp-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${lesson.quiz.length} quiz questions, ${allItems.filter((item) => item.topicKey === topicKey).length} knowledge items)`);
 
+

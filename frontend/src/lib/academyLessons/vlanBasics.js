@@ -105,7 +105,7 @@ function buildExercises() {
       explanation: 'VLANs bringen Sicherheit durch Trennung, weniger Broadcast-Verkehr durch kleinere Domänen, und Flexibilität unabhängig vom Standort.',
     },
     {
-      id: 'access-trunk-matching',
+      id: 'vlan-basics-access-trunk-matching',
       type: 'matching',
       question: 'Ordne jeden Port-Typ seinem Zweck zu.',
       pairs: [

@@ -24,3 +24,4 @@ assert(accepted('  /23  ', 23), 'answer with whitespace /23 should be accepted')
 
 console.log('=== Supernetting regression test passed ===');
 
+

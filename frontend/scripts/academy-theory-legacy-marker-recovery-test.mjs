@@ -158,3 +158,4 @@ assert.strictEqual(second.topics[osiKey].contentSeenPercent, first.topics[osiKey
 
 console.log('=== Academy Theory Legacy Marker Recovery Test passed ===');
 
+

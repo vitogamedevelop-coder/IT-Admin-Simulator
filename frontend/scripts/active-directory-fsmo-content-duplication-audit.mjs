@@ -2,12 +2,25 @@ import { topicKey } from '../src/lib/academyTopics.js';
 import { LESSONS, hasLessonContent } from '../src/lib/academyLessonData.js';
 import { getAllKnowledgeItems } from '../src/lib/knowledge/index.js';
 
-const TARGET_TOPIC_ID = topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups');
-const RELATED_TOPIC_IDS = [
-  topicKey('active-directory-virtualbox', 'domain-controller'),
-  topicKey('active-directory-virtualbox', 'ad-tree-forest'),
-  topicKey('active-directory-virtualbox', 'ad-trusts'),
+const TARGET_TOPIC_IDS = [
+  topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups'),
+  topicKey('active-directory-virtualbox', 'ad-fsmo-transfer'),
 ];
+
+const RELATED_MAP = {
+  [topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups')]: [
+    topicKey('active-directory-virtualbox', 'domain-controller'),
+    topicKey('active-directory-virtualbox', 'ad-tree-forest'),
+    topicKey('active-directory-virtualbox', 'ad-trusts'),
+    topicKey('active-directory-virtualbox', 'ad-fsmo-transfer'),
+  ],
+  [topicKey('active-directory-virtualbox', 'ad-fsmo-transfer')]: [
+    topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups'),
+    topicKey('active-directory-virtualbox', 'domain-controller'),
+    topicKey('active-directory-virtualbox', 'ad-tree-forest'),
+    topicKey('active-directory-virtualbox', 'ad-trusts'),
+  ],
+};
 
 function collectLessonText(lesson) {
   const texts = [];
@@ -39,50 +52,57 @@ function check(condition, message) {
 
 console.log('=== Active Directory FSMO Content Duplication Audit ===\n');
 
-const targetLesson = LESSONS[TARGET_TOPIC_ID];
-check(!!targetLesson, 'Target lesson ad-fsmo-admin-groups exists');
-if (!targetLesson) process.exit(1);
+for (const targetId of TARGET_TOPIC_IDS) {
+  const targetLesson = LESSONS[targetId];
+  const targetName = targetId.split('/').pop();
+  check(!!targetLesson, `Target lesson ${targetName} exists`);
+  if (!targetLesson) continue;
 
-const targetTexts = collectLessonText(targetLesson);
+  const targetTexts = collectLessonText(targetLesson);
+  const relatedIds = RELATED_MAP[targetId] || [];
 
-for (const relatedId of RELATED_TOPIC_IDS) {
-  if (!hasLessonContent('active-directory-virtualbox', relatedId.split('/')[1])) continue;
-  const relatedLesson = LESSONS[relatedId];
-  if (!relatedLesson) continue;
-  const relatedTexts = collectLessonText(relatedLesson);
-  let duplicates = 0;
-  for (const t of targetTexts) {
-    for (const r of relatedTexts) {
-      if (normalize(t) === normalize(r) && t.length > 40) {
-        duplicates++;
+  for (const relatedId of relatedIds) {
+    if (!hasLessonContent('active-directory-virtualbox', relatedId.split('/')[1])) continue;
+    const relatedLesson = LESSONS[relatedId];
+    if (!relatedLesson) continue;
+    const relatedTexts = collectLessonText(relatedLesson);
+    let duplicates = 0;
+    for (const t of targetTexts) {
+      for (const r of relatedTexts) {
+        if (normalize(t) === normalize(r) && t.length > 40) {
+          duplicates++;
+        }
       }
     }
+    check(duplicates === 0, `No identical explanation paragraphs between ${targetName} and ${relatedId.split('/').pop()} (found ${duplicates})`);
   }
-  check(duplicates === 0, `No identical explanation paragraphs between ad-fsmo-admin-groups and ${relatedId.split('/').pop()} (found ${duplicates})`);
+
+  check(targetLesson.explanations.length === new Set(targetLesson.explanations.map((e) => e.id)).size, `All explanation ids are unique within ${targetName}`);
 }
 
-const targetIds = new Set(targetLesson.exercises.map((e) => e.id));
-const allExerciseIds = new Set();
+const allExerciseIds = new Map();
 for (const key of Object.keys(LESSONS)) {
   for (const ex of LESSONS[key].exercises || []) {
-    if (allExerciseIds.has(ex.id) && key !== TARGET_TOPIC_ID && targetIds.has(ex.id)) {
-      check(false, `Duplicate exercise id across lessons: ${ex.id}`);
+    if (allExerciseIds.has(ex.id)) {
+      check(false, `Duplicate exercise id across lessons: ${ex.id} (found in ${key} and ${allExerciseIds.get(ex.id)})`);
+    } else {
+      allExerciseIds.set(ex.id, key);
     }
-    allExerciseIds.add(ex.id);
   }
 }
-
-check(targetLesson.explanations.length === new Set(targetLesson.explanations.map((e) => e.id)).size, 'All explanation ids are unique within ad-fsmo-admin-groups');
 
 const itemIds = getAllKnowledgeItems().map((i) => i.id);
 const uniqueItemIds = new Set(itemIds);
 check(itemIds.length === uniqueItemIds.size, 'All knowledge item ids are globally unique');
 
-const targetItems = getAllKnowledgeItems().filter((i) => i.topicKey === TARGET_TOPIC_ID);
-check(targetItems.every((i) => uniqueItemIds.has(i.id)), 'Target topic knowledge items registered');
+for (const targetId of TARGET_TOPIC_IDS) {
+  const targetItems = getAllKnowledgeItems().filter((i) => i.topicKey === targetId);
+  check(targetItems.every((i) => uniqueItemIds.has(i.id)), `Target topic ${targetId.split('/').pop()} knowledge items registered`);
+}
 
 if (hasError) {
   console.error('\nAudit FAILED.');
   process.exit(1);
 }
 console.log('\n=== Active Directory FSMO Content Duplication Audit passed ===');
+

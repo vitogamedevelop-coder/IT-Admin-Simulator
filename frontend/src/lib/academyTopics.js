@@ -209,6 +209,7 @@ export const ACADEMY_TOPICS = [
   topic('active-directory-virtualbox', 'ad-tree-forest', 'Trees, Forests & Subdomänen', 'AD-Strukturen: Domäne, Root Domain, Child Domain, Tree, Forest, gemeinsame Namensräume und forestweite Informationen.', ['active-directory-virtualbox/ad-foundation']),
   topic('active-directory-virtualbox', 'ad-trusts', 'Vertrauensstellungen', 'Vertrauensstellungen zwischen Domänen: Richtung, trusting/trusted, incoming/outgoing, transitiv und Parent-/Child-Trusts.', ['active-directory-virtualbox/ad-tree-forest']),
   topic('active-directory-virtualbox', 'ad-fsmo-admin-groups', 'FSMO-Rollen & Admin-Gruppen', 'Forest-weite FSMO-Rollen und privilegierte Administratorgruppen: Scope, Ausfallverhalten und Least Privilege.', ['active-directory-virtualbox/ad-tree-forest']),
+  topic('active-directory-virtualbox', 'ad-fsmo-transfer', 'FSMO-Rollen anzeigen & verschieben', 'FSMO-Rolleninhaber ermitteln, Rollen geplant auf einen Ziel-DC übertragen und Ergebnis verifizieren.', ['active-directory-virtualbox/ad-fsmo-admin-groups']),
   topic('active-directory-virtualbox', 'windows-server', 'Windows Server Core', 'Verwaltung von Server Core: lokal über PowerShell und remote über den Server Manager.', ['active-directory-virtualbox/domain-controller']),
   // Domain builds directly on the AD foundation for the logical-components
   // block. Windows Server remains a separate topic; the playable chain here

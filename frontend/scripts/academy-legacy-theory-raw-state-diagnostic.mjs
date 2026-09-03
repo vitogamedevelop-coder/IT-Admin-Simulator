@@ -151,3 +151,4 @@ console.log('- Learned status or theoryScore alone does NOT grant 100 %.');
 console.log('- Topics with only theoryScore display 0 % theory completion; theoryScore is a separate mastery value.');
 console.log('=== Academy Legacy Theory Raw State Diagnostic passed ===');
 
+

@@ -53,3 +53,4 @@ for (const id of ['binary.numberSystems', 'binary.hexRelation', 'ipv4.definition
 }
 console.log(`ip-adressen-grundlagen-quality-audit: PASS (500 conversion sets, ${binaryLesson.exercises.length} number exercises, ${ipLesson.exercises.length} IP exercises)`);
 
+

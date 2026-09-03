@@ -301,3 +301,4 @@ assert(helpLines.length === 1, 'enable should appear exactly once in en? output'
 
 console.log('Cisco CLI Engine tests passed.');
 
+

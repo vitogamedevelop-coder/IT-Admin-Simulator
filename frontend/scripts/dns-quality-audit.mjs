@@ -43,3 +43,4 @@ assert(CONVERSATION_TOPICS[topicKey], 'DNS ist in CONVERSATION_TOPICS registrier
 assert(CONVERSATION_TOPICS[topicKey].questions.some((question) => question.id === 'dns-4' && question.text.includes('IP')), 'statische DNS-Troubleshootingfrage ist vorhanden');
 console.log(`dns-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${lesson.quiz.length} quiz questions, ${allItems.filter((item) => item.topicKey === topicKey).length} knowledge items)`);
 
+

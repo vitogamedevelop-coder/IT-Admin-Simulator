@@ -67,3 +67,4 @@ assert(CONVERSATION_TOPICS[topicKey], 'Supernetting ist in CONVERSATION_TOPICS r
 assert(CONVERSATION_TOPICS[topicKey].questions.length >= 4, 'statische Transferfragen sind vorhanden');
 console.log(`supernetting-quality-audit: PASS (1000 random sibling pairs, ${lesson.exercises.length} exercises, ${allItems.filter((item) => item.topicKey === topicKey).length} knowledge items)`);
 
+

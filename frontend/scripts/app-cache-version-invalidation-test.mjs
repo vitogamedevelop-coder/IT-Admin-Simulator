@@ -81,3 +81,4 @@ assert(save, 'academy save must still exist');
 
 console.log('=== App Cache Version Invalidation Test passed ===');
 
+

@@ -111,3 +111,4 @@ assert(!reloaded, 'second startup must not call location.reload');
 
 console.log('=== Academy App Update Harness passed ===');
 
+

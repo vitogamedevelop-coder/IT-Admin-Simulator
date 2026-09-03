@@ -134,3 +134,4 @@ console.log('   Question pools stay scoped to their own lesson.');
 
 console.log('\n=== Lesson mode restructuring (Theorie/Praxis/Fachgespräch) verified ===');
 
+

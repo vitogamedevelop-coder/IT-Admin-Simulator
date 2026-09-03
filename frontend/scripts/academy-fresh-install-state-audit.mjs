@@ -43,3 +43,4 @@ assert.strictEqual(learnedFull.length, 0, 'getAllFullTopics has no learned topic
 
 console.log('=== Academy Fresh Install State Audit passed ===');
 
+
