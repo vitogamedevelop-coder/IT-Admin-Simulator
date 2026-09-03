@@ -69,9 +69,10 @@ auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has 
 
 auditRequires(!/KCC (konfigurieren|als).*Detaill?iert|Sites? (konfigurieren|zuweisen)|Site Link|Subnetz.*zuweisen|Replikationszeitplan|AD-Papierkorb aktivieren|AD Recycle Bin aktivieren/i.test(JSON.stringify(lesson)), 'No practical deep Sites/KCC/Recycle Bin configuration taught');
 
-auditRequires(/versionCode 19000/.test(buildGradle), 'versionCode must be 19000 for 1.90.0');
+auditRequires(/versionCode 19100/.test(buildGradle), 'versionCode must be 19100 for 1.91.0');
 
 console.log('\n=== Active Directory Replication Basics Quality Audit passed ===');
+
 
 
 

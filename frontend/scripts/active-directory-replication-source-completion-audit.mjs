@@ -38,6 +38,10 @@ const requiredTopics = [
   ['ad-fsmo-admin-groups', 'FSMO-Rollen & Admin-Gruppen'],
   ['ad-fsmo-transfer', 'FSMO-Rollen anzeigen & verschieben'],
   ['ad-replication-basics', 'Replikationsgrundlagen & AD-Datenbank'],
+  ['ad-replication-sites', 'Replikations-Sites'],
+  ['ad-replication-topology', 'KCC, Replikationstopologie & Site Links'],
+  ['ad-replication-site-config', 'Sites & Site Links praktisch konfigurieren'],
+  ['ad-recycle-bin', 'AD-Papierkorb & Wiederherstellung'],
 ];
 
 for (const [id, title] of requiredTopics) {
@@ -70,6 +74,18 @@ if (topic) {
   check(topic.prerequisites.includes('active-directory-virtualbox/ad-fsmo-transfer') || topic.prerequisites.includes('active-directory-virtualbox/ad-fsmo-admin-groups'), 'ad-replication-basics has valid AD prerequisite');
 }
 
+const recycleBinLesson = LESSONS[topicKey('active-directory-virtualbox', 'ad-recycle-bin')];
+if (recycleBinLesson) {
+  const recycleBinText = JSON.stringify(recycleBinLesson).toLowerCase();
+  check(/recycle bin|papierkorb/i.test(recycleBinText), 'Recycle Bin topic is named/defined');
+  check(/aktiv|enable|aktiviert/i.test(recycleBinText), 'Recycle Bin enablement covered');
+  check(/forest/i.test(recycleBinText), 'Recycle Bin forest scope covered');
+  check(/deleted objects/i.test(recycleBinText), 'Recycle Bin Deleted Objects covered');
+  check(/restore/i.test(recycleBinText), 'Recycle Bin Restore covered');
+  check(/backup/i.test(recycleBinText), 'Recycle Bin vs Backup distinction covered');
+  check(/adsi edit/i.test(recycleBinText), 'ADSI Edit advanced mention covered');
+}
+
 check(!/KCC (konfigurieren|als).*Detaill?iert|Sites? (konfigurieren|zuweisen)|Site Link|Subnetz.*zuweisen|Replikationszeitplan|AD-Papierkorb aktivieren|AD Recycle Bin aktivieren/i.test(replicationText), 'No deep Sites/KCC/Recycle Bin configuration prematurely included');
 
 if (hasError) {
@@ -81,6 +97,7 @@ console.log('Replikation.txt');
 console.log('FACHLICH ABGESCHLOSSEN');
 console.log('==================================================');
 console.log('\n=== Active Directory Replikation.txt Source Completion Audit passed ===');
+
 
 
 

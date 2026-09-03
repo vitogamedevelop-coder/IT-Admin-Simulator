@@ -23,3 +23,4 @@ check(/nicht.*immer.*manuell|manuell.*nur.*bewusst|automatisch.*standard/i.test(
 
 console.log('\n=== Active Directory Preferred Bridgehead Contract Test passed ===');
 
+

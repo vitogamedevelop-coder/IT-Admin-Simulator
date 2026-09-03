@@ -1,16 +1,19 @@
-feat(academy): add Thema 25: Sites & Site Links praktisch konfigurieren (v1.90.0)
+feat(academy): add Thema 26: AD-Papierkorb & Wiederherstellung (v1.91.0)
 
-- New topic `ad-replication-site-config` in active-directory-virtualbox,
-  prerequisite `ad-replication-topology`.
-- Add `adReplicationSiteConfig.js` lesson: Sites and Services tool,
-  Default-First-Site-Name, Sites, Subnets in CIDR, DC move,
-  Site Links, Cost, Interval, Schedule, Preferred Bridgehead,
-  verification, troubleshooting.
-- 8 guided UIs, admin challenge, ordering, matching, misconceptions,
-  troubleshooting exercises, 5 quiz questions.
-- Add 15 knowledge items and employee conversation pool (10 questions).
-- New quality, guided UI, order, site-link config and bridgehead contract audits.
-- Update duplication audit and bump version to 1.90.0 / versionCode 19000.
+- New topic `ad-recycle-bin` in active-directory-virtualbox,
+  prerequisite `ad-replication-site-config`.
+- Add `adRecycleBin.js` lesson: definition, forestweite Aktivierung,
+  irreversible Aktivierung, Deleted Objects, Restore, Restore To,
+  Aufbewahrung, Verification, Recycle Bin vs Backup,
+  ADSI Edit als fortgeschrittenes Werkzeug.
+- 3 guided UIs (enable, restore, restore-to), admin challenge,
+  matching, classification, ordering, misconceptions,
+  troubleshooting and transfer exercises, 5 quiz questions.
+- Add 14 knowledge items and employee conversation pool (10 questions).
+- New quality, restore, backup-separation, enablement, guided UI,
+  and source-completion audits.
+- Extend replication source completion audit with Recycle Bin.
+- Bump version to 1.91.0 / versionCode 19100 / cache cyberlearn-v1.91.0.
 
 Generated with [Devin](https://devin.ai)
 

@@ -66,9 +66,10 @@ console.log('F. Conversation integration ...');
 auditRequires(/active-directory-virtualbox.*ad-permissions/.test(employeeConvSrc), 'ad-permissions must be present in employeeConversations');
 
 console.log('G. Fresh build version ...');
-auditRequires(/versionCode 19000/.test(fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8')), 'android versionCode must be 19000 for 1.90.0');
+auditRequires(/versionCode 19100/.test(fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8')), 'android versionCode must be 19100 for 1.91.0');
 
 console.log('=== Active Directory Group Permission Model Quality Audit passed ===');
+
 
 
 

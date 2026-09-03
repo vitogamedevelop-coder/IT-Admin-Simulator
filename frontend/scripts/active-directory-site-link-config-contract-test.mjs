@@ -22,3 +22,4 @@ check(/zeitplan|schedule/i.test(lessonText) && /erlaubt/i.test(lessonText), 'Sch
 
 console.log('\n=== Active Directory Site Link Config Contract Test passed ===');
 
+
