@@ -1,0 +1,21 @@
+feat(academy): add Thema 24: KCC, Replikationstopologie & Site Links (v1.89.0)
+
+- Register new topic `active-directory-virtualbox/ad-replication-topology`
+  with prerequisite `ad-replication-sites`
+- Add full theory lesson (20 explanations, 5 diagrams, 18 exercises, 8 quiz
+  questions, summary) covering KCC, topology, Site Links, Connection
+  Objects, Cost/Path, Schedule/Interval, Bridgehead and Site Link Bridges
+- Add 20 knowledge items for the new topic
+- Add employee conversation pool for `ad-replication-topology` (10 questions)
+- Add new quality and contract audits:
+  - active-directory-replication-topology-quality-audit.mjs
+  - active-directory-site-link-cost-contract-test.mjs
+  - active-directory-site-link-connection-contract-test.mjs
+  - active-directory-kcc-contract-test.mjs
+- Include `ad-replication-topology` in the content duplication audit
+- Bump version to 1.89.0 / versionCode 18900 / cache cyberlearn-v1.89.0
+- All regression tests, lint and APK build pass
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

@@ -28,3 +28,4 @@ check(/bevorzugt.*lokal.*dc|lokaler.*dc|dc.*lechfeld/i.test(lessonText), 'Client
 
 console.log('\n=== Active Directory Site Subnet Mapping Test passed ===');
 
+

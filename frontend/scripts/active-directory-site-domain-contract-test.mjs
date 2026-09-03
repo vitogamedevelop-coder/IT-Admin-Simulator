@@ -34,3 +34,4 @@ check(/logisch/i.test(domainItem.data.description) && /physisch/i.test(domainIte
 
 console.log('\n=== Active Directory Site vs Domain Contract Test passed ===');
 
+

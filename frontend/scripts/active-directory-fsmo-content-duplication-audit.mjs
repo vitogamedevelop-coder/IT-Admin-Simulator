@@ -7,6 +7,7 @@ const TARGET_TOPIC_IDS = [
   topicKey('active-directory-virtualbox', 'ad-fsmo-transfer'),
   topicKey('active-directory-virtualbox', 'ad-replication-basics'),
   topicKey('active-directory-virtualbox', 'ad-replication-sites'),
+  topicKey('active-directory-virtualbox', 'ad-replication-topology'),
 ];
 
 const RELATED_MAP = {
@@ -36,6 +37,12 @@ const RELATED_MAP = {
     topicKey('active-directory-virtualbox', 'ad-foundation'),
     topicKey('active-directory-virtualbox', 'domain-controller'),
     topicKey('active-directory-virtualbox', 'ad-tree-forest'),
+  ],
+  [topicKey('active-directory-virtualbox', 'ad-replication-topology')]: [
+    topicKey('active-directory-virtualbox', 'ad-replication-sites'),
+    topicKey('active-directory-virtualbox', 'ad-replication-basics'),
+    topicKey('active-directory-virtualbox', 'ad-foundation'),
+    topicKey('active-directory-virtualbox', 'domain-controller'),
   ],
 };
 
@@ -122,6 +129,7 @@ if (hasError) {
   process.exit(1);
 }
 console.log('\n=== Active Directory FSMO Content Duplication Audit passed ===');
+
 
 
 
