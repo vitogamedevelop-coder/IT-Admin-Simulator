@@ -61,3 +61,4 @@ for (const id of ['ipv4.networkHost', 'ipv4.addressRoles', 'ipv4.limitedBroadcas
 console.log(`ipv4-vertiefung-quality-audit: PASS (33 prefixes, 500 random networks, ${lesson.exercises.length} exercises, ${questions.length} questions)`);
 
 
+

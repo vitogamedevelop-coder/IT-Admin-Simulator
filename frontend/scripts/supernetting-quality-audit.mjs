@@ -68,3 +68,4 @@ assert(CONVERSATION_TOPICS[topicKey].questions.length >= 4, 'statische Transferf
 console.log(`supernetting-quality-audit: PASS (1000 random sibling pairs, ${lesson.exercises.length} exercises, ${allItems.filter((item) => item.topicKey === topicKey).length} knowledge items)`);
 
 
+

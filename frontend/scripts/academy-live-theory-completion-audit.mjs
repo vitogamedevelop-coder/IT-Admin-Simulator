@@ -64,3 +64,4 @@ if (fail > 0) process.exit(1);
 console.log('=== Academy Live Theory Completion Audit passed ===');
 
 
+

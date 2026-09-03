@@ -102,9 +102,10 @@ console.log('C. Save migration / legacy topic cleanup ...');
 console.log('D. Version check ...');
 {
   const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-  auditRequires(/versionCode 18600/.test(buildGradle), 'versionCode must be 18600 for 1.86.0');
+  auditRequires(/versionCode 18700/.test(buildGradle), 'versionCode must be 18700 for 1.87.0');
 }
 
 console.log('=== InfoSec Visible Topic Registry Audit passed ===');
+
 
 

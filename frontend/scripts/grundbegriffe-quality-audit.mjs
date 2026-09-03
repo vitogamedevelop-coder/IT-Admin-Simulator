@@ -55,3 +55,4 @@ for (const id of requiredItemIds) {
 console.log(`grundbegriffe-quality-audit: PASS (${BASICS_BEATS.length} beats, ${BASICS_PRACTICE_QUESTIONS.length} practice questions, ${knowledgeItems.length} knowledge items)`);
 
 
+

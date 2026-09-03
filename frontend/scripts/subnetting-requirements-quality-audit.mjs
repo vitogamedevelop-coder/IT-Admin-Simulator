@@ -75,3 +75,4 @@ for (const key of optimizedTopics) {
 console.log(`subnetting-requirements-quality-audit: PASS (1500 generated requirements, ${lesson.exercises.length} exercises, ${allItems.filter((item) => item.topicKey === topicKey).length} subnetting knowledge items)`);
 
 
+

@@ -144,3 +144,4 @@ assertTrue(weakCount >= 10, `weak facet should be preferred (${weakCount}/20)`);
 console.log('✅ Phase 5.1 Knowledge Facet & Context tests passed');
 
 
+

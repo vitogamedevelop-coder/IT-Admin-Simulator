@@ -408,3 +408,4 @@ assert(activeBlock.trim() === 'Gi0/1       10', 'the "active" section only shows
 console.log('Phase 1G fix: switchport trunk allowed vlan no longer auto-creates VLANs; show interfaces trunk distinguishes allowed vs. active.');
 
 
+

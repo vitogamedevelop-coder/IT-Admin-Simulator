@@ -100,3 +100,4 @@ assert(!second, 'second call on same version must not request reload');
 console.log('=== App Upgrade State Normalization Test passed ===');
 
 
+

@@ -80,7 +80,8 @@ auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has 
 
 auditRequires(!/ntdsutil|seize.*praktisch|rollen.*seizen|seize-prozess/i.test(JSON.stringify(lesson)), 'No practical seize procedure taught');
 
-auditRequires(/versionCode 18600/.test(buildGradle), 'versionCode must be 18600 for 1.86.0');
+auditRequires(/versionCode 18700/.test(buildGradle), 'versionCode must be 18700 for 1.87.0');
 
 console.log('\n=== Active Directory FSMO Transfer Quality Audit passed ===');
+
 

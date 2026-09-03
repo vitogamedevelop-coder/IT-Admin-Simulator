@@ -67,6 +67,7 @@ import { buildAdTreeForestLesson, AD_TREE_FOREST_TOPIC_KEY } from './academyLess
 import { buildAdTrustsLesson, AD_TRUSTS_TOPIC_KEY } from './academyLessons/adTrusts.js';
 import { buildAdFsmoAdminGroupsLesson, AD_FSMO_ADMIN_GROUPS_TOPIC_KEY } from './academyLessons/adFsmoAdminGroups.js';
 import { buildAdFsmoTransferLesson, AD_FSMO_TRANSFER_TOPIC_KEY } from './academyLessons/adFsmoTransfer.js';
+import { buildAdReplicationBasicsLesson, AD_REPLICATION_BASICS_TOPIC_KEY } from './academyLessons/adReplicationBasics.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -434,6 +435,7 @@ export const LESSONS = {
   [AD_TRUSTS_TOPIC_KEY]: buildAdTrustsLesson(),
   [AD_FSMO_ADMIN_GROUPS_TOPIC_KEY]: buildAdFsmoAdminGroupsLesson(),
   [AD_FSMO_TRANSFER_TOPIC_KEY]: buildAdFsmoTransferLesson(),
+  [AD_REPLICATION_BASICS_TOPIC_KEY]: buildAdReplicationBasicsLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

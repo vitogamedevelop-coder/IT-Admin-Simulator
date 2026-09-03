@@ -83,3 +83,4 @@ console.log(`   Theory covers all ${REQUIRED_TOPICS.length} required terms. Quiz
 console.log('\n=== Cisco "Grundlagen" lesson verified ===');
 
 
+

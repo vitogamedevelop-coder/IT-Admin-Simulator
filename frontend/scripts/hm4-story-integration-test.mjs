@@ -197,3 +197,4 @@ console.log('\nGenerator unlock reflects the real (non-synthetic) game state');
 console.log(`\n${passed} tests passed`);
 
 
+

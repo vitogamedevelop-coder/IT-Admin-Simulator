@@ -79,3 +79,4 @@ assert(currentObjective.title === missionTitle, 'Active mission should take prio
 console.log('Goal panel tests passed.');
 
 
+

@@ -236,3 +236,4 @@ console.log(`   IPv4: ${ipv4Items.length}, Subnet-Masks: ${subnetMaskItems.lengt
 console.log(`   Switching: ${switchingItems.length}, VLAN: ${vlanItems.length}, SSH: ${sshItems.length}`);
 
 
+

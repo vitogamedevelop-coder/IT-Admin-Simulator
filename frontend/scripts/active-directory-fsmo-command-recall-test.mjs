@@ -48,3 +48,4 @@ auditRequires(schmCount >= 2, `At least 2 exercises mention regsvr32 schmmgmt.dl
 
 console.log('\n=== Active Directory FSMO Command Recall Test passed ===');
 
+

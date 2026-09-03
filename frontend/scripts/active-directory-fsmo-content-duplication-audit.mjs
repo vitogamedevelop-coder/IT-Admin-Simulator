@@ -5,6 +5,7 @@ import { getAllKnowledgeItems } from '../src/lib/knowledge/index.js';
 const TARGET_TOPIC_IDS = [
   topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups'),
   topicKey('active-directory-virtualbox', 'ad-fsmo-transfer'),
+  topicKey('active-directory-virtualbox', 'ad-replication-basics'),
 ];
 
 const RELATED_MAP = {
@@ -13,9 +14,18 @@ const RELATED_MAP = {
     topicKey('active-directory-virtualbox', 'ad-tree-forest'),
     topicKey('active-directory-virtualbox', 'ad-trusts'),
     topicKey('active-directory-virtualbox', 'ad-fsmo-transfer'),
+    topicKey('active-directory-virtualbox', 'ad-replication-basics'),
   ],
   [topicKey('active-directory-virtualbox', 'ad-fsmo-transfer')]: [
     topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups'),
+    topicKey('active-directory-virtualbox', 'domain-controller'),
+    topicKey('active-directory-virtualbox', 'ad-tree-forest'),
+    topicKey('active-directory-virtualbox', 'ad-trusts'),
+    topicKey('active-directory-virtualbox', 'ad-replication-basics'),
+  ],
+  [topicKey('active-directory-virtualbox', 'ad-replication-basics')]: [
+    topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups'),
+    topicKey('active-directory-virtualbox', 'ad-fsmo-transfer'),
     topicKey('active-directory-virtualbox', 'domain-controller'),
     topicKey('active-directory-virtualbox', 'ad-tree-forest'),
     topicKey('active-directory-virtualbox', 'ad-trusts'),
@@ -105,4 +115,5 @@ if (hasError) {
   process.exit(1);
 }
 console.log('\n=== Active Directory FSMO Content Duplication Audit passed ===');
+
 

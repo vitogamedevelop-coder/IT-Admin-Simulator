@@ -43,3 +43,4 @@ for (const layer of OSI_LAYERS) {
 console.log(`osi-referenzmodelle-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${questions.length} questions)`);
 
 
+

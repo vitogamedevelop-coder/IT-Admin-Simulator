@@ -52,3 +52,4 @@ for (const id of requiredKnowledgeIds) {
 console.log(`uebertragungsmedien-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${questions.length} questions)`);
 
 
+

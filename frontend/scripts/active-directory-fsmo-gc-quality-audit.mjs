@@ -152,3 +152,4 @@ assert(hasDomainPrereq, 'domain-controller should require domain');
 console.log('\n=== Active Directory FSMO + Global Catalog Quality Audit passed ===');
 
 
+

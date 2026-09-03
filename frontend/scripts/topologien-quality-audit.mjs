@@ -59,3 +59,4 @@ for (const id of requiredItemIds) {
 console.log(`topologien-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${questions.length} questions, ${knowledgeItems.length} knowledge items)`);
 
 
+

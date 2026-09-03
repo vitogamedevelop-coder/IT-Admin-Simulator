@@ -44,3 +44,4 @@ assert(CONVERSATION_TOPICS[topicKey].questions.some((question) => question.id ==
 console.log(`dns-quality-audit: PASS (${lesson.explanations.length} explanations, ${lesson.exercises.length} exercises, ${lesson.quiz.length} quiz questions, ${allItems.filter((item) => item.topicKey === topicKey).length} knowledge items)`);
 
 
+
