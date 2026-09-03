@@ -17,6 +17,7 @@ import { topicKey, topicsForCategory, ACADEMY_CATEGORIES, findTopic } from './ac
 import { getAllFullTopics } from './academyProgress.js';
 import { isTopicLearnedOrBeyond } from './academyEngine.js';
 import { LEARNING_MODES, readAcademyMode } from './academyMode.js';
+import { generateQuestion, getAllKnowledgeItems } from './knowledge/index.js';
 
 const RESULTS_KEY = 'cyberlearn:themencheck-results-v1';
 
@@ -124,6 +125,42 @@ export function collectCliTasksFromLesson(lesson, topicId) {
 // ---------- Category Summary ----------
 
 /**
+ * Generates command-recall multiple-choice questions from Knowledge Items tagged
+ * cisco.command.* for a given topic. These questions are intentionally NOT
+ * folded into collectQuestionsFromLesson (which feeds category statistics and
+ * the lesson question pool) so that command recall stays a separate,
+ * maintainable layer that can be enabled per quiz generation strategy.
+ */
+function collectCommandRecallQuestionsForTopic(topicId) {
+  const items = getAllKnowledgeItems().filter((item) => {
+    if (!item.conceptCluster?.startsWith('cisco.command.')) return false;
+    return item.topicKey === topicKey('cisco-packet-tracer', topicId);
+  });
+
+  const questions = [];
+  for (const item of items) {
+    try {
+      const instance = generateQuestion(item.id, null, {
+        seed: `themencheck-${topicId}-${item.id}`,
+        contextType: 'direct_question',
+      });
+      if (!instance || !instance.prompt || !Array.isArray(instance.options) || typeof instance.correct !== 'number') continue;
+      questions.push({
+        question: instance.prompt,
+        options: instance.options.map((o) => o.label),
+        correct: instance.correct,
+        explanation: instance.explanation || instance.prompt,
+        sourceTopicId: topicId,
+        isCommandRecall: true,
+      });
+    } catch {
+      // No applicable template or generation failure: skip silently.
+    }
+  }
+  return shuffleArray(questions);
+}
+
+/**
  * Auto-generated summary for a category. Returns stats computed from lesson data.
  */
 export function getCategorySummary(categoryId) {
@@ -188,9 +225,20 @@ export function getCategorySummary(categoryId) {
 
 // ---------- Question pool with even distribution ----------
 
+function collectCommandRecallQuestionsForCategory(categoryId) {
+  const topics = topicsForCategory(categoryId);
+  const questions = [];
+  for (const topic of topics) {
+    questions.push(...collectCommandRecallQuestionsForTopic(topic.topicId));
+  }
+  return shuffleArray(questions);
+}
+
 /**
  * Generates a Themencheck for a given category.
  * Draws questions evenly across all topics (2-3 per topic), aiming for 15-30 total.
+ * For the Cisco category, command-recall questions are explicitly boosted so the
+ * final mix is roughly 15-35% command questions while staying within the cap.
  */
 export function generateThemencheck(categoryId) {
   const topics = topicsForCategory(categoryId);
@@ -202,8 +250,10 @@ export function generateThemencheck(categoryId) {
     if (!lesson) continue;
 
     const pool = collectQuestionsFromLesson(lesson, topic.topicId);
-    if (pool.length === 0) continue;
-    topicPools.push({ topicId: topic.topicId, pool: shuffleArray(pool) });
+    const commandRecall = collectCommandRecallQuestionsForTopic(topic.topicId);
+    const combined = shuffleArray([...pool, ...commandRecall]);
+    if (combined.length === 0) continue;
+    topicPools.push({ topicId: topic.topicId, pool: combined });
   }
 
   if (topicPools.length === 0) return [];
@@ -212,7 +262,7 @@ export function generateThemencheck(categoryId) {
   const targetTotal = Math.min(30, Math.max(15, topicPools.length * 3));
   const perTopic = Math.max(1, Math.ceil(targetTotal / topicPools.length));
 
-  const allQuestions = [];
+  let allQuestions = [];
   for (const { pool } of topicPools) {
     const count = Math.min(pool.length, perTopic);
     allQuestions.push(...pool.slice(0, count));
@@ -227,6 +277,27 @@ export function generateThemencheck(categoryId) {
           allQuestions.push(pool[i]);
         }
       }
+    }
+  }
+
+  // Boost command-recall questions for Cisco: target ~15-35% command share.
+  const isCisco = categoryId === 'cisco-packet-tracer';
+  if (isCisco) {
+    const minCommand = Math.max(2, Math.round(targetTotal * 0.15));
+    let commandCount = allQuestions.filter((q) => q.isCommandRecall).length;
+    if (commandCount < minCommand) {
+      const usedQuestions = new Set(allQuestions.map((q) => q.question));
+      const commandBank = collectCommandRecallQuestionsForCategory(categoryId)
+        .filter((q) => !usedQuestions.has(q.question));
+      const needed = minCommand - commandCount;
+      const extra = shuffleArray(commandBank).slice(0, needed);
+      const nonCommand = shuffleArray(allQuestions.filter((q) => !q.isCommandRecall));
+      const removeCount = Math.max(0, allQuestions.length + extra.length - targetTotal);
+      const removed = new Set(nonCommand.slice(0, removeCount));
+      allQuestions = shuffleArray([
+        ...allQuestions.filter((q) => !removed.has(q)),
+        ...extra,
+      ]);
     }
   }
 

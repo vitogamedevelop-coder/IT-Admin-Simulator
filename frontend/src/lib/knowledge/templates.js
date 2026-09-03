@@ -2861,6 +2861,282 @@ function ciscoAccessPortTemplates() {
 }
 
 // ---------------------------------------------------------------------------
+// Cisco IOS Command Recall templates
+// ---------------------------------------------------------------------------
+
+const commandRecallLeads = [
+  'Kurze Rückfrage zu einem Cisco-Befehl:',
+  'Ich prüfe gerade meine Befehle für die Prüfung:',
+  'Welcher Befehl war hier nochmal richtig?',
+  'Kannst du mir kurz bei einem Befehl helfen?',
+];
+
+function generateCommandParams(rng) {
+  const vlan = rng.pick([10, 20, 30, 40, 50, 99, 100, 172, 200, 250]);
+  const mask = rng.pick(['255.255.255.0', '255.255.0.0', '255.0.0.0']);
+  const netOctet = rng.nextInt(1, 254);
+  const hostOctet = rng.nextInt(1, 254);
+  const ip = `192.168.${netOctet}.${hostOctet}`;
+  const nextHop = `10.0.0.${rng.nextInt(1, 254)}`;
+  const serverIp = '192.168.0.1';
+  const gateway = `192.168.${netOctet}.1`;
+  const name = rng.pick(['MGMT', 'VERTRIEB', 'IT', 'ADMIN', 'WLAN', 'GAST']);
+  const iface = rng.pick(['GigabitEthernet0/0', 'GigabitEthernet0/1', 'FastEthernet0/1', 'Vlan10']);
+  const user = rng.pick(['admin', 'netadmin', 'it']);
+  const pw = rng.pick(['SecurePass123!', 'CiscoSecret1!', 'Netzwerk2025!']);
+  return {
+    vlan, mask, netOctet, hostOctet, ip, nextHop, serverIp, gateway, name, iface, user, pw,
+  };
+}
+
+function fillCommandPlaceholders(str, params) {
+  return String(str)
+    .replace(/<DHCP-SERVER-IP>/g, params.serverIp)
+    .replace(/<DEFAULT-GATEWAY>/g, params.gateway)
+    .replace(/<NEXT-HOP>/g, params.nextHop)
+    .replace(/<IP>/g, params.ip)
+    .replace(/<MASK>/g, params.mask)
+    .replace(/<NET>/g, `192.168.${params.netOctet}.0`)
+    .replace(/<WILDCARD>/g, '0.0.0.255')
+    .replace(/<VLAN>/g, params.vlan)
+    .replace(/<INTERFACE>/g, params.iface)
+    .replace(/<NAME>/g, params.name)
+    .replace(/<PASSWORD>/g, params.pw)
+    .replace(/<PW>/g, params.pw)
+    .replace(/<USER>/g, params.user)
+    .replace(/<RANGE>/g, 'FastEthernet0/1-24')
+    .replace(/<LIST>/g, '10,20,30')
+    .replace(/<ACL>/g, '100')
+    .replace(/<PROCESS-ID>/g, '1')
+    .replace(/<AREA>/g, '0')
+    .replace(/<PRIORITY>/g, '4096')
+    .replace(/<TEXT>/g, 'Uplink-CORE');
+}
+
+function commandRecallPeers(item, allItemsById) {
+  return Object.values(allItemsById)
+    .filter((o) => o && o.id !== item.id && o.conceptCluster?.startsWith('cisco.command.'));
+}
+
+function makeCommandDistractorValues(item, allItemsById, params, valueKey, fallbackValueFn) {
+  const explicit = (item.data[valueKey] || []).map((v) => fillCommandPlaceholders(v, params));
+  const correct = fillCommandPlaceholders(item.data.example || item.data.command, params);
+  const result = explicit.filter((v) => v !== correct);
+  if (result.length >= 3) return result.slice(0, 3);
+  const peers = commandRecallPeers(item, allItemsById);
+  for (const peer of peers) {
+    if (result.length >= 3) break;
+    const v = fillCommandPlaceholders(fallbackValueFn(peer), params);
+    if (v && v !== correct && !result.includes(v)) result.push(v);
+  }
+  return result.slice(0, 3);
+}
+
+function ciscoCommandRecallTemplates() {
+  const isCommand = (item) => item.conceptCluster?.startsWith('cisco.command.');
+
+  return [
+    {
+      id: 'cisco.command.goalToCommand',
+      archetype: QUESTION_ARCHETYPES.RECALL,
+      matches: isCommand,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL, QUESTION_ARCHETYPES.SCENARIO],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const params = generateCommandParams(rng);
+        const correct = fillCommandPlaceholders(item.data.example || item.data.command, params);
+        const distractors = makeCommandDistractorValues(item, allItemsById, params, 'distractorCommands', (peer) => peer.data.example || peer.data.command);
+        const directPrompt = `Welcher Befehl ${item.data.purpose}?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, commandRecallLeads, rng) : directPrompt;
+        return buildMcInstance({
+          templateId: 'cisco.command.goalToCommand',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: `"${correct}" ${item.data.purpose}.`,
+          contextType,
+          rng,
+          learningObjective: `${item.conceptCluster}.recall`,
+          knowledgeFacet: `${item.conceptCluster}.goalToCommand`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: commandRecallLeads,
+        });
+      },
+    },
+    {
+      id: 'cisco.command.contextToCommand',
+      archetype: QUESTION_ARCHETYPES.SCENARIO,
+      matches: (item) => isCommand(item) && item.data.context,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.SCENARIO, QUESTION_ARCHETYPES.RECALL],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const params = generateCommandParams(rng);
+        const correct = fillCommandPlaceholders(item.data.example || item.data.command, params);
+        const distractors = makeCommandDistractorValues(item, allItemsById, params, 'distractorCommands', (peer) => peer.data.example || peer.data.command);
+        const directPrompt = `${item.data.context} Welcher Befehl ist hier richtig?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, commandRecallLeads, rng) : directPrompt;
+        return buildMcInstance({
+          templateId: 'cisco.command.contextToCommand',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: `${item.data.context} "${correct}" ${item.data.purpose}.`,
+          contextType,
+          rng,
+          learningObjective: `${item.conceptCluster}.context`,
+          knowledgeFacet: `${item.conceptCluster}.contextToCommand`,
+          promptStyle: PROMPT_STYLES.SCENARIO,
+          contextDependency: CONTEXT_DEPENDENCIES.SCENARIO,
+          conversationLeads: commandRecallLeads,
+        });
+      },
+    },
+    {
+      id: 'cisco.command.commandToPurpose',
+      archetype: QUESTION_ARCHETYPES.RECALL,
+      matches: isCommand,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const params = generateCommandParams(rng);
+        const commandLabel = fillCommandPlaceholders(item.data.command, params);
+        const correct = fillCommandPlaceholders(item.data.purpose, params);
+        const explicit = (item.data.distractorPurposes || []).map((v) => fillCommandPlaceholders(v, params));
+        const peers = commandRecallPeers(item, allItemsById);
+        const distractors = [...explicit];
+        for (const peer of peers) {
+          if (distractors.length >= 3) break;
+          const v = fillCommandPlaceholders(peer.data.purpose, params);
+          if (v && v !== correct && !distractors.includes(v)) distractors.push(v);
+        }
+        const directPrompt = `Was bewirkt "${commandLabel}"?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, commandRecallLeads, rng) : directPrompt;
+        return buildMcInstance({
+          templateId: 'cisco.command.commandToPurpose',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors.slice(0, 3),
+          explanation: `"${commandLabel}" ${correct}.`,
+          contextType,
+          rng,
+          learningObjective: `${item.conceptCluster}.purpose`,
+          knowledgeFacet: `${item.conceptCluster}.commandToPurpose`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: commandRecallLeads,
+        });
+      },
+    },
+    {
+      id: 'cisco.command.parameter',
+      archetype: QUESTION_ARCHETYPES.RECALL,
+      matches: (item) => isCommand(item) && item.data.parameter,
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.RECALL],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const params = generateCommandParams(rng);
+        const commandLabel = fillCommandPlaceholders(item.data.command, params);
+        const correct = fillCommandPlaceholders(item.data.parameter, params);
+        const peerParams = commandRecallPeers(item, allItemsById)
+          .map((peer) => fillCommandPlaceholders(peer.data.parameter, params))
+          .filter((v) => v && v !== correct);
+        const distractors = [...new Set(peerParams)].slice(0, 3);
+        const directPrompt = `Was gehört hinter "${commandLabel}"?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, commandRecallLeads, rng) : directPrompt;
+        return buildMcInstance({
+          templateId: 'cisco.command.parameter',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: `"${commandLabel}" erwartet als Parameter: ${correct}.`,
+          contextType,
+          rng,
+          learningObjective: `${item.conceptCluster}.parameter`,
+          knowledgeFacet: `${item.conceptCluster}.parameter`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: commandRecallLeads,
+        });
+      },
+    },
+  ];
+}
+
+function stpPortRoleTemplates() {
+  return [
+    {
+      id: 'stp.portRole.nameToMeaning',
+      archetype: QUESTION_ARCHETYPES.MAPPING,
+      matches: (item) => item.id === 'stp.portRoles',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.MAPPING],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const role = rng.pick(item.data.roles);
+        const correct = role.meaning;
+        const distractors = item.data.roles.filter((r) => r.name !== role.name).map((r) => r.meaning);
+        const directPrompt = `Was beschreibt die STP-Portrolle "${role.name}"?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, stpLeads, rng) : directPrompt;
+        return buildMcInstance({
+          templateId: 'stp.portRole.nameToMeaning',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: `"${role.name}": ${correct}.`,
+          contextType,
+          rng,
+          learningObjective: 'stp.portRoles',
+          knowledgeFacet: `stp.portRole.${role.name}.meaning`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: stpLeads,
+        });
+      },
+    },
+    {
+      id: 'stp.portRole.meaningToName',
+      archetype: QUESTION_ARCHETYPES.MAPPING,
+      matches: (item) => item.id === 'stp.portRoles',
+      supportedQuestionTypes: [QUESTION_ARCHETYPES.SELECT_BEST, QUESTION_ARCHETYPES.MAPPING],
+      generate: (item, allItemsById, rng, { contextType = 'direct_question', seed = '0' } = {}) => {
+        const role = rng.pick(item.data.roles);
+        const correct = role.name;
+        const distractors = item.data.roles.filter((r) => r.name !== role.name).map((r) => r.name);
+        const directPrompt = `Welche Portrolle passt zu: "${role.meaning}"?`;
+        const prompt = contextType === 'coworker_question' ? withCoworkerLead(directPrompt, stpLeads, rng) : directPrompt;
+        return buildMcInstance({
+          templateId: 'stp.portRole.meaningToName',
+          item,
+          archetype: QUESTION_ARCHETYPES.SELECT_BEST,
+          seed,
+          prompt,
+          correctValue: correct,
+          distractorValues: distractors,
+          explanation: `"${role.meaning}" beschreibt die Rolle "${role.name}".`,
+          contextType,
+          rng,
+          learningObjective: 'stp.portRoles',
+          knowledgeFacet: `stp.portRole.${role.name}.name`,
+          promptStyle: PROMPT_STYLES.SELF_CONTAINED,
+          contextDependency: CONTEXT_DEPENDENCIES.NEUTRAL,
+          conversationLeads: stpLeads,
+        });
+      },
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Public registry
 // ---------------------------------------------------------------------------
 
@@ -2874,8 +3150,10 @@ export const TEMPLATES = [
   ...sshTemplates(),
   ...ciscoBasicConfigTemplates(),
   ...ciscoStpTemplates(),
+  ...stpPortRoleTemplates(),
   ...ciscoVlanPracticeTemplates(),
   ...ciscoAccessPortTemplates(),
+  ...ciscoCommandRecallTemplates(),
   ...phase7DefinitionTemplates(),
   ...phase7PropertyTemplates(),
   ...phase7CompareTemplates(),
