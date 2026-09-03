@@ -26,3 +26,4 @@ check(/kcc.*connection|connection.*kcc|erzeugt.*connection/i.test(lessonText), '
 
 console.log('\n=== Active Directory Site Link vs Connection Object Contract Test passed ===');
 
+

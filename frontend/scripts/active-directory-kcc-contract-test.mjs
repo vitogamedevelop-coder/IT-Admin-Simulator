@@ -31,3 +31,4 @@ check(kccItems.length >= 2, 'At least 2 KCC-related knowledge items exist');
 
 console.log('\n=== Active Directory KCC Contract Test passed ===');
 
+

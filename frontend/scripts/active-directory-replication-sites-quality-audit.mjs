@@ -73,8 +73,9 @@ auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has 
 
 auditRequires(!/KCC.*konfigurieren|KCC.*detailliert|Site Link.*konfigurieren|Site Link.*Costs|Subnetz.*praktisch.*anlegen|Site.*praktisch.*anlegen|DC.*praktisch.*verschieben|Replikationszeitplan.*erstellen|Sites and Services.*bedienen|AD-Papierkorb aktivieren/i.test(JSON.stringify(lesson)), 'No practical deep KCC/Site-Link/Recycle Bin configuration taught');
 
-auditRequires(/versionCode 18900/.test(buildGradle), 'versionCode must be 18900 for 1.89.0');
+auditRequires(/versionCode 19000/.test(buildGradle), 'versionCode must be 19000 for 1.90.0');
 
 console.log('\n=== Active Directory Replication Sites Quality Audit passed ===');
+
 
 

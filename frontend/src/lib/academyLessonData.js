@@ -70,6 +70,7 @@ import { buildAdFsmoTransferLesson, AD_FSMO_TRANSFER_TOPIC_KEY } from './academy
 import { buildAdReplicationBasicsLesson, AD_REPLICATION_BASICS_TOPIC_KEY } from './academyLessons/adReplicationBasics.js';
 import { buildAdReplicationSitesLesson, AD_REPLICATION_SITES_TOPIC_KEY } from './academyLessons/adReplicationSites.js';
 import { buildAdReplicationTopologyLesson, AD_REPLICATION_TOPOLOGY_TOPIC_KEY } from './academyLessons/adReplicationTopology.js';
+import { buildAdReplicationSiteConfigLesson, AD_REPLICATION_SITE_CONFIG_TOPIC_KEY } from './academyLessons/adReplicationSiteConfig.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -440,6 +441,7 @@ export const LESSONS = {
   [AD_REPLICATION_BASICS_TOPIC_KEY]: buildAdReplicationBasicsLesson(),
   [AD_REPLICATION_SITES_TOPIC_KEY]: buildAdReplicationSitesLesson(),
   [AD_REPLICATION_TOPOLOGY_TOPIC_KEY]: buildAdReplicationTopologyLesson(),
+  [AD_REPLICATION_SITE_CONFIG_TOPIC_KEY]: buildAdReplicationSiteConfigLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

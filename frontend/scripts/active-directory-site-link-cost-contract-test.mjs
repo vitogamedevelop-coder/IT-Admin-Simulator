@@ -23,3 +23,4 @@ check(/20/.test(lessonText), 'Total cost 20 for the preferred path is mentioned'
 
 console.log('\n=== Active Directory Site Link Cost Contract Test passed ===');
 
+
