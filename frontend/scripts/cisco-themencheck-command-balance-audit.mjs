@@ -56,13 +56,13 @@ if (commandTotal === 0) {
 }
 
 const share = commandTotal / totalQuestions;
-if (share < 0.15) {
-  console.error('Audit FAILED: command share below 15%.');
+if (share < 0.20) {
+  console.error('Audit FAILED: command share below 20%.');
   process.exit(1);
 }
 
-if (share > 0.55) {
-  console.error('Audit FAILED: command share above 55%.');
+if (share > 0.45) {
+  console.error('Audit FAILED: command share above 45%.');
   process.exit(1);
 }
 

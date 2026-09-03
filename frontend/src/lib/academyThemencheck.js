@@ -131,7 +131,7 @@ export function collectCliTasksFromLesson(lesson, topicId) {
  * the lesson question pool) so that command recall stays a separate,
  * maintainable layer that can be enabled per quiz generation strategy.
  */
-function collectCommandRecallQuestionsForTopic(topicId) {
+function collectCommandRecallQuestionsForTopic(topicId, seedSuffix = '') {
   const items = getAllKnowledgeItems().filter((item) => {
     if (!item.conceptCluster?.startsWith('cisco.command.')) return false;
     return item.topicKey === topicKey('cisco-packet-tracer', topicId);
@@ -141,7 +141,7 @@ function collectCommandRecallQuestionsForTopic(topicId) {
   for (const item of items) {
     try {
       const instance = generateQuestion(item.id, null, {
-        seed: `themencheck-${topicId}-${item.id}`,
+        seed: `themencheck-${topicId}-${item.id}${seedSuffix}`,
         contextType: 'direct_question',
       });
       if (!instance || !instance.prompt || !Array.isArray(instance.options) || typeof instance.correct !== 'number') continue;
@@ -228,8 +228,12 @@ export function getCategorySummary(categoryId) {
 function collectCommandRecallQuestionsForCategory(categoryId) {
   const topics = topicsForCategory(categoryId);
   const questions = [];
+  // Multiple seeds give the balancer enough distinct command-recall variants.
+  const seedSuffixes = ['-a', '-b', '-c', '-d'];
   for (const topic of topics) {
-    questions.push(...collectCommandRecallQuestionsForTopic(topic.topicId));
+    for (const suffix of seedSuffixes) {
+      questions.push(...collectCommandRecallQuestionsForTopic(topic.topicId, suffix));
+    }
   }
   return shuffleArray(questions);
 }
@@ -283,7 +287,7 @@ export function generateThemencheck(categoryId) {
   // Boost command-recall questions for Cisco: target ~15-35% command share.
   const isCisco = categoryId === 'cisco-packet-tracer';
   if (isCisco) {
-    const minCommand = Math.max(2, Math.round(targetTotal * 0.15));
+    const minCommand = Math.max(2, Math.round(targetTotal * 0.25));
     let commandCount = allQuestions.filter((q) => q.isCommandRecall).length;
     if (commandCount < minCommand) {
       const usedQuestions = new Set(allQuestions.map((q) => q.question));
