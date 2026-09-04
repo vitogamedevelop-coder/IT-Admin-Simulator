@@ -19,12 +19,13 @@ import { isTopicLearnedOrBeyond } from './academyEngine.js';
 import { LEARNING_MODES, readAcademyMode } from './academyMode.js';
 import { generateQuestion, getAllKnowledgeItems } from './knowledge/index.js';
 import { getDiagnosticScenariosForTopic } from './diagnosticScenarios.js';
+import { getMultiSelectQuestionsForTopic } from './multiSelectQuestions.js';
 
 const RESULTS_KEY = 'cyberlearn:themencheck-results-v1';
 const HISTORY_KEY = 'cyberlearn:themencheck-history-v1';
 const HISTORY_LIMIT = 1000;
 const COOLDOWN_HOURS = [2, 24, 72];
-const COOLDOWN_PENALTIES = [0.8, 0.5, 0.2];
+const COOLDOWN_PENALTIES = [0.95, 0.7, 0.3];
 
 // ---------- Scoring thresholds ----------
 export const SCORE_GRADES = [
@@ -306,7 +307,8 @@ export function generateThemencheck(categoryId) {
     const pool = collectQuestionsFromLesson(lesson, topic.topicId);
     const commandRecall = collectCommandRecallQuestionsForTopic(topic.topicId);
     const diagnostic = getDiagnosticScenariosForTopic(categoryId, topic.topicId);
-    const combined = [...pool, ...commandRecall, ...diagnostic];
+    const multiSelect = getMultiSelectQuestionsForTopic(categoryId, topic.topicId);
+    const combined = [...pool, ...commandRecall, ...diagnostic, ...multiSelect];
     if (combined.length === 0) continue;
     topicPools.push({ topicId: topic.topicId, pool: combined });
   }
@@ -330,7 +332,7 @@ export function generateThemencheck(categoryId) {
   function pickFromPool(pool, count) {
     const scored = pool.map((q) => ({
       q,
-      score: scoreCooldown(q.semanticKey, history) + (Math.random() * 0.01),
+      score: scoreCooldown(q.semanticKey, history) * (1 + (q.type === 'multi-select' ? 0.05 : q.isDiagnostic ? 0.04 : 0)) + (Math.random() * 0.01),
     }));
     scored.sort((a, b) => b.score - a.score);
     const chosen = [];
@@ -358,7 +360,7 @@ export function generateThemencheck(categoryId) {
     for (const pool of remainingByTopic) {
       if (selectedQuestions.length >= Math.max(15, targetTotal)) break;
       const next = pool
-        .map((q) => ({ q, score: scoreCooldown(q.semanticKey, history) + (Math.random() * 0.01) }))
+        .map((q) => ({ q, score: scoreCooldown(q.semanticKey, history) * (1 + (q.type === 'multi-select' ? 0.05 : q.isDiagnostic ? 0.04 : 0)) + (Math.random() * 0.01) }))
         .sort((a, b) => b.score - a.score)[0];
       if (next) {
         const text = normalizeQuestionText(next.q);
@@ -401,6 +403,17 @@ export function generateThemencheck(categoryId) {
       }
       selectedQuestions.push(...extra);
     }
+  }
+
+  // Cap multi-select share to keep the mix balanced (max ~15–20% of total).
+  const maxMulti = Math.max(2, Math.round(targetTotal * 0.18));
+  let multiCount = selectedQuestions.filter((q) => q.type === 'multi-select').length;
+  while (multiCount > maxMulti) {
+    const idx = selectedQuestions.findLastIndex((q) => q.type === 'multi-select');
+    if (idx === -1) break;
+    const removed = selectedQuestions.splice(idx, 1)[0];
+    selectedKeys.delete(removed.semanticKey);
+    multiCount--;
   }
 
   const unique = [];

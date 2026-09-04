@@ -1,32 +1,41 @@
-feat(themencheck): add Diagnostic Scenarios for troubleshooting-first questions (v1.94.0)
+feat(themencheck): add Multi-Select questions and UI (Phase 2B, v1.94.0)
 
-- New diagnostic scenario data model in src/lib/diagnosticScenarios.js:
-  problem, observations, knownGood, knownBad, configSnippet, showOutput,
-  suspects, rootCause, fix, reasoning, nextCheck, relatedKnowledgeIds.
-- Scenarios rendered as single-choice questions with evidence-based
-  explanations and structured Beweiskette feedback.
-- Integrated into generateThemencheck: per-topic pool mixes lesson quiz,
-  command recall and diagnostic scenarios; new scenarios have fresh cooldown
-  so they are prioritized until seen.
-- 25 scenarios added:
-  • Cisco: interface shutdown, DHCP relay, wrong access VLAN, trunk allowed,
-    native VLAN mismatch, missing subinterface, missing/false static route,
-    ACL order, STP blocking, NAT inside/outside (12)
-  • AD/Windows: wrong site/subnet, group nesting, share vs NTFS (2),
-    site link schedule, Recycle Bin restore, GPO link target (7)
-  • Linux: permission bits, DNS resolver (2)
-  • InfoSec: least privilege, CIA, threat vs vulnerability, controls (4)
+- New multi-select data model in src/lib/multiSelectQuestions.js:
+  type: 'multi-select', options[], correctIndices[], prompt,
+  explanation, semanticKey, sourceTopicId.
+- shuffleOptions exported and used in AcademyThemencheck.jsx:
+  - randomizes options for both single and multi-select,
+  - keeps correctIndices correctly mapped.
+- UI updates in AcademyThemencheck.jsx:
+  - Multi-Select shows hint "Mehrere Antworten können richtig sein."
+  - CheckSquare/Square icons for selection,
+  - visual green/red option feedback after confirmation,
+  - Antwort bestätigen disabled until at least one option selected.
+- Scoring: multi-select is correct only when all correct answers are
+  selected and no wrong answer is selected.
+- Engine integration in academyThemencheck.js:
+  - per-topic pool now includes lesson quiz, command recall,
+    diagnostic scenarios and multi-select questions,
+  - multiplicative type bonus for new question forms,
+  - hard cap on multi-select share (max ~18% of the run) to avoid
+    dominance,
+  - stronger recent-run cooldown for all question types.
+- 26 productive multi-select questions added:
+  • Cisco: 10 (trunk, router basics, DHCP, routing, inter-VLAN,
+    ACL, STP, NAT, packet filter, SSH)
+  • AD/Windows: 8 (groups, NTFS/Share, profiles, replication,
+    sites/subnets, delegation, GPO)
+  • Linux: 2 (permissions, DNS)
+  • InfoSec: 6 (least privilege, CIA, threat/risk, controls,
+    defense in depth)
 - New audits:
-  • themencheck-diagnostic-scenario-quality-audit.mjs
-  • cisco-troubleshooting-coverage-audit.mjs
-  • active-directory-troubleshooting-coverage-audit.mjs
-  • linux-troubleshooting-coverage-audit.mjs
-  • infosec-scenario-question-quality-audit.mjs
-- Anti-repetition audit still passes; cross-run overlap improved further
-  after larger pool: Cisco ~10%, AD ~6%, fundamentals <15%.
-- Version remains 1.94.0, versionCode 19400, cache cyberlearn-v1.94.0.
-- Multi-Select, Drag & Drop and Blueprint/Competency mixing remain for Phase 2B.
-- Local only: no push, no GitHub Actions, no Pages, no remote release.
+  • themencheck-multiselect-contract-test.mjs
+  • themencheck-multiselect-option-shuffle-test.mjs
+  • themencheck-question-type-ui-contract-test.mjs
+  • themencheck-diagnostic-multiselect-quality-audit.mjs
+- Version remains 1.94.0 / versionCode 19400 as agreed.
+- All existing audits still pass; cross-run overlap stays healthy.
+- Local only: no push, no GitHub Actions, no GitHub Pages.
 
 Generated with [Devin](https://devin.ai)
 

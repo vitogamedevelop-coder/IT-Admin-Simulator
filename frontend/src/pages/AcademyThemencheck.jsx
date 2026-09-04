@@ -1,30 +1,18 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Star, ArrowRight, BookOpen, RotateCcw, Clock, HelpCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Star, ArrowRight, BookOpen, RotateCcw, Clock, HelpCircle, CheckSquare, Square } from 'lucide-react';
 import { ACADEMY_CATEGORIES, findTopic, topicsForCategory } from '../lib/academyTopics';
 import {
   generateThemencheck, generateAbschlusscheck, getGrade, getSamComment,
   getSamRecommendation, getCategorySummary, saveThemencheckResult,
-  getLastErrors, getThemencheckResults, collectQuestionsFromLesson,
+  getLastErrors, getThemencheckResults,
 } from '../lib/academyThemencheck';
+import { shuffleOptions } from '../lib/multiSelectQuestions';
 import { LESSONS } from '../lib/academyLessonData';
 import { topicKey } from '../lib/academyTopics';
 import { characterAsset } from '../lib/rpgAssets';
 import BackBar from '../components/BackBar';
 import { useAppBack } from '../lib/useAppBack';
-
-function shuffleOptions(question) {
-  const indexed = question.options.map((opt, i) => ({ opt, isCorrect: i === question.correct }));
-  for (let i = indexed.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
-  }
-  return {
-    ...question,
-    options: indexed.map(x => x.opt),
-    correct: indexed.findIndex(x => x.isCorrect),
-  };
-}
 
 // ── Intro screen ────────────────────────────────────────────────────────────
 function ThemencheckIntro({ categoryId, isGlobal, onStart }) {
@@ -115,26 +103,57 @@ function ThemencheckIntro({ categoryId, isGlobal, onStart }) {
 // ── Quiz flow ───────────────────────────────────────────────────────────────
 function ThemencheckQuiz({ questions, onFinish, title }) {
   const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState(null);
+  const isMultiInitial = questions[0]?.type === 'multi-select' ? [] : null;
+  const [selected, setSelected] = useState(isMultiInitial);
   const [confirmed, setConfirmed] = useState(false);
   const [results, setResults] = useState([]);
 
   const current = questions[step];
+  const isMulti = current.type === 'multi-select';
+
+  function isCorrectOption(i) {
+    return isMulti ? (current.correctIndices || []).includes(i) : i === current.correct;
+  }
+
+  function isSelected(i) {
+    return isMulti ? (selected || []).includes(i) : i === selected;
+  }
 
   function selectOption(idx) {
     if (confirmed) return;
-    setSelected(idx);
+    if (isMulti) {
+      setSelected((prev) => {
+        const set = new Set(prev || []);
+        if (set.has(idx)) set.delete(idx);
+        else set.add(idx);
+        return Array.from(set).sort((a, b) => a - b);
+      });
+    } else {
+      setSelected(idx);
+    }
   }
 
   function confirm() {
-    if (selected === null) return;
+    if (isMulti) {
+      if (!selected || selected.length === 0) return;
+    } else if (selected === null) {
+      return;
+    }
     setConfirmed(true);
-    const isCorrect = selected === current.correct;
+    let isCorrect;
+    if (isMulti) {
+      const correctSet = new Set(current.correctIndices || []);
+      const selectedSet = new Set(selected || []);
+      isCorrect = correctSet.size === selectedSet.size && [...correctSet].every((i) => selectedSet.has(i));
+    } else {
+      isCorrect = selected === current.correct;
+    }
     const newResults = [...results, {
       correct: isCorrect,
       sourceTopicId: current.sourceTopicId,
       questionText: current.question,
-      selectedIndex: selected,
+      selected: isMulti ? [...(selected || [])] : selected,
+      selectedIndex: isMulti ? null : selected,
     }];
     setResults(newResults);
   }
@@ -144,8 +163,9 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
       // results state already has the last answer from confirm()
       onFinish(results);
     } else {
+      const nextIsMulti = questions[step + 1]?.type === 'multi-select';
       setStep(s => s + 1);
-      setSelected(null);
+      setSelected(nextIsMulti ? [] : null);
       setConfirmed(false);
     }
   }
@@ -165,22 +185,30 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
 
       <div className="cyber-card p-4">
         <p className="text-sm text-white font-bold">{current.question}</p>
+        {isMulti && (
+          <p className="text-xs text-[#ffcc00] mt-2 flex items-center gap-1">
+            <HelpCircle size={12} /> Mehrere Antworten können richtig sein.
+          </p>
+        )}
         <div className="flex flex-col gap-2 mt-3">
           {current.options.map((opt, i) => {
             let cls = 'p-3 rounded-lg border text-sm text-left';
+            const correct = isCorrectOption(i);
+            const sel = isSelected(i);
             if (confirmed) {
-              if (i === current.correct) cls += ' bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]';
-              else if (i === selected) cls += ' bg-[#ff3355]/10 border-[#ff3355]/40 text-[#ff3355]';
+              if (correct) cls += ' bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]';
+              else if (sel) cls += ' bg-[#ff3355]/10 border-[#ff3355]/40 text-[#ff3355]';
               else cls += ' bg-[#0a1628]/60 border-[#30363d] text-[#8b949e]';
-            } else if (i === selected) {
+            } else if (sel) {
               cls += ' bg-[#00f0ff]/20 border-[#00f0ff] text-white';
             } else {
               cls += ' bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9]';
             }
             return (
               <button key={i} onClick={() => selectOption(i)} disabled={confirmed} className={cls}>
-                {confirmed && i === current.correct && <CheckCircle2 size={14} className="inline mr-2" />}
-                {confirmed && i === selected && i !== current.correct && <XCircle size={14} className="inline mr-2" />}
+                {!confirmed && isMulti && (sel ? <CheckSquare size={14} className="inline mr-2" /> : <Square size={14} className="inline mr-2" />)}
+                {confirmed && correct && <CheckCircle2 size={14} className="inline mr-2" />}
+                {confirmed && sel && !correct && <XCircle size={14} className="inline mr-2" />}
                 {opt}
               </button>
             );
@@ -193,7 +221,13 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
 
         <div className="mt-4">
           {!confirmed ? (
-            <button onClick={confirm} disabled={selected === null} className="cyber-btn w-full py-2 text-sm disabled:opacity-40">Antwort bestätigen</button>
+            <button
+              onClick={confirm}
+              disabled={isMulti ? (selected || []).length === 0 : selected === null}
+              className="cyber-btn w-full py-2 text-sm disabled:opacity-40"
+            >
+              Antwort bestätigen
+            </button>
           ) : (
             <button onClick={next} className="cyber-btn w-full py-2 text-sm flex items-center justify-center gap-2">
               {step + 1 >= questions.length ? 'Auswertung' : 'Nächste Frage'} <ArrowRight size={14} />

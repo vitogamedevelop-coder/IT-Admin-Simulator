@@ -462,7 +462,7 @@ linuxTopic('permissions', [
   }),
 ]);
 
-linuxTopic('networking', [
+linuxTopic('network-commands', [
   scenario({
     id: 'dns-vs-connectivity',
     sourceCategoryId: 'linux-virtualbox',
