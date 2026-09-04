@@ -18,6 +18,7 @@ import { getAllFullTopics } from './academyProgress.js';
 import { isTopicLearnedOrBeyond } from './academyEngine.js';
 import { LEARNING_MODES, readAcademyMode } from './academyMode.js';
 import { generateQuestion, getAllKnowledgeItems } from './knowledge/index.js';
+import { getDiagnosticScenariosForTopic } from './diagnosticScenarios.js';
 
 const RESULTS_KEY = 'cyberlearn:themencheck-results-v1';
 const HISTORY_KEY = 'cyberlearn:themencheck-history-v1';
@@ -304,7 +305,8 @@ export function generateThemencheck(categoryId) {
 
     const pool = collectQuestionsFromLesson(lesson, topic.topicId);
     const commandRecall = collectCommandRecallQuestionsForTopic(topic.topicId);
-    const combined = [...pool, ...commandRecall];
+    const diagnostic = getDiagnosticScenariosForTopic(categoryId, topic.topicId);
+    const combined = [...pool, ...commandRecall, ...diagnostic];
     if (combined.length === 0) continue;
     topicPools.push({ topicId: topic.topicId, pool: combined });
   }

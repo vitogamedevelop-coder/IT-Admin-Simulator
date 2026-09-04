@@ -1,21 +1,31 @@
-feat(themencheck): run-level dedup + cross-run cooldown for v1.94.0
+feat(themencheck): add Diagnostic Scenarios for troubleshooting-first questions (v1.94.0)
 
-- Add semantic history for Themencheck (`cyberlearn:themencheck-history-v1`).
-- Record every answered question with category, sourceTopicId, timestamp, correctness and seenCount.
-- generateThemencheck now scores each candidate by recent cooldown:
-  • <2h: strong penalty
-  • <24h: medium penalty
-  • <72h: light penalty
-  • repeated item count: escalating small penalty
-- Enforce run-level uniqueness by semanticKey and normalized question text,
-  including command-recall variants from the same or different topics.
-- Final pass removes any remaining duplicate text before returning.
-- New audit: themencheck-no-duplicate-question-audit.mjs (20 runs x 3 categories).
-  • 0 duplicate questions inside any run
-  • consecutive-run overlap below 20%
-- Bump version to 1.94.0, versionCode 19400, cache cyberlearn-v1.94.0.
-- Limitation: Multi-Select, Drag & Drop, Diagnostic Scenarios and further
-  troubleshooting coverage not yet implemented; reserved for next slice.
+- New diagnostic scenario data model in src/lib/diagnosticScenarios.js:
+  problem, observations, knownGood, knownBad, configSnippet, showOutput,
+  suspects, rootCause, fix, reasoning, nextCheck, relatedKnowledgeIds.
+- Scenarios rendered as single-choice questions with evidence-based
+  explanations and structured Beweiskette feedback.
+- Integrated into generateThemencheck: per-topic pool mixes lesson quiz,
+  command recall and diagnostic scenarios; new scenarios have fresh cooldown
+  so they are prioritized until seen.
+- 25 scenarios added:
+  • Cisco: interface shutdown, DHCP relay, wrong access VLAN, trunk allowed,
+    native VLAN mismatch, missing subinterface, missing/false static route,
+    ACL order, STP blocking, NAT inside/outside (12)
+  • AD/Windows: wrong site/subnet, group nesting, share vs NTFS (2),
+    site link schedule, Recycle Bin restore, GPO link target (7)
+  • Linux: permission bits, DNS resolver (2)
+  • InfoSec: least privilege, CIA, threat vs vulnerability, controls (4)
+- New audits:
+  • themencheck-diagnostic-scenario-quality-audit.mjs
+  • cisco-troubleshooting-coverage-audit.mjs
+  • active-directory-troubleshooting-coverage-audit.mjs
+  • linux-troubleshooting-coverage-audit.mjs
+  • infosec-scenario-question-quality-audit.mjs
+- Anti-repetition audit still passes; cross-run overlap improved further
+  after larger pool: Cisco ~10%, AD ~6%, fundamentals <15%.
+- Version remains 1.94.0, versionCode 19400, cache cyberlearn-v1.94.0.
+- Multi-Select, Drag & Drop and Blueprint/Competency mixing remain for Phase 2B.
 - Local only: no push, no GitHub Actions, no Pages, no remote release.
 
 Generated with [Devin](https://devin.ai)
