@@ -74,8 +74,9 @@ auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has 
 
 auditRequires(!/site link bridge.*praktisch|site-link-bridge.*konfig|ad-papierkorb aktivieren|ad recycle bin aktivieren|adsiedit.*praktisch/i.test(JSON.stringify(lesson)), 'No Site Link Bridge / Recycle Bin / ADSI Edit practice yet');
 
-auditRequires(/versionCode 19100/.test(buildGradle), 'versionCode must be 19100 for 1.91.0');
+auditRequires(/versionCode 19200/.test(buildGradle), 'versionCode must be 19200 for 1.92.0');
 
 console.log('\n=== Active Directory Replication Site Config Quality Audit passed ===');
+
 
 

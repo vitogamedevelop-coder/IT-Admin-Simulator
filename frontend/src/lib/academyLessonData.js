@@ -72,6 +72,7 @@ import { buildAdReplicationSitesLesson, AD_REPLICATION_SITES_TOPIC_KEY } from '.
 import { buildAdReplicationTopologyLesson, AD_REPLICATION_TOPOLOGY_TOPIC_KEY } from './academyLessons/adReplicationTopology.js';
 import { buildAdReplicationSiteConfigLesson, AD_REPLICATION_SITE_CONFIG_TOPIC_KEY } from './academyLessons/adReplicationSiteConfig.js';
 import { buildAdRecycleBinLesson, AD_RECYCLE_BIN_TOPIC_KEY } from './academyLessons/adRecycleBin.js';
+import { buildAdGroupPolicyBasicsLesson, AD_GROUP_POLICY_BASICS_TOPIC_KEY } from './academyLessons/adGroupPolicyBasics.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -444,6 +445,7 @@ export const LESSONS = {
   [AD_REPLICATION_TOPOLOGY_TOPIC_KEY]: buildAdReplicationTopologyLesson(),
   [AD_REPLICATION_SITE_CONFIG_TOPIC_KEY]: buildAdReplicationSiteConfigLesson(),
   [AD_RECYCLE_BIN_TOPIC_KEY]: buildAdRecycleBinLesson(),
+  [AD_GROUP_POLICY_BASICS_TOPIC_KEY]: buildAdGroupPolicyBasicsLesson(),
 };
 
 // Topics with custom interactive lessons (not in LESSONS, but not placeholders)

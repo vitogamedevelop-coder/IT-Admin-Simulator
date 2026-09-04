@@ -26,3 +26,4 @@ check(lessonText.includes('verifikation') || lessonText.includes('prüfen'), 'Ve
 console.log('\n=== Active Directory Site Config Order Contract Test passed ===');
 
 
+

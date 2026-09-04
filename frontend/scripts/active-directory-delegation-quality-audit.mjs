@@ -119,10 +119,11 @@ auditRequires(!/taskpad|aufgabenblock|homelaufwerk|konsolenmodus/i.test(source),
 console.log('N. Version check ...');
 {
   const buildGradle = fs.readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8');
-  auditRequires(/versionCode 19100/.test(buildGradle), 'versionCode must be 19100 for 1.91.0');
+  auditRequires(/versionCode 19200/.test(buildGradle), 'versionCode must be 19200 for 1.92.0');
 }
 
 console.log('=== Active Directory Delegation Quality Audit passed ===');
+
 
 
 

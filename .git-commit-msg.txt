@@ -1,19 +1,17 @@
-feat(academy): add Thema 26: AD-Papierkorb & Wiederherstellung (v1.91.0)
+feat(academy): add Thema 27: Gruppenrichtlinien – Grundlagen (v1.92.0)
 
-- New topic `ad-recycle-bin` in active-directory-virtualbox,
-  prerequisite `ad-replication-site-config`.
-- Add `adRecycleBin.js` lesson: definition, forestweite Aktivierung,
-  irreversible Aktivierung, Deleted Objects, Restore, Restore To,
-  Aufbewahrung, Verification, Recycle Bin vs Backup,
-  ADSI Edit als fortgeschrittenes Werkzeug.
-- 3 guided UIs (enable, restore, restore-to), admin challenge,
-  matching, classification, ordering, misconceptions,
-  troubleshooting and transfer exercises, 5 quiz questions.
-- Add 14 knowledge items and employee conversation pool (10 questions).
-- New quality, restore, backup-separation, enablement, guided UI,
-  and source-completion audits.
-- Extend replication source completion audit with Recycle Bin.
-- Bump version to 1.91.0 / versionCode 19100 / cache cyberlearn-v1.91.0.
+- New topic `ad-group-policy-basics` in active-directory-virtualbox,
+  prerequisite `ad-recycle-bin`.
+- Add `adGroupPolicyBasics.js` lesson: Group Policy definition, GPO,
+  User vs Computer, local vs central, link locations Site/Domain/OU,
+  Link vs Target, GPMC, GPC, GPT, SYSVOL, gpupdate/gpresult Ausblick.
+- 20 exercises (matching, classification, select-best, scenario,
+  misconception, transfer) and 5 quiz questions.
+- Add 16 knowledge items and employee conversation pool (10 questions).
+- New quality, four contract, and duplication audits.
+- No guided UI yet, no LSDOU, no inheritance, no software distribution,
+  no gpupdate/gpresult syntax details.
+- Bump version to 1.92.0 / versionCode 19200 / cache cyberlearn-v1.92.0.
 
 Generated with [Devin](https://devin.ai)
 

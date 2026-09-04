@@ -22,3 +22,4 @@ check(!/erst.*löschen.*dann.*aktivieren|nach.*löschung.*aktivieren.*garantiert
 
 console.log('\n=== Active Directory Recycle Bin Enablement Test passed ===');
 
+

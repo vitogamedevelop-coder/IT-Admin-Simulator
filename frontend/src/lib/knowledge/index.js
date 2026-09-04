@@ -65,6 +65,7 @@ import { adReplicationSitesKnowledgeItems } from './items/adReplicationSites.js'
 import { adReplicationTopologyKnowledgeItems } from './items/adReplicationTopology.js';
 import { adReplicationSiteConfigKnowledgeItems } from './items/adReplicationSiteConfig.js';
 import { adRecycleBinKnowledgeItems } from './items/adRecycleBin.js';
+import { adGroupPolicyBasicsKnowledgeItems } from './items/adGroupPolicyBasics.js';
 
 // Shared constants live in a separate file to avoid circular imports between
 // the registry and individual item modules.
@@ -158,6 +159,7 @@ const PILOT_ITEMS = [
   ...adReplicationTopologyKnowledgeItems,
   ...adReplicationSiteConfigKnowledgeItems,
   ...adRecycleBinKnowledgeItems,
+  ...adGroupPolicyBasicsKnowledgeItems,
 ];
 
 const REGISTRY = new Map(PILOT_ITEMS.map((item) => [item.id, item]));

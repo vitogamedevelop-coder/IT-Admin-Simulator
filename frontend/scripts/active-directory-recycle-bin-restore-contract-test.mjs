@@ -22,3 +22,4 @@ check(/ursprünglich/i.test(lessonText) && /ander/i.test(lessonText), 'Restore i
 
 console.log('\n=== Active Directory Recycle Bin Restore Contract Test passed ===');
 
+
