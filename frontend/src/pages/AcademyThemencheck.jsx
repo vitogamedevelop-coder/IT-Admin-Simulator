@@ -8,6 +8,8 @@ import {
   getLastErrors, getThemencheckResults,
 } from '../lib/academyThemencheck';
 import { shuffleOptions } from '../lib/multiSelectQuestions';
+import { shuffleDragDropItems } from '../lib/dragDropQuestions';
+import ThemencheckDragDrop from '../components/ThemencheckDragDrop';
 import { LESSONS } from '../lib/academyLessonData';
 import { topicKey } from '../lib/academyTopics';
 import { characterAsset } from '../lib/rpgAssets';
@@ -103,13 +105,17 @@ function ThemencheckIntro({ categoryId, isGlobal, onStart }) {
 // ── Quiz flow ───────────────────────────────────────────────────────────────
 function ThemencheckQuiz({ questions, onFinish, title }) {
   const [step, setStep] = useState(0);
-  const isMultiInitial = questions[0]?.type === 'multi-select' ? [] : null;
-  const [selected, setSelected] = useState(isMultiInitial);
+  const firstType = questions[0]?.type;
+  const initDrag = firstType === 'drag-drop' ? (questions[0]?.mode === 'ordering' ? [] : {}) : null;
+  const initSelected = firstType === 'multi-select' ? [] : firstType === 'drag-drop' ? null : null;
+  const [selected, setSelected] = useState(initSelected);
+  const [dragAnswer, setDragAnswer] = useState(initDrag);
   const [confirmed, setConfirmed] = useState(false);
   const [results, setResults] = useState([]);
 
   const current = questions[step];
   const isMulti = current.type === 'multi-select';
+  const isDrag = current.type === 'drag-drop';
 
   function isCorrectOption(i) {
     return isMulti ? (current.correctIndices || []).includes(i) : i === current.correct;
@@ -134,14 +140,24 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
   }
 
   function confirm() {
-    if (isMulti) {
+    if (isDrag) {
+      if (current.mode === 'ordering' ? dragAnswer.length !== current.items.length : Object.keys(dragAnswer).length !== current.items.length) {
+        return;
+      }
+    } else if (isMulti) {
       if (!selected || selected.length === 0) return;
     } else if (selected === null) {
       return;
     }
     setConfirmed(true);
     let isCorrect;
-    if (isMulti) {
+    if (isDrag) {
+      if (current.mode === 'ordering') {
+        isCorrect = current.correctOrder.every((id, i) => dragAnswer[i] === id);
+      } else {
+        isCorrect = Object.entries(current.correctMapping).every(([k, v]) => dragAnswer[k] === v);
+      }
+    } else if (isMulti) {
       const correctSet = new Set(current.correctIndices || []);
       const selectedSet = new Set(selected || []);
       isCorrect = correctSet.size === selectedSet.size && [...correctSet].every((i) => selectedSet.has(i));
@@ -152,8 +168,8 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
       correct: isCorrect,
       sourceTopicId: current.sourceTopicId,
       questionText: current.question,
-      selected: isMulti ? [...(selected || [])] : selected,
-      selectedIndex: isMulti ? null : selected,
+      selected: isDrag ? dragAnswer : isMulti ? [...(selected || [])] : selected,
+      selectedIndex: isDrag ? null : isMulti ? null : selected,
     }];
     setResults(newResults);
   }
@@ -163,9 +179,12 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
       // results state already has the last answer from confirm()
       onFinish(results);
     } else {
-      const nextIsMulti = questions[step + 1]?.type === 'multi-select';
+      const nextQ = questions[step + 1];
+      const nextIsMulti = nextQ?.type === 'multi-select';
+      const nextIsDrag = nextQ?.type === 'drag-drop';
       setStep(s => s + 1);
       setSelected(nextIsMulti ? [] : null);
+      setDragAnswer(nextIsDrag ? (nextQ.mode === 'ordering' ? [] : {}) : null);
       setConfirmed(false);
     }
   }
@@ -191,28 +210,37 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
           </p>
         )}
         <div className="flex flex-col gap-2 mt-3">
-          {current.options.map((opt, i) => {
-            let cls = 'p-3 rounded-lg border text-sm text-left';
-            const correct = isCorrectOption(i);
-            const sel = isSelected(i);
-            if (confirmed) {
-              if (correct) cls += ' bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]';
-              else if (sel) cls += ' bg-[#ff3355]/10 border-[#ff3355]/40 text-[#ff3355]';
-              else cls += ' bg-[#0a1628]/60 border-[#30363d] text-[#8b949e]';
-            } else if (sel) {
-              cls += ' bg-[#00f0ff]/20 border-[#00f0ff] text-white';
-            } else {
-              cls += ' bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9]';
-            }
-            return (
-              <button key={i} onClick={() => selectOption(i)} disabled={confirmed} className={cls}>
-                {!confirmed && isMulti && (sel ? <CheckSquare size={14} className="inline mr-2" /> : <Square size={14} className="inline mr-2" />)}
-                {confirmed && correct && <CheckCircle2 size={14} className="inline mr-2" />}
-                {confirmed && sel && !correct && <XCircle size={14} className="inline mr-2" />}
-                {opt}
-              </button>
-            );
-          })}
+          {isDrag ? (
+            <ThemencheckDragDrop
+              question={current}
+              answer={dragAnswer}
+              onAnswer={setDragAnswer}
+              confirmed={confirmed}
+            />
+          ) : (
+            current.options.map((opt, i) => {
+              let cls = 'p-3 rounded-lg border text-sm text-left';
+              const correct = isCorrectOption(i);
+              const sel = isSelected(i);
+              if (confirmed) {
+                if (correct) cls += ' bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]';
+                else if (sel) cls += ' bg-[#ff3355]/10 border-[#ff3355]/40 text-[#ff3355]';
+                else cls += ' bg-[#0a1628]/60 border-[#30363d] text-[#8b949e]';
+              } else if (sel) {
+                cls += ' bg-[#00f0ff]/20 border-[#00f0ff] text-white';
+              } else {
+                cls += ' bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9]';
+              }
+              return (
+                <button key={i} onClick={() => selectOption(i)} disabled={confirmed} className={cls}>
+                  {!confirmed && isMulti && (sel ? <CheckSquare size={14} className="inline mr-2" /> : <Square size={14} className="inline mr-2" />)}
+                  {confirmed && correct && <CheckCircle2 size={14} className="inline mr-2" />}
+                  {confirmed && sel && !correct && <XCircle size={14} className="inline mr-2" />}
+                  {opt}
+                </button>
+              );
+            })
+          )}
         </div>
 
         {confirmed && current.explanation && (
@@ -223,7 +251,13 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
           {!confirmed ? (
             <button
               onClick={confirm}
-              disabled={isMulti ? (selected || []).length === 0 : selected === null}
+              disabled={isDrag
+                ? (current.mode === 'ordering'
+                  ? (dragAnswer || []).length !== current.items.length
+                  : Object.keys(dragAnswer || {}).length !== current.items.length)
+                : isMulti
+                  ? (selected || []).length === 0
+                  : selected === null}
               className="cyber-btn w-full py-2 text-sm disabled:opacity-40"
             >
               Antwort bestätigen
@@ -430,7 +464,7 @@ export default function AcademyThemencheck() {
     }
 
     if (raw.length === 0) return;
-    setQuestions(raw.map(shuffleOptions));
+    setQuestions(raw.map((q) => (q.type === 'drag-drop' ? shuffleDragDropItems(q) : shuffleOptions(q))));
     startTimeRef.current = Date.now();
     setPhase('quiz');
   }

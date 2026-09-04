@@ -30,28 +30,36 @@ function pass(msg) {
 console.log('=== Themencheck Question Type UI Contract Test ===');
 
 for (const categoryId of categories) {
-  const counts = { 'single-select': 0, 'multi-select': 0, diagnostic: 0 };
+  const counts = { 'single-select': 0, 'multi-select': 0, diagnostic: 0, 'drag-drop': 0 };
   for (let run = 0; run < 20; run++) {
     const q = generateThemencheck(categoryId);
     for (const qu of q) {
-      const type = qu.type === 'multi-select' ? 'multi-select' : qu.isDiagnostic ? 'diagnostic' : 'single-select';
+      const type = qu.type === 'multi-select' ? 'multi-select' : qu.type === 'drag-drop' ? 'drag-drop' : qu.isDiagnostic ? 'diagnostic' : 'single-select';
       counts[type]++;
       if (qu.type === 'multi-select') {
         if (!Array.isArray(qu.correctIndices) || qu.correctIndices.length < 2) {
           fail(`${qu.semanticKey}: multi-select needs correctIndices array with >=2 entries`);
+        }
+      } else if (qu.type === 'drag-drop') {
+        if (qu.mode !== 'ordering' && (!qu.correctMapping || Object.keys(qu.correctMapping).length !== qu.items.length)) {
+          fail(`${qu.semanticKey}: drag-drop matching/categorization needs correctMapping`);
+        }
+        if (qu.mode === 'ordering' && (!qu.correctOrder || qu.correctOrder.length !== qu.items.length)) {
+          fail(`${qu.semanticKey}: drag-drop ordering needs correctOrder`);
         }
       } else if (typeof qu.correct !== 'number') {
         fail(`${qu.semanticKey}: single-select needs numeric correct index`);
       }
     }
   }
-  const total = counts['single-select'] + counts['multi-select'] + counts.diagnostic;
+  const total = counts['single-select'] + counts['multi-select'] + counts.diagnostic + counts['drag-drop'];
   if (total === 0) {
     console.log(`  [INFO] ${categoryId}: no questions generated (topic pool empty)`);
     continue;
   } else {
     const multiPct = (counts['multi-select'] / total) * 100;
-    console.log(`  ${categoryId}: ${counts['single-select']} single, ${counts['multi-select']} multi, ${counts.diagnostic} diagnostic, multi ${multiPct.toFixed(1)}%`);
+    const dragPct = (counts['drag-drop'] / total) * 100;
+    console.log(`  ${categoryId}: ${counts['single-select']} single, ${counts['multi-select']} multi, ${counts.diagnostic} diagnostic, ${counts['drag-drop']} drag-drop, multi ${multiPct.toFixed(1)}%, drag-drop ${dragPct.toFixed(1)}%`);
     if (counts['multi-select'] === 0 && ['cisco-packet-tracer', 'active-directory-virtualbox', 'information-security'].includes(categoryId)) {
       fail(`${categoryId}: expected some multi-select questions`);
     }
