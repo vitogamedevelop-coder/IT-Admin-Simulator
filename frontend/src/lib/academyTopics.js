@@ -198,44 +198,27 @@ export const ACADEMY_TOPICS = [
   // ---------------------------------------------------------------------
   // 5. Active Directory – VirtualBox
   // ---------------------------------------------------------------------
-  topic('active-directory-virtualbox', 'virtualbox-lab', 'VirtualBox-Lab', 'Aufbau der Windows-Server-Laborumgebung.'),
-  topic('active-directory-virtualbox', 'ad-foundation', 'Active Directory – Grundlagen', 'Verzeichnisdienste, Objekte/Attribute, zentrale Verwaltung, AD DS, DNS, Kerberos, LDAP, SMB/NTFS und Replikation.', []),
-  topic('active-directory-virtualbox', 'ad-user-profiles', 'Benutzerprofile', 'Benutzer- und Computerkonten, Profile, Ordnerumleitung, Home-Verzeichnis, UNC und Admin-Tier-Modell.', ['active-directory-virtualbox/ad-foundation']),
-  topic('active-directory-virtualbox', 'ad-permissions', 'Gruppen & Berechtigungsverwaltung', 'Gruppen, Gruppenbereiche, A-G-DL-P, A-G-G-P und das Least-Privilege-Prinzip.', ['active-directory-virtualbox/ad-user-profiles']),
-  topic('active-directory-virtualbox', 'ad-group-practice', 'Gruppen praktisch anlegen & verschachteln', 'ADUC: globale Funktionsgruppen, domänenlokale Berechtigungsgruppen, Mitglieder verwalten, Verschachtelung und AGDLP-Challenge.', ['active-directory-virtualbox/ad-permissions']),
-  topic('active-directory-virtualbox', 'ad-mmc-basics', 'Microsoft Management Console & Snap-Ins', 'MMC als Verwaltungsrahmen, Snap-Ins, .msc, Konsolenmodi und die Grenze zwischen UI-Einschränkung und Berechtigungsdelegation.', ['active-directory-virtualbox/ad-group-practice']),
-  topic('active-directory-virtualbox', 'ad-delegation', 'Delegation & Objektverwaltung', 'Delegation nach Least Privilege: Gruppenmodell, OU Scope, Delegation Wizard und Passwortreset für Hilfsadmins.', ['active-directory-virtualbox/ad-mmc-basics']),
-  topic('active-directory-virtualbox', 'ad-mmc-helpdesk', 'MMC für Hilfsadmin', 'Eingeschränkte MMC für Hilfsadmins: ADUC Snap-In, OU Stab, Taskpad, Filter, Konsolenmodus, speichern und bereitstellen.', ['active-directory-virtualbox/ad-delegation']),
+  // ---------------------------------------------------------------------
+  // 5. Active Directory – VirtualBox (konsolidiert auf ~18 sichtbare Topics)
+  // ---------------------------------------------------------------------
+  topic('active-directory-virtualbox', 'ad-foundation', 'Active Directory – Grundlagen', 'Verzeichnisdienste, Domäne, Objekte/Attribute, zentrale Verwaltung, AD DS und das logische Gesamtmodell.', []),
+  topic('active-directory-virtualbox', 'ad-install', 'Domain Controller & AD-Konfiguration', 'Rolle des Domain Controllers, Aufbau der Laborumgebung und erste AD-Konfiguration.', ['active-directory-virtualbox/ad-foundation', 'fundamentals/ipv4', 'fundamentals/dns']),
+  topic('active-directory-virtualbox', 'organizational-units', 'Organisationseinheiten', 'Struktur der Domäne über OUs abbilden.', ['active-directory-virtualbox/ad-install']),
+  topic('active-directory-virtualbox', 'users', 'Benutzerkonten', 'Benutzerkonten in Active Directory anlegen und verwalten.', ['active-directory-virtualbox/organizational-units']),
+  topic('active-directory-virtualbox', 'ad-user-profiles', 'Benutzerprofile', 'Benutzer- und Computerkonten, Profile, Ordnerumleitung, Home-Verzeichnis, UNC und Admin-Tier-Modell.', ['active-directory-virtualbox/users']),
+  topic('active-directory-virtualbox', 'ad-groups', 'Gruppen & Berechtigungsverwaltung', 'Gruppen, Gruppenbereiche, A-G-DL-P, A-G-G-P, Verschachtelung, Mitglieder verwalten und das Least-Privilege-Prinzip.', ['active-directory-virtualbox/ad-user-profiles']),
+  topic('active-directory-virtualbox', 'ad-administration', 'Administration, MMC & Delegation', 'MMC als Verwaltungsrahmen, Snap-Ins, Konsolenmodi, Delegation und Objektverwaltung.', ['active-directory-virtualbox/ad-groups']),
+  topic('active-directory-virtualbox', 'ad-mmc-helpdesk', 'Helpdesk-Administration mit MMC', 'Eingeschränkte MMC für Hilfsadmins: ADUC Snap-In, OU Stab, Taskpad, Filter, Konsolenmodus, speichern und bereitstellen.', ['active-directory-virtualbox/ad-administration']),
   topic('active-directory-virtualbox', 'ad-tree-forest', 'Trees, Forests & Subdomänen', 'AD-Strukturen: Domäne, Root Domain, Child Domain, Tree, Forest, gemeinsame Namensräume und forestweite Informationen.', ['active-directory-virtualbox/ad-foundation']),
-  topic('active-directory-virtualbox', 'ad-trusts', 'Vertrauensstellungen', 'Vertrauensstellungen zwischen Domänen: Richtung, trusting/trusted, incoming/outgoing, transitiv und Parent-/Child-Trusts.', ['active-directory-virtualbox/ad-tree-forest']),
-  topic('active-directory-virtualbox', 'ad-fsmo-admin-groups', 'FSMO-Rollen & Admin-Gruppen', 'Forest-weite FSMO-Rollen und privilegierte Administratorgruppen: Scope, Ausfallverhalten und Least Privilege.', ['active-directory-virtualbox/ad-tree-forest']),
-  topic('active-directory-virtualbox', 'ad-fsmo-transfer', 'FSMO-Rollen anzeigen & verschieben', 'FSMO-Rolleninhaber ermitteln, Rollen geplant auf einen Ziel-DC übertragen und Ergebnis verifizieren.', ['active-directory-virtualbox/ad-fsmo-admin-groups']),
-  topic('active-directory-virtualbox', 'ad-replication-basics', 'Replikationsgrundlagen & AD-Datenbank', 'Warum AD repliziert, was repliziert wird, Multi-Master, NTDS.DIT und Verzeichnispartitionen sowie Delta-Replikation.', ['active-directory-virtualbox/ad-fsmo-transfer']),
-  topic('active-directory-virtualbox', 'ad-replication-sites', 'Sites, Subnetze & Intra-/Intersite-Replikation', 'AD Sites: physische Netzstruktur, Subnetzzuordnung, lokale DC-Auswahl, Intrasite- und Intersite-Replikation, Bridgehead-Grundidee.', ['active-directory-virtualbox/ad-replication-basics']),
-  topic('active-directory-virtualbox', 'ad-replication-topology', 'KCC, Replikationstopologie & Site Links', 'KCC, automatische Replikationstopologie, Site Links, Connection Objects, Cost, Schedule, Interval, Bridgehead, Site Link Bridge.', ['active-directory-virtualbox/ad-replication-sites']),
-  topic('active-directory-virtualbox', 'ad-replication-site-config', 'Sites & Site Links praktisch konfigurieren', 'AD Sites and Services praktisch: Sites, Subnets, DC-Verschiebung, Site Links, Cost, Interval, Schedule, Preferred Bridgehead, Verifikation.', ['active-directory-virtualbox/ad-replication-topology']),
-  topic('active-directory-virtualbox', 'ad-recycle-bin', 'AD-Papierkorb & Wiederherstellung', 'AD Recycle Bin: Aktivierung, Deleted Objects, Restore, Restore To, Aufbewahrung, Verification, Backup-Abgrenzung, ADSI Edit Hinweis.', ['active-directory-virtualbox/ad-replication-site-config']),
-  topic('active-directory-virtualbox', 'ad-group-policy-basics', 'Gruppenrichtlinien – Grundlagen', 'Gruppenrichtlinien: GPO, User/Computer, lokal/zentral, Site/Domain/OU, Link vs Target, GPMC, GPC, GPT, SYSVOL, CLI-Ausblick.', ['active-directory-virtualbox/ad-recycle-bin']),
-  topic('active-directory-virtualbox', 'windows-server', 'Windows Server Core', 'Verwaltung von Server Core: lokal über PowerShell und remote über den Server Manager.', ['active-directory-virtualbox/domain-controller']),
-  // Domain builds directly on the AD foundation for the logical-components
-  // block. Windows Server remains a separate topic; the playable chain here
-  // is ad-foundation -> domain -> domain-controller -> organizational-units.
-  topic('active-directory-virtualbox', 'domain', 'Domäne', 'Was eine Windows-Domäne ist und leistet.', ['active-directory-virtualbox/ad-foundation']),
-  // Domain Controller depends on domain (logical understanding) and the
-  // networking fundamentals it actually needs (ipv4, dns). The windows-server
-  // topic stays available as separate, optional preparation.
-  topic('active-directory-virtualbox', 'domain-controller', 'Domain Controller', 'Rolle und Funktion des Domain Controllers.', ['active-directory-virtualbox/domain', 'fundamentals/ipv4', 'fundamentals/dns']),
-  topic('active-directory-virtualbox', 'users', 'Benutzer', 'Benutzerkonten in Active Directory anlegen.', ['organizational-units']),
-  topic('active-directory-virtualbox', 'groups', 'Gruppen', 'Gruppen in Active Directory verwalten.', ['users']),
-  topic('active-directory-virtualbox', 'organizational-units', 'Organisationseinheiten', 'Struktur der Domäne über OUs abbilden.', ['domain-controller']),
-  topic('active-directory-virtualbox', 'group-policy', 'Gruppenrichtlinien', 'Einstellungen zentral per GPO verteilen.', ['organizational-units']),
-  topic('active-directory-virtualbox', 'active-directory-dns', 'AD-integriertes DNS', 'Zusammenspiel von Active Directory und DNS.', ['domain-controller']),
-  topic('active-directory-virtualbox', 'ldap', 'LDAP', 'Verzeichniszugriff über das LDAP-Protokoll.', ['active-directory-dns']),
-  topic('active-directory-virtualbox', 'kerberos', 'Kerberos', 'Authentifizierung über das Kerberos-Protokoll.', ['domain-controller']),
-  topic('active-directory-virtualbox', 'shares', 'Freigaben', 'Netzwerkfreigaben einrichten und verwalten.', ['windows-server']),
-  topic('active-directory-virtualbox', 'ntfs-permissions', 'NTFS-Berechtigungen', 'Zugriffsrechte auf Dateisystemebene steuern.', ['shares']),
-  topic('active-directory-virtualbox', 'domain-join', 'Domänenbeitritt', 'Einen Client in die Domäne aufnehmen.', ['domain-controller']),
-  topic('active-directory-virtualbox', 'troubleshooting', 'Troubleshooting', 'Systematische Fehlersuche in der Domäne.', ['domain-join']),
+  topic('active-directory-virtualbox', 'ad-trusts', 'Trusts, FSMO & Forest-Administration', 'Vertrauensstellungen, forest-weite FSMO-Rollen und privilegierte Administratorgruppen.', ['active-directory-virtualbox/ad-tree-forest']),
+  topic('active-directory-virtualbox', 'ad-fsmo-transfer', 'FSMO-Rollen praktisch verwalten', 'FSMO-Rolleninhaber ermitteln, Rollen geplant auf einen Ziel-DC übertragen und Ergebnis verifizieren.', ['active-directory-virtualbox/ad-trusts']),
+  topic('active-directory-virtualbox', 'ad-replication-basics', 'AD-Replikation – Grundlagen & Datenbank', 'Warum AD repliziert, was repliziert wird, Multi-Master, NTDS.DIT, Verzeichnispartitionen und Delta-Replikation.', ['active-directory-virtualbox/ad-fsmo-transfer']),
+  topic('active-directory-virtualbox', 'ad-replication-sites', 'Sites & Subnetze', 'Physische Netzstruktur, Subnetzzuordnung, lokale DC-Auswahl, Intrasite- und Intersite-Replikation.', ['active-directory-virtualbox/ad-replication-basics']),
+  topic('active-directory-virtualbox', 'ad-replication-topology', 'KCC, Replikationstopologie & Site Links', 'KCC, automatische Replikationstopologie, Site Links, Connection Objects, Cost, Schedule, Interval, Bridgehead.', ['active-directory-virtualbox/ad-replication-sites']),
+  topic('active-directory-virtualbox', 'ad-replication-practice', 'Standorte praktisch & AD-Wiederherstellung', 'AD Sites and Services praktisch: Sites, Subnets, DC-Verschiebung, Site Links, Cost/Schedule/Interval, Verification, AD Recycle Bin.', ['active-directory-virtualbox/ad-replication-topology']),
+  topic('active-directory-virtualbox', 'ad-group-policy-basics', 'Gruppenrichtlinien – Grundlagen', 'Gruppenrichtlinien: GPO, User/Computer, lokal/zentral, Site/Domain/OU, Link vs Target, GPMC, GPC, GPT, SYSVOL.', ['active-directory-virtualbox/ad-replication-practice']),
+  topic('active-directory-virtualbox', 'windows-server', 'Windows Server & Freigaben', 'Verwaltung von Windows Server Core, lokale/remote Administration und Netzwerkfreigaben.', ['active-directory-virtualbox/ad-install']),
+  topic('active-directory-virtualbox', 'ntfs-permissions', 'NTFS-Berechtigungen', 'Zugriffsrechte auf Dateisystemebene steuern.', ['active-directory-virtualbox/windows-server']),
 ];
 
 export function categoriesSorted() {

@@ -44,35 +44,37 @@ import {
   SECURITY_THREATS_MALWARE_TOPIC_KEY,
   SECURITY_TECHNICAL_MEASURES_TOPIC_KEY,
 } from './academyLessons/informationSecurity.js';
-import { buildAdFoundationLesson, AD_FOUNDATION_TOPIC_KEY } from './academyLessons/adFoundation.js';
+
 import {
-  buildAdDomainLesson,
-  buildAdDomainControllerLesson,
   buildAdOrganizationalUnitsLesson,
-  AD_DOMAIN_TOPIC_KEY,
-  AD_DC_TOPIC_KEY,
   AD_OU_TOPIC_KEY,
 } from './academyLessons/adLogicalComponents.js';
-import { buildAdWindowsServerLesson, AD_WINDOWS_SERVER_TOPIC_KEY } from './academyLessons/adWindowsServer.js';
 import { buildAdUserProfilesLesson, AD_USER_PROFILES_TOPIC_KEY } from './academyLessons/adUserProfiles.js';
 import { buildAdUsersLesson, AD_USERS_TOPIC_KEY } from './academyLessons/adUsers.js';
-import { buildAdSharesLesson, AD_SHARES_TOPIC_KEY } from './academyLessons/adShares.js';
 import { buildAdNtfsPermissionsLesson, AD_NTFS_PERMISSIONS_TOPIC_KEY } from './academyLessons/adNtfsPermissions.js';
-import { buildAdPermissionsLesson, AD_PERMISSIONS_TOPIC_KEY } from './academyLessons/adPermissions.js';
-import { buildAdGroupPracticeLesson, AD_GROUP_PRACTICE_TOPIC_KEY } from './academyLessons/adGroupPractice.js';
-import { buildAdMmcBasicsLesson, AD_MMC_BASICS_TOPIC_KEY } from './academyLessons/adMmcBasics.js';
-import { buildAdDelegationLesson, AD_DELEGATION_TOPIC_KEY } from './academyLessons/adDelegation.js';
 import { buildAdMmcHelpdeskLesson, AD_MMC_HELPDESK_TOPIC_KEY } from './academyLessons/adMmcHelpdesk.js';
 import { buildAdTreeForestLesson, AD_TREE_FOREST_TOPIC_KEY } from './academyLessons/adTreeForest.js';
-import { buildAdTrustsLesson, AD_TRUSTS_TOPIC_KEY } from './academyLessons/adTrusts.js';
-import { buildAdFsmoAdminGroupsLesson, AD_FSMO_ADMIN_GROUPS_TOPIC_KEY } from './academyLessons/adFsmoAdminGroups.js';
 import { buildAdFsmoTransferLesson, AD_FSMO_TRANSFER_TOPIC_KEY } from './academyLessons/adFsmoTransfer.js';
 import { buildAdReplicationBasicsLesson, AD_REPLICATION_BASICS_TOPIC_KEY } from './academyLessons/adReplicationBasics.js';
 import { buildAdReplicationSitesLesson, AD_REPLICATION_SITES_TOPIC_KEY } from './academyLessons/adReplicationSites.js';
 import { buildAdReplicationTopologyLesson, AD_REPLICATION_TOPOLOGY_TOPIC_KEY } from './academyLessons/adReplicationTopology.js';
-import { buildAdReplicationSiteConfigLesson, AD_REPLICATION_SITE_CONFIG_TOPIC_KEY } from './academyLessons/adReplicationSiteConfig.js';
-import { buildAdRecycleBinLesson, AD_RECYCLE_BIN_TOPIC_KEY } from './academyLessons/adRecycleBin.js';
 import { buildAdGroupPolicyBasicsLesson, AD_GROUP_POLICY_BASICS_TOPIC_KEY } from './academyLessons/adGroupPolicyBasics.js';
+import {
+  buildAdFoundationConsolidatedLesson,
+  buildAdInstallConsolidatedLesson,
+  buildAdGroupsConsolidatedLesson,
+  buildAdAdministrationConsolidatedLesson,
+  buildAdTrustsConsolidatedLesson,
+  buildAdReplicationPracticeConsolidatedLesson,
+  buildAdWindowsStorageConsolidatedLesson,
+  AD_FOUNDATION_TOPIC_KEY,
+  AD_INSTALL_TOPIC_KEY,
+  AD_GROUPS_TOPIC_KEY,
+  AD_ADMINISTRATION_TOPIC_KEY,
+  AD_TRUSTS_TOPIC_KEY,
+  AD_REPLICATION_PRACTICE_TOPIC_KEY,
+  AD_WINDOWS_STORAGE_TOPIC_KEY,
+} from './academyLessons/adConsolidated.js';
 
 // Simple inline SVG diagrams for the five network topologies.
 const diagramSvg = {
@@ -422,29 +424,23 @@ export const LESSONS = {
   [SECURITY_INCIDENTS_TOPIC_KEY]: buildInformationSecurityIncidentsLesson(),
   [SECURITY_THREATS_MALWARE_TOPIC_KEY]: buildInformationSecurityThreatsMalwareLesson(),
   [SECURITY_TECHNICAL_MEASURES_TOPIC_KEY]: buildInformationSecurityTechnicalMeasuresLesson(),
-  [AD_FOUNDATION_TOPIC_KEY]: buildAdFoundationLesson(),
-  [AD_DOMAIN_TOPIC_KEY]: buildAdDomainLesson(),
+  [AD_FOUNDATION_TOPIC_KEY]: buildAdFoundationConsolidatedLesson(),
+  [AD_INSTALL_TOPIC_KEY]: buildAdInstallConsolidatedLesson(),
   [AD_OU_TOPIC_KEY]: buildAdOrganizationalUnitsLesson(),
-  [AD_DC_TOPIC_KEY]: buildAdDomainControllerLesson(),
-  [AD_WINDOWS_SERVER_TOPIC_KEY]: buildAdWindowsServerLesson(),
+  [AD_WINDOWS_STORAGE_TOPIC_KEY]: buildAdWindowsStorageConsolidatedLesson(),
   [AD_USER_PROFILES_TOPIC_KEY]: buildAdUserProfilesLesson(),
   [AD_USERS_TOPIC_KEY]: buildAdUsersLesson(),
-  [AD_SHARES_TOPIC_KEY]: buildAdSharesLesson(),
   [AD_NTFS_PERMISSIONS_TOPIC_KEY]: buildAdNtfsPermissionsLesson(),
-  [AD_PERMISSIONS_TOPIC_KEY]: buildAdPermissionsLesson(),
-  [AD_GROUP_PRACTICE_TOPIC_KEY]: buildAdGroupPracticeLesson(),
-  [AD_MMC_BASICS_TOPIC_KEY]: buildAdMmcBasicsLesson(),
-  [AD_DELEGATION_TOPIC_KEY]: buildAdDelegationLesson(),
+  [AD_GROUPS_TOPIC_KEY]: buildAdGroupsConsolidatedLesson(),
+  [AD_ADMINISTRATION_TOPIC_KEY]: buildAdAdministrationConsolidatedLesson(),
   [AD_MMC_HELPDESK_TOPIC_KEY]: buildAdMmcHelpdeskLesson(),
   [AD_TREE_FOREST_TOPIC_KEY]: buildAdTreeForestLesson(),
-  [AD_TRUSTS_TOPIC_KEY]: buildAdTrustsLesson(),
-  [AD_FSMO_ADMIN_GROUPS_TOPIC_KEY]: buildAdFsmoAdminGroupsLesson(),
+  [AD_TRUSTS_TOPIC_KEY]: buildAdTrustsConsolidatedLesson(),
   [AD_FSMO_TRANSFER_TOPIC_KEY]: buildAdFsmoTransferLesson(),
   [AD_REPLICATION_BASICS_TOPIC_KEY]: buildAdReplicationBasicsLesson(),
   [AD_REPLICATION_SITES_TOPIC_KEY]: buildAdReplicationSitesLesson(),
   [AD_REPLICATION_TOPOLOGY_TOPIC_KEY]: buildAdReplicationTopologyLesson(),
-  [AD_REPLICATION_SITE_CONFIG_TOPIC_KEY]: buildAdReplicationSiteConfigLesson(),
-  [AD_RECYCLE_BIN_TOPIC_KEY]: buildAdRecycleBinLesson(),
+  [AD_REPLICATION_PRACTICE_TOPIC_KEY]: buildAdReplicationPracticeConsolidatedLesson(),
   [AD_GROUP_POLICY_BASICS_TOPIC_KEY]: buildAdGroupPolicyBasicsLesson(),
 };
 

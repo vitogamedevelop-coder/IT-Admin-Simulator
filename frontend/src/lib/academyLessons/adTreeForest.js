@@ -3,7 +3,7 @@ import { topicKey } from '../academyTopics.js';
 export const AD_TREE_FOREST_TOPIC_KEY = topicKey('active-directory-virtualbox', 'ad-tree-forest');
 
 function explanation(id, title, style, blocks) {
-  return { id, title, style, blocks };
+  return { id, title, style, blocks, sectionId: id };
 }
 
 const namespaceSvg = `<svg viewBox="0 0 320 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">

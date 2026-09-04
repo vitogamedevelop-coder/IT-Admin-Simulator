@@ -918,7 +918,7 @@ export function resetEmployeeConversations() {
 // Conversation topic content
 // =============================================================================
 
-export const CONVERSATION_TOPICS = {
+const RAW_CONVERSATION_TOPICS = {
   [topicKey('information-security', 'security-fundamentals')]: {
     title: 'Grundlagen der Informationssicherheit',
     relatedTopics: [topicKey('information-security', 'security-objectives'), topicKey('information-security', 'pimo'), topicKey('information-security', 'opti'), topicKey('information-security', 'pdca'), topicKey('information-security', 'required-level')],
@@ -2307,3 +2307,43 @@ export const CONVERSATION_TOPICS = {
     ],
   },
 };
+
+const AD_CONVERSATION_REMAP = {
+  [topicKey('active-directory-virtualbox', 'domain')]: topicKey('active-directory-virtualbox', 'ad-foundation'),
+  [topicKey('active-directory-virtualbox', 'domain-controller')]: topicKey('active-directory-virtualbox', 'ad-install'),
+  [topicKey('active-directory-virtualbox', 'ad-permissions')]: topicKey('active-directory-virtualbox', 'ad-groups'),
+  [topicKey('active-directory-virtualbox', 'ad-group-practice')]: topicKey('active-directory-virtualbox', 'ad-groups'),
+  [topicKey('active-directory-virtualbox', 'ad-mmc-basics')]: topicKey('active-directory-virtualbox', 'ad-administration'),
+  [topicKey('active-directory-virtualbox', 'ad-delegation')]: topicKey('active-directory-virtualbox', 'ad-administration'),
+  [topicKey('active-directory-virtualbox', 'ad-fsmo-admin-groups')]: topicKey('active-directory-virtualbox', 'ad-trusts'),
+  [topicKey('active-directory-virtualbox', 'ad-replication-site-config')]: topicKey('active-directory-virtualbox', 'ad-replication-practice'),
+  [topicKey('active-directory-virtualbox', 'ad-recycle-bin')]: topicKey('active-directory-virtualbox', 'ad-replication-practice'),
+  [topicKey('active-directory-virtualbox', 'shares')]: topicKey('active-directory-virtualbox', 'windows-server'),
+};
+
+function mergeConversationPools(a, b) {
+  if (!a && !b) return null;
+  if (!a) return b;
+  if (!b) return a;
+  return {
+    title: a.title || b.title,
+    relatedTopics: [...new Set([...(a.relatedTopics || []), ...(b.relatedTopics || [])])],
+    introPool: [...(a.introPool || []), ...(b.introPool || [])],
+    questions: [...(a.questions || []), ...(b.questions || [])],
+  };
+}
+
+function consolidateAdEmployeeConversations(raw) {
+  const consolidated = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const target = AD_CONVERSATION_REMAP[key] || key;
+    if (consolidated[target]) {
+      consolidated[target] = mergeConversationPools(consolidated[target], value);
+    } else {
+      consolidated[target] = value;
+    }
+  }
+  return consolidated;
+}
+
+export const CONVERSATION_TOPICS = consolidateAdEmployeeConversations(RAW_CONVERSATION_TOPICS);

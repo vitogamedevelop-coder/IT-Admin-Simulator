@@ -162,7 +162,31 @@ const PILOT_ITEMS = [
   ...adGroupPolicyBasicsKnowledgeItems,
 ];
 
-const REGISTRY = new Map(PILOT_ITEMS.map((item) => [item.id, item]));
+// Curriculum-Merge v1.93.0: alte Topic-Keys auf neue konsolidierte Topic-Keys mappen,
+// ohne die Source-Files anfassen zu müssen.
+const AD_KNOWLEDGE_TOPIC_REMAP = {
+  'active-directory-virtualbox/domain': 'active-directory-virtualbox/ad-foundation',
+  'active-directory-virtualbox/domain-controller': 'active-directory-virtualbox/ad-install',
+  'active-directory-virtualbox/ad-permissions': 'active-directory-virtualbox/ad-groups',
+  'active-directory-virtualbox/ad-group-practice': 'active-directory-virtualbox/ad-groups',
+  'active-directory-virtualbox/ad-mmc-basics': 'active-directory-virtualbox/ad-administration',
+  'active-directory-virtualbox/ad-delegation': 'active-directory-virtualbox/ad-administration',
+  'active-directory-virtualbox/ad-fsmo-admin-groups': 'active-directory-virtualbox/ad-trusts',
+  'active-directory-virtualbox/ad-replication-site-config': 'active-directory-virtualbox/ad-replication-practice',
+  'active-directory-virtualbox/ad-recycle-bin': 'active-directory-virtualbox/ad-replication-practice',
+  'active-directory-virtualbox/shares': 'active-directory-virtualbox/windows-server',
+};
+
+const MAPPED_PILOT_ITEMS = PILOT_ITEMS.map((item) => {
+  const newTopicKey = AD_KNOWLEDGE_TOPIC_REMAP[item.topicKey];
+  if (!newTopicKey) return item;
+  const newSourceTopicKey = item.sourceTopicKey
+    ? (AD_KNOWLEDGE_TOPIC_REMAP[item.sourceTopicKey] || item.sourceTopicKey)
+    : newTopicKey;
+  return { ...item, topicKey: newTopicKey, sourceTopicKey: newSourceTopicKey };
+});
+
+const REGISTRY = new Map(MAPPED_PILOT_ITEMS.map((item) => [item.id, item]));
 
 export function getKnowledgeItem(id) {
   return REGISTRY.get(id) || null;

@@ -49,7 +49,7 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // completedSectionIds, completedExerciseIds and completedQuestionIds against
 // the current LESSONS registry. Removes phantom IDs and recomputes
 // theoryCompletion/contentSeenPercent only from currently existing sections.
-const STATE_VERSION = 10;
+const STATE_VERSION = 11;
 
 // Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
 // advanced status across a group of legacy topics being merged into one.
@@ -63,6 +63,14 @@ const LEGACY_TOPIC_MERGES = [
   { newKey: 'fundamentals/tcp-udp', oldKeys: ['fundamentals/tcp', 'fundamentals/udp', 'fundamentals/tcp-vs-udp'] },
   { newKey: 'fundamentals/kommunikation-uebertragung', oldKeys: ['fundamentals/kommunikationsarten', 'fundamentals/betriebsarten', 'fundamentals/ausbreitungsarten', 'fundamentals/uebertragungsmedien'] },
   { newKey: 'cisco-packet-tracer/basic-device-configuration', oldKeys: ['cisco-packet-tracer/ip-configuration'] },
+  // v11: Active-Directory-Curriculum-Konsolidierung (1.93.0)
+  { newKey: 'active-directory-virtualbox/ad-foundation', oldKeys: ['active-directory-virtualbox/domain'] },
+  { newKey: 'active-directory-virtualbox/ad-install', oldKeys: ['active-directory-virtualbox/domain-controller'] },
+  { newKey: 'active-directory-virtualbox/ad-groups', oldKeys: ['active-directory-virtualbox/ad-permissions', 'active-directory-virtualbox/ad-group-practice'] },
+  { newKey: 'active-directory-virtualbox/ad-administration', oldKeys: ['active-directory-virtualbox/ad-mmc-basics', 'active-directory-virtualbox/ad-delegation'] },
+  { newKey: 'active-directory-virtualbox/ad-trusts', oldKeys: ['active-directory-virtualbox/ad-fsmo-admin-groups'] },
+  { newKey: 'active-directory-virtualbox/ad-replication-practice', oldKeys: ['active-directory-virtualbox/ad-replication-site-config', 'active-directory-virtualbox/ad-recycle-bin'] },
+  { newKey: 'active-directory-virtualbox/windows-server', oldKeys: ['active-directory-virtualbox/shares'] },
 ];
 
 // Returns a copy of `savedTopics` where, for every LEGACY_TOPIC_MERGES entry

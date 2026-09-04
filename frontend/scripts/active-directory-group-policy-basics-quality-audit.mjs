@@ -53,7 +53,7 @@ auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has 
 
 auditRequires(!/vererbung|lsdou|block inheritance|enforced|link order|softwareverteilung|gpupdate \/force|gpresult \/r|security filtering|wmi filter|administrative templates/i.test(lessonText), 'No advanced concepts prematurely taught');
 
-auditRequires(/versionCode 19200/.test(buildGradle), 'versionCode must be 19200 for 1.92.0');
+auditRequires(/versionCode 19300/.test(buildGradle), 'versionCode must be 19200 for 1.93.0');
 
 console.log('\n=== Active Directory Group Policy Basics Quality Audit passed ===');
 

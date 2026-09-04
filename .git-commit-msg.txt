@@ -1,17 +1,30 @@
-feat(academy): add Thema 27: Gruppenrichtlinien – Grundlagen (v1.92.0)
+refactor(academy): consolidate Active-Directory curriculum to 18 topics (v1.93.0)
 
-- New topic `ad-group-policy-basics` in active-directory-virtualbox,
-  prerequisite `ad-recycle-bin`.
-- Add `adGroupPolicyBasics.js` lesson: Group Policy definition, GPO,
-  User vs Computer, local vs central, link locations Site/Domain/OU,
-  Link vs Target, GPMC, GPC, GPT, SYSVOL, gpupdate/gpresult Ausblick.
-- 20 exercises (matching, classification, select-best, scenario,
-  misconception, transfer) and 5 quiz questions.
-- Add 16 knowledge items and employee conversation pool (10 questions).
-- New quality, four contract, and duplication audits.
-- No guided UI yet, no LSDOU, no inheritance, no software distribution,
-  no gpupdate/gpresult syntax details.
-- Bump version to 1.92.0 / versionCode 19200 / cache cyberlearn-v1.92.0.
+- Merge related AD mini-topics into larger chapters:
+  • ad-foundation: ad-foundation + domain
+  • ad-install: domain-controller
+  • ad-groups: ad-permissions + ad-group-practice
+  • ad-administration: ad-mmc-basics + ad-delegation
+  • ad-trusts: ad-trusts + ad-fsmo-admin-groups
+  • ad-replication-practice: ad-replication-site-config + ad-recycle-bin
+  • windows-server: windows-server + shares
+- Remove empty visible placeholders (virtualbox-lab, groups, group-policy,
+  active-directory-dns, ldap, kerberos, domain-join, troubleshooting, shares).
+- Keep 18 visible AD topics in the catalog; no mega-topics (largest: ntfs-permissions 27).
+- Remap knowledge topicKeys and employee conversations to new topics.
+- Add v11 state migration in academyProgress.js; old progress merges via
+  LEGACY_TOPIC_MERGES without resetting player data.
+- Fix LessonRunner section counter for ad-tree-forest and ad-mmc-helpdesk
+  by adding explicit sectionId to each explanation.
+- New audit/tests:
+  • active-directory-curriculum-consolidation-audit
+  • active-directory-topic-merge-content-preservation-audit
+  • active-directory-topic-merge-progress-migration-test
+  • active-directory-consolidated-topic-routing-test
+  • academy-theory-section-count-contract-test
+  • academy-category-stats-contract-test
+- Bump version to 1.93.0, versionCode 19300, cache cyberlearn-v1.93.0.
+- No new GPO content; Gruppenrichtlinien.txt remains open.
 
 Generated with [Devin](https://devin.ai)
 

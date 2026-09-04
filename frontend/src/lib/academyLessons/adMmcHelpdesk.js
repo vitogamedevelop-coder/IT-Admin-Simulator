@@ -3,7 +3,7 @@ import { topicKey } from '../academyTopics.js';
 export const AD_MMC_HELPDESK_TOPIC_KEY = topicKey('active-directory-virtualbox', 'ad-mmc-helpdesk');
 
 function explanation(id, title, style, blocks) {
-  return { id, title, style, blocks };
+  return { id, title, style, blocks, sectionId: id };
 }
 
 const endToEndSvg = `<svg viewBox="0 0 360 280" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">

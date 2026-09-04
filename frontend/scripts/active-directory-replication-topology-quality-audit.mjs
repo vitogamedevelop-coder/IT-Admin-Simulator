@@ -72,7 +72,7 @@ auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has 
 
 auditRequires(!/Site Link.*praktisch.*erstellen|Kosten.*praktisch.*setzen|Zeitplan.*praktisch.*setzen|Site-Link-Bridge.*praktisch.*erstellen|Bridgehead.*praktisch.*konfigurieren|Sites and Services.*bedienen|AD-Papierkorb aktivieren/i.test(JSON.stringify(lesson)), 'No practical Sites/Site-Link configuration taught yet');
 
-auditRequires(/versionCode 19200/.test(buildGradle), 'versionCode must be 19200 for 1.92.0');
+auditRequires(/versionCode 19300/.test(buildGradle), 'versionCode must be 19200 for 1.93.0');
 
 console.log('\n=== Active Directory Replication Topology Quality Audit passed ===');
 

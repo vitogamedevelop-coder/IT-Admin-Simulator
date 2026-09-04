@@ -66,7 +66,7 @@ auditRequires(Array.isArray(conv.questions) && conv.questions.length >= 5, `Has 
 
 auditRequires(!/site.*link.*bridge.*praktisch|ad-papierkorb.*praktisch.*backup|authoritative.*restore|ntdsutil.*restore|bare-metal/i.test(JSON.stringify(lesson)), 'No Site Link Bridge / Backup deep dive / authoritative restore');
 
-auditRequires(/versionCode 19200/.test(buildGradle), 'versionCode must be 19200 for 1.92.0');
+auditRequires(/versionCode 19300/.test(buildGradle), 'versionCode must be 19200 for 1.93.0');
 
 console.log('\n=== Active Directory Recycle Bin Quality Audit passed ===');
 
