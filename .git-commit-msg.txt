@@ -1,30 +1,22 @@
-refactor(academy): consolidate Active-Directory curriculum to 18 topics (v1.93.0)
+feat(themencheck): run-level dedup + cross-run cooldown for v1.94.0
 
-- Merge related AD mini-topics into larger chapters:
-  • ad-foundation: ad-foundation + domain
-  • ad-install: domain-controller
-  • ad-groups: ad-permissions + ad-group-practice
-  • ad-administration: ad-mmc-basics + ad-delegation
-  • ad-trusts: ad-trusts + ad-fsmo-admin-groups
-  • ad-replication-practice: ad-replication-site-config + ad-recycle-bin
-  • windows-server: windows-server + shares
-- Remove empty visible placeholders (virtualbox-lab, groups, group-policy,
-  active-directory-dns, ldap, kerberos, domain-join, troubleshooting, shares).
-- Keep 18 visible AD topics in the catalog; no mega-topics (largest: ntfs-permissions 27).
-- Remap knowledge topicKeys and employee conversations to new topics.
-- Add v11 state migration in academyProgress.js; old progress merges via
-  LEGACY_TOPIC_MERGES without resetting player data.
-- Fix LessonRunner section counter for ad-tree-forest and ad-mmc-helpdesk
-  by adding explicit sectionId to each explanation.
-- New audit/tests:
-  • active-directory-curriculum-consolidation-audit
-  • active-directory-topic-merge-content-preservation-audit
-  • active-directory-topic-merge-progress-migration-test
-  • active-directory-consolidated-topic-routing-test
-  • academy-theory-section-count-contract-test
-  • academy-category-stats-contract-test
-- Bump version to 1.93.0, versionCode 19300, cache cyberlearn-v1.93.0.
-- No new GPO content; Gruppenrichtlinien.txt remains open.
+- Add semantic history for Themencheck (`cyberlearn:themencheck-history-v1`).
+- Record every answered question with category, sourceTopicId, timestamp, correctness and seenCount.
+- generateThemencheck now scores each candidate by recent cooldown:
+  • <2h: strong penalty
+  • <24h: medium penalty
+  • <72h: light penalty
+  • repeated item count: escalating small penalty
+- Enforce run-level uniqueness by semanticKey and normalized question text,
+  including command-recall variants from the same or different topics.
+- Final pass removes any remaining duplicate text before returning.
+- New audit: themencheck-no-duplicate-question-audit.mjs (20 runs x 3 categories).
+  • 0 duplicate questions inside any run
+  • consecutive-run overlap below 20%
+- Bump version to 1.94.0, versionCode 19400, cache cyberlearn-v1.94.0.
+- Limitation: Multi-Select, Drag & Drop, Diagnostic Scenarios and further
+  troubleshooting coverage not yet implemented; reserved for next slice.
+- Local only: no push, no GitHub Actions, no Pages, no remote release.
 
 Generated with [Devin](https://devin.ai)
 

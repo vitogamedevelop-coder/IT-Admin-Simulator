@@ -20,6 +20,10 @@ import { LEARNING_MODES, readAcademyMode } from './academyMode.js';
 import { generateQuestion, getAllKnowledgeItems } from './knowledge/index.js';
 
 const RESULTS_KEY = 'cyberlearn:themencheck-results-v1';
+const HISTORY_KEY = 'cyberlearn:themencheck-history-v1';
+const HISTORY_LIMIT = 1000;
+const COOLDOWN_HOURS = [2, 24, 72];
+const COOLDOWN_PENALTIES = [0.8, 0.5, 0.2];
 
 // ---------- Scoring thresholds ----------
 export const SCORE_GRADES = [
@@ -61,6 +65,41 @@ function shuffleArray(arr) {
   return a;
 }
 
+// ---------- Cross-run Themencheck history ----------
+
+function makeSemanticKey(categoryId, sourceTopicId, questionText) {
+  const text = (questionText || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return `${categoryId}::${sourceTopicId}::${text}`;
+}
+
+function readHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+  } catch { return []; }
+}
+
+function writeHistory(history) {
+  const trimmed = history.slice(-HISTORY_LIMIT);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+}
+
+function getHistoryForCategory(history, categoryId) {
+  return history.filter((h) => h.categoryId === categoryId);
+}
+
+function scoreCooldown(semanticKey, categoryHistory) {
+  const entries = categoryHistory.filter((h) => h.semanticKey === semanticKey);
+  if (entries.length === 0) return 1.0;
+  const last = Math.max(...entries.map((h) => new Date(h.seenAt).getTime()));
+  const hoursAgo = (Date.now() - last) / (1000 * 60 * 60);
+  let penalty = 0;
+  for (let i = 0; i < COOLDOWN_HOURS.length; i++) {
+    if (hoursAgo < COOLDOWN_HOURS[i]) penalty = Math.max(penalty, COOLDOWN_PENALTIES[i]);
+  }
+  penalty += Math.min(0.3, (entries.length - 1) * 0.05);
+  return Math.max(0.05, 1 - penalty);
+}
+
 /**
  * Collects all quiz questions from a lesson (quiz array + inline questions in explanations).
  * Each returned question has a standard shape: { question, options, correct, explanation, sourceTopicId }
@@ -72,7 +111,11 @@ export function collectQuestionsFromLesson(lesson, topicId) {
   if (lesson.quiz && Array.isArray(lesson.quiz)) {
     for (const q of lesson.quiz) {
       if (q.question && q.options && typeof q.correct === 'number') {
-        questions.push({ ...q, sourceTopicId: topicId });
+        questions.push({
+          ...q,
+          sourceTopicId: topicId,
+          semanticKey: q.semanticKey || makeSemanticKey(topicId, topicId, q.question),
+        });
       }
     }
   }
@@ -83,13 +126,15 @@ export function collectQuestionsFromLesson(lesson, topicId) {
       if (exp.blocks) {
         for (const block of exp.blocks) {
           if (block.type === 'question' && block.question && block.options && typeof block.correct === 'number') {
-            questions.push({
+            const q = {
               question: block.question,
               options: block.options,
               correct: block.correct,
               explanation: block.explanation || '',
               sourceTopicId: topicId,
-            });
+              semanticKey: makeSemanticKey(topicId, topicId, block.question),
+            };
+            questions.push(q);
           }
         }
       }
@@ -151,6 +196,7 @@ function collectCommandRecallQuestionsForTopic(topicId, seedSuffix = '') {
         correct: instance.correct,
         explanation: instance.explanation || instance.prompt,
         sourceTopicId: topicId,
+        semanticKey: `cmd:${topicId}:${item.id}:${seedSuffix}`,
         isCommandRecall: true,
       });
     } catch {
@@ -241,11 +287,14 @@ function collectCommandRecallQuestionsForCategory(categoryId) {
 /**
  * Generates a Themencheck for a given category.
  * Draws questions evenly across all topics (2-3 per topic), aiming for 15-30 total.
+ * Respects cross-run cooldown history to reduce immediate repetition.
+ * Enforces run-level uniqueness by semantic key.
  * For the Cisco category, command-recall questions are explicitly boosted so the
  * final mix is roughly 15-35% command questions while staying within the cap.
  */
 export function generateThemencheck(categoryId) {
   const topics = topicsForCategory(categoryId);
+  const history = getHistoryForCategory(readHistory(), categoryId);
   const topicPools = [];
 
   for (const topic of topics) {
@@ -255,58 +304,113 @@ export function generateThemencheck(categoryId) {
 
     const pool = collectQuestionsFromLesson(lesson, topic.topicId);
     const commandRecall = collectCommandRecallQuestionsForTopic(topic.topicId);
-    const combined = shuffleArray([...pool, ...commandRecall]);
+    const combined = [...pool, ...commandRecall];
     if (combined.length === 0) continue;
     topicPools.push({ topicId: topic.topicId, pool: combined });
   }
 
   if (topicPools.length === 0) return [];
 
-  // Target: 15-30 questions, evenly distributed
   const targetTotal = Math.min(30, Math.max(15, topicPools.length * 3));
   const perTopic = Math.max(1, Math.ceil(targetTotal / topicPools.length));
 
-  let allQuestions = [];
-  for (const { pool } of topicPools) {
-    const count = Math.min(pool.length, perTopic);
-    allQuestions.push(...pool.slice(0, count));
+  const selectedKeys = new Set();
+  const selectedTexts = new Set();
+  const selectedQuestions = [];
+
+  function normalizeQuestionText(q) {
+    return (q.question || '').toLowerCase()
+      .replace(/[^a-z0-9äöüß\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
-  // If we have too few, draw more from topics with larger pools
-  if (allQuestions.length < 15) {
-    for (const { pool } of topicPools) {
-      const alreadyTaken = allQuestions.filter(q => q.sourceTopicId === pool[0]?.sourceTopicId).length;
-      for (let i = alreadyTaken; i < pool.length && allQuestions.length < 15; i++) {
-        if (!allQuestions.some(q => q.question === pool[i].question)) {
-          allQuestions.push(pool[i]);
+  function pickFromPool(pool, count) {
+    const scored = pool.map((q) => ({
+      q,
+      score: scoreCooldown(q.semanticKey, history) + (Math.random() * 0.01),
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    const chosen = [];
+    for (const { q } of scored) {
+      if (chosen.length >= count) break;
+      const text = normalizeQuestionText(q);
+      if (!selectedKeys.has(q.semanticKey) && !selectedTexts.has(text) && q.semanticKey) {
+        selectedKeys.add(q.semanticKey);
+        selectedTexts.add(text);
+        chosen.push(q);
+      }
+    }
+    return chosen;
+  }
+
+  // First pass: one batch per topic, topic distribution balanced.
+  for (const { pool } of topicPools) {
+    selectedQuestions.push(...pickFromPool(pool, perTopic));
+  }
+
+  // Fill up to 15 or targetTotal from remaining under-represented topics.
+  const remainingByTopic = topicPools.map(({ pool }) =>
+    pool.filter((q) => !selectedKeys.has(q.semanticKey)));
+  while (selectedQuestions.length < Math.max(15, targetTotal) && remainingByTopic.some((p) => p.length > 0)) {
+    for (const pool of remainingByTopic) {
+      if (selectedQuestions.length >= Math.max(15, targetTotal)) break;
+      const next = pool
+        .map((q) => ({ q, score: scoreCooldown(q.semanticKey, history) + (Math.random() * 0.01) }))
+        .sort((a, b) => b.score - a.score)[0];
+      if (next) {
+        const text = normalizeQuestionText(next.q);
+        if (!selectedKeys.has(next.q.semanticKey) && !selectedTexts.has(text)) {
+          selectedKeys.add(next.q.semanticKey);
+          selectedTexts.add(text);
+          selectedQuestions.push(next.q);
         }
       }
     }
+    remainingByTopic.forEach((pool) => {
+      for (let i = pool.length - 1; i >= 0; i--) {
+        if (selectedKeys.has(pool[i].semanticKey)) pool.splice(i, 1);
+      }
+    });
   }
 
-  // Boost command-recall questions for Cisco: target ~15-35% command share.
+  // Cisco command-recall boost: 15-35% share.
   const isCisco = categoryId === 'cisco-packet-tracer';
   if (isCisco) {
     const minCommand = Math.max(2, Math.round(targetTotal * 0.25));
-    let commandCount = allQuestions.filter((q) => q.isCommandRecall).length;
+    let commandCount = selectedQuestions.filter((q) => q.isCommandRecall).length;
     if (commandCount < minCommand) {
-      const usedQuestions = new Set(allQuestions.map((q) => q.question));
+      const usedKeys = new Set(selectedKeys);
+      const usedTexts = new Set(selectedTexts);
       const commandBank = collectCommandRecallQuestionsForCategory(categoryId)
-        .filter((q) => !usedQuestions.has(q.question));
+        .filter((q) => !usedKeys.has(q.semanticKey) && !usedTexts.has(normalizeQuestionText(q)))
+        .sort((a, b) => scoreCooldown(b.semanticKey, history) - scoreCooldown(a.semanticKey, history));
       const needed = minCommand - commandCount;
-      const extra = shuffleArray(commandBank).slice(0, needed);
-      const nonCommand = shuffleArray(allQuestions.filter((q) => !q.isCommandRecall));
-      const removeCount = Math.max(0, allQuestions.length + extra.length - targetTotal);
-      const removed = new Set(nonCommand.slice(0, removeCount));
-      allQuestions = shuffleArray([
-        ...allQuestions.filter((q) => !removed.has(q)),
-        ...extra,
-      ]);
+      const extra = commandBank.slice(0, needed);
+      extra.forEach((q) => {
+        selectedKeys.add(q.semanticKey);
+        usedTexts.add(normalizeQuestionText(q));
+      });
+      while (selectedQuestions.length + extra.length > targetTotal && selectedQuestions.some((q) => !q.isCommandRecall)) {
+        const nonCommand = selectedQuestions.findIndex((q) => !q.isCommandRecall);
+        if (nonCommand === -1) break;
+        const removed = selectedQuestions.splice(nonCommand, 1)[0];
+        selectedKeys.delete(removed.semanticKey);
+      }
+      selectedQuestions.push(...extra);
     }
   }
 
-  // Cap at 30
-  return shuffleArray(allQuestions).slice(0, 30);
+  const unique = [];
+  const finalTexts = new Set();
+  for (const q of selectedQuestions) {
+    const text = normalizeQuestionText(q);
+    if (!finalTexts.has(text)) {
+      finalTexts.add(text);
+      unique.push(q);
+    }
+  }
+  return shuffleArray(unique).slice(0, 30);
 }
 
 /**
@@ -444,6 +548,30 @@ export function saveThemencheckResult(categoryId, result) {
   // Keep last 20 results per category
   if (data[categoryId].length > 20) data[categoryId] = data[categoryId].slice(-20);
   writeResults(data);
+
+  // Record cross-run Themencheck history for anti-repetition.
+  const history = readHistory();
+  result.answers.forEach((a, i) => {
+    const q = result.questions[i] || {};
+    const semanticKey = q.semanticKey || makeSemanticKey(categoryId, a.sourceTopicId, a.questionText);
+    const existing = history.find((h) => h.semanticKey === semanticKey);
+    if (existing) {
+      existing.seenAt = new Date().toISOString();
+      existing.seenCount += 1;
+      existing.correctCount += a.correct ? 1 : 0;
+    } else {
+      history.push({
+        semanticKey,
+        categoryId,
+        sourceTopicId: a.sourceTopicId,
+        seenAt: new Date().toISOString(),
+        seenCount: 1,
+        correctCount: a.correct ? 1 : 0,
+      });
+    }
+  });
+  writeHistory(history);
+
   return entry;
 }
 
