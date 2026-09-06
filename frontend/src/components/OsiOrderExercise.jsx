@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { CheckCircle, GripVertical } from 'lucide-react';
+import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 
 const ordered = ['Physikalisch', 'Sicherung', 'Vermittlung / Netzwerk', 'Transport', 'Sitzung', 'Darstellung', 'Anwendung'];
 
 export default function OsiOrderExercise() {
-  const [layers, setLayers] = useState(() => [...ordered].sort(() => Math.random() - 0.5));
+  const [layers, setLayers] = useState(() => shuffle(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })), [...ordered]));
   const [dragged, setDragged] = useState(null); const [checked, setChecked] = useState(false);
   function drop(target) { if (dragged === null || dragged === target) return; const next = [...layers]; const [item] = next.splice(dragged, 1); next.splice(target, 0, item); setLayers(next); setDragged(null); setChecked(false); }
   const correct = layers.every((layer, index) => layer === ordered[index]);

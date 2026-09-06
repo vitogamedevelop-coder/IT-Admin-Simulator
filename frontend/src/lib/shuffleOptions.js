@@ -1,3 +1,5 @@
+import { createRng, shuffle } from './random.js';
+
 const STORAGE_KEY = 'it-learn:shuffled-questions';
 
 function simpleHash(str) {
@@ -11,14 +13,8 @@ function simpleHash(str) {
 }
 
 function seededShuffle(array, seed) {
-  const copy = array.map((item, index) => ({ item, index }));
-  let current = seed;
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    current = (current * 9301 + 49297) % 233280;
-    const j = current % (i + 1);
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy.map((entry) => entry.item);
+  const rng = createRng(seed);
+  return shuffle(rng, array);
 }
 
 export function optionId(questionId, index) {
@@ -106,10 +102,10 @@ export function findCorrectOption(options) {
 
 // Pure helper for the LessonRunner question blocks and quizzes: shuffle a plain
 // options array while remembering where the original correct index ended up.
-// This gives a fresh, unpredictable order each time a question is shown.
-export function shuffleOptions(options, correctIndex) {
+// The caller supplies a seeded RNG so every run can be deterministic when needed.
+export function shuffleOptions(options, correctIndex, rng) {
   const indexed = options.map((opt, i) => ({ opt, i }));
-  const shuffled = [...indexed].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(rng, indexed);
   return {
     options: shuffled.map((item) => item.opt),
     correct: shuffled.findIndex((item) => item.i === correctIndex),

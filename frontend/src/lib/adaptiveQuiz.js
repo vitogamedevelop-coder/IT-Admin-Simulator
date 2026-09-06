@@ -1,3 +1,5 @@
+import { shuffle } from './random.js';
+
 const SKILL_KEY = (moduleId) => `cyberlearn:skill:${moduleId}`;
 const DEFAULT_MIN = 1;
 const DEFAULT_MAX = 5;
@@ -36,14 +38,14 @@ function questionDifficulty(question) {
 /**
  * Erste Sortierung beim Start: leichte Fragen zuerst, dann zur persönlichen Fähigkeit aufsteigend.
  */
-export function initialQuestionOrder(questions, moduleId) {
+export function initialQuestionOrder(questions, moduleId, rng) {
   const skill = getModuleSkill(moduleId);
   const target = skill * 0.7;
   return shuffleTies([...questions].sort((a, b) => {
     const da = questionDifficulty(a) - target;
     const db = questionDifficulty(b) - target;
     return Math.abs(da) - Math.abs(db);
-  }));
+  }), rng);
 }
 
 /**
@@ -51,9 +53,9 @@ export function initialQuestionOrder(questions, moduleId) {
  * Ziel ist leicht über dem aktuellen Skill (Flow-Zone).
  * Falls rescue=true (z. B. 2 falsche hintereinander), wird die einfachste Frage gewählt.
  */
-export function pickNextQuestions(remaining, moduleId, { rescue = false } = {}) {
+export function pickNextQuestions(remaining, moduleId, { rescue = false, rng } = {}) {
   if (rescue) {
-    return shuffleTies([...remaining].sort((a, b) => questionDifficulty(a) - questionDifficulty(b)));
+    return shuffleTies([...remaining].sort((a, b) => questionDifficulty(a) - questionDifficulty(b)), rng);
   }
   const skill = getModuleSkill(moduleId);
   const target = skill + 0.35;
@@ -61,10 +63,10 @@ export function pickNextQuestions(remaining, moduleId, { rescue = false } = {}) 
     const da = questionDifficulty(a) - target;
     const db = questionDifficulty(b) - target;
     return Math.abs(da) - Math.abs(db);
-  }));
+  }), rng);
 }
 
-function shuffleTies(sorted) {
+function shuffleTies(sorted, rng) {
   // Fragen mit gleicher Distanz zum Ziel leicht durcheinandermischen, damit es nicht zu eintönig wird.
   const buckets = [];
   let lastKey = null;
@@ -77,10 +79,7 @@ function shuffleTies(sorted) {
     buckets[buckets.length - 1].push(item);
   });
   buckets.forEach((bucket) => {
-    for (let i = bucket.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [bucket[i], bucket[j]] = [bucket[j], bucket[i]];
-    }
+    shuffle(rng, bucket);
   });
   return buckets.flat();
 }

@@ -1,40 +1,22 @@
-feat(themencheck): add Drag & Drop questions and tap-to-place UI (Phase 2C, v1.94.0)
+Consolidate shared, seeded RNG service and migrate behaviorally relevant randomization.
 
-- New Drag-&-Drop data model in src/lib/dragDropQuestions.js:
-  modes matching, ordering, categorization; items, targets/categories,
-  correctMapping/correctOrder, explanation, semanticKey, sourceTopicId.
-- shuffleDragDropItems randomizes item start order; ordering mode uses
-  pre-solved guard (re-shuffle if accidentally starting correctly).
-- Mobile-first UX in src/components/ThemencheckDragDrop.jsx:
-  - tap item, then tap target/position/category,
-  - no native HTML5 drag events (avoid scroll conflicts),
-  - large touch targets, wrapped labels, per-item correctness feedback,
-  - reset button, ordering sequence list, correct answer shown after confirm.
-- Themencheck engine integration:
-  - drag-drop pool added to per-topic combined pool in academyThemencheck.js,
-  - small multiplicative type bonus for new question forms,
-  - max ~18% of the run for drag-drop to avoid dominance,
-  - full semantic anti-repetition via existing scoreCooldown history.
-- 26 drag-drop questions added:
-  • Cisco: 11 (show commands, VLAN concepts, trunk order, DORA order,
-    OSI layer categorization, ACL order, NAT concepts, STP ports,
-    ACL wildcards, SSH order, OSPF neighbor states)
-  • AD/Windows: 9 (AGDLP order, group scopes, AD objects, NTFS/Share
-    permissions, user account types, replication order, recycle bin,
-    GPO LSDOU, FSMO roles)
-  • Linux: 1 (rwx categories)
-  • InfoSec: 5 (CIA matching, concepts categorization, measures categorization,
-    incident response order, malware categorization)
-- New audits:
-  • themencheck-dragdrop-contract-test.mjs
-  • themencheck-dragdrop-order-shuffle-test.mjs
-  • themencheck-dragdrop-matching-shuffle-test.mjs
-  • themencheck-dragdrop-coverage-audit.mjs
-  • themencheck-dragdrop-mobile-ui-contract-test.mjs
-- UI contract test expanded to count drag-drop distribution.
-- Cross-run anti-repetition remains healthy after larger pool.
-- Version remains 1.94.0 / versionCode 19400 as agreed.
-- Local only: no push, no GitHub Actions, no GitHub Pages.
+Introduces frontend/src/lib/random.js as the canonical, namespace-aware PRNG used by learning selection, question generation, conversations, missions and drill pages.  Keeps purely decorative randomness (Workspace hints, corridor smalltalk, sound synthesis) independent.  Key changes:
+
+- Added createRng / makeSeed / namespace constants and adapter helpers that also accept legacy function-style rngs.
+- Re-exported shared RNG from knowledge/random.js for backward compatibility.
+- Migrated academyThemencheck selection, shuffling, streak repair and weighted candidate picking to scoped RNGs.
+- Migrated multiSelectQuestions, dragDropQuestions and shuffleOptions to shared shuffle with correct-index preservation.
+- Migrated LessonRunner adaptive drills, practice/interview shuffles and option ordering to scoped RNGs.
+- Migrated employeeConversations topic/question/reaction selection and OSI ordering/matching to a conversation-scoped RNG.
+- Migrated adaptiveQuiz tie shuffling and Module/SpeedRun/RetrievalPractice/FinalExam/CommandFillBlanks/SubnetTrainer/OsiOrderExercise to shared RNG.
+- Migrated IPv4 math and generator functions (generateSubnetProblem, generateSubnetRequirementProblem, generateVlsmProblem, generateSupernetProblem, generateQuestion, generateExamQuestions, etc.) to accept and use an injected RNG.
+- Migrated missionGenerator and missionTemplateEngine selection/parameter/buildDevice randomness to shared RNG; updated missionV2/ciscoSideMissions seeded helpers.
+- Updated officeWorld helpers to accept optional rng and support both object and legacy function rngs.
+- Migrated static lesson builders (subnetting, binarySystem, osi) to use shared RNG for option/distractor/exercise ordering.
+- Added scripts/shared-rng-audit.mjs with deterministic checks for repeatability, namespace isolation, shuffle correctness, correct-index alignment and key generators.
+- Bumped version to 1.95.0 (package.json, version.js, public/version.json, android build.gradle versionCode 19500).
+
+Verified: npm run lint, npm run build, npx cap sync and ./gradlew assembleDebug all succeed. APK built at frontend/android/app/build/outputs/apk/debug/IT-Admin-Simulator.apk.
 
 Generated with [Devin](https://devin.ai)
 

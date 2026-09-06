@@ -1,4 +1,7 @@
-import { createRng } from './knowledge/random.js';
+import {
+  createRng, makeSeed, pickOne, shuffle,
+  RNG_NAMESPACE_CONVERSATIONS,
+} from './random.js';
 import { ACADEMY_TOPICS, topicKey } from './academyTopics.js';
 import { getTopicProgress, getFullTopic } from './academyProgress.js';
 import { topicOverallProgress, isTopicMastered, applyConversationPractice } from './academyEngine.js';
@@ -186,7 +189,7 @@ function availableTopics() {
     .filter((t) => t.unlocked);
 }
 
-function pickWeakestTopic(topics, semanticHistory, employee) {
+function pickWeakestTopic(topics, semanticHistory, employee, rng) {
   const progressByTopic = buildProgressByTopic(Object.fromEntries(topics.map((t) => [t.key, t])));
   const candidates = topics.map((t) => ({
     id: t.key,
@@ -210,11 +213,11 @@ function pickWeakestTopic(topics, semanticHistory, employee) {
   const nonMastered = topics.filter((t) => !t.mastered).sort((a, b) => a.overall - b.overall);
   const pool = nonMastered.length ? nonMastered : topics.sort((a, b) => a.overall - b.overall);
   const top = pool.slice(0, Math.min(3, pool.length));
-  return top[Math.floor(Math.random() * top.length)];
+  return pickOne(rng, top) || topics[0];
 }
 
-function pickConversationLength() {
-  const roll = Math.random();
+function pickConversationLength(rng) {
+  const roll = rng.next();
   if (roll < 0.18) return 1;
   if (roll < 0.53) return 2;
   if (roll < 0.83) return 3;
@@ -222,23 +225,23 @@ function pickConversationLength() {
   return 5;
 }
 
-function pickEmployee() {
-  return randomConversationPartner();
+function pickEmployee(rng) {
+  return randomConversationPartner(rng);
 }
 
-function pickIntro(topicData, employee) {
+function pickIntro(topicData, employee, rng) {
   const pool = topicData.introPool || [`${employee.name} möchte kurz etwas zu ${topicData.title} besprechen.`];
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pickOne(rng, pool);
 }
 
-function pickTransition(topicData, previousTopicKey) {
+function pickTransition(topicData, previousTopicKey, rng) {
   if (previousTopicKey === topicData.key) {
     const same = [
       'Okay, dann bleiben wir noch kurz bei dem Thema.',
       'Noch eine Sache dazu.',
       'Das hängt direkt damit zusammen:',
     ];
-    return same[Math.floor(Math.random() * same.length)];
+    return pickOne(rng, same);
   }
   const bridge = [
     'Ach, wo wir gerade dabei sind ...',
@@ -246,10 +249,10 @@ function pickTransition(topicData, previousTopicKey) {
     'Eine Sache wollte ich dich sowieso noch fragen.',
     'Dann passt das gut zu einer anderen Frage.',
   ];
-  return bridge[Math.floor(Math.random() * bridge.length)];
+  return pickOne(rng, bridge);
 }
 
-function pickEmployeeReaction(employee, correct) {
+function pickEmployeeReaction(employee, correct, rng) {
   if (correct) {
     const pool = [
       'Ah, okay. Dann ergibt das Sinn.',
@@ -257,7 +260,7 @@ function pickEmployeeReaction(employee, correct) {
       'Alles klar, verstanden.',
       'Gut, das hilft mir weiter.',
     ];
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pickOne(rng, pool);
   }
   const pool = [
     'Hm ... ich dachte, das wäre anders.',
@@ -265,31 +268,26 @@ function pickEmployeeReaction(employee, correct) {
     'Irgendwie verwirrt mich das noch.',
     'Das hatte ich anders verstanden.',
   ];
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pickOne(rng, pool);
 }
 
-function pickSamStageDirection() {
+function pickSamStageDirection(rng) {
   const pool = [
     'Sam schaut aus seinem Büro in den Flur.',
     'Die Bürotür geht auf. Sam hat offenbar mitgehört.',
     'Sam lehnt sich aus seinem Büro.',
     'Sam mischt sich ein.',
   ];
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pickOne(rng, pool);
 }
 
-function shuffleArray(arr) {
-  const copy = arr.slice();
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
+function shuffleArray(arr, rng) {
+  return shuffle(rng, arr);
 }
 
-function makeInstanceBase(topicKey, archetype) {
+function makeInstanceBase(topicKey, archetype, rng) {
   return {
-    instanceId: `${topicKey}::${archetype.id}::${Date.now()}::${Math.random().toString(36).slice(2, 7)}`,
+    instanceId: `${topicKey}::${archetype.id}::${Date.now()}::${rng.next().toString(36).slice(2, 7)}`,
     archetypeId: archetype.id,
     concept: archetype.concept,
     type: archetype.type,
@@ -297,12 +295,12 @@ function makeInstanceBase(topicKey, archetype) {
   };
 }
 
-function generateMcInstance(topicKey, archetype) {
+function generateMcInstance(topicKey, archetype, rng) {
   const indexed = archetype.options.map((label, i) => ({ id: `opt-${i}`, label, originalIndex: i }));
-  const shuffled = shuffleArray(indexed);
+  const shuffled = shuffleArray(indexed, rng);
   const correctOptionId = shuffled.find((o) => o.originalIndex === archetype.correct).id;
   return {
-    ...makeInstanceBase(topicKey, archetype),
+    ...makeInstanceBase(topicKey, archetype, rng),
     text: archetype.text,
     ttsText: archetype.text,
     options: shuffled.map(({ id, label }) => ({ id, label })),
@@ -311,8 +309,8 @@ function generateMcInstance(topicKey, archetype) {
   };
 }
 
-function generateOsiOrderingInstance(topicKey, archetype) {
-  const direction = Math.random() < 0.5 ? 'top-down' : 'bottom-up';
+function generateOsiOrderingInstance(topicKey, archetype, rng) {
+  const direction = rng.next() < 0.5 ? 'top-down' : 'bottom-up';
   const items = OSI_LAYERS.map((l) => ({ id: `osi-layer-${l.num}`, label: l.de }));
   const correctOrderIds = direction === 'top-down'
     ? items.slice().reverse().map((i) => i.id)
@@ -321,34 +319,34 @@ function generateOsiOrderingInstance(topicKey, archetype) {
     ? 'Wie lautet die Reihenfolge der OSI-Schichten von oben (Schicht 7) nach unten (Schicht 1)?'
     : 'Wie lautet die Reihenfolge der OSI-Schichten von unten (Schicht 1) nach oben (Schicht 7)?';
   return {
-    ...makeInstanceBase(topicKey, archetype),
+    ...makeInstanceBase(topicKey, archetype, rng),
     text,
     ttsText: text,
-    items: shuffleArray(items),
+    items: shuffleArray(items, rng),
     correctOrderIds,
     explanation: 'Die OSI-Reihenfolge von oben nach unten ist: Anwendung, Darstellung, Sitzung, Transport, Vermittlung, Sicherung, Bitübertragung.',
   };
 }
 
-function generateOsiMatchingInstance(topicKey, archetype) {
+function generateOsiMatchingInstance(topicKey, archetype, rng) {
   const leftItems = OSI_LAYERS.map((l) => ({ id: `osi-left-${l.num}`, label: `${l.num}. ${l.de}` }));
   const rightItems = OSI_LAYERS.map((l) => ({ id: `osi-right-${l.num}`, label: l.examples.split(',')[0].trim() }));
   const correctPairs = OSI_LAYERS.map((l) => ({ left: `osi-left-${l.num}`, right: `osi-right-${l.num}` }));
   return {
-    ...makeInstanceBase(topicKey, archetype),
+    ...makeInstanceBase(topicKey, archetype, rng),
     text: 'Ordne jeder OSI-Schicht ein typisches Merkmal zu.',
     ttsText: 'Ordne jeder OSI-Schicht ein typisches Merkmal zu.',
     leftItems,
-    rightItems: shuffleArray(rightItems),
+    rightItems: shuffleArray(rightItems, rng),
     correctPairs,
     explanation: 'Jede OSI-Schicht hat charakteristische Aufgaben: Bitübertragung = physikalisches Signal, Sicherung = MAC/Frames, Vermittlung = IP/Routing, Transport = Ports/TCP/UDP, Sitzung = Dialogkontrolle, Darstellung = Format/Verschlüsselung, Anwendung = Dienste wie HTTP/DNS.',
   };
 }
 
-export function buildInstance(topicKey, archetype) {
-  if (archetype.type === 'mc') return generateMcInstance(topicKey, archetype);
-  if (archetype.id === 'osi-ordering') return generateOsiOrderingInstance(topicKey, archetype);
-  if (archetype.id === 'osi-matching') return generateOsiMatchingInstance(topicKey, archetype);
+export function buildInstance(topicKey, archetype, rng) {
+  if (archetype.type === 'mc') return generateMcInstance(topicKey, archetype, rng);
+  if (archetype.id === 'osi-ordering') return generateOsiOrderingInstance(topicKey, archetype, rng);
+  if (archetype.id === 'osi-matching') return generateOsiMatchingInstance(topicKey, archetype, rng);
   if (archetype.generate) return archetype.generate(topicKey);
   return null;
 }
@@ -383,7 +381,7 @@ function normalizeConversationDifficulty(d) {
   return 'medium';
 }
 
-function generateQuestionFromCandidate(candidate, seed, contextType, difficulty, history = null) {
+function generateQuestionFromCandidate(candidate, seed, contextType, difficulty, history = null, rng = null) {
   if (candidate.kind === 'knowledge') {
     const item = candidate.item;
     try {
@@ -402,7 +400,7 @@ function generateQuestionFromCandidate(candidate, seed, contextType, difficulty,
     }
   }
   // Legacy fallback.
-  return buildInstance(candidate.topicKey, candidate.archetype);
+  return buildInstance(candidate.topicKey, candidate.archetype, rng);
 }
 
 function splitIntoCoreAndContext(text) {
@@ -418,6 +416,7 @@ function splitIntoCoreAndContext(text) {
 
 function pickQuestionForTopic(key, topicState, session, history, options = {}) {
   const { conversation = null, questionIndex = 0, employee = null, topicsByKey = null } = options;
+  const rng = conversation?.rng || createRng(Date.now());
 
   // If the topic is covered by the Knowledge Layer, use the semantic balancer
   // to pick a concrete knowledge item; otherwise fall back to the legacy
@@ -441,12 +440,12 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
     const difficulty = normalizeConversationDifficulty(topicState?.currentDifficulty);
     const baseSeed = generateSeed(conversation, questionIndex);
 
-    let question = generateQuestionFromCandidate(selected, baseSeed, 'coworker_question', difficulty, semanticHistory);
+    let question = generateQuestionFromCandidate(selected, baseSeed, 'coworker_question', difficulty, semanticHistory, rng);
     if (!question || validateSolvability(question).length > 0) {
       const tried = new Set([selected.item?.id || selected.id]);
       for (const fallback of candidates.filter((c) => !tried.has(c.item?.id || c.id))) {
         const seed = `${baseSeed}-${fallback.item?.id || fallback.id}`;
-        const q = generateQuestionFromCandidate(fallback, seed, 'coworker_question', difficulty, semanticHistory);
+        const q = generateQuestionFromCandidate(fallback, seed, 'coworker_question', difficulty, semanticHistory, rng);
         if (q && validateSolvability(q).length === 0) {
           question = q;
           break;
@@ -518,8 +517,8 @@ function pickQuestionForTopic(key, topicState, session, history, options = {}) {
   const byDifficulty = conceptPool.filter((a) => a.difficulty === topicState.currentDifficulty);
   const chosenPool = byDifficulty.length ? byDifficulty : conceptPool;
 
-  const chosen = chosenPool[Math.floor(Math.random() * chosenPool.length)];
-  return buildInstance(key, chosen);
+  const chosen = pickOne(rng, chosenPool);
+  return buildInstance(key, chosen, rng);
 }
 
 function hasUsableQuestion(key, session) {
@@ -530,7 +529,9 @@ function hasUsableQuestion(key, session) {
   return archetypes.some((a) => !askedArchetypeIds.has(a.id));
 }
 
-function selectNextTopicKey(session, lastResult, topicsByKey) {
+function selectNextTopicKey(conversation, lastResult, topicsByKey) {
+  const rng = conversation?.rng;
+  const session = conversation || {};
   const lastKey = lastResult?.topicKey;
   const lastTopic = lastKey ? CONVERSATION_TOPICS[lastKey] : null;
 
@@ -546,14 +547,14 @@ function selectNextTopicKey(session, lastResult, topicsByKey) {
       .filter(Boolean)
       .filter((t) => t.unlocked)
       .filter((t) => hasUsableQuestion(t.key, session));
-    if (related.length) return related[Math.floor(Math.random() * related.length)].key;
+    if (related.length) return pickOne(rng, related).key;
   }
 
   // Fall back to any topic that still has a usable question.
   const usable = Object.values(topicsByKey)
     .filter((t) => t.unlocked)
     .filter((t) => hasUsableQuestion(t.key, session));
-  if (usable.length) return usable[Math.floor(Math.random() * usable.length)].key;
+  if (usable.length) return pickOne(rng, usable).key;
 
   return null;
 }
@@ -563,16 +564,18 @@ export function startEmployeeConversation() {
   if (!topics.length) return null;
 
   const topicsByKey = Object.fromEntries(topics.map((t) => [t.key, t]));
-  const employee = pickEmployee();
+  const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_CONVERSATIONS, nonce: Date.now() }));
+  const employee = pickEmployee(rng);
   const semanticHistory = createSemanticHistory({ longTerm: readLongTermHistory().longTerm });
-  let firstTopic = pickWeakestTopic(topics, semanticHistory, employee);
+  let firstTopic = pickWeakestTopic(topics, semanticHistory, employee, rng);
   const session = readSession();
   const history = readHistory();
   const conversationSeed = {
-    conversationId: `conv-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    conversationId: `conv-${Date.now()}-${rng.nextInt(0, 9999)}`,
     employee,
     semanticHistory,
     lastResult: null,
+    rng,
   };
   let topicState = ensureTopicState(session, firstTopic.key);
   let question = pickQuestionForTopic(firstTopic.key, topicState, { questions: [] }, history, {
@@ -605,7 +608,7 @@ export function startEmployeeConversation() {
     employeeId: employee.id,
     employee,
     startedAt: Date.now(),
-    plannedLength: pickConversationLength(),
+    plannedLength: pickConversationLength(rng),
     questionIndex: 0,
     questions: [],
     correctCount: 0,
@@ -615,11 +618,12 @@ export function startEmployeeConversation() {
     currentTopicKey: firstTopic.key,
     topicData: CONVERSATION_TOPICS[firstTopic.key],
     question,
-    intro: pickIntro(CONVERSATION_TOPICS[firstTopic.key], employee),
+    intro: pickIntro(CONVERSATION_TOPICS[firstTopic.key], employee, rng),
     transition: null,
     topicsByKey,
     semanticHistory,
     lastResult: null,
+    rng,
   };
 
   writeSession(session);
@@ -736,6 +740,7 @@ export function evaluateEmployeeAnswer(conversation, answer) {
   const session = readSession();
   const topicState = ensureTopicState(session, currentTopicKey);
   const history = readHistory();
+  const rng = conversation.rng || createRng(Date.now());
 
   let samStageDirection = '';
   let samExplanation = '';
@@ -770,7 +775,7 @@ export function evaluateEmployeeAnswer(conversation, answer) {
     topicState.currentDifficulty = easierDifficulty(topicState.currentDifficulty);
     // Sam intervenes on every wrong answer so the player immediately gets
     // the explanation from the mentor.
-    samStageDirection = pickSamStageDirection();
+    samStageDirection = pickSamStageDirection(rng);
     samExplanation = buildAnswerAwareExplanation(question, answer);
 
     recordConversationResult(currentTopicKey, {
@@ -843,7 +848,7 @@ export function evaluateEmployeeAnswer(conversation, answer) {
   return {
     correct,
     explanation: question.explanation,
-    employeeReaction: pickEmployeeReaction(employee, correct),
+    employeeReaction: pickEmployeeReaction(employee, correct, rng),
     samStageDirection,
     samExplanation,
     scoreAwarded,
@@ -853,6 +858,7 @@ export function evaluateEmployeeAnswer(conversation, answer) {
 export function advanceConversation(conversation) {
   const session = readSession();
   const history = readHistory();
+  const rng = conversation.rng || createRng(Date.now());
   const nextIndex = conversation.questionIndex + 1;
 
   if (nextIndex >= conversation.plannedLength) {
@@ -886,7 +892,7 @@ export function advanceConversation(conversation) {
   conversation.currentTopicKey = nextTopicKey;
   conversation.topicData = CONVERSATION_TOPICS[nextTopicKey];
   conversation.question = nextQuestion;
-  conversation.transition = pickTransition(conversation.topicData, lastResult?.topicKey);
+  conversation.transition = pickTransition(conversation.topicData, lastResult?.topicKey, rng);
   writeSession(session);
   return { state: 'question', conversation };
 }

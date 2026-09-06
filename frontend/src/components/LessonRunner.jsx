@@ -13,6 +13,7 @@ import {
 import { shuffleOptions } from '../lib/shuffleOptions';
 import { collectQuestionsFromLesson, collectCliTasksFromLesson } from '../lib/academyThemencheck';
 import { checkCiscoInput } from '../lib/ciscoCli';
+import { createRng, makeSeed, shuffle, pickOne, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 import { speakAs, resolveCharacterVoice, stop, ttsTextFromBlocks, normalizeCiscoText } from '../lib/speechSynthesis';
 import {
   calculateNetworkId, calculateBroadcast, calculateFirstHost, calculateLastHost,
@@ -646,7 +647,10 @@ function StaticBlock({ block }) {
 // revisit the theory text.
 function SectionCheckQuestion({ question, onContinue, answer, setAnswer, categoryId, topicId, sectionId }) {
   const key = question.id || `${sectionId}-${question.question}`;
-  const { options, correct } = useMemo(() => shuffleOptions(question.options, question.correct), [question]);
+  const { options, correct } = useMemo(() => {
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, topic: key, nonce: Date.now() }));
+    return shuffleOptions(question.options, question.correct, rng);
+  }, [question, key]);
   const isCorrect = answer === correct;
 
   function handleAnswer(index) {
@@ -690,7 +694,7 @@ function OrderingExercise({ exercise, index, onComplete }) {
       : { ...item, id: item.id ?? String(i), label: item.label ?? item.text ?? item.title ?? item.id ?? String(i) }
   );
   const correctOrderIds = Array.isArray(exercise.correctOrder) ? exercise.correctOrder : orderedItems.map((it) => it.id);
-  const [items, setItems] = useState(() => [...orderedItems].sort(() => Math.random() - 0.5));
+  const [items, setItems] = useState(() => shuffle(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })), orderedItems));
   const [done, setDone] = useState(false);
   const correct = items.every((item, i) => item.id === correctOrderIds[i]);
 
@@ -771,7 +775,7 @@ function MatchingExercise({ exercise, index, onComplete }) {
 
   const rights = useMemo(() => {
     const set = new Set(exercise.pairs.map((p) => p.right));
-    return Array.from(set).sort(() => Math.random() - 0.5);
+    return shuffle(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })), Array.from(set));
   }, [exercise.pairs]);
 
   // How many left items are already matched to a given right value
@@ -1086,8 +1090,9 @@ const DIFFICULTY_LEVELS = {
 const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'];
 
 function AdaptiveSubnettingExercise({ onComplete }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   const [difficultyIndex, setDifficultyIndex] = useState(0);
-  const [current, setCurrent] = useState(() => generateUniqueSubnetProblems(1, DIFFICULTY_LEVELS.easy)[0]);
+  const [current, setCurrent] = useState(() => generateUniqueSubnetProblems(1, DIFFICULTY_LEVELS.easy, rngRef.current)[0]);
   const [answerMode, setAnswerMode] = useState('network'); // network | broadcast | firstHost | lastHost
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState(null);
@@ -1110,13 +1115,13 @@ function AdaptiveSubnettingExercise({ onComplete }) {
     if (adjustDifficulty === 'easier' && difficultyIndex > 0) nextIndex -= 1;
     setDifficultyIndex(nextIndex);
     const level = DIFFICULTY_ORDER[nextIndex];
-    const [problem] = generateUniqueSubnetProblems(1, DIFFICULTY_LEVELS[level]);
+    const [problem] = generateUniqueSubnetProblems(1, DIFFICULTY_LEVELS[level], rngRef.current);
     setCurrent(problem);
   }
 
   function nextQuestion() {
     const modes = ['network', 'broadcast', 'firstHost', 'lastHost'];
-    const nextMode = modes[Math.floor(Math.random() * modes.length)];
+    const nextMode = pickOne(rngRef.current, modes);
     setAnswerMode(nextMode);
     setInput('');
     setFeedback(null);
@@ -1185,6 +1190,7 @@ const ADAPTIVE_CORRECT_TO_ADVANCE = 3;
 const ADAPTIVE_WRONG_TO_EASE = 2;
 
 function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   const generator = exercise.generator || 'ipv4'; // 'ipv4' | 'subnetting'
   const genFn = generator === 'subnetting' ? generateSubnettingQuestion : generateQuestion;
 
@@ -1198,7 +1204,7 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionWrong, setSessionWrong] = useState(0);
   const [tempDifficulty, setTempDifficulty] = useState(savedLevel); // adaptive: can temporarily go down
-  const [currentQ, setCurrentQ] = useState(() => genFn(DIFFICULTY_NAMES[savedLevel]));
+  const [currentQ, setCurrentQ] = useState(() => genFn(DIFFICULTY_NAMES[savedLevel], rngRef.current));
   const [input, setInput] = useState('');
   const [selectedOption, setSelectedOption] = useState(null);
   const [feedback, setFeedback] = useState(null);
@@ -1217,7 +1223,7 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
   const tempDifficultyName = DIFFICULTY_NAMES[tempDifficulty];
 
   function nextPracticeQuestion() {
-    setCurrentQ(genFn(DIFFICULTY_NAMES[tempDifficulty]));
+    setCurrentQ(genFn(DIFFICULTY_NAMES[tempDifficulty], rngRef.current));
     setInput('');
     setSelectedOption(null);
     setFeedback(null);
@@ -1241,7 +1247,7 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
     // After enough correct answers at the current level, offer exam
     if (totalAnswered + 1 >= 5 && newCorrect >= 4 && !savedExamsPassed.includes(difficultyLevel)) {
       setTimeout(() => setPhase(DRILL_PHASE.EXAM), 1500);
-      const questions = generateExamQuestions(difficultyName, EXAM_QUESTION_COUNT);
+      const questions = generateExamQuestions(difficultyName, EXAM_QUESTION_COUNT, rngRef.current);
       setExamQuestions(questions);
       setExamIndex(0);
       setExamCorrect(0);
@@ -1255,7 +1261,7 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
     setSessionWrong(newWrong);
     setTotalAnswered(t => t + 1);
     setFeedback({ ok: false, text: explanation });
-    setSamTip(getRandomTip(currentQ.tipCategory));
+    setSamTip(getRandomTip(currentQ.tipCategory, rngRef.current));
 
     // Adaptive: temporarily ease difficulty
     if (newWrong >= ADAPTIVE_WRONG_TO_EASE && tempDifficulty > 0) {
@@ -1576,7 +1582,7 @@ function DifficultyDrillExercise({ exercise, categoryId, topicId, onComplete }) 
   );
 }
 
-function createSupernettingChallenge(level) {
+function createSupernettingChallenge(level, rng) {
   const pools = [
     [
       { networks: ['192.168.10.0/26', '192.168.10.64/26'], allowExpansion: false },
@@ -1591,7 +1597,7 @@ function createSupernettingChallenge(level) {
       { networks: ['10.0.255.0/24', '10.1.0.0/24'], allowExpansion: true },
     ],
   ];
-  const scenario = pools[level][Math.floor(Math.random() * pools[level].length)];
+  const scenario = pickOne(rng, pools[level]);
   const exact = canAggregateExactly(scenario.networks);
   const exactRoutes = aggregateWithoutExpansion(scenario.networks);
   const expanded = aggregateWithExpansion(scenario.networks);
@@ -1600,8 +1606,9 @@ function createSupernettingChallenge(level) {
 }
 
 function AdaptiveSupernettingExercise({ exercise, onComplete }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   const [level, setLevel] = useState(0);
-  const [challenge, setChallenge] = useState(() => createSupernettingChallenge(0));
+  const [challenge, setChallenge] = useState(() => createSupernettingChallenge(0, rngRef.current));
   const [stage, setStage] = useState('decision');
   const [feedback, setFeedback] = useState(null);
   const [completed, setCompleted] = useState(0);
@@ -1643,18 +1650,18 @@ function AdaptiveSupernettingExercise({ exercise, onComplete }) {
     }
     const nextLevel = streak >= 2 ? Math.min(2, level + 1) : level;
     setLevel(nextLevel);
-    setChallenge(createSupernettingChallenge(nextLevel));
+    setChallenge(createSupernettingChallenge(nextLevel, rngRef.current));
     setStage('decision');
     setFeedback(null);
     if (streak >= 2) setStreak(0);
   }
 
-  const summaryOptions = [...new Set([
+  const summaryOptions = shuffle(rngRef.current, [...new Set([
     challenge.answer,
     challenge.expanded.network,
     challenge.networks.join(', '),
     '0.0.0.0/0',
-  ])].sort(() => Math.random() - 0.5);
+  ])]);
 
   return (
     <div className="cyber-card p-4">
@@ -1674,9 +1681,10 @@ function AdaptiveSupernettingExercise({ exercise, onComplete }) {
 }
 
 function AdaptiveSubnetRequirementsExercise({ exercise, onComplete }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   const levels = ['easy', 'medium', 'hard'];
   const [level, setLevel] = useState(0);
-  const [problem, setProblem] = useState(() => generateSubnetRequirementProblem('easy'));
+  const [problem, setProblem] = useState(() => generateSubnetRequirementProblem('easy', rngRef.current));
   const [stage, setStage] = useState('type');
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState(null);
@@ -1698,7 +1706,7 @@ function AdaptiveSubnetRequirementsExercise({ exercise, onComplete }) {
       if (feedback.nextProblem) {
         const nextLevel = feedback.nextLevel;
         setLevel(nextLevel);
-        setProblem(generateSubnetRequirementProblem(levels[nextLevel]));
+        setProblem(generateSubnetRequirementProblem(levels[nextLevel], rngRef.current));
         setStage('type');
       }
       return;
@@ -1760,15 +1768,14 @@ function AdaptiveSubnetRequirementsExercise({ exercise, onComplete }) {
   );
 }
 
-function createNumberSystemsChallenge(level) {
-  const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+function createNumberSystemsChallenge(level, rng) {
   const easyTypes = ['decimal-binary', 'binary-decimal'];
   const mediumTypes = [...easyTypes, 'binary-hex', 'hex-binary', 'decimal-hex', 'hex-decimal'];
   const hardTypes = [...mediumTypes, 'ipv4-binary'];
   const types = level === 0 ? easyTypes : level === 1 ? mediumTypes : hardTypes;
-  const type = types[random(0, types.length - 1)];
+  const type = types[rng.nextInt(0, types.length - 1)];
   const max = level === 0 ? 15 : 255;
-  const value = random(level === 0 ? 1 : 16, max);
+  const value = rng.nextInt(level === 0 ? 1 : 16, max);
   if (type === 'decimal-binary') {
     const width = level === 0 ? 4 : 8;
     const answer = decimalToBinary(value, width);
@@ -1792,13 +1799,14 @@ function createNumberSystemsChallenge(level) {
     const hex = decimalToHex(value);
     return { prompt: `Wandle ${hex} hexadezimal in Dezimal um.`, answer: String(hexToDecimal(hex)), explanation: `${hex} hexadezimal entspricht ${value} dezimal.` };
   }
-  const ip = `${random(1, 223)}.${random(0, 255)}.${random(0, 255)}.${random(1, 254)}`;
+  const ip = `${rng.nextInt(1, 223)}.${rng.nextInt(0, 255)}.${rng.nextInt(0, 255)}.${rng.nextInt(1, 254)}`;
   return { prompt: `Wandle ${ip} in vier binäre 8-Bit-Gruppen um.`, answer: ip.split('.').map((octet) => decimalToBinary(Number(octet), 8)).join('.'), explanation: 'Jedes der vier Dezimaloktette wird einzeln in acht Bit umgerechnet.' };
 }
 
 function AdaptiveNumberSystemsExercise({ exercise, onComplete }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   const [level, setLevel] = useState(0);
-  const [challenge, setChallenge] = useState(() => createNumberSystemsChallenge(0));
+  const [challenge, setChallenge] = useState(() => createNumberSystemsChallenge(0, rngRef.current));
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [correct, setCorrect] = useState(0);
@@ -1809,7 +1817,7 @@ function AdaptiveNumberSystemsExercise({ exercise, onComplete }) {
     if (feedback) {
       setInput('');
       setFeedback(null);
-      setChallenge(createNumberSystemsChallenge(level));
+      setChallenge(createNumberSystemsChallenge(level, rngRef.current));
       return;
     }
     const normalizedInput = input.replace(/\s/g, '').toUpperCase();
@@ -1846,8 +1854,8 @@ function AdaptiveNumberSystemsExercise({ exercise, onComplete }) {
 // Picks `count` random, non-repeating questions from `pool` (or the whole
 // pool if it's smaller than `count`). Re-rolled once per mount via useMemo,
 // so every practice/interview run gets a different combination.
-function pickRandomQuestions(pool, count) {
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+function pickRandomQuestions(pool, count, rng) {
+  const shuffled = shuffle(rng, pool);
   const tagged = shuffled.filter((question) => question.facet);
   if (!tagged.length) return shuffled.slice(0, Math.min(count, shuffled.length));
   const selected = [];
@@ -1873,6 +1881,7 @@ function pickRandomQuestions(pool, count) {
 // subset is picked every time this mounts, so repeated practice runs feel
 // varied instead of always asking the same five questions.
 function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   // The pool mixes classic multiple-choice questions with Cisco CLI-input
   // tasks (lesson.cliTasks) so Praxis for Cisco lessons is dominated by
   // actively typing commands rather than just recognizing them - see
@@ -1883,7 +1892,7 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
     ...collectQuestionsFromLesson(lesson, topicId),
     ...collectCliTasksFromLesson(lesson, topicId),
   ], [lesson, topicId]);
-  const questions = useMemo(() => pickRandomQuestions(pool, PRACTICE_QUESTION_COUNT), [pool]);
+  const questions = useMemo(() => pickRandomQuestions(pool, PRACTICE_QUESTION_COUNT, rngRef.current), [pool]);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [results, setResults] = useState({});
@@ -1891,7 +1900,7 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
   const resultRecordedRef = useRef(false);
   const question = questions[index];
   const isCliQuestion = question?.type === 'cli';
-  const shuffled = useMemo(() => (question && !isCliQuestion ? shuffleOptions(question.options, question.correct) : null), [question, isCliQuestion]);
+  const shuffled = useMemo(() => (question && !isCliQuestion ? shuffleOptions(question.options, question.correct, rngRef.current) : null), [question, isCliQuestion]);
 
   useEffect(() => {
     if (!finished || resultRecordedRef.current || questions.length === 0) return;
@@ -2059,6 +2068,7 @@ const FACHGESPRAECH_INCORRECT_REACTIONS = [
 ];
 
 function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   const portrait = characterAsset('sam');
   // Same combined pool as PracticeQuiz (multiple-choice + Cisco CLI tasks) -
   // Sam should regularly ask for a full configuration during the oral exam,
@@ -2067,7 +2077,7 @@ function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
     ...collectQuestionsFromLesson(lesson, topicId),
     ...collectCliTasksFromLesson(lesson, topicId),
   ], [lesson, topicId]);
-  const questions = useMemo(() => pickRandomQuestions(pool, INTERVIEW_QUESTION_COUNT), [pool]);
+  const questions = useMemo(() => pickRandomQuestions(pool, INTERVIEW_QUESTION_COUNT, rngRef.current), [pool]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState(null);
   const [results, setResults] = useState({});
@@ -2075,9 +2085,9 @@ function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
   const resultRecordedRef = useRef(false);
   const question = questions[index];
   const isCliQuestion = question?.type === 'cli';
-  const shuffled = useMemo(() => (question && !isCliQuestion ? shuffleOptions(question.options, question.correct) : null), [question, isCliQuestion]);
+  const shuffled = useMemo(() => (question && !isCliQuestion ? shuffleOptions(question.options, question.correct, rngRef.current) : null), [question, isCliQuestion]);
   const reaction = useMemo(() => {
-    const pickFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const pickFrom = (arr) => pickOne(rngRef.current, arr);
     return { intro: pickFrom(FACHGESPRAECH_INTROS), correct: pickFrom(FACHGESPRAECH_CORRECT_REACTIONS), incorrect: pickFrom(FACHGESPRAECH_INCORRECT_REACTIONS) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

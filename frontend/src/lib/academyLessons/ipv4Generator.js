@@ -11,6 +11,17 @@ import {
   calculateUsableHosts,
   generateSubnetProblem,
 } from '../networking/ipv4Math.js';
+import { createRng } from '../random.js';
+
+// Module-local seeded RNG context. Exported generators accept an optional rng
+// so callers can share a stream; when omitted the module default is used.
+let activeRng = createRng(Date.now());
+
+function withRng(rng, fn) {
+  const prev = activeRng;
+  activeRng = rng || activeRng;
+  try { return fn(); } finally { activeRng = prev; }
+}
 
 // ---------- Sam Tips (Denkanstöße, NICHT Lösungen) ----------
 const SAM_TIPS = {
@@ -57,9 +68,11 @@ const SAM_TIPS = {
   ],
 };
 
-export function getRandomTip(category) {
-  const tips = SAM_TIPS[category] || SAM_TIPS.networkId;
-  return tips[Math.floor(Math.random() * tips.length)];
+export function getRandomTip(category, rng) {
+  return withRng(rng, () => {
+    const tips = SAM_TIPS[category] || SAM_TIPS.networkId;
+    return activeRng.pick(tips);
+  });
 }
 
 // ---------- Difficulty-level parameters ----------
@@ -72,20 +85,15 @@ const DIFFICULTY_PARAMS = {
 // ---------- Question types per difficulty ----------
 
 function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return activeRng.nextInt(min, max);
 }
 
 function randomChoice(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return activeRng.pick(arr);
 }
 
 function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+  return activeRng.shuffle([...arr]);
 }
 
 // Generate a random IP for exercises
@@ -171,7 +179,7 @@ function generateEasyQuestion() {
       };
     }
     case 'privateOrPublic': {
-      const isPrivate = Math.random() < 0.5;
+      const isPrivate = activeRng.next() < 0.5;
       let ip, explanation;
       if (isPrivate) {
         const range = randomChoice([
@@ -291,7 +299,7 @@ function generateHardQuestion() {
   const types = ['networkId', 'broadcast', 'firstHost', 'lastHost', 'hostRange', 'totalAddresses', 'prefixFromContext'];
   const type = randomChoice(types);
   const params = DIFFICULTY_PARAMS.hard;
-  const problem = generateSubnetProblem(params);
+  const problem = generateSubnetProblem(params, activeRng);
 
   switch (type) {
     case 'networkId':
@@ -368,30 +376,34 @@ function generateHardQuestion() {
 export const DIFFICULTY_NAMES = ['easy', 'medium', 'hard'];
 export const DIFFICULTY_LABELS = { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer' };
 
-export function generateQuestion(difficulty) {
-  switch (difficulty) {
-    case 'easy': return generateEasyQuestion();
-    case 'medium': return generateMediumQuestion();
-    case 'hard': return generateHardQuestion();
-    default: return generateEasyQuestion();
-  }
+export function generateQuestion(difficulty, rng) {
+  return withRng(rng, () => {
+    switch (difficulty) {
+      case 'easy': return generateEasyQuestion();
+      case 'medium': return generateMediumQuestion();
+      case 'hard': return generateHardQuestion();
+      default: return generateEasyQuestion();
+    }
+  });
 }
 
 // Generate a set of exam questions (no repeats via type variety)
-export function generateExamQuestions(difficulty, count = 10) {
-  const questions = [];
-  const seen = new Set();
-  let attempts = 0;
-  while (questions.length < count && attempts < count * 5) {
-    attempts++;
-    const q = generateQuestion(difficulty);
-    const key = q.question;
-    if (!seen.has(key)) {
-      seen.add(key);
-      questions.push(q);
+export function generateExamQuestions(difficulty, count = 10, rng) {
+  return withRng(rng, () => {
+    const questions = [];
+    const seen = new Set();
+    let attempts = 0;
+    while (questions.length < count && attempts < count * 5) {
+      attempts++;
+      const q = generateQuestion(difficulty);
+      const key = q.question;
+      if (!seen.has(key)) {
+        seen.add(key);
+        questions.push(q);
+      }
     }
-  }
-  return questions;
+    return questions;
+  });
 }
 
 // Check if an answer is correct (handles alternate answers + /prefix normalization)
@@ -418,9 +430,10 @@ export function checkAnswer(question, userAnswer) {
 }
 
 // Subnetting-specific generator (for the subnetting lesson)
-export function generateSubnettingQuestion(difficulty) {
-  const params = DIFFICULTY_PARAMS[difficulty] || DIFFICULTY_PARAMS.easy;
-  const problem = generateSubnetProblem(params);
+export function generateSubnettingQuestion(difficulty, rng) {
+  return withRng(rng, () => {
+    const params = DIFFICULTY_PARAMS[difficulty] || DIFFICULTY_PARAMS.easy;
+    const problem = generateSubnetProblem(params, activeRng);
 
   if (difficulty === 'easy') {
     const types = ['jumpSize', 'relevantOctet', 'networkIdSimple'];
@@ -511,4 +524,5 @@ export function generateSubnettingQuestion(difficulty) {
     default:
       return generateSubnettingQuestion(difficulty);
   }
+  });
 }

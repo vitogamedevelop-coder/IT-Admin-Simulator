@@ -1,4 +1,5 @@
 import { topicKey } from '../academyTopics.js';
+import { createRng, shuffle } from '../random.js';
 
 export const OSI_LAYERS = [
   { num: 1, de: 'Bitübertragungsschicht', en: 'Physical Layer', pdu: 'Bits', examples: 'Kabel, Funk, Lichtimpulse, Hubs, Repeater', devices: 'Netzwerkkarte, Hub, Repeater, Kabel', protocols: 'Ethernet-PHY, USB, Bluetooth-PHY, DSL', mnemonic: 'Bitübertragung: Kabel und Funk sind hier zuhause.' },
@@ -80,13 +81,12 @@ function explanation(id, title, style, blocks) {
   return { id, title, style, blocks };
 }
 
-export function layerQuestion(layer) {
+export function layerQuestion(layer, rng) {
   const correctTask = layerTask(layer.num);
   // Pick two plausible distractor tasks from other layers so the position of the
   // correct answer is not predictable and every option is actually meaningful.
   const otherLayers = OSI_LAYERS.filter((l) => l.num !== layer.num);
-  const distractors = otherLayers
-    .sort(() => Math.random() - 0.5)
+  const distractors = shuffle(rng, otherLayers)
     .slice(0, 2)
     .map((l) => `Sie ist zuständig für ${layerTask(l.num)}`);
   const options = [`Sie ist zuständig für ${correctTask}`, ...distractors];
@@ -98,7 +98,7 @@ export function layerQuestion(layer) {
   };
 }
 
-function buildExplanations() {
+function buildExplanations(rng) {
   const exps = [];
 
   // Intro
@@ -115,7 +115,7 @@ function buildExplanations() {
 
   // Per-layer sections
   for (const layer of OSI_LAYERS) {
-    const q = layerQuestion(layer);
+    const q = layerQuestion(layer, rng);
     exps.push(explanation(`layer${layer.num}-classic`, `${layer.num}. ${layer.de}`, 'classic', [
       ...layerBlocks(layer, 'classic'),
       { type: 'question', id: `q-layer${layer.num}-classic`, question: q.question, options: q.options, correct: q.correct, explanation: q.explanation },
@@ -448,10 +448,10 @@ function buildSummary() {
   ];
 }
 
-export function buildOsiLesson() {
+export function buildOsiLesson(rng = createRng(Date.now())) {
   return {
     title: 'OSI-Modell',
-    explanations: buildExplanations(),
+    explanations: buildExplanations(rng),
     exercises: buildExercises(),
     quiz: buildQuiz(),
     summary: buildSummary(),

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, CheckCircle, XCircle } from 'lucide-react';
 import { recordAnswer } from '../lib/competency';
 import { playQuizFeedback } from '../lib/sound';
+import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 import GlossaryText from './GlossaryText';
 
 // Generic learning interaction component
@@ -19,7 +20,8 @@ export default function LearningInteraction({ interaction, onComplete }) {
 }
 
 function SortInteraction({ interaction, onComplete }) {
-  const [items, setItems] = useState(() => shuffle([...interaction.items]));
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
+  const [items, setItems] = useState(() => shuffle(rngRef.current, [...interaction.items]));
   const [submitted, setSubmitted] = useState(false);
   const [correct, setCorrect] = useState(false);
   const startedAt = Date.now();
@@ -54,7 +56,7 @@ function SortInteraction({ interaction, onComplete }) {
   }
 
   function retry() {
-    setItems(shuffle([...interaction.items]));
+    setItems(shuffle(rngRef.current, [...interaction.items]));
     setSubmitted(false);
     setCorrect(false);
   }
@@ -196,10 +198,4 @@ function CompletionView({ interaction, onComplete }) {
   );
 }
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
+

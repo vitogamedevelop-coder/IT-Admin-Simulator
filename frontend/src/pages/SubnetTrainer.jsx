@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { CheckCircle, XCircle, RotateCcw, Network, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
+import { createRng, makeSeed, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 
 function ipToNumber(octets) {
   return (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
@@ -17,15 +18,15 @@ function ipOctets(ip) {
   return ip.split('.').map(Number);
 }
 
-function generateTask() {
-  const first = Math.random() < 0.5 ? 192 : 10;
+function generateTask(rng) {
+  const first = rng.next() < 0.5 ? 192 : 10;
   const octets = [
     first,
-    first === 10 ? Math.floor(Math.random() * 256) : Math.floor(Math.random() * 256),
-    first === 10 ? Math.floor(Math.random() * 256) : Math.floor(Math.random() * 256),
-    Math.floor(Math.random() * 256),
+    first === 10 ? rng.nextInt(0, 255) : rng.nextInt(0, 255),
+    first === 10 ? rng.nextInt(0, 255) : rng.nextInt(0, 255),
+    rng.nextInt(0, 255),
   ];
-  const cidr = 24 + Math.floor(Math.random() * 7); // /24 bis /30
+  const cidr = 24 + rng.nextInt(0, 6); // /24 bis /30
   const ipNum = ipToNumber(octets);
   const mask = maskFromCidr(cidr);
   const networkNum = ipNum & mask;
@@ -56,7 +57,8 @@ function buildExplanation(task) {
 }
 
 export default function SubnetTrainer() {
-  const [task, setTask] = useState(generateTask);
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
+  const [task, setTask] = useState(() => generateTask(rngRef.current));
   const [answers, setAnswers] = useState({ network: '', broadcast: '', hosts: '' });
   const [checked, setChecked] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -68,7 +70,7 @@ export default function SubnetTrainer() {
   ];
 
   function next() {
-    setTask(generateTask());
+    setTask(generateTask(rngRef.current));
     setAnswers({ network: '', broadcast: '', hosts: '' });
     setChecked(false);
     setShowHelp(false);

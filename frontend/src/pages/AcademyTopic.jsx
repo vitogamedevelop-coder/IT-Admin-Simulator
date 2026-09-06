@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, Lock } from 'lucide-react';
+import { createRng, makeSeed, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 import { findTopic, topicKey, TOPIC_STATUS } from '../lib/academyTopics';
 import { getFullTopic } from '../lib/academyProgress';
 import {
@@ -77,10 +78,11 @@ function BasicsVisual({ type }) {
 }
 
 function BasicsPractice({ mode, onDone }) {
-  const questions = useMemo(() => pickDiverseBasicsQuestions(), []);
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
+  const questions = useMemo(() => pickDiverseBasicsQuestions(rngRef.current), []);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(null);
-  const shuffled = useMemo(() => questions.map((q) => shuffleOptions(q.options, q.correct)), [questions]);
+  const shuffled = useMemo(() => questions.map((q) => shuffleOptions(q.options, q.correct, rngRef.current)), [questions]);
   const question = questions[index];
   const current = shuffled[index];
   const finished = index >= questions.length;
@@ -124,6 +126,7 @@ function BasicsPractice({ mode, onDone }) {
 }
 
 function GrundbegriffeLesson({ mode = 'theory', onDone }) {
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(null);
   const [finished, setFinished] = useState(false);
@@ -133,7 +136,7 @@ function GrundbegriffeLesson({ mode = 'theory', onDone }) {
     const map = {};
     BASICS_BEATS.forEach((beat, i) => {
       if (beat.type === 'question') {
-        map[i] = shuffleOptions(beat.options, beat.correct);
+        map[i] = shuffleOptions(beat.options, beat.correct, rngRef.current);
       }
     });
     return map;

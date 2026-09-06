@@ -1,15 +1,13 @@
 import { topicKey } from './academyTopics.js';
+import { shuffleInPlace } from './random.js';
 
-export function shuffleOptions(question) {
+export function shuffleOptions(question, rng) {
   const isMulti = question.type === 'multi-select';
   const correctSet = isMulti
     ? new Set(question.correctIndices || [])
     : new Set([question.correct]);
   const indexed = question.options.map((opt, i) => ({ opt, isCorrect: correctSet.has(i) }));
-  for (let i = indexed.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
-  }
+  shuffleInPlace(rng, indexed);
   if (isMulti) {
     return {
       ...question,

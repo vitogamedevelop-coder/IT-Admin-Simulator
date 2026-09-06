@@ -9,6 +9,7 @@ import {
 } from '../lib/academyThemencheck';
 import { shuffleOptions } from '../lib/multiSelectQuestions';
 import { shuffleDragDropItems } from '../lib/dragDropQuestions';
+import { createRng, makeSeed, pickOne, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 import ThemencheckDragDrop from '../components/ThemencheckDragDrop';
 import { LESSONS } from '../lib/academyLessonData';
 import { topicKey } from '../lib/academyTopics';
@@ -429,6 +430,11 @@ export default function AcademyThemencheck() {
   const startTimeRef = useRef(null);
 
   function startQuiz(retryOnly) {
+    const rng = createRng(makeSeed({
+      subsystem: RNG_NAMESPACE_QUESTIONS,
+      category: effectiveCategoryId,
+      nonce: Date.now(),
+    }));
     let raw;
     if (retryOnly) {
       // Load error questions from last attempt and find matching full questions
@@ -456,7 +462,7 @@ export default function AcademyThemencheck() {
         for (const tid of [...new Set(missingTopics)]) {
           const alternatives = allQuestions
             .filter(q => q.sourceTopicId === tid && !raw.some(r => r.question === q.question));
-          if (alternatives.length > 0) raw.push(alternatives[Math.floor(Math.random() * alternatives.length)]);
+          if (alternatives.length > 0) raw.push(pickOne(rng, alternatives));
         }
       }
     } else {
@@ -464,7 +470,7 @@ export default function AcademyThemencheck() {
     }
 
     if (raw.length === 0) return;
-    setQuestions(raw.map((q) => (q.type === 'drag-drop' ? shuffleDragDropItems(q) : shuffleOptions(q))));
+    setQuestions(raw.map((q) => (q.type === 'drag-drop' ? shuffleDragDropItems(q, rng) : shuffleOptions(q, rng))));
     startTimeRef.current = Date.now();
     setPhase('quiz');
   }

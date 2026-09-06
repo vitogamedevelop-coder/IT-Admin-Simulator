@@ -1,4 +1,5 @@
 import { topicKey } from './academyTopics.js';
+import { shuffleInPlace } from './random.js';
 
 // =============================================================================
 // Drag & Drop Themencheck Questions
@@ -89,15 +90,12 @@ function dragDrop({
   };
 }
 
-export function shuffleDragDropItems(question) {
+export function shuffleDragDropItems(question, rng) {
   const items = [...question.items];
   // Fisher–Yates shuffle. Re-shuffle if ordering accidentally starts in correct order (pre-solved guard).
   let attempts = 0;
   do {
-    for (let i = items.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [items[i], items[j]] = [items[j], items[i]];
-    }
+    shuffleInPlace(rng, items);
     attempts++;
   } while (
     question.mode === 'ordering' &&

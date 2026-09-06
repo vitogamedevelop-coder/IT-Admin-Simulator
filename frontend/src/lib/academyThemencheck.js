@@ -21,6 +21,10 @@ import { generateQuestion, getAllKnowledgeItems, getAllFacetMasteryScores } from
 import { getDiagnosticScenariosForTopic } from './diagnosticScenarios.js';
 import { getMultiSelectQuestionsForTopic } from './multiSelectQuestions.js';
 import { getDragDropQuestionsForTopic } from './dragDropQuestions.js';
+import {
+  createRng, makeSeed, shuffle, weightedPick, randomInt,
+  RNG_NAMESPACE_LEARNING,
+} from './random.js';
 
 const RESULTS_KEY = 'cyberlearn:themencheck-results-v1';
 const HISTORY_KEY = 'cyberlearn:themencheck-history-v1';
@@ -59,13 +63,8 @@ export function getSamRecommendation(topicId, errorCount) {
 
 // ---------- Helpers ----------
 
-function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+function shuffleArray(arr, rng) {
+  return shuffle(rng, arr);
 }
 
 // ---------- Cross-run Themencheck history ----------
@@ -219,7 +218,7 @@ export function collectCliTasksFromLesson(lesson, topicId) {
  * the lesson question pool) so that command recall stays a separate,
  * maintainable layer that can be enabled per quiz generation strategy.
  */
-function collectCommandRecallQuestionsForTopic(topicId, seedSuffix = '') {
+function collectCommandRecallQuestionsForTopic(topicId, rng, seedSuffix = '') {
   const items = getAllKnowledgeItems().filter((item) => {
     if (!item.conceptCluster?.startsWith('cisco.command.')) return false;
     return item.topicKey === topicKey('cisco-packet-tracer', topicId);
@@ -246,7 +245,7 @@ function collectCommandRecallQuestionsForTopic(topicId, seedSuffix = '') {
       // No applicable template or generation failure: skip silently.
     }
   }
-  return shuffleArray(questions);
+  return shuffleArray(questions, rng);
 }
 
 /**
@@ -437,7 +436,7 @@ function chooseDesired(groupCounts, targets) {
   return best;
 }
 
-function shuffleNoStreaks(questions, limits) {
+function shuffleNoStreaks(questions, limits, rng) {
   const maxFacet = limits.maxSameFacet || 2;
   const maxType = limits.maxSameType || 2;
   const maxComp = limits.maxSameCompetency || 2;
@@ -468,8 +467,8 @@ function shuffleNoStreaks(questions, limits) {
   // Greedy local improvements: try random swaps and keep improving.
   for (let attempt = 0; attempt < 400; attempt++) {
     const a = [...best];
-    const i = Math.floor(Math.random() * a.length);
-    const j = Math.floor(Math.random() * a.length);
+    const i = randomInt(rng, 0, a.length - 1);
+    const j = randomInt(rng, 0, a.length - 1);
     [a[i], a[j]] = [a[j], a[i]];
     const s = scoreArr(a);
     if (s < bestScore) {
@@ -481,11 +480,7 @@ function shuffleNoStreaks(questions, limits) {
 
   // Fallback: fully random restarts if greedy didn't zero-out.
   for (let attempt = 0; attempt < 200; attempt++) {
-    const a = [...questions];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
+    const a = shuffle(rng, [...questions]);
     const s = scoreArr(a);
     if (s < bestScore) {
       best = a;
@@ -505,7 +500,7 @@ function getMasteryScoreForFacet(scores, facet) {
   return 0;
 }
 
-function planThemencheck({ candidates, total, categoryId, history, masteryScores }) {
+function planThemencheck({ candidates, total, categoryId, history, masteryScores, rng }) {
   const settings = getCategoryMixSettings(categoryId);
   const targets = buildTargets(settings, total, candidates);
   const historyStats = computeHistoryStats(history);
@@ -553,20 +548,12 @@ function planThemencheck({ candidates, total, categoryId, history, masteryScores
     const topicOverflow = topicCount >= Math.max(3, Math.ceil(total * 0.25)) ? -0.2 : 0;
     let multiplier = 1 + compBoost + compOverflow + typeBoost + typeOverflow + facetOverflow + topicOverflow;
     multiplier = Math.max(0.3, Math.min(2.0, multiplier));
-    return Math.max(0, recent * multiplier + weakBoost) * (0.7 + Math.random() * 0.6);
+    return Math.max(0, recent * multiplier + weakBoost) * (0.7 + rng.next() * 0.6);
   }
 
   function pickFrom(pool) {
     const scored = pool.map((q) => ({ q, score: scoreCandidate(q) })).sort((a, b) => b.score - a.score);
-    const weights = scored.map((s) => Math.max(0, s.score));
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    if (totalWeight === 0) return scored[0].q;
-    let r = Math.random() * totalWeight;
-    for (let i = 0; i < scored.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return scored[i].q;
-    }
-    return scored[scored.length - 1].q;
+    return weightedPick(rng, scored, (s) => Math.max(0, s.score)).q;
   }
 
   // Enforce hard minimums if pool allows, capped by availability.
@@ -656,7 +643,7 @@ function planThemencheck({ candidates, total, categoryId, history, masteryScores
     register(best);
   }
 
-  const shuffled = shuffleNoStreaks(selected, { maxSameFacet: 2, maxSameType: 3, maxSameCompetency: 3 });
+  const shuffled = shuffleNoStreaks(selected, { maxSameFacet: 2, maxSameType: 3, maxSameCompetency: 3 }, rng);
   // Strip internal blueprint metadata before returning.
   return shuffled.map((q) => {
     const { _competency, _typeGroup, _facet, _difficulty, ...rest } = q;
@@ -671,6 +658,11 @@ function planThemencheck({ candidates, total, categoryId, history, masteryScores
  */
 export function generateThemencheck(categoryId) {
   currentRunIndex += 1;
+  const rng = createRng(makeSeed({
+    subsystem: RNG_NAMESPACE_LEARNING,
+    category: categoryId,
+    runIndex: currentRunIndex,
+  }));
   const topics = topicsForCategory(categoryId);
   const history = getHistoryForCategory(readHistory(), categoryId);
   const topicPools = [];
@@ -680,7 +672,7 @@ export function generateThemencheck(categoryId) {
     const lesson = LESSONS[key];
 
     const pool = lesson ? collectQuestionsFromLesson(lesson, topic.topicId) : [];
-    const commandRecall = categoryId === 'cisco-packet-tracer' ? collectCommandRecallQuestionsForTopic(topic.topicId) : [];
+    const commandRecall = categoryId === 'cisco-packet-tracer' ? collectCommandRecallQuestionsForTopic(topic.topicId, rng) : [];
     const diagnostic = getDiagnosticScenariosForTopic(categoryId, topic.topicId);
     const multiSelect = getMultiSelectQuestionsForTopic(categoryId, topic.topicId);
     const dragDrop = getDragDropQuestionsForTopic(categoryId, topic.topicId);
@@ -696,7 +688,7 @@ export function generateThemencheck(categoryId) {
     pool.map((q) => enrichQuestion(q, topicId))
   );
   const masteryScores = getAllFacetMasteryScores();
-  const selected = planThemencheck({ candidates: allCandidates, total: targetTotal, categoryId, history, masteryScores });
+  const selected = planThemencheck({ candidates: allCandidates, total: targetTotal, categoryId, history, masteryScores, rng });
 
   // Record seen semantic keys so future calls can avoid immediate repetition.
   const seenAt = new Date().toISOString();
@@ -711,6 +703,7 @@ export function generateThemencheck(categoryId) {
  * Draws up to 10 questions per category, aiming for 50-100 total.
  */
 export function generateAbschlusscheck() {
+  const rng = createRng(makeSeed({ subsystem: 'abschlusscheck' }));
   const allQuestions = [];
 
   for (const category of ACADEMY_CATEGORIES) {
@@ -725,12 +718,12 @@ export function generateAbschlusscheck() {
     }
 
     if (categoryPool.length === 0) continue;
-    const shuffled = shuffleArray(categoryPool);
+    const shuffled = shuffleArray(categoryPool, rng);
     const count = Math.min(shuffled.length, 10);
     allQuestions.push(...shuffled.slice(0, count));
   }
 
-  return shuffleArray(allQuestions);
+  return shuffleArray(allQuestions, rng);
 }
 
 // ---------- Availability ----------

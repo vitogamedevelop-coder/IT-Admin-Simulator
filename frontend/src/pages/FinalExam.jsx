@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Award, RotateCcw } from 'lucide-react';
 import { modules } from '../lib/localData';
 import { playQuizFeedback } from '../lib/sound';
+import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 
 const BADGES_KEY = 'cyberlearn:exam-badges';
 
@@ -12,13 +13,13 @@ function saveBadges(badges) {
   localStorage.setItem(BADGES_KEY, JSON.stringify(badges));
 }
 
-function buildExam(facultyId, count = 15) {
+function buildExam(facultyId, rng, count = 15) {
   const pool = modules
     .filter((m) => m.faculty_id === facultyId)
     .flatMap((m) =>
       (m.questions || []).map((q) => ({ ...q, moduleTitle: m.title, options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options }))
     );
-  return [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+  return shuffle(rng, pool).slice(0, count);
 }
 
 export default function FinalExam() {
@@ -30,8 +31,9 @@ export default function FinalExam() {
   const [badges, setBadges] = useState(readBadges());
 
   function start(facultyId) {
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, topic: facultyId, nonce: Date.now() }));
     setFaculty(facultyId);
-    setExam(buildExam(facultyId));
+    setExam(buildExam(facultyId, rng));
     setActive(0);
     setSelected(null);
     setResults([]);

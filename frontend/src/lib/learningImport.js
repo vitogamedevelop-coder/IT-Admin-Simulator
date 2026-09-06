@@ -1,3 +1,5 @@
+import { createRng } from './random.js';
+
 const CONTENT_SCHEMA = {
   required: ['id', 'version', 'topic', 'title', 'learningGoal', 'explanation'],
   recommended: ['terms', 'commands', 'commonMistakes', 'mainMission', 'sideMissions', 'notebookEntries', 'questions', 'difficulty'],
@@ -92,6 +94,7 @@ export function uniqueIdCheck(content, existingIds) {
 }
 
 export function generateMissionFromContent(content) {
+  const rng = createRng(Date.now());
   return {
     id: content.mainMission?.id || content.id,
     type: 'main',
@@ -100,6 +103,6 @@ export function generateMissionFromContent(content) {
     briefing: content.mainMission?.briefing || content.explanation.slice(0, 200),
     resolution: content.learningGoal,
     unlockNotebook: content.notebookEntries || [],
-    questions: (content.questions || []).map((q) => ({ ...q, id: `${content.id}-q-${Math.random().toString(36).slice(2, 7)}` })),
+    questions: (content.questions || []).map((q, i) => ({ ...q, id: `${content.id}-q-${rng.next().toString(36).slice(2, 7)}-${i}` })),
   };
 }

@@ -6,6 +6,7 @@ import { characterAsset } from '../lib/rpgAssets';
 import { evaluateEmployeeAnswer, advanceConversation, getConversationSummary } from '../lib/employeeConversations';
 import { getMcOptionState } from '../lib/conversationMcState';
 import { speakAs } from '../lib/speechSynthesis';
+import { pickOne } from '../lib/random.js';
 import ConversationOrdering from './ConversationOrdering';
 import ConversationMatching from './ConversationMatching';
 
@@ -159,7 +160,7 @@ export default function EmployeeConversation({ conversation: initialConversation
       'Ich geh jetzt besser wieder an meinen Schreibtisch.',
       'Hast mir echt geholfen, danke!',
     ];
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pickOne(conversation?.rng, pool) || pool[0];
   }
 
   if (summary) {

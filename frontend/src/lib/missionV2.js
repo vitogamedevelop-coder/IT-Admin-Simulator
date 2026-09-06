@@ -10,6 +10,7 @@ import {
 } from './missionHintSystem.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
 import { getKnownCredentials } from './credentials.js';
+import { createRng } from './random.js';
 
 export const MISSION_001_ID = 'cisco-main-001';
 export const MISSION_002_ID = 'cisco-main-002';
@@ -37,22 +38,21 @@ function hasUserCredential(user) {
   return !!user && (!!user.secret || !!user.password);
 }
 
-function pick(array) {
-  return array[Math.floor(Math.random() * array.length)];
+function pick(rng, array) {
+  return array[rng(0, array.length - 1)];
 }
 
 const SECRET_WORDS = ['cisco', 'nexus', 'switch', 'admin', 'netlab'];
 const SECRET_SUFFIXES = ['101', '202', '303', '404', '505'];
 
 function generateSecret(rng) {
-  return `${pick(SECRET_WORDS)}${pick(SECRET_SUFFIXES)}${rng(1, 9)}`;
+  return `${pick(rng, SECRET_WORDS)}${pick(rng, SECRET_SUFFIXES)}${rng(1, 9)}`;
 }
 
 function seededRng(seed) {
-  let s = seed;
+  const rng = createRng(seed);
   return function rand(min, max) {
-    s = (s * 1664525 + 1013904223) % 2 ** 32;
-    return Math.floor((s / 2 ** 32) * (max - min + 1)) + min;
+    return rng.nextInt(min, max);
   };
 }
 

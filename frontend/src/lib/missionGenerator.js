@@ -130,7 +130,8 @@ function normalizeMissionInstance(instance) {
     // always win; only genuinely missing nested keys are filled in.
     if (instance.device && typeof template.buildDevice === 'function') {
       try {
-        const { device: freshDevice } = template.buildDevice(merged, instance.archetype);
+        const deviceRng = seededRng(instance.seed);
+        const { device: freshDevice } = template.buildDevice(merged, instance.archetype, deviceRng);
         instance.device = deepMergeDefaults(freshDevice, instance.device);
       } catch {
         // Leave the device untouched if a reference build fails - evaluators
@@ -354,7 +355,7 @@ function skillGroupsUnlockedInOrder(state) {
 
 // Returns { path, domainId, skillId, subskillId, record, score, reason } or
 // null if nothing is unlocked yet for procedural practice.
-export function selectSkillForGeneration(state = readGameState()) {
+export function selectSkillForGeneration(state = readGameState(), rng = seededRng(Date.now())) {
   const paths = generatableSkillPaths(state);
   if (paths.length === 0) return null;
 
@@ -399,9 +400,9 @@ export function selectSkillForGeneration(state = readGameState()) {
     return { ...candidates[0], reason: 'fallback' };
   }
 
-  const weights = BASELINE_DISTRIBUTION.slice(0, buckets.length);
+  const weights = BASELINE_DISTRIBUTION.slice(0, buckets.length).map((w) => Math.round(w * 100));
   const total = weights.reduce((s, w) => s + w, 0);
-  const roll = Math.random() * total;
+  const roll = rng(0, Math.max(1, total - 1));
   let acc = 0;
   let chosenBucket = buckets[0];
   for (let i = 0; i < buckets.length; i += 1) {
@@ -622,7 +623,8 @@ function centralParamFor(templateId, params) {
 // candidates). Never persists or delivers an invalid mission.
 export function generateMissionInstance({ seed = Date.now() } = {}) {
   const state = readGameState();
-  const skillChoice = selectSkillForGeneration(state);
+  const skillRng = seededRng(seed);
+  const skillChoice = selectSkillForGeneration(state, skillRng);
   if (!skillChoice) return null;
 
   const templates = templatesForSkillPath(skillChoice.path, state);
@@ -637,11 +639,11 @@ export function generateMissionInstance({ seed = Date.now() } = {}) {
     const difficulty = suggestDifficulty(skillChoice.path);
     const channel = pickChannel(template, archetype, rng);
     const params = template.resolveParameters(rng, archetype, context, difficulty);
-    const { device } = template.buildDevice(params, archetype);
+    const { device } = template.buildDevice(params, archetype, rng);
     const centralParam = centralParamFor(template.id, params);
 
     const candidate = {
-      instanceId: `proc-${attemptSeed}-${Math.floor(Math.random() * 1e6)}`,
+      instanceId: `proc-${attemptSeed}-${rng(0, 999999)}`,
       templateId: template.id,
       seed: attemptSeed,
       channel,

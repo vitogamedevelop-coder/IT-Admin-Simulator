@@ -1,3 +1,5 @@
+import { createRng, shuffle } from '../random.js';
+
 export const BASICS_BEATS = [
   { type: 'say', text: 'Fangen wir ganz vorne an: Ein Netzwerk besteht hier aus mehreren eigenständigen Computern, die so verbunden sind, dass sie Informationen austauschen können. Das Internet ist ein Netzwerkverbund, aber nicht jedes Netzwerk ist automatisch das Internet.', visual: 'network' },
   { type: 'say', text: 'Vernetzung hat drei zentrale Ziele: Ressourcen und Informationen gemeinsam nutzen, auch über Entfernungen schnell große Datenmengen austauschen und bereitgestellte Dienste verwenden.', endOfSection: true },
@@ -33,8 +35,8 @@ export const BASICS_PRACTICE_QUESTIONS = [
   { facet: 'axes', question: 'Ein Kollege sagt: „Paketvermittelt bedeutet automatisch verbindungslos.“ Wie ordnest du das ein?', options: ['Falsch: Vermittlungsart und Verbindungsverhalten sind getrennte Achsen.', 'Richtig: Pakete schließen einen Verbindungszustand aus.', 'Richtig: Paketvermittlung verwendet immer UDP.'], correct: 0, explanation: 'Paketvermittelte Kommunikation kann verbindungsorientiert oder verbindungslos stattfinden.' },
 ];
 
-export function pickDiverseBasicsQuestions(rng = Math.random) {
-  const shuffled = [...BASICS_PRACTICE_QUESTIONS].sort(() => rng() - 0.5);
+export function pickDiverseBasicsQuestions(rng = createRng(Date.now())) {
+  const shuffled = shuffle(rng, [...BASICS_PRACTICE_QUESTIONS]);
   const selected = ['service-protocol', 'axes'].map((facet) => shuffled.find((question) => question.facet === facet));
   const usedFacets = new Set(selected.map((question) => question.facet));
   for (const question of shuffled) {

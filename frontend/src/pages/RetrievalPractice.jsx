@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Shuffle, CheckCircle, XCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import { modules } from '../lib/localData';
 import { playQuizFeedback } from '../lib/sound';
+import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 
 function getCompletedQuestionIds() {
   try {
@@ -12,15 +13,15 @@ function getCompletedQuestionIds() {
   }
 }
 
-function buildSession(count = 10) {
+function buildSession(rng, count = 10) {
   const answered = getCompletedQuestionIds();
   const pool = modules.flatMap((m) =>
     (m.questions || []).map((q) => ({ ...q, moduleTitle: m.title, options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options }))
   );
   const answeredPool = pool.filter((q) => answered.has(q.id));
   const rest = pool.filter((q) => !answered.has(q.id));
-  const selected = [...answeredPool, ...rest].sort(() => Math.random() - 0.5).slice(0, count);
-  return selected.sort(() => Math.random() - 0.5);
+  const selected = shuffle(rng, [...answeredPool, ...rest]).slice(0, count);
+  return shuffle(rng, selected);
 }
 
 export default function RetrievalPractice() {
@@ -32,7 +33,8 @@ export default function RetrievalPractice() {
   const [correctCount, setCorrectCount] = useState(0);
 
   useEffect(() => {
-    setSession(buildSession());
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() }));
+    setSession(buildSession(rng));
   }, []);
 
   const question = session[active];
@@ -56,7 +58,8 @@ export default function RetrievalPractice() {
   }
 
   function restart() {
-    setSession(buildSession());
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() }));
+    setSession(buildSession(rng));
     setActive(0);
     setSelected(null);
     setResult(null);

@@ -1,3 +1,5 @@
+import { createRng, pickOne } from './random.js';
+
 // officeWorld.js
 //
 // Two distinct data sources:
@@ -94,15 +96,15 @@ export function colleagueById(id) {
   return STORY_CHARACTERS.find((c) => c.id === id) || null;
 }
 
-export function randomConversationPartner() {
+export function randomConversationPartner(rng = createRng(Date.now())) {
   const pool = CONVERSATION_CHARACTERS;
-  return pool[Math.floor(Math.random() * pool.length)] || MARA;
+  return pickOne(rng, pool) || MARA;
 }
 
-export function colleagueForTopic(topic, preferredChannel) {
+export function colleagueForTopic(topic, preferredChannel, rng = createRng(Date.now())) {
   const matches = STORY_CHARACTERS.filter((person) => person.id !== 'sam' && person.topics.includes(topic) && (!preferredChannel || person.channel === preferredChannel));
   const pool = matches.length ? matches : STORY_CHARACTERS.filter((person) => person.id !== 'sam' && (!preferredChannel || person.channel === preferredChannel));
-  return pool[Math.floor(Math.random() * pool.length)] || MARA;
+  return pickOne(rng, pool) || MARA;
 }
 
 // ============================================================================
@@ -157,9 +159,12 @@ export const ACCOUNT_NAME_POOL = [
   { firstName: 'Thomas', lastName: 'Weber', username: 'tweber' },
 ];
 
-export function randomPersonalUsername() {
+export function randomPersonalUsername(rng = createRng(Date.now())) {
   const pool = ACCOUNT_NAME_POOL.filter((p) => p.username);
-  const person = pool[Math.floor(Math.random() * pool.length)] || ACCOUNT_NAME_POOL[0];
+  if (typeof rng === 'function') {
+    return pool[rng(0, pool.length - 1)]?.username || ACCOUNT_NAME_POOL[0].username;
+  }
+  const person = pickOne(rng, pool) || ACCOUNT_NAME_POOL[0];
   return person.username;
 }
 

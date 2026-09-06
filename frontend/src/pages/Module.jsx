@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { playQuizFeedback } from '../lib/sound';
 import { queueAnswer } from '../lib/offline';
 import { initialQuestionOrder, pickNextQuestions, updateSkill, setModuleSkill, getModuleSkill } from '../lib/adaptiveQuiz';
+import { createRng, makeSeed, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 import { expectedSeconds, recordAnswer } from '../lib/competency';
 import { BookOpen, Play, CheckCircle, XCircle, AlertTriangle, Terminal, Lightbulb } from 'lucide-react';
 import OsiOrderExercise from '../components/OsiOrderExercise';
@@ -25,13 +26,14 @@ export default function Module() {
   const [confidence, setConfidence] = useState(2);
   const [usedHint, setUsedHint] = useState(false);
   const questionStartedAt = useRef(Date.now());
+  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, topic: id, nonce: Date.now() })));
 
   useEffect(() => {
     api(`/api/modules/${id}`).then((data) => {
       const parsedQuestions = data.questions.map((q) => ({ ...q, options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options }));
       setModule({ ...data, questions: parsedQuestions });
       setSkill(getModuleSkill(id));
-      setOrdered(initialQuestionOrder(parsedQuestions, id));
+      setOrdered(initialQuestionOrder(parsedQuestions, id, rngRef.current));
       questionStartedAt.current = Date.now();
     });
   }, [id]);
@@ -77,7 +79,7 @@ export default function Module() {
     setRecentWrong(nextWrong);
     const remaining = ordered.slice(active + 1);
     if (remaining.length > 0) {
-      const reordered = pickNextQuestions(remaining, id, { rescue: nextWrong >= 2 });
+      const reordered = pickNextQuestions(remaining, id, { rescue: nextWrong >= 2, rng: rngRef.current });
       setOrdered([...ordered.slice(0, active + 1), ...reordered]);
     }
   }

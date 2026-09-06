@@ -1,3 +1,4 @@
+import { createRng } from '../random.js';
 import { topicKey } from '../academyTopics.js';
 import {
   prefixToSubnetMask,
@@ -222,7 +223,7 @@ function inputExercise(id, title, question, answer, explanation, placeholder = '
   };
 }
 
-function selectBlockExercise(id, ip, prefix) {
+function selectBlockExercise(id, ip, prefix, rng) {
   const correct = calculateNetworkId(ip, prefix);
   const broadcast = calculateBroadcast(ip, prefix);
   const jump = calculateJumpSize(prefix);
@@ -232,12 +233,12 @@ function selectBlockExercise(id, ip, prefix) {
   const distractors = [
     `${calculateNetworkId([ip.split('.')[0], ip.split('.')[1], ip.split('.')[2], ip.split('.')[3] - (octetValue % jump || jump)].join('.'), prefix)} bis ${calculateBroadcast([ip.split('.')[0], ip.split('.')[1], ip.split('.')[2], ip.split('.')[3] - (octetValue % jump || jump)].join('.'), prefix)}`,
   ].filter((d) => d !== `${correct} bis ${broadcast}`);
-  const options = [
+  const options = rng.shuffle([
     `${correct} bis ${broadcast}`,
     ...distractors,
     `${ip} bis ${broadcast}`,
     `${correct} bis ${ip}`,
-  ].slice(0, 4).sort(() => Math.random() - 0.5);
+  ].slice(0, 4));
   return {
     id,
     type: 'select-best',
@@ -293,7 +294,7 @@ function findErrorExercise(id, ip, prefix, wrongField) {
   };
 }
 
-function buildExercises() {
+function buildExercises(rng) {
   const exs = [];
 
   // Static input exercises based on the canonical examples.
@@ -396,8 +397,8 @@ function buildExercises() {
   });
 
   // Select-block and find-error exercises.
-  exs.push(selectBlockExercise('select-block-1', '192.168.50.75', 26));
-  exs.push(selectBlockExercise('select-block-2', '10.10.200.5', 22));
+  exs.push(selectBlockExercise('select-block-1', '192.168.50.75', 26, rng));
+  exs.push(selectBlockExercise('select-block-2', '10.10.200.5', 22, rng));
   exs.push(findErrorExercise('find-error-1', '192.168.1.50', 26, 'netzid'));
   exs.push(findErrorExercise('find-error-2', '10.25.140.18', 21, 'letzter'));
 
@@ -436,8 +437,8 @@ function buildExercises() {
   return exs;
 }
 
-function buildQuiz() {
-  const problems = generateUniqueSubnetProblems(8, { prefixMin: 16, prefixMax: 30 });
+function buildQuiz(rng) {
+  const problems = generateUniqueSubnetProblems(8, { prefixMin: 16, prefixMax: 30 }, rng);
   const calculated = problems.map((p, i) => {
     const variants = [
       {
@@ -480,12 +481,12 @@ function buildQuiz() {
   ];
 }
 
-export function buildSubnettingLesson() {
+export function buildSubnettingLesson(rng = createRng(Date.now())) {
   return {
     title: 'Subnetting',
     explanations: buildExplanations(),
-    exercises: buildExercises(),
-    quiz: buildQuiz(),
+    exercises: buildExercises(rng),
+    quiz: buildQuiz(rng),
     summary: [
       'Subnetting teilt einen vorhandenen Adressraum in kleinere, gleich große Netze und erzeugt keine neuen IPv4-Adressen.',
       'Netzanzahl und Hostbedarf sind zwei unterschiedliche Ausgangsfragen.',

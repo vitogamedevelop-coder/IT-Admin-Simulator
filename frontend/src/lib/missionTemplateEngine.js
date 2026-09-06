@@ -17,6 +17,7 @@ import {
   createCiscoDevice, evaluateRouterOnAStick, createSubinterface, simulateBpduReceived,
 } from './ciscoCliEngine.js';
 import { defineHintLadder } from './missionHintSystem.js';
+import { createRng } from './random.js';
 import { randomPersonalUsername, ACCOUNT_NAME_POOL } from './officeWorld.js';
 
 // ============================================================================
@@ -102,10 +103,9 @@ export function harderDifficulty(profile) {
 // ============================================================================
 
 export function seededRng(seed) {
-  let s = seed;
+  const rng = createRng(seed);
   return function rand(min, max) {
-    s = (s * 1664525 + 1013904223) % 2 ** 32;
-    return Math.floor((s / 2 ** 32) * (max - min + 1)) + min;
+    return rng.nextInt(min, max);
   };
 }
 
@@ -180,7 +180,7 @@ function generateUsername(rng) {
   // Service/role accounts are reserved for templates that explicitly explain
   // why a break-glass / service account is needed.
   const roll = rng(1, 100);
-  if (roll <= 70) return { type: 'personal', name: randomPersonalUsername() };
+  if (roll <= 70) return { type: 'personal', name: randomPersonalUsername(rng) };
   if (roll <= 90) return { type: 'admin', name: pickFrom(rng, ADMIN_ACCOUNTS) };
   return { type: 'admin', name: pickFrom(rng, ADMIN_ACCOUNTS) };
 }
@@ -507,7 +507,7 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       context,
     };
   },
-  buildDevice(params, archetype) {
+  buildDevice(params, archetype, rng) {
     const device = createCiscoDevice({
       type: 'layer2_switch',
       hostname: params.initialHostname,
@@ -519,7 +519,7 @@ export const TEMPLATE_BASIC_CONFIG_HARDENING = defineMissionTemplate({
       // must be found and closed.
       const selected = BASIC_CONFIG_TASKS.filter((t) => params.selectedTaskIds.includes(t.id));
       const preconfigureCount = Math.max(1, Math.floor(selected.length / 2));
-      const shuffled = [...selected].sort(() => Math.random() - 0.5);
+      const shuffled = shuffleArray(rng, selected);
       for (let i = 0; i < preconfigureCount; i += 1) {
         const task = shuffled[i];
         if (task.preconfigure) task.preconfigure(device, params);

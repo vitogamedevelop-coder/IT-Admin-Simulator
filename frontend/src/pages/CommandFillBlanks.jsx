@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ClipboardList, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 
 const tasks = [
   { command: 'ipconfig /all', display: 'ipconfig /___', blanks: ['all'], hint: 'Zeigt die vollständige Netzwerkkonfiguration.' },
@@ -12,12 +13,8 @@ const tasks = [
   { command: 'nslookup example.com', display: '___ example.com', blanks: ['nslookup'], hint: 'DNS-Auflösung testen.' },
 ];
 
-function shuffle(array) {
-  return [...array].sort(() => Math.random() - 0.5);
-}
-
 export default function CommandFillBlanks() {
-  const [queue] = useState(() => shuffle(tasks));
+  const [queue] = useState(() => shuffle(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })), tasks));
   const [index, setIndex] = useState(0);
   const [values, setValues] = useState(() => tasks[0].blanks.map(() => ''));
   const [checked, setChecked] = useState(false);

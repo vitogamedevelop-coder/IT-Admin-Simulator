@@ -1,4 +1,5 @@
 import { topicKey } from '../academyTopics.js';
+import { createRng, shuffle } from '../random.js';
 import { decimalToBinaryOctet, binaryOctetToDecimal } from '../networking/ipv4Math.js';
 import { binaryToHex, hexToBinary, decimalToHex, hexToDecimal } from '../networking/numberSystems.js';
 
@@ -71,7 +72,7 @@ function buildExplanations() {
   return exps;
 }
 
-function buildExercises() {
+function buildExercises(rng) {
   return [
     {
       id: 'binary-decimal-to-binary',
@@ -127,7 +128,7 @@ function buildExercises() {
       type: 'ordering',
       difficulty: 'easy',
       question: 'Sortiere die acht Stellenwerte von groß nach klein.',
-      items: [...BIT_VALUES].sort(() => Math.random() - 0.5).map((v) => ({ id: `v${v}`, label: String(v) })),
+      items: shuffle(rng, [...BIT_VALUES]).map((v) => ({ id: `v${v}`, label: String(v) })),
       correctOrder: BIT_VALUES.map((v) => `v${v}`),
       explanation: 'Die Reihe lautet: 128, 64, 32, 16, 8, 4, 2, 1.',
     },
@@ -166,11 +167,11 @@ function buildSummary() {
   ];
 }
 
-export function buildBinarySystemLesson() {
+export function buildBinarySystemLesson(rng = createRng(Date.now())) {
   return {
     title: 'Binärsystem für IPv4',
     explanations: buildExplanations(),
-    exercises: buildExercises(),
+    exercises: buildExercises(rng),
     quiz: buildQuiz(),
     summary: buildSummary(),
   };

@@ -2,6 +2,21 @@
 // Pure, testable IPv4 / binary math helpers used by the Academy lessons.
 // No UI, no side effects, no localStorage.
 // =============================================================================
+import { createRng } from '../random.js';
+
+// Module-local seeded RNG context. Exported generators accept an optional rng
+// so callers can share a stream; when omitted the module default is used.
+let activeRng = createRng(Date.now());
+
+function withRng(rng, fn) {
+  const prev = activeRng;
+  activeRng = rng || activeRng;
+  try { return fn(); } finally { activeRng = prev; }
+}
+
+function randInt(min, max) { return activeRng.nextInt(min, max); }
+function randChoice(arr) { return activeRng.pick(arr); }
+function randBool(prob) { return activeRng.next() < prob; }
 
 export function decimalToBinaryOctet(value) {
   const num = Number(value);
@@ -243,21 +258,21 @@ export function generateFixedSubnetSequence(baseIp, basePrefix, newPrefix) {
   });
 }
 
-export function generateSubnetRequirementProblem(difficulty = 'easy', rng = Math.random) {
-  const profile = difficulty === 'hard'
-    ? { basePrefixes: [16, 17, 20, 21, 22, 23], subnetCounts: [3, 5, 6, 7, 9, 12], hosts: [20, 30, 50, 60, 100, 200] }
-    : difficulty === 'medium'
-      ? { basePrefixes: [23, 24, 25], subnetCounts: [3, 4, 5, 6], hosts: [10, 15, 20, 30, 50] }
-      : { basePrefixes: [24], subnetCounts: [2, 4], hosts: [6, 14, 30, 50] };
-  const pick = (values) => values[Math.floor(rng() * values.length)];
-  const mode = rng() < 0.5 ? 'subnets' : 'hosts';
-  const basePrefix = pick(profile.basePrefixes);
-  const firstOctet = 10;
-  const secondOctet = Math.floor(rng() * 200);
-  const candidate = `${firstOctet}.${secondOctet}.${Math.floor(rng() * 256)}.0`;
-  const baseNetwork = calculateNetworkId(candidate, basePrefix);
+export function generateSubnetRequirementProblem(difficulty = 'easy', rng) {
+  return withRng(rng, () => {
+    const profile = difficulty === 'hard'
+      ? { basePrefixes: [16, 17, 20, 21, 22, 23], subnetCounts: [3, 5, 6, 7, 9, 12], hosts: [20, 30, 50, 60, 100, 200] }
+      : difficulty === 'medium'
+        ? { basePrefixes: [23, 24, 25], subnetCounts: [3, 4, 5, 6], hosts: [10, 15, 20, 30, 50] }
+        : { basePrefixes: [24], subnetCounts: [2, 4], hosts: [6, 14, 30, 50] };
+    const mode = randBool(0.5) ? 'subnets' : 'hosts';
+    const basePrefix = randChoice(profile.basePrefixes);
+    const firstOctet = 10;
+    const secondOctet = randInt(0, 199);
+    const candidate = `${firstOctet}.${secondOctet}.${randInt(0, 255)}.0`;
+    const baseNetwork = calculateNetworkId(candidate, basePrefix);
   if (mode === 'subnets') {
-    const requiredSubnets = pick(profile.subnetCounts);
+    const requiredSubnets = randChoice(profile.subnetCounts);
     const newPrefix = prefixForSubnetCount(basePrefix, requiredSubnets);
     return {
       mode,
@@ -271,7 +286,7 @@ export function generateSubnetRequirementProblem(difficulty = 'easy', rng = Math
       sequence: generateFixedSubnetSequence(baseNetwork, basePrefix, newPrefix),
     };
   }
-  const requiredHosts = pick(profile.hosts);
+  const requiredHosts = randChoice(profile.hosts);
   const newPrefix = prefixForHostRequirement(basePrefix, requiredHosts);
   return {
     mode,
@@ -284,6 +299,7 @@ export function generateSubnetRequirementProblem(difficulty = 'easy', rng = Math
     jumpSize: calculateJumpSize(newPrefix),
     sequence: generateFixedSubnetSequence(baseNetwork, basePrefix, newPrefix),
   };
+  });
 }
 
 export function calculateJumpSize(prefix) {
@@ -307,61 +323,65 @@ export function getSubnetBlockBounds(ip, prefix) {
   };
 }
 
-export function generateSubnetProblem({ prefixMin = 16, prefixMax = 30, allowPrivate = true } = {}) {
-  const prefix = Math.floor(Math.random() * (prefixMax - prefixMin + 1)) + prefixMin;
-  let octets;
-  if (allowPrivate && Math.random() > 0.3) {
-    const privateSpaces = [
-      [10, [0, 255], [0, 255], [1, 254]],
-      [172, [16, 31], [0, 255], [1, 254]],
-      [192, [168, 168], [0, 255], [1, 254]],
-    ];
-    const space = privateSpaces[Math.floor(Math.random() * privateSpaces.length)];
-    octets = [
-      space[0],
-      Math.floor(Math.random() * (space[1][1] - space[1][0] + 1)) + space[1][0],
-      Math.floor(Math.random() * (space[2][1] - space[2][0] + 1)) + space[2][0],
-      Math.floor(Math.random() * (space[3][1] - space[3][0] + 1)) + space[3][0],
-    ];
-  } else {
-    octets = [
-      Math.floor(Math.random() * 256),
-      Math.floor(Math.random() * 256),
-      Math.floor(Math.random() * 256),
-      Math.floor(Math.random() * 254) + 1,
-    ];
-  }
-  const ip = octets.join('.');
-  return {
-    ip,
-    prefix,
-    network: calculateNetworkId(ip, prefix),
-    broadcast: calculateBroadcast(ip, prefix),
-    firstHost: calculateFirstHost(ip, prefix),
-    lastHost: calculateLastHost(ip, prefix),
-    total: calculateTotalAddresses(prefix),
-    usable: calculateUsableHosts(prefix),
-    jump: calculateJumpSize(prefix),
-    relevantOctet: getRelevantOctet(prefix),
-    hostOctet: getHostOctet(prefix),
-  };
+export function generateSubnetProblem({ prefixMin = 16, prefixMax = 30, allowPrivate = true } = {}, rng) {
+  return withRng(rng, () => {
+    const prefix = randInt(prefixMin, prefixMax);
+    let octets;
+    if (allowPrivate && randBool(0.7)) {
+      const privateSpaces = [
+        [10, [0, 255], [0, 255], [1, 254]],
+        [172, [16, 31], [0, 255], [1, 254]],
+        [192, [168, 168], [0, 255], [1, 254]],
+      ];
+      const space = randChoice(privateSpaces);
+      octets = [
+        space[0],
+        randInt(space[1][0], space[1][1]),
+        randInt(space[2][0], space[2][1]),
+        randInt(space[3][0], space[3][1]),
+      ];
+    } else {
+      octets = [
+        randInt(0, 255),
+        randInt(0, 255),
+        randInt(0, 255),
+        randInt(1, 254),
+      ];
+    }
+    const ip = octets.join('.');
+    return {
+      ip,
+      prefix,
+      network: calculateNetworkId(ip, prefix),
+      broadcast: calculateBroadcast(ip, prefix),
+      firstHost: calculateFirstHost(ip, prefix),
+      lastHost: calculateLastHost(ip, prefix),
+      total: calculateTotalAddresses(prefix),
+      usable: calculateUsableHosts(prefix),
+      jump: calculateJumpSize(prefix),
+      relevantOctet: getRelevantOctet(prefix),
+      hostOctet: getHostOctet(prefix),
+    };
+  });
 }
 
 // Used to create several unique subnetting exercises in a row.
-export function generateUniqueSubnetProblems(count = 3, opts = {}) {
-  const problems = [];
-  const seen = new Set();
-  let safety = 0;
-  while (problems.length < count && safety < count * 50) {
-    safety += 1;
-    const p = generateSubnetProblem(opts);
-    const key = `${p.ip}/${p.prefix}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      problems.push(p);
+export function generateUniqueSubnetProblems(count = 3, opts = {}, rng) {
+  return withRng(rng, () => {
+    const problems = [];
+    const seen = new Set();
+    let safety = 0;
+    while (problems.length < count && safety < count * 50) {
+      safety += 1;
+      const p = generateSubnetProblem(opts, activeRng);
+      const key = `${p.ip}/${p.prefix}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        problems.push(p);
+      }
     }
-  }
-  return problems;
+    return problems;
+  });
 }
 
 // =============================================================================
@@ -432,17 +452,19 @@ export function calculateVlsmAllocations(baseNetwork, basePrefix, requiredHostsL
   return allocations.sort((a, b) => a.originalIndex - b.originalIndex);
 }
 
-export function generateVlsmProblem() {
-  // Base network large enough for a few small subnets.
-  const baseOptions = [
-    { network: '192.168.0.0', prefix: 24 },
-    { network: '10.0.0.0', prefix: 22 },
-    { network: '172.16.0.0', prefix: 22 },
-  ];
-  const base = baseOptions[Math.floor(Math.random() * baseOptions.length)];
-  const required = [60, 28, 12, 5].sort(() => Math.random() - 0.5);
-  const allocations = calculateVlsmAllocations(base.network, base.prefix, required);
-  return { baseNetwork: base.network, basePrefix: base.prefix, requiredHosts: required, allocations };
+export function generateVlsmProblem(rng) {
+  return withRng(rng, () => {
+    // Base network large enough for a few small subnets.
+    const baseOptions = [
+      { network: '192.168.0.0', prefix: 24 },
+      { network: '10.0.0.0', prefix: 22 },
+      { network: '172.16.0.0', prefix: 22 },
+    ];
+    const base = randChoice(baseOptions);
+    const required = activeRng.shuffle([60, 28, 12, 5]);
+    const allocations = calculateVlsmAllocations(base.network, base.prefix, required);
+    return { baseNetwork: base.network, basePrefix: base.prefix, requiredHosts: required, allocations };
+  });
 }
 
 // =============================================================================
@@ -550,32 +572,34 @@ export function calculateSupernet(networks) {
   };
 }
 
-export function generateSupernetProblem() {
-  const startingOctets = [
-    [192, 168, 0],
-    [172, 16, 0],
-    [10, 0, 0],
-  ];
-  const [a, b, c] = startingOctets[Math.floor(Math.random() * startingOctets.length)];
-  const startN = Math.floor(Math.random() * 8) * 4; // multiples of 4 in third octet
-  const count = Math.random() < 0.5 ? 2 : 4;
-  const networks = [];
-  for (let i = 0; i < count; i += 1) {
-    networks.push(`${a}.${b}.${c + startN + i}.0/24`);
-  }
-  const supernet = calculateSupernet(networks);
-  // Distractors: keep same prefix but shifted to adjacent block.
-  const distractorOffset = 1 << (8 - supernet.superPrefix % 8); // rough step in relevant octet
-  const parts = supernet.superNetwork.split('.').map(Number);
-  const relevant = getRelevantOctet(supernet.superPrefix);
-  const wrong1 = [...parts];
-  wrong1[relevant] += distractorOffset;
-  const wrong2 = [...parts];
-  wrong2[relevant] -= distractorOffset;
-  return {
-    networks,
-    ...supernet,
-    distractors: [wrong1.join('.'), wrong2.join('.')].filter((w) => w !== supernet.superNetwork),
-  };
+export function generateSupernetProblem(rng) {
+  return withRng(rng, () => {
+    const startingOctets = [
+      [192, 168, 0],
+      [172, 16, 0],
+      [10, 0, 0],
+    ];
+    const [a, b, c] = randChoice(startingOctets);
+    const startN = randInt(0, 7) * 4; // multiples of 4 in third octet
+    const count = randBool(0.5) ? 2 : 4;
+    const networks = [];
+    for (let i = 0; i < count; i += 1) {
+      networks.push(`${a}.${b}.${c + startN + i}.0/24`);
+    }
+    const supernet = calculateSupernet(networks);
+    // Distractors: keep same prefix but shifted to adjacent block.
+    const distractorOffset = 1 << (8 - supernet.superPrefix % 8); // rough step in relevant octet
+    const parts = supernet.superNetwork.split('.').map(Number);
+    const relevant = getRelevantOctet(supernet.superPrefix);
+    const wrong1 = [...parts];
+    wrong1[relevant] += distractorOffset;
+    const wrong2 = [...parts];
+    wrong2[relevant] -= distractorOffset;
+    return {
+      networks,
+      ...supernet,
+      distractors: [wrong1.join('.'), wrong2.join('.')].filter((w) => w !== supernet.superNetwork),
+    };
+  });
 }
 

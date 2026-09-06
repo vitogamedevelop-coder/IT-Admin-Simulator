@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Play, RotateCcw, Trophy } from 'lucide-react';
+import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 
 export default function SpeedRun() {
   const { facultyId } = useParams();
@@ -17,8 +18,9 @@ export default function SpeedRun() {
 
   useEffect(() => {
     setLoadError('');
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, topic: facultyId, nonce: Date.now() }));
     api(`/api/modules/questions?faculty=${encodeURIComponent(facultyId)}`)
-      .then((questions) => setAll([...questions].sort(() => Math.random() - 0.5)))
+      .then((questions) => setAll(shuffle(rng, [...questions])))
       .catch((error) => setLoadError(error.message));
   }, [facultyId]);
 
@@ -36,14 +38,15 @@ export default function SpeedRun() {
   useEffect(() => {
     if (all.length && active < all.length) {
       const q = all[active];
-      const choices = [...q.options].sort(() => Math.random() - 0.5).slice(0, 4);
+      const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, topic: facultyId, runIndex: active, nonce: Date.now() }));
+      const choices = shuffle(rng, [...q.options]).slice(0, 4);
       if (!choices.includes(q.answer)) choices[0] = q.answer;
-      setCurrent({ ...q, choices: choices.sort(() => Math.random() - 0.5) });
+      setCurrent({ ...q, choices: shuffle(rng, choices) });
     } else if (all.length && active >= all.length) {
       setDone(true);
       setPlaying(false);
     }
-  }, [all, active]);
+  }, [all, active, facultyId]);
 
   function start() {
     setActive(0);

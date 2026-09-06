@@ -6,6 +6,7 @@ import { recordSkillEvent, SKILL_DIMENSION, SKILL_SOURCE } from './skillTree.js'
 import { HINT_LEVEL_LABELS, createHintState, getNextHint, consumeHint, revealSolution, defineHintLadder } from './missionHintSystem.js';
 import { registerMission, updateMissionStatus, MissionStatus } from './missionLog.js';
 import { getKnownCredentials, formatCredentialTemplate } from './credentials.js';
+import { createRng } from './random.js';
 
 export const SIDE_MISSION_001_ID = 'cisco-side-basic-001';
 export const SIDE_MISSION_002_ID = 'cisco-side-basic-002';
@@ -22,10 +23,9 @@ function generateSecret(rng) {
 }
 
 function seededRng(seed) {
-  let s = seed;
+  const rng = createRng(seed);
   return function rand() {
-    s = (s * 1664525 + 1013904223) % 2 ** 32;
-    return s / 2 ** 32;
+    return rng.next();
   };
 }
 
