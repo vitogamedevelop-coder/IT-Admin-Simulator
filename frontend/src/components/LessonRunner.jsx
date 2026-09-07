@@ -263,7 +263,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
       sectionId: currentSectionId,
       topicId: `${categoryId}/${topicId}`,
     });
-    recordExerciseCompletion(categoryId, topicId, exerciseId, evidenceType, facetIds);
+    recordExerciseCompletion(categoryId, topicId, exercise, evidenceType, facetIds);
   }
 
   // ---------- Exercises ----------

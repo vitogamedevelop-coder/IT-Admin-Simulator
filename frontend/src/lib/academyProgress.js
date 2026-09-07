@@ -52,7 +52,9 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // v11 (C3 Evidence & Completion Semantics): adds an `evidence` map per topic
 // storing the highest demonstrated evidence level per facet/section id.
 // Existing saves keep all prior progress; the new field is seeded lazily.
-const STATE_VERSION = 12;
+// v12 (C4 Mastery, Recovery & Review): adds a `mastery` map per topic
+// storing confidence/stability/needsReview/recoveryPending per facet.
+const STATE_VERSION = 13;
 
 // Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
 // advanced status across a group of legacy topics being merged into one.
@@ -142,6 +144,8 @@ function defaultProgressForTopic(topicDef) {
     difficultyExamsPassed: [], // e.g. [0, 1] means easy+medium exams passed
     // C3: compact evidence map keyed by facet/section/knowledge id.
     evidence: {},
+    // C4: compact per-facet mastery state (confidence, stability, review, recovery).
+    mastery: {},
     version: topicDef.version,
   };
 }

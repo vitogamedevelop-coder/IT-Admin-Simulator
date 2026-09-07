@@ -465,10 +465,14 @@ export default function AcademyThemencheck() {
     const finishedAt = Date.now();
     // Save result
     const saved = saveThemencheckResult(effectiveCategoryId, {
-      questions: questions.map(q => ({
+      questions: questions.map((q) => ({
         question: q.question,
         sourceTopicId: q.sourceTopicId,
         correct: q.correct,
+        competency: q._competency,
+        facet: q._facet,
+        difficulty: q._difficulty,
+        semanticKey: q.semanticKey,
       })),
       answers: results,
       startedAt: startTimeRef.current,

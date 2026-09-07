@@ -16,6 +16,8 @@ import { LESSONS, hasLessonContent } from './academyLessonData.js';
 import { topicKey, topicsForCategory, ACADEMY_CATEGORIES, findTopic } from './academyTopics.js';
 import { getAllFullTopics } from './academyProgress.js';
 import { isTopicLearnedOrBeyond } from './academyEngine.js';
+import { EVIDENCE_TYPES, evidenceFromThemencheckCompetency } from './learningEvidence.js';
+import { recordLearningResult } from './learningMastery.js';
 import { LEARNING_MODES, readAcademyMode } from './academyMode.js';
 import { generateQuestion, getAllKnowledgeItems, getAllFacetMasteryScores } from './knowledge/index.js';
 import { getDiagnosticScenariosForTopic } from './diagnosticScenarios.js';
@@ -859,6 +861,26 @@ export function saveThemencheckResult(categoryId, result) {
     }
   });
   writeHistory(history);
+
+  // C4: feed individual Themencheck answers into the Academy mastery model.
+  // Only real category checks (not 'global') carry a usable sourceTopicId.
+  if (categoryId !== 'global') {
+    result.answers.forEach((a, i) => {
+      const q = result.questions[i];
+      if (!q || !q.facet || !q.sourceTopicId) return;
+      const evidenceType = evidenceFromThemencheckCompetency(q.competency) || EVIDENCE_TYPES.RECOGNIZED;
+      recordLearningResult({
+        categoryId,
+        topicId: q.sourceTopicId,
+        facetIds: [q.facet],
+        evidenceType,
+        source: `themencheck:${q.semanticKey || `q-${i}`}`,
+        correct: !!a.correct,
+        partial: false,
+        difficulty: q.difficulty || 'medium',
+      });
+    });
+  }
 
   return entry;
 }

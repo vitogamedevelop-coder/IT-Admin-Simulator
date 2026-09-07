@@ -132,7 +132,7 @@ export function defaultTopicEvidence() {
   return {};
 }
 
-export function recordEvidence({
+export function applyEvidenceToData(data, {
   categoryId,
   topicId,
   facetIds = [],
@@ -141,25 +141,21 @@ export function recordEvidence({
   quality = 'medium',
   correct = true,
   partial = false,
+  at = Date.now(),
 }) {
   if (!isEvidenceType(evidenceType)) return null;
-  // VIEWED / SELF_REPORTED can be recorded without a correct answer check;
-  // everything else represents demonstrated competence and requires a correct,
-  // complete result.
   if (evidenceType !== EVIDENCE_TYPES.VIEWED && evidenceType !== EVIDENCE_TYPES.SELF_REPORTED) {
     if (partial || !correct) return null;
   }
 
-  const data = readAcademyProgress();
   const key = topicKey(categoryId, topicId);
-  const topic = data.topics[key];
+  const topic = data?.topics?.[key];
   if (!topic) return null;
 
   topic.evidence = topic.evidence || {};
   const targets = facetIds.filter(Boolean);
   if (targets.length === 0) return null;
 
-  const at = Date.now();
   const entry = { type: evidenceType, source, quality: normalizeEvidenceQuality(quality), at };
   const newRank = rankOfEvidence(evidenceType);
 
@@ -171,7 +167,13 @@ export function recordEvidence({
     }
   });
 
-  writeAcademyProgress(data);
+  return entry;
+}
+
+export function recordEvidence(payload) {
+  const data = readAcademyProgress();
+  const entry = applyEvidenceToData(data, payload);
+  if (entry) writeAcademyProgress(data);
   return entry;
 }
 

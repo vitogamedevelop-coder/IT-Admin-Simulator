@@ -35,6 +35,7 @@ import {
 import {
   EVIDENCE_TYPES, inferEvidenceType, recordEvidence,
 } from './learningEvidence.js';
+import { recordLearningResult } from './learningMastery.js';
 
 // Simple weighted overall competency value (0-100) derived from the three
 // separate scores - never stored, always computed on demand.
@@ -396,37 +397,41 @@ export function recordSelfAssessment(categoryId, topicId, facetIds = []) {
   return topicProgressAfter(topicKey(categoryId, topicId));
 }
 
-// Records a question answer once. Points are only awarded for correct answers.
-// Returns the current progress if already answered so callers can skip
-// awarding repeated theory points. Wrong answers do not lock the question;
+// Records a question answer once. Points are only awarded for correct, complete
+// answers. Wrong or partial answers still update the mastery/weakness state so
+// the learner's model stays accurate. Wrong answers do not lock the question;
 // the player can retry until correct.
-export function recordQuestionAnswer(categoryId, topicId, questionId, kind = 'theory', correct = true, evidenceType, facetIds = []) {
+export function recordQuestionAnswer(categoryId, topicId, questionId, kind = 'theory', correct = true, evidenceType, facetIds = [], difficulty, source, partial = false) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return null;
   if (progress.completedQuestionIds.includes(questionId)) return progress;
-  if (!correct) return progress;
+  const resolvedEvidenceType = evidenceType || inferEvidenceType('select-best');
+  recordLearningResult({
+    categoryId,
+    topicId,
+    facetIds: facetIds.length ? facetIds : [questionId],
+    evidenceType: resolvedEvidenceType,
+    source: source || `question:${questionId}`,
+    correct,
+    partial,
+    difficulty: difficulty || 'medium',
+  });
+  if (!correct || partial) return progress;
   const scored = applyQuiz(categoryId, topicId, kind);
   if (!scored) return null;
   const key = topicKey(categoryId, topicId);
   updateTopicProgress(categoryId, topicId, {
     completedQuestionIds: [...scored.completedQuestionIds, questionId],
   });
-  recordEvidence({
-    categoryId,
-    topicId,
-    facetIds: facetIds.length ? facetIds : [questionId],
-    evidenceType: evidenceType || inferEvidenceType('select-best'),
-    source: `question:${questionId}`,
-    correct: true,
-  });
   return topicProgressAfter(key);
 }
 
 // Records an exercise completion once. Returns the current progress if already
 // completed so callers can skip awarding repeated practice points.
-export function recordExerciseCompletion(categoryId, topicId, exerciseId, evidenceType, facetIds = []) {
+export function recordExerciseCompletion(categoryId, topicId, exerciseOrId, evidenceType, facetIds = []) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return null;
+  const exerciseId = typeof exerciseOrId === 'object' ? exerciseOrId.id : exerciseOrId;
   if (progress.completedExerciseIds.includes(exerciseId)) return progress;
   const scored = applyMiniExercise(categoryId, topicId);
   if (!scored) return null;
@@ -434,13 +439,16 @@ export function recordExerciseCompletion(categoryId, topicId, exerciseId, eviden
   updateTopicProgress(categoryId, topicId, {
     completedExerciseIds: [...scored.completedExerciseIds, exerciseId],
   });
-  recordEvidence({
+  const difficulty = typeof exerciseOrId === 'object' ? (exerciseOrId.difficulty || 'medium') : 'medium';
+  recordLearningResult({
     categoryId,
     topicId,
     facetIds: facetIds.length ? facetIds : [exerciseId],
     evidenceType: evidenceType || inferEvidenceType('select-best'),
     source: `exercise:${exerciseId}`,
     correct: true,
+    partial: false,
+    difficulty,
   });
   return topicProgressAfter(key);
 }
