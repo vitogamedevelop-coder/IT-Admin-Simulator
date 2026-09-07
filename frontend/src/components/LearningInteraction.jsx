@@ -1,8 +1,11 @@
-import { useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, CheckCircle, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CheckCircle } from 'lucide-react';
 import { recordAnswer } from '../lib/competency';
 import { playQuizFeedback } from '../lib/sound';
 import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
+import LearningOrderingList from './LearningOrderingList.jsx';
+import LearningOptionList from './LearningOptionList.jsx';
+import LearningFeedback from './LearningFeedback.jsx';
 import GlossaryText from './GlossaryText';
 
 // Generic learning interaction component
@@ -20,28 +23,18 @@ export default function LearningInteraction({ interaction, onComplete }) {
 }
 
 function SortInteraction({ interaction, onComplete }) {
-  const rngRef = useRef(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })));
-  const [items, setItems] = useState(() => shuffle(rngRef.current, [...interaction.items]));
+  const startedAt = useMemo(() => Date.now(), []);
+  const [seed, setSeed] = useState(Date.now());
   const [submitted, setSubmitted] = useState(false);
   const [correct, setCorrect] = useState(false);
-  const startedAt = Date.now();
 
-  function moveUp(index) {
-    if (index === 0 || submitted) return;
-    const next = [...items];
-    [next[index - 1], next[index]] = [next[index], next[index - 1]];
-    setItems(next);
-  }
+  const items = useMemo(() => {
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, topic: interaction.id, nonce: seed }));
+    return shuffle(rng, [...interaction.items]);
+  }, [interaction.items, interaction.id, seed]);
 
-  function moveDown(index) {
-    if (index === items.length - 1 || submitted) return;
-    const next = [...items];
-    [next[index], next[index + 1]] = [next[index + 1], next[index]];
-    setItems(next);
-  }
-
-  function submit() {
-    const isCorrect = items.every((item, idx) => item.id === interaction.correctOrder[idx]);
+  function handleSubmit(answer) {
+    const isCorrect = answer.every((id, idx) => id === interaction.correctOrder[idx]);
     setCorrect(isCorrect);
     setSubmitted(true);
     playQuizFeedback(isCorrect);
@@ -55,58 +48,36 @@ function SortInteraction({ interaction, onComplete }) {
     });
   }
 
-  function retry() {
-    setItems(shuffle(rngRef.current, [...interaction.items]));
-    setSubmitted(false);
-    setCorrect(false);
-  }
-
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-[#c9d1d9] whitespace-pre-line">{interaction.prompt}</p>
-
-      <div className="flex flex-col gap-1.5">
-        {items.map((item, idx) => {
-          const isRight = submitted && item.id === interaction.correctOrder[idx];
-          const isWrong = submitted && !isRight;
-          return (
-            <div key={item.id} className={`flex items-center gap-2 p-2.5 rounded border transition-colors ${
-              isRight ? 'border-[#00ff66] bg-[#00ff66]/10' : isWrong ? 'border-[#ff3355]/50 bg-[#ff3355]/5' : 'border-[#30363d]'
-            }`}>
-              <span className="text-xs text-[#8b949e] w-5 shrink-0">{idx + 1}.</span>
-              <span className="flex-1 text-sm text-white">{item.label}</span>
-              {!submitted && (
-                <div className="flex flex-col gap-0.5 shrink-0">
-                  <button onClick={() => moveUp(idx)} disabled={idx === 0} className="p-1 rounded text-[#8b949e] hover:text-[#00f0ff] disabled:opacity-30"><ArrowUp size={14} /></button>
-                  <button onClick={() => moveDown(idx)} disabled={idx === items.length - 1} className="p-1 rounded text-[#8b949e] hover:text-[#00f0ff] disabled:opacity-30"><ArrowDown size={14} /></button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {!submitted && <button onClick={submit} className="cyber-btn w-full">Reihenfolge pr&uuml;fen</button>}
-
-      {submitted && !correct && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-[#ffcc00] text-sm font-bold"><XCircle size={16} /> Noch nicht ganz richtig</div>
-          <p className="text-xs text-[#c9d1d9]">Probiere es noch einmal. Kein Punktabzug.</p>
-          <button onClick={retry} className="cyber-btn w-full">Erneut versuchen</button>
-        </div>
-      )}
-
-      {submitted && correct && (
-        <CompletionView interaction={interaction} onComplete={onComplete} />
+      <LearningOrderingList
+        items={items}
+        correctOrder={interaction.correctOrder}
+        onSubmit={handleSubmit}
+        submitted={submitted}
+        submitLabel="Reihenfolge prüfen"
+      />
+      {submitted && (
+        <LearningFeedback
+          status={correct ? 'correct' : 'incorrect'}
+          explanation={correct ? undefined : 'Probiere es noch einmal. Kein Punktabzug.'}
+        >
+          {correct && <CompletionBody interaction={interaction} onComplete={onComplete} />}
+          {!correct && (
+            <button onClick={() => { setSubmitted(false); setCorrect(false); setSeed(Date.now()); }} className="cyber-btn w-full mt-3">Erneut versuchen</button>
+          )}
+        </LearningFeedback>
       )}
     </div>
   );
 }
 
 function ChoiceInteraction({ interaction, onComplete }) {
+  const startedAt = useMemo(() => Date.now(), []);
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
-  const startedAt = Date.now();
+  const correctId = useMemo(() => interaction.options.find((o) => o.correct)?.id, [interaction.options]);
 
   function submit() {
     if (selected === null) return;
@@ -129,52 +100,40 @@ function ChoiceInteraction({ interaction, onComplete }) {
     setSubmitted(false);
   }
 
-  const selectedOption = interaction.options.find((o) => o.id === selected);
-  const isCorrect = submitted && selectedOption?.correct;
-
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-[#c9d1d9] whitespace-pre-line">{interaction.prompt}</p>
-
-      <div className="flex flex-col gap-2">
-        {interaction.options.map((option) => {
-          let style = 'border-[#30363d] text-[#c9d1d9]';
-          if (submitted && option.correct) style = 'border-[#00ff66] bg-[#00ff66]/10 text-[#00ff66]';
-          else if (submitted && option.id === selected && !option.correct) style = 'border-[#ff3355] bg-[#ff3355]/5 text-[#ff3355]';
-          else if (!submitted && option.id === selected) style = 'border-[#00f0ff] text-[#00f0ff]';
-          return (
-            <button
-              key={option.id}
-              disabled={submitted}
-              onClick={() => setSelected(option.id)}
-              className={`text-left p-3 rounded border text-sm transition-colors ${style}`}
-            >
-              <GlossaryText>{option.label}</GlossaryText>
-            </button>
-          );
-        })}
-      </div>
-
-      {!submitted && <button onClick={submit} disabled={selected === null} className="cyber-btn w-full">Antwort pr&uuml;fen</button>}
-
-      {submitted && !isCorrect && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-[#ffcc00] text-sm font-bold"><XCircle size={16} /> Nicht ganz</div>
-          <p className="text-xs text-[#c9d1d9]">Die richtige Antwort ist markiert. Versuche es noch einmal.</p>
-          <button onClick={retry} className="cyber-btn w-full">Erneut versuchen</button>
-        </div>
+      <p className="text-sm text-[#c9d1d9] whitespace-pre-line"><GlossaryText>{interaction.prompt}</GlossaryText></p>
+      <LearningOptionList
+        options={interaction.options}
+        selected={selected}
+        onSelect={setSelected}
+        mode="single"
+        correct={correctId}
+        submitted={submitted}
+        questionId={interaction.id}
+      />
+      {!submitted && (
+        <button onClick={submit} disabled={selected === null} className="cyber-btn w-full disabled:opacity-40">Antwort prüfen</button>
       )}
-
-      {submitted && isCorrect && (
-        <CompletionView interaction={interaction} onComplete={onComplete} />
+      {submitted && (
+        <LearningFeedback
+          status={selected === correctId ? 'correct' : 'incorrect'}
+          explanation={selected === correctId ? undefined : 'Die richtige Antwort ist markiert. Versuche es noch einmal.'}
+        >
+          {selected === correctId ? (
+            <CompletionBody interaction={interaction} onComplete={onComplete} />
+          ) : (
+            <button onClick={retry} className="cyber-btn w-full mt-3">Erneut versuchen</button>
+          )}
+        </LearningFeedback>
       )}
     </div>
   );
 }
 
-function CompletionView({ interaction, onComplete }) {
+function CompletionBody({ interaction, onComplete }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 mt-2">
       <div className="flex items-center gap-2 text-[#00ff66] text-sm font-bold"><CheckCircle size={16} /> Richtig!</div>
       {interaction.explanation?.length > 0 && (
         <div className="cyber-card p-3">
@@ -197,5 +156,3 @@ function CompletionView({ interaction, onComplete }) {
     </div>
   );
 }
-
-

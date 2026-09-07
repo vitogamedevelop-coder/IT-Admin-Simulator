@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Star, ArrowRight, BookOpen, RotateCcw, Clock, HelpCircle, CheckSquare, Square } from 'lucide-react';
+import { CheckCircle2, XCircle, Star, ArrowRight, BookOpen, RotateCcw, Clock, HelpCircle } from 'lucide-react';
 import { ACADEMY_CATEGORIES, findTopic, topicsForCategory } from '../lib/academyTopics';
 import {
   generateThemencheck, generateAbschlusscheck, getGrade, getSamComment,
@@ -16,6 +16,8 @@ import { topicKey } from '../lib/academyTopics';
 import { characterAsset } from '../lib/rpgAssets';
 import BackBar from '../components/BackBar';
 import { useAppBack } from '../lib/useAppBack';
+import ThemencheckOptionList from '../components/ThemencheckOptionList';
+import LearningFeedback from '../components/LearningFeedback';
 
 // ── Intro screen ────────────────────────────────────────────────────────────
 function ThemencheckIntro({ categoryId, isGlobal, onStart }) {
@@ -118,14 +120,6 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
   const isMulti = current.type === 'multi-select';
   const isDrag = current.type === 'drag-drop';
 
-  function isCorrectOption(i) {
-    return isMulti ? (current.correctIndices || []).includes(i) : i === current.correct;
-  }
-
-  function isSelected(i) {
-    return isMulti ? (selected || []).includes(i) : i === selected;
-  }
-
   function selectOption(idx) {
     if (confirmed) return;
     if (isMulti) {
@@ -219,33 +213,25 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
               confirmed={confirmed}
             />
           ) : (
-            current.options.map((opt, i) => {
-              let cls = 'p-3 rounded-lg border text-sm text-left';
-              const correct = isCorrectOption(i);
-              const sel = isSelected(i);
-              if (confirmed) {
-                if (correct) cls += ' bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]';
-                else if (sel) cls += ' bg-[#ff3355]/10 border-[#ff3355]/40 text-[#ff3355]';
-                else cls += ' bg-[#0a1628]/60 border-[#30363d] text-[#8b949e]';
-              } else if (sel) {
-                cls += ' bg-[#00f0ff]/20 border-[#00f0ff] text-white';
-              } else {
-                cls += ' bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9]';
-              }
-              return (
-                <button key={i} onClick={() => selectOption(i)} disabled={confirmed} className={cls}>
-                  {!confirmed && isMulti && (sel ? <CheckSquare size={14} className="inline mr-2" /> : <Square size={14} className="inline mr-2" />)}
-                  {confirmed && correct && <CheckCircle2 size={14} className="inline mr-2" />}
-                  {confirmed && sel && !correct && <XCircle size={14} className="inline mr-2" />}
-                  {opt}
-                </button>
-              );
-            })
+            <ThemencheckOptionList
+              options={current.options}
+              selected={selected}
+              onSelect={selectOption}
+              correct={current.correct}
+              correctIndices={current.correctIndices}
+              submitted={confirmed}
+              multi={isMulti}
+            />
           )}
         </div>
 
         {confirmed && current.explanation && (
-          <p className="text-xs text-[#8b949e] mt-3 border-t border-[#30363d] pt-2">{current.explanation}</p>
+          <div className="mt-3">
+            <LearningFeedback
+              status={results[step]?.correct ? 'correct' : 'incorrect'}
+              explanation={current.explanation}
+            />
+          </div>
         )}
 
         <div className="mt-4">

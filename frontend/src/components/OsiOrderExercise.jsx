@@ -1,13 +1,52 @@
-import { useState } from 'react';
-import { CheckCircle, GripVertical } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { createRng, makeSeed, shuffle, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
+import LearningOrderingList from './LearningOrderingList.jsx';
+import LearningFeedback from './LearningFeedback.jsx';
 
-const ordered = ['Physikalisch', 'Sicherung', 'Vermittlung / Netzwerk', 'Transport', 'Sitzung', 'Darstellung', 'Anwendung'];
+const ordered = [
+  { id: 'l1', label: 'Physikalisch' },
+  { id: 'l2', label: 'Sicherung' },
+  { id: 'l3', label: 'Vermittlung / Netzwerk' },
+  { id: 'l4', label: 'Transport' },
+  { id: 'l5', label: 'Sitzung' },
+  { id: 'l6', label: 'Darstellung' },
+  { id: 'l7', label: 'Anwendung' },
+];
+const orderedIds = ordered.map((o) => o.id);
 
 export default function OsiOrderExercise() {
-  const [layers, setLayers] = useState(() => shuffle(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })), [...ordered]));
-  const [dragged, setDragged] = useState(null); const [checked, setChecked] = useState(false);
-  function drop(target) { if (dragged === null || dragged === target) return; const next = [...layers]; const [item] = next.splice(dragged, 1); next.splice(target, 0, item); setLayers(next); setDragged(null); setChecked(false); }
-  const correct = layers.every((layer, index) => layer === ordered[index]);
-  return <div className="cyber-card p-4"><h3 className="font-bold text-[#ffcc00]">OSI-Reihenfolge</h3><p className="mt-1 text-xs text-[#8b949e]">Ziehe die Schichten von 1 (unten) bis 7 (oben) in die richtige Reihenfolge.</p><div className="mt-3 flex flex-col gap-2">{layers.map((layer, index) => <div key={layer} draggable onDragStart={() => setDragged(index)} onDragOver={(event) => event.preventDefault()} onDrop={() => drop(index)} className="flex cursor-grab items-center gap-2 rounded border border-[#30363d] bg-[#050505] p-3 text-sm text-white active:cursor-grabbing"><GripVertical size={16} className="text-[#8b949e]" /><span className="w-5 text-[#00f0ff]">{index + 1}</span>{layer}</div>)}</div><button onClick={() => setChecked(true)} className="cyber-btn mt-3 w-full">reihenfolge prüfen</button>{checked && <p className={`mt-3 flex items-center gap-2 text-sm ${correct ? 'text-[#00ff66]' : 'text-[#ff3355]'}`}><CheckCircle size={17} />{correct ? 'Korrekt: Schicht 1 bis 7 sitzt.' : 'Noch nicht ganz. Tipp: Bits und Kabel beginnen bei Schicht 1.'}</p>}</div>;
+  const initialItems = useMemo(() => {
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() }));
+    return shuffle(rng, [...ordered]);
+  }, []);
+  const [items, setItems] = useState(initialItems);
+  const [submitted, setSubmitted] = useState(false);
+
+  const correct = orderedIds.every((id, i) => id === items[i]?.id);
+
+  return (
+    <div className="cyber-card p-4">
+      <h3 className="font-bold text-[#ffcc00]">OSI-Reihenfolge</h3>
+      <p className="mt-1 text-xs text-[#8b949e]">Ordne die Schichten von 1 (unten) bis 7 (oben) an.</p>
+      <div className="mt-3">
+        <LearningOrderingList
+          items={items}
+          correctOrder={orderedIds}
+          onChange={setItems}
+          onSubmit={() => setSubmitted(true)}
+          submitted={submitted}
+          submitLabel="Reihenfolge prüfen"
+        />
+      </div>
+      {submitted && (
+        <div className="mt-3">
+          <LearningFeedback
+            status={correct ? 'correct' : 'incorrect'}
+            headline={correct ? 'Korrekt: Schicht 1 bis 7 sitzt.' : 'Noch nicht ganz.'}
+            explanation={correct ? undefined : 'Tipp: Bits und Kabel beginnen bei Schicht 1.'}
+          />
+        </div>
+      )}
+    </div>
+  );
 }

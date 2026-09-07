@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2, XCircle, ArrowLeft, ArrowRight, HelpCircle, Lightbulb, BookOpen,
-  MessageCircle, ArrowUp, ArrowDown, Volume2, VolumeX,
+  MessageCircle, Volume2, VolumeX,
 } from 'lucide-react';
 import { characterAsset } from '../lib/rpgAssets';
 import { readAcademyProgress, updateTopicProgress } from '../lib/academyProgress';
@@ -11,8 +11,13 @@ import {
   recordQuizResult,
 } from '../lib/academyEngine';
 import { shuffleOptions } from '../lib/shuffleOptions';
+import LearningOptionList from './LearningOptionList.jsx';
+import LearningOrderingList from './LearningOrderingList.jsx';
+import LearningMatchingBoard from './LearningMatchingBoard.jsx';
+import LearningFeedback from './LearningFeedback.jsx';
+import LearningCommandInput from './LearningCommandInput.jsx';
 import { collectQuestionsFromLesson, collectCliTasksFromLesson } from '../lib/academyThemencheck';
-import { checkCiscoInput } from '../lib/ciscoCli';
+
 import { createRng, makeSeed, shuffle, pickOne, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
 import { speakAs, resolveCharacterVoice, stop, ttsTextFromBlocks, normalizeCiscoText } from '../lib/speechSynthesis';
 import {
@@ -688,52 +693,45 @@ function SectionCheckQuestion({ question, onContinue, answer, setAnswer, categor
 
 // ---------- Ordering exercise ----------
 function OrderingExercise({ exercise, index, onComplete }) {
-  const orderedItems = (exercise.items || []).map((item, i) =>
+  const orderedItems = useMemo(() => (exercise.items || []).map((item, i) =>
     typeof item === 'string'
       ? { id: String(i), label: item }
       : { ...item, id: item.id ?? String(i), label: item.label ?? item.text ?? item.title ?? item.id ?? String(i) }
-  );
+  ), [exercise.items]);
   const correctOrderIds = Array.isArray(exercise.correctOrder) ? exercise.correctOrder : orderedItems.map((it) => it.id);
-  const [items, setItems] = useState(() => shuffle(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })), orderedItems));
-  const [done, setDone] = useState(false);
-  const correct = items.every((item, i) => item.id === correctOrderIds[i]);
+  const initialItems = useMemo(() => {
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() }));
+    return shuffle(rng, orderedItems);
+  }, [orderedItems]);
+  const [items, setItems] = useState(initialItems);
+  const [submitted, setSubmitted] = useState(false);
 
-  function move(pos, dir) {
-    const next = pos + dir;
-    if (next < 0 || next >= items.length) return;
-    const copy = [...items];
-    [copy[pos], copy[next]] = [copy[next], copy[pos]];
-    setItems(copy);
-  }
-
-  function check() {
-    setDone(true);
-    if (correct) onComplete();
+  function handleSubmit(answer) {
+    setSubmitted(true);
+    const isCorrect = answer.every((id, i) => id === correctOrderIds[i]);
+    if (isCorrect) onComplete();
   }
 
   return (
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – Reihenfolge</div>
       <p className="text-sm text-white font-bold mt-1">{exercise.question}</p>
-      <div className="flex flex-col gap-2 mt-3">
-        {items.map((item, i) => (
-          <div key={item.id} className="flex items-center gap-2">
-            <div className="flex-1 p-2 rounded-lg border border-[#00f0ff]/20 bg-[#0a1628]/60 text-sm text-[#c9d1d9]">
-              {item.label}
-            </div>
-            <button disabled={done} onClick={() => move(i, -1)} className="p-2 rounded-lg border border-[#00f0ff]/30 disabled:opacity-30"><ArrowUp size={14} /></button>
-            <button disabled={done} onClick={() => move(i, 1)} className="p-2 rounded-lg border border-[#00f0ff]/30 disabled:opacity-30"><ArrowDown size={14} /></button>
-          </div>
-        ))}
+      <div className="mt-3">
+        <LearningOrderingList
+          items={items}
+          correctOrder={correctOrderIds}
+          onChange={setItems}
+          onSubmit={handleSubmit}
+          submitted={submitted}
+          submitLabel="Prüfen"
+        />
       </div>
-      {!done ? (
-        <button onClick={check} className="cyber-btn w-full mt-3 py-2 text-sm">Prüfen</button>
-      ) : (
-        <div className="mt-3 flex items-start gap-2">
-          {correct ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
-          <p className={classNames('text-xs', correct ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-            {correct ? 'Richtig! ' : 'Noch nicht ganz. '} {exercise.explanation}
-          </p>
+      {submitted && (
+        <div className="mt-3">
+          <LearningFeedback
+            status={items.every((it, i) => it.id === correctOrderIds[i]) ? 'correct' : 'incorrect'}
+            explanation={exercise.explanation}
+          />
         </div>
       )}
     </div>
@@ -742,103 +740,64 @@ function OrderingExercise({ exercise, index, onComplete }) {
 
 // ---------- Matching exercise ----------
 function MatchingExercise({ exercise, index, onComplete }) {
-  const [selectedLeft, setSelectedLeft] = useState(null);
-  const [matches, setMatches] = useState({});
-  const [done, setDone] = useState(false);
-  const allMatched = exercise.pairs.every((p) => matches[p.left] === p.right);
+  const [answer, setAnswer] = useState({});
+  const [submitted, setSubmitted] = useState(false);
 
-  // Many-to-one: count how many left items should map to each right value
-  const rightExpectedCount = useMemo(() => {
+  const items = useMemo(() => exercise.pairs.map((p) => ({
+    id: p.left,
+    label: p.leftLabel || p.left,
+  })), [exercise.pairs]);
+
+  const rightCounts = useMemo(() => {
     const counts = {};
-    for (const p of exercise.pairs) { counts[p.right] = (counts[p.right] || 0) + 1; }
+    exercise.pairs.forEach((p) => { counts[p.right] = (counts[p.right] || 0) + 1; });
     return counts;
   }, [exercise.pairs]);
 
-  function selectLeft(item) {
-    if (done || matches[item.left]) return;
-    setSelectedLeft(item);
-  }
-
-  function selectRight(right) {
-    if (!selectedLeft || done) return;
-    const pair = exercise.pairs.find((p) => p.left === selectedLeft.left && p.right === right);
-    if (pair) {
-      setMatches((prev) => ({ ...prev, [selectedLeft.left]: right }));
-    }
-    setSelectedLeft(null);
-  }
-
-  function check() {
-    setDone(true);
-    if (allMatched) onComplete();
-  }
-
-  const rights = useMemo(() => {
-    const set = new Set(exercise.pairs.map((p) => p.right));
-    return shuffle(createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() })), Array.from(set));
+  const targets = useMemo(() => {
+    const rights = [...new Set(exercise.pairs.map((p) => p.right))];
+    const rng = createRng(makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, nonce: Date.now() }));
+    return shuffle(rng, rights).map((r) => ({ id: r, label: r }));
   }, [exercise.pairs]);
 
-  // How many left items are already matched to a given right value
-  function matchedCountFor(right) {
-    return Object.values(matches).filter((v) => v === right).length;
+  const correctMapping = useMemo(() => {
+    const map = {};
+    exercise.pairs.forEach((p) => { map[p.left] = p.right; });
+    return map;
+  }, [exercise.pairs]);
+
+  function handleSubmit() {
+    setSubmitted(true);
+    const isCorrect = exercise.pairs.every((p) => answer[p.left] === p.right);
+    if (isCorrect) onComplete();
   }
 
   return (
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – Zuordnung</div>
       <p className="text-sm text-white font-bold mt-1">{exercise.question}</p>
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        <div className="flex flex-col gap-2">
-          {exercise.pairs.map((p) => (
-            <button
-              key={p.left}
-              disabled={matches[p.left] || done}
-              onClick={() => selectLeft(p)}
-              className={classNames(
-                'p-2 rounded-lg border text-sm text-left',
-                matches[p.left] ? 'bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]' : selectedLeft?.left === p.left ? 'bg-[#00f0ff]/20 border-[#00f0ff] text-white' : 'bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9]'
-              )}
-            >
-              {matches[p.left] && <CheckCircle2 size={14} className="inline mr-1" />}
-              {p.leftLabel || p.left}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-col gap-2">
-          {rights.map((r) => {
-            const fullyMatched = matchedCountFor(r) >= rightExpectedCount[r];
-            return (
-              <button
-                key={r}
-                disabled={done || fullyMatched}
-                onClick={() => selectRight(r)}
-                className={classNames(
-                  'p-2 rounded-lg border text-sm text-left',
-                  fullyMatched ? 'bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]' : 'bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9]'
-                )}
-              >
-                {fullyMatched && <CheckCircle2 size={14} className="inline mr-1" />}
-                {r}
-                {rightExpectedCount[r] > 1 && matchedCountFor(r) > 0 && !fullyMatched && (
-                  <span className="text-[9px] text-[#00f0ff] ml-1">({matchedCountFor(r)}/{rightExpectedCount[r]})</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      <div className="mt-3">
+        <LearningMatchingBoard
+          items={items}
+          targets={targets}
+          correctMapping={correctMapping}
+          answer={answer}
+          onChange={setAnswer}
+          onSubmit={handleSubmit}
+          submitted={submitted}
+          maxPerTarget={Math.max(1, ...Object.values(rightCounts))}
+          showSubmit={false}
+        />
       </div>
-      {selectedLeft && !done && (
-        <p className="text-xs text-[#00f0ff] mt-2">Ausgewählt: <span className="font-bold">{selectedLeft.leftLabel || selectedLeft.left}</span> – tippe auf die passende Beschreibung.</p>
+      {!submitted && (
+        <button onClick={handleSubmit} disabled={Object.keys(answer).length !== exercise.pairs.length} className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40">Prüfen</button>
       )}
-      {!done && Object.keys(matches).length === exercise.pairs.length && (
-        <button onClick={check} className="cyber-btn w-full mt-3 py-2 text-sm">Prüfen</button>
-      )}
-      {done && (
-        <div className="mt-3 flex items-start gap-2">
-          {allMatched ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
-          <p className={classNames('text-xs', allMatched ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-            {allMatched ? 'Richtig! ' : 'Noch nicht ganz. '} {exercise.explanation}
-          </p>
+      {submitted && (
+        <div className="mt-3">
+          <LearningFeedback
+            status={exercise.pairs.every((p) => answer[p.left] === p.right) ? 'correct' : 'incorrect'}
+            explanation={exercise.explanation}
+          />
         </div>
       )}
     </div>
@@ -903,8 +862,7 @@ function CliInputExercise({ exercise, index, onComplete }) {
   const [done, setDone] = useState(false);
   const [result, setResult] = useState(null);
 
-  function check() {
-    const outcome = checkCiscoInput(value, exercise.expectedLines);
+  function handleCheck(outcome) {
     setResult(outcome);
     setDone(true);
     if (outcome.allCorrect) onComplete();
@@ -913,55 +871,26 @@ function CliInputExercise({ exercise, index, onComplete }) {
   function retry() {
     setDone(false);
     setResult(null);
+    setValue('');
   }
 
   return (
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – CLI-Eingabe</div>
-      <p className="text-sm text-white font-bold mt-1">{exercise.question}</p>
-      {exercise.startContext && (
-        <div className="mt-1 inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20">
-          Aktueller Modus: {exercise.startContext}
-        </div>
-      )}
-      {exercise.hint && <p className="text-xs text-[#8b949e] mt-1">{exercise.hint}</p>}
-      <textarea
+      <LearningCommandInput
+        expectedLines={exercise.expectedLines}
         value={value}
-        onChange={(e) => setValue(e.target.value)}
-        disabled={done && result?.allCorrect}
-        rows={Math.max(3, exercise.expectedLines.length)}
-        placeholder={'Einen Befehl pro Zeile eingeben'}
-        spellCheck={false}
-        className="w-full mt-3 p-2 rounded-lg bg-[#0a1628] border border-[#00f0ff]/30 text-sm text-[#c9d1d9] placeholder-[#8b949e] font-mono focus:outline-none focus:border-[#00f0ff]"
+        onChange={setValue}
+        onCheck={handleCheck}
+        submitted={done}
+        result={result}
+        explanation={exercise.explanation}
+        startContext={exercise.startContext}
+        hint={exercise.hint}
+        placeholder="Einen Befehl pro Zeile eingeben"
       />
-      {!done ? (
-        <button onClick={check} disabled={!value.trim()} className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40">Prüfen</button>
-      ) : (
-        <div className="mt-3">
-          <div className="flex flex-col gap-1">
-            {result.results.map((r, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs">
-                {r.ok ? <CheckCircle2 size={14} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={14} className="text-[#ffcc00] shrink-0 mt-0.5" />}
-                <span className={r.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}>
-                  {r.userLine || <span className="italic text-[#8b949e]">(fehlt)</span>}
-                  {!r.ok && <span className="text-[#8b949e]"> – erwartet: {r.expected}</span>}
-                </span>
-              </div>
-            ))}
-            {result.extraLines.map((line, i) => (
-              <div key={`extra-${i}`} className="flex items-start gap-2 text-xs">
-                <XCircle size={14} className="text-[#ffcc00] shrink-0 mt-0.5" />
-                <span className="text-[#ffcc00]">{line} <span className="text-[#8b949e]">– nicht erwartet</span></span>
-              </div>
-            ))}
-          </div>
-          <p className={classNames('text-xs mt-2', result.allCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-            {result.allCorrect ? 'Richtig! ' : 'Noch nicht ganz. '} {exercise.explanation}
-          </p>
-          {!result.allCorrect && (
-            <button onClick={retry} className="cyber-btn-outline w-full mt-3 py-2 text-sm">Erneut versuchen</button>
-          )}
-        </div>
+      {!result?.allCorrect && done && (
+        <button onClick={retry} className="cyber-btn-outline w-full mt-3 py-2 text-sm">Erneut versuchen</button>
       )}
     </div>
   );
@@ -970,42 +899,38 @@ function CliInputExercise({ exercise, index, onComplete }) {
 // ---------- Select-best exercise ----------
 function SelectBestExercise({ exercise, index, onComplete }) {
   const [selected, setSelected] = useState(null);
-  const [done, setDone] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const correct = selected === exercise.correct;
 
-  function answer(i) {
-    if (done) return;
-    setSelected(i);
-    setDone(true);
-    if (i === exercise.correct) onComplete();
+  function submit() {
+    if (submitted || selected === null) return;
+    setSubmitted(true);
+    if (correct) onComplete();
   }
 
   return (
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – Auswahl</div>
       <p className="text-sm text-white font-bold mt-1">{exercise.question}</p>
-      <div className="flex flex-col gap-2 mt-3">
-        {exercise.options.map((opt, i) => (
-          <button
-            key={`${i}-${String(opt).slice(0, 24)}`}
-            disabled={done}
-            onClick={() => answer(i)}
-            className={classNames(
-              'w-full py-2 text-sm text-left px-3 rounded-lg border',
-              done && i === exercise.correct ? 'bg-[#00ff66]/10 border-[#00ff66]/40 text-[#00ff66]' : done && i === selected ? 'bg-[#ffcc00]/10 border-[#ffcc00]/40 text-[#ffcc00]' : 'bg-[#0a1628]/60 border-[#00f0ff]/20 text-[#c9d1d9]'
-            )}
-          >
-            {done && i === exercise.correct && <CheckCircle2 size={14} className="inline mr-1" />}
-            {opt}
-          </button>
-        ))}
+      <div className="mt-3">
+        <LearningOptionList
+          options={exercise.options}
+          selected={selected}
+          onSelect={setSelected}
+          correct={exercise.correct}
+          submitted={submitted}
+          mode="single"
+        />
       </div>
-      {done && (
-        <div className="mt-3 flex items-start gap-2">
-          {correct ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
-          <p className={classNames('text-xs', correct ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-            {correct ? 'Richtig! ' : 'Nicht ganz. '} {exercise.explanation}
-          </p>
+      {!submitted && (
+        <button onClick={submit} disabled={selected === null} className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40">Antwort prüfen</button>
+      )}
+      {submitted && (
+        <div className="mt-3">
+          <LearningFeedback
+            status={correct ? 'correct' : 'incorrect'}
+            explanation={exercise.explanation}
+          />
         </div>
       )}
     </div>
@@ -1997,51 +1922,26 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
 // theory-mode "cli-input" exercise (see lib/ciscoCli.js).
 function CliTaskCard({ task, answered, onAnswer, onNext, showQuestion = true }) {
   const [value, setValue] = useState('');
-
-  function submit() {
-    if (answered !== undefined) return;
-    onAnswer(checkCiscoInput(value, task.expectedLines));
-  }
+  const submitted = answered !== undefined;
 
   return (
     <div className="cyber-card p-4">
       {showQuestion && <p className="text-sm text-white font-bold">{task.question}</p>}
-      {task.startContext && (
-        <div className="mt-1 inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20">
-          Aktueller Modus: {task.startContext}
-        </div>
-      )}
-      {task.hint && <p className="text-xs text-[#8b949e] mt-1">{task.hint}</p>}
-      {answered === undefined ? (
-        <>
-          <textarea
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            rows={Math.max(3, task.expectedLines.length)}
-            placeholder={'Switch(config)# ...\nEinen Befehl pro Zeile eingeben'}
-            spellCheck={false}
-            className="w-full mt-3 p-2 rounded-lg bg-[#0a1628] border border-[#00f0ff]/30 text-sm text-[#c9d1d9] placeholder-[#8b949e] font-mono focus:outline-none focus:border-[#00f0ff]"
-          />
-          <button onClick={submit} disabled={!value.trim()} className="cyber-btn w-full mt-3 py-2 text-sm disabled:opacity-40">Eingeben</button>
-        </>
-      ) : (
-        <>
-          <div className="flex flex-col gap-1 mt-3">
-            {answered.results.map((r, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs">
-                {r.ok ? <CheckCircle2 size={14} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={14} className="text-[#ffcc00] shrink-0 mt-0.5" />}
-                <span className={r.ok ? 'text-[#00ff66]' : 'text-[#ffcc00]'}>
-                  {r.userLine || <span className="italic text-[#8b949e]">(fehlt)</span>}
-                  {!r.ok && <span className="text-[#8b949e]"> – erwartet: {r.expected}</span>}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className={classNames('text-xs mt-3', answered.allCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-            {answered.allCorrect ? 'Richtig! ' : 'Nicht ganz. '} {task.explanation}
-          </p>
-          <button onClick={onNext} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
-        </>
+      <LearningCommandInput
+        expectedLines={task.expectedLines}
+        value={value}
+        onChange={setValue}
+        onCheck={onAnswer}
+        submitted={submitted}
+        result={answered}
+        explanation={task.explanation}
+        startContext={task.startContext}
+        hint={task.hint}
+        placeholder="Switch(config)# ...\nEinen Befehl pro Zeile eingeben"
+        disabled={submitted}
+      />
+      {submitted && (
+        <button onClick={onNext} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
       )}
     </div>
   );

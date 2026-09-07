@@ -1,22 +1,25 @@
-Consolidate shared, seeded RNG service and migrate behaviorally relevant randomization.
+C2: consolidate shared interaction and feedback primitives.
 
-Introduces frontend/src/lib/random.js as the canonical, namespace-aware PRNG used by learning selection, question generation, conversations, missions and drill pages.  Keeps purely decorative randomness (Workspace hints, corridor smalltalk, sound synthesis) independent.  Key changes:
+This phase reduces duplicated ordering/matching/categorization/option/feedback
+implementations around a small set of reusable, mobile-first components while
+preserving every content ID, progress key and save format.
 
-- Added createRng / makeSeed / namespace constants and adapter helpers that also accept legacy function-style rngs.
-- Re-exported shared RNG from knowledge/random.js for backward compatibility.
-- Migrated academyThemencheck selection, shuffling, streak repair and weighted candidate picking to scoped RNGs.
-- Migrated multiSelectQuestions, dragDropQuestions and shuffleOptions to shared shuffle with correct-index preservation.
-- Migrated LessonRunner adaptive drills, practice/interview shuffles and option ordering to scoped RNGs.
-- Migrated employeeConversations topic/question/reaction selection and OSI ordering/matching to a conversation-scoped RNG.
-- Migrated adaptiveQuiz tie shuffling and Module/SpeedRun/RetrievalPractice/FinalExam/CommandFillBlanks/SubnetTrainer/OsiOrderExercise to shared RNG.
-- Migrated IPv4 math and generator functions (generateSubnetProblem, generateSubnetRequirementProblem, generateVlsmProblem, generateSupernetProblem, generateQuestion, generateExamQuestions, etc.) to accept and use an injected RNG.
-- Migrated missionGenerator and missionTemplateEngine selection/parameter/buildDevice randomness to shared RNG; updated missionV2/ciscoSideMissions seeded helpers.
-- Updated officeWorld helpers to accept optional rng and support both object and legacy function rngs.
-- Migrated static lesson builders (subnetting, binarySystem, osi) to use shared RNG for option/distractor/exercise ordering.
-- Added scripts/shared-rng-audit.mjs with deterministic checks for repeatability, namespace isolation, shuffle correctness, correct-index alignment and key generators.
-- Bumped version to 1.95.0 (package.json, version.js, public/version.json, android build.gradle versionCode 19500).
+- New primitives: LearningFeedback, LearningOptionList, LearningOrderingList,
+  LearningMatchingBoard, LearningCategorizationBoard, LearningCommandInput.
+- Migration: LessonRunner select-best/ordering/matching/cli-input/CliTaskCard,
+  ThemencheckDragDrop/AcademyThemencheck option rendering,
+  OsiOrderExercise, LearningInteraction, ConversationMatching.
+- ConversationOrdering kept as a dedicated pointer-drag ordering renderer
+  because its tap/drag UX differs from the arrow-based shared ordering list.
+- CLI consolidation limited to typed learning input (checkCiscoInput grading);
+  real Cisco IOS simulation, persistent device state and mission validation
+  remain in their existing specialized engines.
+- All shuffle paths continue to use the shared seeded RNG from C1.
+- LearningFeedback now supports correct/incorrect/partial/incomplete/info.
 
-Verified: npm run lint, npm run build, npx cap sync and ./gradlew assembleDebug all succeed. APK built at frontend/android/app/build/outputs/apk/debug/IT-Admin-Simulator.apk.
+Version 1.96.0, versionCode 19600, SW cache cyberlearn-v1.96.0.
+Lint, Vite build, Capacitor sync, Gradle assembleDebug and APK archive
+verified locally. No remote release performed.
 
 Generated with [Devin](https://devin.ai)
 
