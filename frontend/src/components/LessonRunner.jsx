@@ -307,8 +307,16 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
 
   const currentQuizShuffled = useMemo(() => {
     if (!currentQuizQuestion) return null;
-    return shuffleOptions(currentQuizQuestion.options, currentQuizQuestion.correct);
-  }, [currentQuizQuestion]);
+    const seed = makeSeed({
+      subsystem: RNG_NAMESPACE_QUESTIONS,
+      category: categoryId,
+      topic: topicId,
+      runIndex: currentQuizIndex,
+      nonce: currentQuizQuestion.question,
+    });
+    const rng = createRng(seed);
+    return shuffleOptions(currentQuizQuestion.options, currentQuizQuestion.correct, rng);
+  }, [currentQuizQuestion, currentQuizIndex, categoryId, topicId]);
 
   function nextQuiz() {
     if (currentQuizIndex < finalQuiz.length - 1) {
