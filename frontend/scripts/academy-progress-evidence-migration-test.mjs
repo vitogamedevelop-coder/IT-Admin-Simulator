@@ -52,7 +52,7 @@ assert.equal(topic.practiceScore, 5, 'practiceScore preserved');
 assert.deepEqual(topic.completedSectionIds, ['intro', 'layer1'], 'completedSectionIds preserved');
 assert.deepEqual(topic.completedQuestionIds, ['q1'], 'completedQuestionIds preserved');
 assert.deepEqual(topic.completedExerciseIds, ['osi-ordering'], 'completedExerciseIds preserved');
-assert.equal(migrated.stateVersion, 13, 'stateVersion upgraded');
+assert.equal(migrated.stateVersion, 14, 'stateVersion upgraded');
 assert.ok(topic.evidence && typeof topic.evidence === 'object', 'evidence field seeded');
 assert.equal(Object.keys(topic.evidence).length, 0, 'evidence starts empty for legacy saves');
 

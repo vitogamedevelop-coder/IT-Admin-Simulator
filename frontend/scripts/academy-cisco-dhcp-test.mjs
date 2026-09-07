@@ -147,14 +147,14 @@ console.log('\nCore DHCP-Relay competency: correct interface, correct IP, all th
   });
 
   test('Scenario A: a plain physical interface (no dot1Q subinterface, no "vlan" SVI) carries a helper', () => {
-    const ex = lesson.exercises.find((e) => e.id === 'dhcp-physisch-cli');
+    const ex = lesson.exercises.find((e) => e.id === 'dhcp-recall-command');
     assert.ok(ex);
     assert.ok(ex.expectedLines.includes('interface fa0/0'));
     assert.ok(ex.expectedLines.some((l) => /^ip helper-address /.test(l)));
   });
 
   test('Scenario B: a Router-on-a-Stick subinterface (encapsulation dot1Q) carries a helper', () => {
-    const ex = lesson.exercises.find((e) => e.id === 'dhcp-subinterface-cli');
+    const ex = lesson.exercises.find((e) => e.id === 'dhcp-apply-subinterface');
     assert.ok(ex);
     assert.ok(ex.expectedLines.some((l) => /^interface fa0\/0\.\d+$/.test(l)));
     assert.ok(ex.expectedLines.some((l) => /^encapsulation dot1q /i.test(l)));
@@ -162,28 +162,27 @@ console.log('\nCore DHCP-Relay competency: correct interface, correct IP, all th
   });
 
   test('Scenario C: a Multilayer-Switch SVI ("interface vlan <id>") carries a helper', () => {
-    const ex = lesson.exercises.find((e) => e.id === 'dhcp-svi-cli');
+    const ex = lesson.exercises.find((e) => e.id === 'dhcp-transfer-svi');
     assert.ok(ex);
     assert.ok(ex.expectedLines.some((l) => /^interface vlan \d+$/.test(l)));
     assert.ok(ex.expectedLines.some((l) => /^ip helper-address /.test(l)));
   });
 
-  test('DHCP-server IP and client-gateway IP are never the same address in the "wo vs. welche IP" exercise (no accidental mix-up)', () => {
-    const ex = lesson.exercises.find((e) => e.id === 'dhcp-wo-welche-select');
+  test('DHCP helper belongs on the client-side gateway interface (WO vs. WELCHE IP)', () => {
+    const ex = lesson.exercises.find((e) => e.id === 'dhcp-understand-where');
     assert.ok(ex);
     const correctOption = ex.options[ex.correct];
-    assert.ok(/10\.20\.20\.20/.test(correctOption), 'expected the DHCP-server IP to be the correct answer');
-    assert.ok(!/192\.168\.50\.1\b/.test(correctOption) || /10\.20\.20\.20/.test(correctOption), 'the gateway IP must not be the selected answer');
+    assert.ok(/clientseitigen Gateway-Interface|Gateway des Client-Netzes/i.test(correctOption), 'expected the client-side gateway as correct answer');
   });
 
   test('at least one harder multi-interface decision task exists (which subinterfaces need the helper)', () => {
-    const ex = lesson.exercises.find((e) => e.id === 'dhcp-mehrfach-subinterface-select');
+    const ex = lesson.exercises.find((e) => e.id === 'dhcp-multi-vlan-select');
     assert.ok(ex, 'expected the multi-subinterface decision exercise');
     assert.ok(/fa0\/0\.10.*fa0\/0\.30|fa0\/0\.30.*fa0\/0\.10/.test(ex.options[ex.correct]));
   });
 
   test('at least one DHCP-relay troubleshooting exercise exists and is not purely multiple-choice', () => {
-    const ex = lesson.exercises.find((e) => e.id === 'dhcp-troubleshooting-svi-cli');
+    const ex = lesson.exercises.find((e) => e.id === 'dhcp-recovery-wrong-svi');
     assert.ok(ex, 'expected a cli-input troubleshooting exercise');
     assert.equal(ex.type, 'cli-input');
     assert.ok(ex.expectedLines.some((l) => /^no ip helper-address /.test(l)), 'expected the fix to remove the wrong helper first');

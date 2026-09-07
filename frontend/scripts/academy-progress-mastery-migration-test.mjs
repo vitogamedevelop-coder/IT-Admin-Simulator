@@ -47,7 +47,7 @@ const migrated = readAcademyProgress();
 const key = topicKey('fundamentals', 'osi-model');
 const topic = migrated.topics[key];
 
-assert.equal(migrated.stateVersion, 13, 'stateVersion upgraded to 13');
+assert.equal(migrated.stateVersion, 14, 'stateVersion upgraded to 14');
 assert.equal(topic.status, 'learned', 'status preserved');
 assert.equal(topic.theoryScore, 14, 'theoryScore preserved');
 assert.equal(topic.practiceScore, 10, 'practiceScore preserved');

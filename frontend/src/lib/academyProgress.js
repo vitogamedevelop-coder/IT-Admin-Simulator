@@ -54,7 +54,7 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // Existing saves keep all prior progress; the new field is seeded lazily.
 // v12 (C4 Mastery, Recovery & Review): adds a `mastery` map per topic
 // storing confidence/stability/needsReview/recoveryPending per facet.
-const STATE_VERSION = 13;
+const STATE_VERSION = 14;
 
 // Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
 // advanced status across a group of legacy topics being merged into one.
@@ -269,20 +269,42 @@ function deriveLegacyTheoryFloor(progress, key) {
   return Math.max(theoryCompletion, contentSeenPercent, computed);
 }
 
+function buildLegacyIdMaps(key) {
+  const lesson = LESSONS[key];
+  const sectionMap = {};
+  const exerciseMap = {};
+  if (lesson) {
+    (lesson.explanations || []).forEach((e) => {
+      if (!e.legacyId) return;
+      const dash = (e.id || '').lastIndexOf('-');
+      const sid = e.sectionId || (dash > 0 ? e.id.slice(0, dash) : e.id);
+      sectionMap[e.legacyId] = sid;
+    });
+    (lesson.exercises || []).forEach((e) => {
+      if (e.legacyId) exerciseMap[e.legacyId] = e.id;
+    });
+  }
+  return { sectionMap, exerciseMap };
+}
+
 function sanitizeTopicProgress(key, progress, currentVersion) {
   const { validSectionIds, validExplanationIds, total: totalSections } = getLessonSectionInfo(key);
   const validExerciseIds = new Set(LESSONS[key]?.exercises?.map((e) => e.id) || []);
+  const { sectionMap, exerciseMap } = buildLegacyIdMaps(key);
 
   const seenSectionIds = new Set();
   const sectionIds = [];
   uniqueNonEmpty(progress.completedSectionIds).forEach((id) => {
-    const sid = normalizeToSectionId(id, validSectionIds, validExplanationIds);
+    const mapped = sectionMap[id] || id;
+    const sid = normalizeToSectionId(mapped, validSectionIds, validExplanationIds);
     if (sid && !seenSectionIds.has(sid)) {
       seenSectionIds.add(sid);
       sectionIds.push(sid);
     }
   });
-  const exerciseIds = uniqueNonEmpty(progress.completedExerciseIds).filter((id) => validExerciseIds.has(id));
+  const exerciseIds = uniqueNonEmpty(progress.completedExerciseIds)
+    .map((id) => exerciseMap[id] || id)
+    .filter((id) => validExerciseIds.has(id));
   const questionIds = uniqueNonEmpty(progress.completedQuestionIds);
 
   let lastSectionId = progress.lastCompletedSectionId;

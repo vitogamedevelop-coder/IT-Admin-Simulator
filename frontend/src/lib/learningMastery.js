@@ -136,7 +136,7 @@ function updateMasteryFromResult(m, {
   m.lastDifficulty = normalizeDifficulty(difficulty);
 
   // Success / partial / wrong
-  if (correct) {
+  if (correct && !partial) {
     m.totalAttempts += 1;
     m.consecutiveSuccesses += 1;
     m.recentFailureCount = Math.max(0, m.recentFailureCount - 1);

@@ -1,7 +1,10 @@
-// Deterministic, balanced subset of a lesson's full exercise pool for the
-// direct theory flow. The full pool is still used by Practice, Fachgespräch,
-// adaptive drills and themencheck.
+// Deterministic, mastery-aware subset of a lesson's full exercise pool for the
+// direct theory flow. Uses C4 learningMastery to prioritize weak or pending
+// recovery facets and to match the recommended difficulty. The full pool is
+// still used by Practice, Fachgespräch, adaptive drills and themencheck.
 // ---------------------------------------------------------------------------
+
+import { getReviewPriority, needsRecovery, getRecommendedDifficulty } from './learningMastery.js';
 
 function getDirectExerciseLimit(count) {
   if (count <= 3) return count;
@@ -13,72 +16,64 @@ function getDirectExerciseLimit(count) {
   return 8;
 }
 
-function djb2Hash(str) {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+function parseTopicKey(seed) {
+  const s = String(seed || '');
+  const parts = s.split('/');
+  if (parts.length >= 2) return { categoryId: parts[0], topicId: parts[1] };
+  return { categoryId: '', topicId: '' };
+}
+
+function facetForExercise(ex) {
+  if (ex.facet) return ex.facet;
+  if (ex.knowledgeFacet) return ex.knowledgeFacet;
+  if (Array.isArray(ex.relatedKnowledgeIds) && ex.relatedKnowledgeIds.length > 0) return ex.relatedKnowledgeIds[0];
+  return ex.id || '';
+}
+
+function scoreForExercise(ex, categoryId, topicId) {
+  const facet = facetForExercise(ex);
+  const pending = categoryId && topicId ? needsRecovery(categoryId, topicId, facet) : false;
+
+  if (ex.adaptive === 'recovery' && pending) return 10000;
+  if (ex.adaptive === 'recovery' && !pending) return -1; // skip unless needed
+
+  let score = 0;
+  if (categoryId && topicId && facet) {
+    score += getReviewPriority(categoryId, topicId, facet);
+    const recommended = getRecommendedDifficulty(categoryId, topicId, facet);
+    const exDifficulty = String(ex.difficulty || 'medium').toLowerCase();
+    if (exDifficulty === String(recommended).toLowerCase()) score += 50;
+    if (pending) score += 200;
   }
-  return Math.abs(hash);
+  return score;
 }
 
 export function selectDirectTheoryExercises(exercises, seed) {
   if (!Array.isArray(exercises) || exercises.length === 0) return [];
 
+  const { categoryId, topicId } = parseTopicKey(seed);
+
   const max = getDirectExerciseLimit(exercises.length);
   if (exercises.length <= max) return exercises;
 
-  // Group by exercise type; fall back to id prefix for variety if a type dominates.
-  const groups = new Map();
-  exercises.forEach((ex, idx) => {
-    let key = ex.type || 'default';
-    if (groups.has(key) && groups.get(key).length > 0) {
-      const same = groups.get(key);
-      // If every exercise is the same type, split by the first dash-delimited token of the id.
-      if (same.length >= 2) {
-        const idPart = String(ex.id || `ex-${idx}`).split('-')[0];
-        key = `${ex.type || 'default'}-${idPart}`;
-      }
-    }
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push({ ex, idx });
+  // Score every exercise. Recovery exercises are only kept when their facet
+  // currently has recoveryPending (scoreForExercise returns 10000 then).
+  const scored = exercises
+    .map((ex, idx) => ({ ex, idx, score: scoreForExercise(ex, categoryId, topicId) }))
+    .filter((item) => item.score >= 0);
+
+  const forced = scored.filter((item) => item.ex.adaptive === 'recovery' && item.score > 9000);
+  const rest = scored.filter((item) => !(item.ex.adaptive === 'recovery' && item.score > 9000));
+
+  // Highest review priority / difficulty fit first; original order breaks ties.
+  rest.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.idx - b.idx;
   });
 
-  // Stable group order: first occurrence in original array.
-  const orderedKeys = [];
-  const seenKeys = new Set();
-  exercises.forEach((ex, idx) => {
-    let key = ex.type || 'default';
-    if (groups.has(`${ex.type || 'default'}-${String(ex.id || `ex-${idx}`).split('-')[0]}`)) {
-      key = `${ex.type || 'default'}-${String(ex.id || `ex-${idx}`).split('-')[0]}`;
-    }
-    if (!seenKeys.has(key)) {
-      seenKeys.add(key);
-      orderedKeys.push(key);
-    }
-  });
-
-  const taken = new Set();
   const selected = [];
-  let round = 0;
-  const seedNum = typeof seed === 'number' ? seed : djb2Hash(String(seed || ''));
-
-  while (selected.length < max) {
-    let addedThisRound = false;
-    for (let k = 0; k < orderedKeys.length; k += 1) {
-      const key = orderedKeys[k];
-      const items = groups.get(key).filter(({ idx }) => !taken.has(idx));
-      if (items.length === 0) continue;
-      // Within a group, deterministically pick one while preserving order.
-      const pickIndex = (seedNum + round * 13 + k * 7) % items.length;
-      const pick = items[pickIndex];
-      selected.push(pick.ex);
-      taken.add(pick.idx);
-      addedThisRound = true;
-      if (selected.length >= max) break;
-    }
-    if (!addedThisRound) break;
-    round += 1;
-  }
+  forced.forEach((item) => { if (selected.length < max) selected.push(item.ex); });
+  rest.forEach((item) => { if (selected.length < max) selected.push(item.ex); });
 
   // Preserve original order from the full pool.
   selected.sort((a, b) => exercises.indexOf(a) - exercises.indexOf(b));
