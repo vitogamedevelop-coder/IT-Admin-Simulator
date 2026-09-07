@@ -32,6 +32,9 @@ import {
   clampScore, topicTheoryCompletion, computeNextStatus,
   rankOf, upgradeStatus,
 } from './academyStatus.js';
+import {
+  EVIDENCE_TYPES, inferEvidenceType, recordEvidence,
+} from './learningEvidence.js';
 
 // Simple weighted overall competency value (0-100) derived from the three
 // separate scores - never stored, always computed on demand.
@@ -327,12 +330,27 @@ export function recordLessonStart(categoryId, topicId) {
   return topicProgressAfter(key);
 }
 
+// Records that a specific lesson section was viewed. Idempotent per sectionId.
+// VIEWED is legitimate progress, but it does NOT imply UNDERSTOOD.
+export function recordSectionView(categoryId, topicId, sectionId, facetIds = []) {
+  const progress = getTopicProgress(categoryId, topicId);
+  if (!progress || progress.status === TOPIC_STATUS.LOCKED) return progress;
+  recordEvidence({
+    categoryId,
+    topicId,
+    facetIds: [sectionId, ...facetIds],
+    evidenceType: EVIDENCE_TYPES.VIEWED,
+    source: `section:${sectionId}`,
+  });
+  return topicProgressAfter(topicKey(categoryId, topicId));
+}
+
 // Records that a specific lesson section was completed. Idempotent per
 // sectionId so repeated navigation does not award points. If totalSections is
 // supplied, theoryCompletion/contentSeenPercent are updated to reflect the
 // fraction of sections actually completed (e.g. 5/10 → 50 %). Already-completed
 // values are never reduced.
-export function recordSectionCompletion(categoryId, topicId, sectionId, sectionTitle, totalSections = 0) {
+export function recordSectionCompletion(categoryId, topicId, sectionId, sectionTitle, totalSections = 0, facetIds = []) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return progress;
   const key = topicKey(categoryId, topicId);
@@ -349,14 +367,40 @@ export function recordSectionCompletion(categoryId, topicId, sectionId, sectionT
     patch.theoryCompletion = Math.max(progress.theoryCompletion || 0, seen);
   }
   updateTopicProgress(categoryId, topicId, patch);
+  // VIEWED is recorded explicitly by the runner when the section is opened;
+  // completion is a separate semantic event.
+  if (!alreadyCompleted) {
+    recordEvidence({
+      categoryId,
+      topicId,
+      facetIds: [sectionId, ...facetIds],
+      evidenceType: EVIDENCE_TYPES.VIEWED,
+      source: `section-completion:${sectionId}`,
+    });
+  }
   return topicProgressAfter(key);
+}
+
+// Records a learner's self-assessment (e.g. "Did the explanation help?").
+// This is only SELF_REPORTED evidence and can never count as UNDERSTOOD.
+export function recordSelfAssessment(categoryId, topicId, facetIds = []) {
+  const progress = getTopicProgress(categoryId, topicId);
+  if (!progress || progress.status === TOPIC_STATUS.LOCKED) return progress;
+  recordEvidence({
+    categoryId,
+    topicId,
+    facetIds,
+    evidenceType: EVIDENCE_TYPES.SELF_REPORTED,
+    source: 'self-assessment',
+  });
+  return topicProgressAfter(topicKey(categoryId, topicId));
 }
 
 // Records a question answer once. Points are only awarded for correct answers.
 // Returns the current progress if already answered so callers can skip
 // awarding repeated theory points. Wrong answers do not lock the question;
 // the player can retry until correct.
-export function recordQuestionAnswer(categoryId, topicId, questionId, kind = 'theory', correct = true) {
+export function recordQuestionAnswer(categoryId, topicId, questionId, kind = 'theory', correct = true, evidenceType, facetIds = []) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return null;
   if (progress.completedQuestionIds.includes(questionId)) return progress;
@@ -367,12 +411,20 @@ export function recordQuestionAnswer(categoryId, topicId, questionId, kind = 'th
   updateTopicProgress(categoryId, topicId, {
     completedQuestionIds: [...scored.completedQuestionIds, questionId],
   });
+  recordEvidence({
+    categoryId,
+    topicId,
+    facetIds: facetIds.length ? facetIds : [questionId],
+    evidenceType: evidenceType || inferEvidenceType('select-best'),
+    source: `question:${questionId}`,
+    correct: true,
+  });
   return topicProgressAfter(key);
 }
 
 // Records an exercise completion once. Returns the current progress if already
 // completed so callers can skip awarding repeated practice points.
-export function recordExerciseCompletion(categoryId, topicId, exerciseId) {
+export function recordExerciseCompletion(categoryId, topicId, exerciseId, evidenceType, facetIds = []) {
   const progress = getTopicProgress(categoryId, topicId);
   if (!progress || progress.status === TOPIC_STATUS.LOCKED) return null;
   if (progress.completedExerciseIds.includes(exerciseId)) return progress;
@@ -381,6 +433,14 @@ export function recordExerciseCompletion(categoryId, topicId, exerciseId) {
   const key = topicKey(categoryId, topicId);
   updateTopicProgress(categoryId, topicId, {
     completedExerciseIds: [...scored.completedExerciseIds, exerciseId],
+  });
+  recordEvidence({
+    categoryId,
+    topicId,
+    facetIds: facetIds.length ? facetIds : [exerciseId],
+    evidenceType: evidenceType || inferEvidenceType('select-best'),
+    source: `exercise:${exerciseId}`,
+    correct: true,
   });
   return topicProgressAfter(key);
 }

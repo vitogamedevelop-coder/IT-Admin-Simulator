@@ -1,25 +1,21 @@
-C2: consolidate shared interaction and feedback primitives.
+C3: Add learning evidence layer and separate viewed/completed/understood semantics.
 
-This phase reduces duplicated ordering/matching/categorization/option/feedback
-implementations around a small set of reusable, mobile-first components while
-preserving every content ID, progress key and save format.
-
-- New primitives: LearningFeedback, LearningOptionList, LearningOrderingList,
-  LearningMatchingBoard, LearningCategorizationBoard, LearningCommandInput.
-- Migration: LessonRunner select-best/ordering/matching/cli-input/CliTaskCard,
-  ThemencheckDragDrop/AcademyThemencheck option rendering,
-  OsiOrderExercise, LearningInteraction, ConversationMatching.
-- ConversationOrdering kept as a dedicated pointer-drag ordering renderer
-  because its tap/drag UX differs from the arrow-based shared ordering list.
-- CLI consolidation limited to typed learning input (checkCiscoInput grading);
-  real Cisco IOS simulation, persistent device state and mission validation
-  remain in their existing specialized engines.
-- All shuffle paths continue to use the shared seeded RNG from C1.
-- LearningFeedback now supports correct/incorrect/partial/incomplete/info.
-
-Version 1.96.0, versionCode 19600, SW cache cyberlearn-v1.96.0.
-Lint, Vite build, Capacitor sync, Gradle assembleDebug and APK archive
-verified locally. No remote release performed.
+- Introduce frontend/src/lib/learningEvidence.js with evidence types,
+  ranking, default interaction->evidence mapping, override support,
+  facet resolution and compact per-topic evidence storage.
+- Store evidence inside academyProgress.topics[key].evidence (no new
+  parallel store); bump STATE_VERSION to 12 with backward-compatible
+  migration.
+- Extend academyEngine.js with recordSectionView, recordSelfAssessment
+  and evidence-aware recordQuestionAnswer/recordExerciseCompletion.
+- Wire evidence recording into LessonRunner.jsx for sections, inline
+  questions, exercises, quiz, practice/fachgespräch and self-assessment.
+- Self-assessment can only ever produce self-reported; it cannot claim
+  understood.
+- Add five Node test scripts covering evidence contract, section semantics,
+  self-assessment, legacy migration and topic status stability.
+- Bump version to 1.97.0 / versionCode 19700 / SW cache cyberlearn-v1.97.0.
+- Build, lint, Capacitor sync and APK archive verified.
 
 Generated with [Devin](https://devin.ai)
 

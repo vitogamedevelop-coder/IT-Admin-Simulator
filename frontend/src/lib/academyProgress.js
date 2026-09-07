@@ -49,7 +49,10 @@ const KEY = 'cyberlearn:academy-progress-v1';
 // completedSectionIds, completedExerciseIds and completedQuestionIds against
 // the current LESSONS registry. Removes phantom IDs and recomputes
 // theoryCompletion/contentSeenPercent only from currently existing sections.
-const STATE_VERSION = 11;
+// v11 (C3 Evidence & Completion Semantics): adds an `evidence` map per topic
+// storing the highest demonstrated evidence level per facet/section id.
+// Existing saves keep all prior progress; the new field is seeded lazily.
+const STATE_VERSION = 12;
 
 // Rough "best of" ordering for TOPIC_STATUS, used only to pick the most
 // advanced status across a group of legacy topics being merged into one.
@@ -137,6 +140,8 @@ function defaultProgressForTopic(topicDef) {
     quizLastScore: 0,
     difficultyLevel: 0, // 0=easy, 1=medium, 2=hard
     difficultyExamsPassed: [], // e.g. [0, 1] means easy+medium exams passed
+    // C3: compact evidence map keyed by facet/section/knowledge id.
+    evidence: {},
     version: topicDef.version,
   };
 }

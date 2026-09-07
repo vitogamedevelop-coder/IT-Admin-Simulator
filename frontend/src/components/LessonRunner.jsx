@@ -6,10 +6,13 @@ import {
 import { characterAsset } from '../lib/rpgAssets';
 import { readAcademyProgress, updateTopicProgress } from '../lib/academyProgress';
 import {
-  recordLessonStart, recordSectionCompletion, recordQuestionAnswer,
+  recordLessonStart, recordSectionView, recordSectionCompletion, recordQuestionAnswer,
   recordExerciseCompletion, recordLessonCompletion, recordPreferredStyle,
-  recordQuizResult,
+  recordQuizResult, recordSelfAssessment,
 } from '../lib/academyEngine';
+import {
+  inferEvidenceType, resolveFacetIds,
+} from '../lib/learningEvidence';
 import { shuffleOptions } from '../lib/shuffleOptions';
 import LearningOptionList from './LearningOptionList.jsx';
 import LearningOrderingList from './LearningOrderingList.jsx';
@@ -164,6 +167,14 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     recordLessonStart(categoryId, topicId);
   }, [categoryId, topicId]);
 
+  // Record that the learner has actually viewed the current section.
+  // VIEWED is idempotent per section and does not imply UNDERSTOOD.
+  useEffect(() => {
+    if (currentSectionId && phase === 'explanation') {
+      recordSectionView(categoryId, topicId, currentSectionId);
+    }
+  }, [currentSectionId, phase, categoryId, topicId]);
+
   // Record the full quiz result once the player leaves the quiz phase.
   useEffect(() => {
     if (phase !== 'help' || !finalQuiz.length || quizResultRecordedRef.current) return;
@@ -240,27 +251,37 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     if (currentSectionIndex > 0) setCurrentSectionIndex((i) => i - 1);
   }
 
-  function completeExercise(exerciseId) {
+  function completeExercise(exercise) {
+    const exerciseId = exercise.id || exercise;
     if (completedExercises[exerciseId]) return;
     setCompletedExercises((prev) => ({ ...prev, [exerciseId]: true }));
-    recordExerciseCompletion(categoryId, topicId, exerciseId);
+    const evidenceType = inferEvidenceType(exercise.type || 'select-best', exercise.evidenceType);
+    const facetIds = resolveFacetIds({
+      facet: exercise.facet,
+      relatedKnowledgeIds: exercise.relatedKnowledgeIds,
+      id: exerciseId,
+      sectionId: currentSectionId,
+      topicId: `${categoryId}/${topicId}`,
+    });
+    recordExerciseCompletion(categoryId, topicId, exerciseId, evidenceType, facetIds);
   }
 
   // ---------- Exercises ----------
   function renderExercise(ex, index) {
     const stateKey = `${ex.id || `ex-${index}`}`;
-    if (ex.type === 'ordering') return <OrderingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'matching') return <MatchingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'input') return <InputExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'cli-input') return <CliInputExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'select-best') return <SelectBestExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'guided-ui') return <GuidedUiExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'guided-subnetting') return <GuidedSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'adaptive-subnetting') return <AdaptiveSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'difficulty-drill') return <DifficultyDrillExercise key={stateKey} exercise={ex} categoryId={categoryId} topicId={topicId} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'adaptive-number-systems') return <AdaptiveNumberSystemsExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'adaptive-subnet-requirements') return <AdaptiveSubnetRequirementsExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
-    if (ex.type === 'adaptive-supernetting') return <AdaptiveSupernettingExercise key={stateKey} exercise={ex} onComplete={() => completeExercise(stateKey)} />;
+    const onCompleteExercise = () => completeExercise(ex);
+    if (ex.type === 'ordering') return <OrderingExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'matching') return <MatchingExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'input') return <InputExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'cli-input') return <CliInputExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'select-best') return <SelectBestExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'guided-ui') return <GuidedUiExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'guided-subnetting') return <GuidedSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'adaptive-subnetting') return <AdaptiveSubnettingExercise key={stateKey} exercise={ex} index={index} onComplete={onCompleteExercise} />;
+    if (ex.type === 'difficulty-drill') return <DifficultyDrillExercise key={stateKey} exercise={ex} categoryId={categoryId} topicId={topicId} onComplete={onCompleteExercise} />;
+    if (ex.type === 'adaptive-number-systems') return <AdaptiveNumberSystemsExercise key={stateKey} exercise={ex} onComplete={onCompleteExercise} />;
+    if (ex.type === 'adaptive-subnet-requirements') return <AdaptiveSubnetRequirementsExercise key={stateKey} exercise={ex} onComplete={onCompleteExercise} />;
+    if (ex.type === 'adaptive-supernetting') return <AdaptiveSupernettingExercise key={stateKey} exercise={ex} onComplete={onCompleteExercise} />;
     return null;
   }
 
@@ -273,7 +294,15 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
     setQuizAnswers((prev) => ({ ...prev, [currentQuizIndex]: index }));
     const isCorrect = index === currentQuizShuffled.correct;
     setQuizResults((prev) => ({ ...prev, [currentQuizIndex]: isCorrect }));
-    recordQuestionAnswer(categoryId, topicId, `quiz-${currentQuizIndex}`, currentQuizIndex === finalQuiz.length - 1 ? 'retention' : 'theory', isCorrect);
+    const evidenceType = inferEvidenceType(currentQuizQuestion?.type || 'select-best', currentQuizQuestion?.evidenceType);
+    const facetIds = resolveFacetIds({
+      facet: currentQuizQuestion?.facet,
+      relatedKnowledgeIds: currentQuizQuestion?.relatedKnowledgeIds,
+      id: `quiz-${currentQuizIndex}`,
+      sectionId: currentSectionId,
+      topicId: `${categoryId}/${topicId}`,
+    });
+    recordQuestionAnswer(categoryId, topicId, `quiz-${currentQuizIndex}`, currentQuizIndex === finalQuiz.length - 1 ? 'retention' : 'theory', isCorrect, evidenceType, facetIds);
   }
 
   const currentQuizShuffled = useMemo(() => {
@@ -301,6 +330,8 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
 
   function handleHelpResponse(helped) {
     if (helped) {
+      // Self-assessed "I understood" is only SELF_REPORTED evidence, never UNDERSTOOD.
+      recordSelfAssessment(categoryId, topicId, [currentSectionId, `${categoryId}/${topicId}`]);
       completeLesson();
     } else {
       const nextStyle = getNextAlternativeStyle();
@@ -661,7 +692,15 @@ function SectionCheckQuestion({ question, onContinue, answer, setAnswer, categor
   function handleAnswer(index) {
     if (answer !== null) return;
     setAnswer(index);
-    recordQuestionAnswer(categoryId, topicId, key, 'theory', index === correct);
+    const evidenceType = inferEvidenceType(question.type || 'select-best', question.evidenceType);
+    const facetIds = resolveFacetIds({
+      facet: question.facet,
+      relatedKnowledgeIds: question.relatedKnowledgeIds,
+      id: key,
+      sectionId,
+      topicId: `${categoryId}/${topicId}`,
+    });
+    recordQuestionAnswer(categoryId, topicId, key, 'theory', index === correct, evidenceType, facetIds);
   }
 
   return (
@@ -1839,14 +1878,30 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
     setAnswers((prev) => ({ ...prev, [index]: i }));
     const isCorrect = i === shuffled.correct;
     setResults((prev) => ({ ...prev, [index]: isCorrect }));
-    recordQuestionAnswer(categoryId, topicId, `practice-${index}`, 'retention', isCorrect);
+    const evidenceType = inferEvidenceType(question?.type || 'select-best', question?.evidenceType);
+    const facetIds = resolveFacetIds({
+      facet: question?.facet,
+      relatedKnowledgeIds: question?.relatedKnowledgeIds,
+      sourceTopicId: question?.sourceTopicId,
+      id: `practice-${index}`,
+      topicId: `${categoryId}/${topicId}`,
+    });
+    recordQuestionAnswer(categoryId, topicId, `practice-${index}`, 'retention', isCorrect, evidenceType, facetIds);
   }
 
   function answerCli(outcome) {
     if (answers[index] !== undefined) return;
     setAnswers((prev) => ({ ...prev, [index]: outcome }));
     setResults((prev) => ({ ...prev, [index]: outcome.allCorrect }));
-    recordQuestionAnswer(categoryId, topicId, `practice-${index}`, 'retention', outcome.allCorrect);
+    const evidenceType = inferEvidenceType('cli-input', question?.evidenceType);
+    const facetIds = resolveFacetIds({
+      facet: question?.facet,
+      relatedKnowledgeIds: question?.relatedKnowledgeIds,
+      sourceTopicId: question?.sourceTopicId,
+      id: `practice-${index}`,
+      topicId: `${categoryId}/${topicId}`,
+    });
+    recordQuestionAnswer(categoryId, topicId, `practice-${index}`, 'retention', outcome.allCorrect, evidenceType, facetIds);
   }
 
   function next() {
@@ -2004,14 +2059,30 @@ function FachgespraechRunner({ lesson, categoryId, topicId, onDone }) {
     setAnswer(i);
     const isCorrect = i === shuffled.correct;
     setResults((prev) => ({ ...prev, [index]: isCorrect }));
-    recordQuestionAnswer(categoryId, topicId, `interview-${index}`, 'retention', isCorrect);
+    const evidenceType = inferEvidenceType(question?.type || 'select-best', question?.evidenceType);
+    const facetIds = resolveFacetIds({
+      facet: question?.facet,
+      relatedKnowledgeIds: question?.relatedKnowledgeIds,
+      sourceTopicId: question?.sourceTopicId,
+      id: `interview-${index}`,
+      topicId: `${categoryId}/${topicId}`,
+    });
+    recordQuestionAnswer(categoryId, topicId, `interview-${index}`, 'retention', isCorrect, evidenceType, facetIds);
   }
 
   function respondCli(outcome) {
     if (answer !== null) return;
     setAnswer(outcome);
     setResults((prev) => ({ ...prev, [index]: outcome.allCorrect }));
-    recordQuestionAnswer(categoryId, topicId, `interview-${index}`, 'retention', outcome.allCorrect);
+    const evidenceType = inferEvidenceType('cli-input', question?.evidenceType);
+    const facetIds = resolveFacetIds({
+      facet: question?.facet,
+      relatedKnowledgeIds: question?.relatedKnowledgeIds,
+      sourceTopicId: question?.sourceTopicId,
+      id: `interview-${index}`,
+      topicId: `${categoryId}/${topicId}`,
+    });
+    recordQuestionAnswer(categoryId, topicId, `interview-${index}`, 'retention', outcome.allCorrect, evidenceType, facetIds);
   }
 
   function next() {
