@@ -13,6 +13,7 @@ import { LEARNING_MODES, readAcademyMode } from '../lib/academyMode';
 import { shuffleOptions } from '../lib/shuffleOptions';
 import { collectQuestionsFromLesson } from '../lib/academyThemencheck';
 import LessonRunner from '../components/LessonRunner';
+import SessionRunner from '../components/SessionRunner';
 import { characterAsset } from '../lib/rpgAssets';
 import ErrorBoundary from '../components/ErrorBoundary';
 import BackBar from '../components/BackBar';
@@ -378,9 +379,20 @@ export default function AcademyTopic() {
   function renderLesson() {
     if (isBasicsTopic) return <GrundbegriffeLesson mode={activeSection} onDone={closeLesson} />;
     if (hasLessonRunner) {
+      const lesson = LESSONS[topicKey(categoryId, topicId)];
+      if (lesson?.session) {
+        return (
+          <SessionRunner
+            lesson={lesson}
+            categoryId={categoryId}
+            topicId={topicId}
+            onDone={closeLesson}
+          />
+        );
+      }
       return (
         <LessonRunner
-          lesson={LESSONS[topicKey(categoryId, topicId)]}
+          lesson={lesson}
           categoryId={categoryId}
           topicId={topicId}
           topic={topic}
