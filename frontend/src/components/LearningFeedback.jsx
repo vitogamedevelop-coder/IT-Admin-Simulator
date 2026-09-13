@@ -10,19 +10,19 @@ const STATUS_CONFIG = {
   incorrect: {
     icon: XCircle,
     container: 'border-[#ff7b72]/40 bg-[#ff7b72]/10',
-    headline: 'Nicht ganz.',
+    headline: 'Noch nicht.',
     title: 'Leider falsch',
   },
   partial: {
     icon: AlertCircle,
     container: 'border-[#ffcc00]/40 bg-[#ffcc00]/10',
-    headline: 'Teilweise richtig.',
+    headline: 'Fast.',
     title: 'Teilweise richtig',
   },
   incomplete: {
     icon: AlertCircle,
     container: 'border-[#ffcc00]/40 bg-[#ffcc00]/10',
-    headline: 'Unvollständig, aber nicht falsch.',
+    headline: 'Fast.',
     title: 'Unvollständig',
   },
   info: {

@@ -18,6 +18,7 @@ import BackBar from '../components/BackBar';
 import { useAppBack } from '../lib/useAppBack';
 import ThemencheckOptionList from '../components/ThemencheckOptionList';
 import LearningFeedback from '../components/LearningFeedback';
+import DiagnosticQuestionRenderer from '../components/DiagnosticQuestionRenderer';
 
 // ── Intro screen ────────────────────────────────────────────────────────────
 function ThemencheckIntro({ categoryId, isGlobal, onStart }) {
@@ -26,7 +27,7 @@ function ThemencheckIntro({ categoryId, isGlobal, onStart }) {
   const title = isGlobal ? 'Abschlusscheck' : summary?.title || '';
   const prevResults = getThemencheckResults(isGlobal ? 'global' : categoryId);
   const lastErrors = getLastErrors(isGlobal ? 'global' : categoryId);
-  const estimatedMin = isGlobal ? '15–25' : `${Math.max(5, Math.round((summary?.totalQuestions || 20) * 0.5))}–${Math.max(10, Math.round((summary?.totalQuestions || 20) * 0.8))}`;
+  const estimatedMin = isGlobal ? '15–25' : `${summary?.estimatedThemencheckMinutes ?? '5–30'}`;
 
   return (
     <div className="flex flex-col gap-4 py-2">
@@ -198,7 +199,7 @@ function ThemencheckQuiz({ questions, onFinish, title }) {
       </div>
 
       <div className="cyber-card p-4">
-        <p className="text-sm text-white font-bold">{current.question}</p>
+        <DiagnosticQuestionRenderer diagnostic={current.diagnostic} question={current.question} />
         {isMulti && (
           <p className="text-xs text-[#ffcc00] mt-2 flex items-center gap-1">
             <HelpCircle size={12} /> Mehrere Antworten können richtig sein.

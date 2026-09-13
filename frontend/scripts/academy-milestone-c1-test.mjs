@@ -135,12 +135,12 @@ assertEqual(secondQuestion.theoryScore, scoreAfterFirst, 'Repeated answer does n
 assertEqual(secondQuestion.completedQuestionIds.length, 1, 'Question id not duplicated');
 
 // Exercise completion awards practice points exactly once.
-const firstExercise = recordExerciseCompletion('fundamentals', 'osi-model', 'ex-osi-ordering');
+const firstExercise = recordExerciseCompletion('fundamentals', 'osi-model', 'osi-ordering');
 assert(firstExercise, 'recordExerciseCompletion should return progress');
 const practiceAfterFirst = firstExercise.practiceScore;
 assert(practiceAfterFirst > 0, 'First exercise increases practice score');
 
-const secondExercise = recordExerciseCompletion('fundamentals', 'osi-model', 'ex-osi-ordering');
+const secondExercise = recordExerciseCompletion('fundamentals', 'osi-model', 'osi-ordering');
 assertEqual(secondExercise.practiceScore, practiceAfterFirst, 'Repeated exercise does not increase score');
 assertEqual(secondExercise.completedExerciseIds.length, 1, 'Exercise id not duplicated');
 

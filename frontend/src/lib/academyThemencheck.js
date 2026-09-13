@@ -284,6 +284,9 @@ export function getCategorySummary(categoryId) {
   // Estimate learning time: ~3 min per lesson + ~1 min per quiz question + ~2 min per exercise
   const estimatedMinutes = Math.round(lessonCount * 3 + quizCount * 1 + exerciseCount * 2);
 
+  // Question-type-aware estimate for the actual Themencheck selection (used by UI).
+  const themencheckEstimateSeconds = estimateThemencheckSeconds(categoryId);
+
   // Completed count: must match the topic-card badge semantics (LEARNED+).
   let completedLessons = 0;
   let completedTopics = 0;
@@ -306,6 +309,7 @@ export function getCategorySummary(categoryId) {
     exerciseCount,
     totalQuestions,
     estimatedMinutes,
+    estimatedThemencheckMinutes: Math.max(5, Math.round(themencheckEstimateSeconds / 60)),
     completedLessons,
     completedTopics,
     totalTopics: topics.length,
@@ -645,12 +649,7 @@ function planThemencheck({ candidates, total, categoryId, history, masteryScores
     register(best);
   }
 
-  const shuffled = shuffleNoStreaks(selected, { maxSameFacet: 2, maxSameType: 3, maxSameCompetency: 3 }, rng);
-  // Strip internal blueprint metadata before returning.
-  return shuffled.map((q) => {
-    const { _competency, _typeGroup, _facet, _difficulty, ...rest } = q;
-    return rest;
-  });
+  return shuffleNoStreaks(selected, { maxSameFacet: 2, maxSameType: 3, maxSameCompetency: 3 }, rng);
 }
 
 /**
@@ -658,12 +657,12 @@ function planThemencheck({ candidates, total, categoryId, history, masteryScores
  * Draws questions according to a pool-aware blueprint that balances topic, competency,
  * question type, and facet coverage while respecting cross-run cooldown history.
  */
-export function generateThemencheck(categoryId) {
-  currentRunIndex += 1;
+export function generateThemencheck(categoryId, { dryRun = false } = {}) {
+  const runIndex = dryRun ? -1 : (currentRunIndex += 1);
   const rng = createRng(makeSeed({
     subsystem: RNG_NAMESPACE_LEARNING,
     category: categoryId,
-    runIndex: currentRunIndex,
+    runIndex,
   }));
   const topics = topicsForCategory(categoryId);
   const history = getHistoryForCategory(readHistory(), categoryId);
@@ -690,14 +689,42 @@ export function generateThemencheck(categoryId) {
     pool.map((q) => enrichQuestion(q, topicId))
   );
   const masteryScores = getAllFacetMasteryScores();
-  const selected = planThemencheck({ candidates: allCandidates, total: targetTotal, categoryId, history, masteryScores, rng });
+  const selected = planThemencheck({ candidates: allCandidates, total: targetTotal, categoryId, history, masteryScores, rng, dryRun });
 
   // Record seen semantic keys so future calls can avoid immediate repetition.
-  const seenAt = new Date().toISOString();
-  const newEntries = selected.map((q) => ({ semanticKey: q.semanticKey, categoryId, seenAt, runIndex: currentRunIndex }));
-  writeHistory([...readHistory(), ...newEntries]);
+  if (!dryRun) {
+    const seenAt = new Date().toISOString();
+    const newEntries = selected.map((q) => ({ semanticKey: q.semanticKey, categoryId, seenAt, runIndex }));
+    writeHistory([...readHistory(), ...newEntries]);
+  }
 
-  return selected;
+  // Dry-run callers need internal metadata (e.g. _typeGroup) for estimates.
+  if (dryRun) return selected;
+
+  // Strip internal blueprint metadata before returning to the UI.
+  return selected.map((q) => {
+    const { _competency, _typeGroup, _facet, _difficulty, ...rest } = q;
+    return rest;
+  });
+}
+
+// Question-type-aware time estimates (seconds) for a single question.
+const QUESTION_TYPE_TIME_SECONDS = {
+  'single-select': 45,
+  'multi-select': 75,
+  'drag-drop': 90,
+  'diagnostic': 180,
+  'command-recall': 90,
+  default: 60,
+};
+
+export function estimateThemencheckSeconds(categoryId) {
+  const questions = generateThemencheck(categoryId, { dryRun: true });
+  if (!questions || questions.length === 0) return 0;
+  return questions.reduce((sum, q) => {
+    const type = q._typeGroup || 'single-select';
+    return sum + (QUESTION_TYPE_TIME_SECONDS[type] || QUESTION_TYPE_TIME_SECONDS.default);
+  }, 0);
 }
 
 /**

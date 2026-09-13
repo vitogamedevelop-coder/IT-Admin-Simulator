@@ -256,7 +256,7 @@ export default function EmployeeConversation({ conversation: initialConversation
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold text-[#c9d1d9]">
-                {result.correct ? 'Richtig!' : 'Nicht ganz.'}
+                {result.correct ? 'Richtig!' : 'Noch nicht.'}
                 {result.scoreAwarded && <span className="ml-2 text-[10px] font-normal text-[#00ff66]">+ Wiederholungspunkte</span>}
               </div>
               <p className="text-sm text-[#c9d1d9] mt-1">{result.employeeReaction}</p>

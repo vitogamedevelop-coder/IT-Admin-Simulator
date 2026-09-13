@@ -15,6 +15,10 @@ export default function LearningCommandInput({
   placeholder = 'Befehle eingeben, eine pro Zeile...',
   disabled = false,
 }) {
+  const status = submitted && result
+    ? (result.allCorrect ? 'correct' : (result.results?.some((r) => r.ok) ? 'partial' : 'incorrect'))
+    : 'info';
+
   function handleCheck() {
     if (submitted || disabled) return;
     const outcome = checkCiscoInput(value, expectedLines);
@@ -75,7 +79,7 @@ export default function LearningCommandInput({
             ))}
           </div>
           <LearningFeedback
-            status={result.allCorrect ? 'correct' : 'incorrect'}
+            status={status}
             explanation={explanation}
           />
         </div>

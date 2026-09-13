@@ -37,8 +37,8 @@ ${problem ? `Problem: ${problem}` : ''}
 ${observations.length ? `Beobachtungen:\n${observations.map((o) => `- ${o}`).join('\n')}` : ''}
 ${knownGood.length ? `Bekannt gut:\n${knownGood.map((o) => `- ${o}`).join('\n')}` : ''}
 ${knownBad.length ? `Bekannt schlecht:\n${knownBad.map((o) => `- ${o}`).join('\n')}` : ''}
-${configSnippet ? `Config:\n\`\`\`\n${configSnippet}\n\`\`\`` : ''}
-${showOutput ? `Output:\n\`\`\`\n${showOutput}\n\`\`\`` : ''}
+${configSnippet ? `Config:\n${configSnippet}` : ''}
+${showOutput ? `Output:\n${showOutput}` : ''}
 
 ${question}
   `.trim().replace(/\n{3,}/g, '\n\n');
@@ -167,7 +167,7 @@ ciscoTopic('trunk', [
     observations: ['show interfaces trunk zeigt den Link als trunk.', 'allowed vlan 10,20 ist konfiguriert.', 'VLAN 30 existiert auf beiden Switches.'],
     configSnippet: 'interface FastEthernet0/24\n switchport trunk allowed vlan 10,20',
     question: 'Was ist die wahrscheinlichste Ursache?',
-    options: ['VLAN 30 fehlt', 'Trunk ist nicht aktiviert', 'VLAN 30 nicht in allowed list', 'Native VLAN falsch'],
+    options: ['VLAN 30 ist auf einem der Switches nicht angelegt', 'Trunk ist nicht aktiviert', 'VLAN 30 ist nicht in der Allowed-VLAN-Liste des Trunks', 'Native VLAN ist falsch konfiguriert'],
     correct: 2,
     explanation: 'Trunk-Ports leiten nur die VLANs, die in switchport trunk allowed vlan gelistet sind. VLAN 30 ist ausgeschlossen.',
     rootCause: 'VLAN 30 fehlt in der allowed-VLAN-Liste des Trunks.',

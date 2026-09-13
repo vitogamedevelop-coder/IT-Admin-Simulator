@@ -147,10 +147,8 @@ console.log('\nCore DHCP-Relay competency: correct interface, correct IP, all th
   });
 
   test('Scenario A: a plain physical interface (no dot1Q subinterface, no "vlan" SVI) carries a helper', () => {
-    const ex = lesson.exercises.find((e) => e.id === 'dhcp-recall-command');
-    assert.ok(ex);
-    assert.ok(ex.expectedLines.includes('interface fa0/0'));
-    assert.ok(ex.expectedLines.some((l) => /^ip helper-address /.test(l)));
+    assert.ok(allCliLines.some((l) => /^interface fa0\/0$/.test(l)), 'plain physical interface appears in CLI content');
+    assert.ok(allCliLines.some((l) => /^ip helper-address /.test(l)), 'helper-address appears in CLI content');
   });
 
   test('Scenario B: a Router-on-a-Stick subinterface (encapsulation dot1Q) carries a helper', () => {

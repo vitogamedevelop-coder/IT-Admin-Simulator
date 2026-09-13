@@ -25,21 +25,42 @@ export default function LearningOptionList({
   questionId = '',
   seed,
 }) {
-  const selectedSet = useMemo(() => {
-    if (Array.isArray(selected)) return new Set(selected);
-    return new Set([selected].filter(Boolean));
-  }, [selected]);
-
   const isSingle = mode === 'single';
 
+  const normalized = useMemo(() => rawOptions.map(normalize), [rawOptions]);
+
+  // Map correct indices to stable ids BEFORE shuffling, so callers can pass
+  // the original correct index and the right option is still highlighted after
+  // a shuffle. String ids are passed through unchanged.
+  const correctSet = useMemo(() => {
+    const set = new Set();
+    if (correctIndices) {
+      correctIndices.forEach((i) => { if (normalized[i]?.id) set.add(normalized[i].id); });
+    } else if (correct !== undefined) {
+      const values = Array.isArray(correct) ? correct : [correct];
+      values.forEach((v) => {
+        if (typeof v === 'number') {
+          if (normalized[v]?.id) set.add(normalized[v].id);
+        } else if (v != null) {
+          set.add(v);
+        }
+      });
+    }
+    return set;
+  }, [correct, correctIndices, normalized]);
+
   const options = useMemo(() => {
-    const normalized = rawOptions.map(normalize);
     if (seed || questionId) {
       const rng = createRng(seed ?? makeSeed({ subsystem: RNG_NAMESPACE_QUESTIONS, topic: questionId, nonce: Date.now() }));
       return shuffle(rng, [...normalized]);
     }
     return normalized;
-  }, [rawOptions, questionId, seed]);
+  }, [normalized, questionId, seed]);
+
+  const selectedSet = useMemo(() => {
+    if (Array.isArray(selected)) return new Set(selected);
+    return new Set([selected].filter((v) => v !== null && v !== undefined && v !== ''));
+  }, [selected]);
 
   function handleSelect(id) {
     if (disabled || submitted) return;
@@ -52,23 +73,6 @@ export default function LearningOptionList({
     else next.add(id);
     onSelect?.(Array.from(next));
   }
-
-  const correctSet = useMemo(() => {
-    const set = new Set();
-    if (correctIndices) {
-      correctIndices.forEach((i) => { if (options[i]?.id) set.add(options[i].id); });
-    } else if (correct !== undefined) {
-      const values = Array.isArray(correct) ? correct : [correct];
-      values.forEach((v) => {
-        if (typeof v === 'number') {
-          if (options[v]?.id) set.add(options[v].id);
-        } else if (v != null) {
-          set.add(v);
-        }
-      });
-    }
-    return set;
-  }, [correct, correctIndices, options]);
 
   return (
     <div className="space-y-2" role="group" aria-label={isSingle ? 'Eine Antwort auswählen' : 'Mehrere Antworten auswählen'}>

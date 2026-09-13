@@ -19,6 +19,7 @@ import LearningOrderingList from './LearningOrderingList.jsx';
 import LearningMatchingBoard from './LearningMatchingBoard.jsx';
 import LearningFeedback from './LearningFeedback.jsx';
 import LearningCommandInput from './LearningCommandInput.jsx';
+import DiagnosticQuestionRenderer from './DiagnosticQuestionRenderer.jsx';
 import { collectQuestionsFromLesson, collectCliTasksFromLesson } from '../lib/academyThemencheck';
 
 import { createRng, makeSeed, shuffle, pickOne, RNG_NAMESPACE_QUESTIONS } from '../lib/random.js';
@@ -523,7 +524,7 @@ export default function LessonRunner({ lesson, categoryId, topicId, topic, mode 
               <div className="mt-3 flex items-start gap-2">
                 {isCorrect ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
                 <p className={classNames('text-xs', isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-                  {isCorrect ? 'Richtig!' : 'Nicht ganz.'} {currentQuizQuestion.explanation}
+                  {isCorrect ? 'Richtig!' : 'Noch nicht.'} {currentQuizQuestion.explanation}
                 </p>
               </div>
               <button onClick={nextQuiz} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
@@ -728,7 +729,7 @@ function SectionCheckQuestion({ question, onContinue, answer, setAnswer, categor
           <div className="mt-3 flex items-start gap-2">
             {isCorrect ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
             <p className={classNames('text-xs', isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-              {isCorrect ? 'Richtig!' : 'Nicht ganz.'} {question.explanation}
+              {isCorrect ? 'Richtig!' : 'Noch nicht.'} {question.explanation}
             </p>
           </div>
           <button onClick={onContinue} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
@@ -924,6 +925,7 @@ function CliInputExercise({ exercise, index, onComplete }) {
   return (
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – CLI-Eingabe</div>
+      {exercise.question && <p className="text-sm text-white font-bold mt-2">{exercise.question}</p>}
       <LearningCommandInput
         expectedLines={exercise.expectedLines}
         value={value}
@@ -947,7 +949,13 @@ function CliInputExercise({ exercise, index, onComplete }) {
 function SelectBestExercise({ exercise, index, onComplete }) {
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
-  const correct = selected === exercise.correct;
+  const normalizedOptions = useMemo(() => exercise.options.map((opt, i) =>
+    typeof opt === 'string'
+      ? { id: `opt-${i}`, label: opt }
+      : { ...opt, id: opt.id ?? opt.value ?? `opt-${i}` }
+  ), [exercise.options]);
+  const correctId = useMemo(() => normalizedOptions[exercise.correct]?.id, [normalizedOptions, exercise.correct]);
+  const correct = selected === correctId;
 
   function submit() {
     if (submitted || selected === null) return;
@@ -958,7 +966,7 @@ function SelectBestExercise({ exercise, index, onComplete }) {
   return (
     <div className="cyber-card p-4">
       <div className="text-[10px] uppercase tracking-widest text-[#8b949e]">Übung {index + 1} – Auswahl</div>
-      <p className="text-sm text-white font-bold mt-1">{exercise.question}</p>
+      <DiagnosticQuestionRenderer diagnostic={exercise.diagnostic} question={exercise.question} className="mt-2" />
       <div className="mt-3">
         <LearningOptionList
           options={exercise.options}
@@ -1117,7 +1125,7 @@ function AdaptiveSubnettingExercise({ onComplete }) {
     } else {
       const newWrong = wrongCount + 1;
       setWrongCount(newWrong);
-      setFeedback({ ok: false, text: `Das war noch nicht ganz richtig. Richtig wäre ${expected}. Probiere es noch einmal.` });
+      setFeedback({ ok: false, text: `Noch nicht. Richtig wäre ${expected}. Probiere es noch einmal.` });
       if (newWrong >= 2) pickNextProblem('easier');
       setInput('');
     }
@@ -1968,7 +1976,7 @@ function PracticeQuiz({ lesson, categoryId, topicId, onDone }) {
             <div className="mt-3 flex items-start gap-2">
               {isCorrect ? <CheckCircle2 size={16} className="text-[#00ff66] shrink-0 mt-0.5" /> : <XCircle size={16} className="text-[#ffcc00] shrink-0 mt-0.5" />}
               <p className={classNames('text-xs', isCorrect ? 'text-[#00ff66]' : 'text-[#ffcc00]')}>
-                {isCorrect ? 'Richtig!' : 'Nicht ganz.'} {question.explanation}
+                {isCorrect ? 'Richtig!' : 'Noch nicht.'} {question.explanation}
               </p>
             </div>
             <button onClick={next} className="cyber-btn w-full mt-3 py-2 text-sm">Weiter</button>
@@ -2026,7 +2034,7 @@ const FACHGESPRAECH_CORRECT_REACTIONS = [
 ];
 const FACHGESPRAECH_INCORRECT_REACTIONS = [
   'Fast - lass es mich kurz einordnen:',
-  'Nicht ganz, aber das ist ein guter Ansatzpunkt:',
+  'Fast, aber das ist ein guter Ansatzpunkt:',
   'Da würde ich widersprechen. Schau mal:',
 ];
 

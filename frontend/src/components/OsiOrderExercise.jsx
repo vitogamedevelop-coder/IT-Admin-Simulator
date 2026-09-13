@@ -42,7 +42,7 @@ export default function OsiOrderExercise() {
         <div className="mt-3">
           <LearningFeedback
             status={correct ? 'correct' : 'incorrect'}
-            headline={correct ? 'Korrekt: Schicht 1 bis 7 sitzt.' : 'Noch nicht ganz.'}
+            headline={correct ? 'Korrekt: Schicht 1 bis 7 sitzt.' : 'Noch nicht.'}
             explanation={correct ? undefined : 'Tipp: Bits und Kabel beginnen bei Schicht 1.'}
           />
         </div>

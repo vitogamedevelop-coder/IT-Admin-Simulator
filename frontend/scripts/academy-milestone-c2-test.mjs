@@ -128,12 +128,12 @@ const secondQuestion = recordQuestionAnswer('fundamentals', 'binary-system', 'q-
 assertEqual(secondQuestion.theoryScore, scoreAfterFirst, 'Repeated answer no extra points');
 assertEqual(secondQuestion.completedQuestionIds.length, 1, 'Question id not duplicated');
 
-const firstExercise = recordExerciseCompletion('fundamentals', 'binary-system', 'ex-decimal');
+const firstExercise = recordExerciseCompletion('fundamentals', 'binary-system', 'binary-decimal-to-binary');
 assert(firstExercise, 'Exercise completed');
 const practiceAfterFirst = firstExercise.practiceScore;
 assert(practiceAfterFirst > 0, 'First exercise gives practice points');
 
-const secondExercise = recordExerciseCompletion('fundamentals', 'binary-system', 'ex-decimal');
+const secondExercise = recordExerciseCompletion('fundamentals', 'binary-system', 'binary-decimal-to-binary');
 assertEqual(secondExercise.practiceScore, practiceAfterFirst, 'Repeated exercise no extra points');
 
 const sectionResult = recordSectionCompletion('fundamentals', 'binary-system', 'conversion', 'Umrechnen');
