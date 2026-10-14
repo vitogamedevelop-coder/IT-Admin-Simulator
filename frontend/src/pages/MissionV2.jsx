@@ -37,7 +37,7 @@ import { notifyMissionCompleted } from '../lib/missionGenerator';
 import { recordKnownCredentialsFromMission001 } from '../lib/credentials';
 import { questById } from '../lib/questData';
 import { buildPrompt, getCommandHelp, completeInput } from '../lib/ciscoCliEngine';
-import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield } from 'lucide-react';
+import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield, ClipboardList, Activity, Award } from 'lucide-react';
 
 const SIDE_REQUIREMENTS = {
   'cisco-side-basic-001': SIDE_001_REQUIREMENTS,
@@ -59,6 +59,7 @@ function buildMainRuntime(missionId) {
     consumeHint: (state, req) => consumeMissionHint(state, req),
     revealSolution: (state, req) => revealMissionSolution(state, req),
     requirements: getMainMissionRequirements(missionId),
+    reward: { xp: 80, reputation: { network: 8, management: 4 } },
     complete: (state) => {
       const quest = questById(missionId);
       if (quest) completeQuest(quest, { xp: 80, reputation: { network: 8, management: 4 } });
@@ -88,6 +89,7 @@ function buildSideRuntime(missionId) {
     consumeHint: (state, req) => consumeCiscoSideMissionHint(state, req),
     revealSolution: (state, req) => revealCiscoSideMissionSolution(state, req),
     requirements: SIDE_REQUIREMENTS[missionId] || [],
+    reward: { xp: 30, reputation: { network: 3, security: 3 } },
     complete: (state) => {
       completeCiscoSideMission(state.missionId, { xp: 30, reputation: { network: 3, security: 3 } });
       clearActiveCiscoSideMission();
@@ -350,145 +352,114 @@ export default function MissionV2() {
   const { scenario, device } = state;
 
   return (
-    <div className="app-shell flex flex-col p-3">
-      <div className="flex items-center gap-2 mb-3">
-        <button onClick={() => navigate('/')} className="p-2 rounded border border-[#30363d] text-[#8b949e]"><ChevronLeft size={18} /></button>
-        <div className="flex-1">
-          <div className="text-xs text-[#8b949e]">{missionId === MISSION_001_ID ? 'Hauptmission' : 'Nebenmission'}</div>
-          <h1 className="text-base font-bold text-white">{scenario.title}</h1>
-        </div>
-      </div>
-
-      <div className="cyber-card p-4 mb-3 text-sm text-[#c9d1d9] whitespace-pre-wrap leading-relaxed">
-        {scenario.briefing}
-      </div>
-
-      <div className="cyber-card p-3 mb-3">
-        <div className="flex items-center justify-between">
-          <div className="text-xs uppercase tracking-wider text-[#8b949e]">Auftragsfortschritt</div>
-          <div className="text-sm font-bold text-[#00f0ff]">{progress.completed}/{progress.total}</div>
-        </div>
-      </div>
-
-      {hint && (
-        <div className="cyber-card border border-[#ffcc00]/30 p-3 mb-3 text-sm text-[#ffcc00]">
-          {hint.label && <div className="text-xs uppercase tracking-wider text-[#ffcc00] mb-1">{hint.label}</div>}
-          <div className="text-[#c9d1d9]">{hint.text}</div>
-          {hint.explanation && <div className="mt-2 text-xs text-[#8b949e]">{hint.explanation}</div>}
-        </div>
-      )}
-
-      {feedback && (
-        <div className={`cyber-card p-4 mb-3 text-sm ${feedback.title.includes('abgeschlossen') ? 'border-[#00ff66]/30 text-[#00ff66]' : 'border-[#ffcc00]/30 text-[#ffcc00]'}`}>
-          <div className="font-bold mb-2">{feedback.title}</div>
-          <ul className="space-y-1 text-[#c9d1d9]">
-            {feedback.checks.map((c, i) => (
-              <li key={i} className="flex items-center gap-2">
-                {c.ok ? <CheckCircle size={14} className="text-[#00ff66]" /> : <AlertCircle size={14} className="text-[#ffcc00]" />}
-                <span>{c.label}</span>
-              </li>
-            ))}
-          </ul>
-          {feedback.endingText && (
-            <div className="mt-3 text-sm text-[#c9d1d9]">
-              {feedback.endingText}
-            </div>
-          )}
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#8b949e]">
-            <span>Hinweise: {feedback.hintsUsed}</span>
-            <span>Lösungen aufgedeckt: {feedback.solutionRevealed}</span>
-            <span>Verifikationen: {feedback.showCommandsUsed}</span>
+    <div className="app-shell flex flex-col p-3 lg:p-5">
+      <div className="mx-auto flex w-full max-w-[1680px] flex-1 min-h-0 flex-col">
+        <div className="flex items-center gap-3 mb-3 lg:mb-4">
+          <button onClick={() => navigate('/')} className="p-2 rounded border border-[#30363d] text-[#8b949e] hover:border-[#00f0ff]/50 hover:text-[#00f0ff]"><ChevronLeft size={18} /></button>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs uppercase tracking-[0.18em] text-[#8b949e]">{isMainMission(missionId) ? 'Hauptmission' : 'Nebenmission'} · NEXUS Network Operations</div>
+            <h1 className="truncate text-lg font-bold text-white lg:text-2xl">{scenario.title}</h1>
           </div>
-          <div className="mt-3 flex gap-2">
-            {state.completed ? (
-              <button onClick={returnToWorkspace} className="cyber-btn flex-1 text-xs py-2 flex items-center justify-center gap-1"><ChevronLeft size={12} /> Zurück zum Arbeitsplatz</button>
-            ) : (
-              <button onClick={() => setFeedback(null)} className="cyber-btn-outline flex-1 text-xs py-2">Weiterarbeiten</button>
+          <div className="hidden items-center gap-3 rounded-lg border border-[#30363d] bg-[#0d1117]/80 px-4 py-2 lg:flex">
+            <Activity size={16} className="text-[#00f0ff]" />
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-[#8b949e]">Auftragsstatus</div>
+              <div className="text-sm font-bold text-[#00f0ff]">{progress.completed} / {progress.total} erfüllt</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid flex-1 min-h-0 gap-3 lg:grid-cols-[minmax(280px,0.72fr)_minmax(560px,1.65fr)_minmax(280px,0.78fr)] lg:gap-4">
+          <aside className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:pr-1">
+            <section className="cyber-card p-4">
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-[#00f0ff]"><ClipboardList size={15} /> Einsatzbriefing</div>
+              <div className="text-sm text-[#c9d1d9] whitespace-pre-wrap leading-relaxed">{scenario.briefing}</div>
+            </section>
+            <section className="cyber-card p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wider text-[#8b949e]">Fortschritt</span>
+                <span className="text-sm font-bold text-[#00f0ff]">{progress.completed}/{progress.total}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[#161b22]">
+                <div className="h-full bg-gradient-to-r from-[#00f0ff] to-[#00ff66] transition-all duration-300" style={{ width: `${progress.total ? (progress.completed / progress.total) * 100 : 0}%` }} />
+              </div>
+            </section>
+            <section className="cyber-card p-4">
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-[#ffcc00]"><Award size={15} /> Einsatzwert</div>
+              <div className="flex items-center justify-between text-sm"><span className="text-[#8b949e]">Karriere-XP</span><strong className="text-white">+{runtime.reward.xp}</strong></div>
+              <div className="mt-2 text-xs text-[#8b949e]">Belohnt wird ein nachweislich funktionierender Zustand – nicht eine vorgegebene Befehlsfolge.</div>
+            </section>
+          </aside>
+
+          <main className="flex min-h-0 flex-col gap-3">
+            {hint && (
+              <div className="cyber-card border border-[#ffcc00]/30 p-3 text-sm text-[#ffcc00]">
+                {hint.label && <div className="text-xs uppercase tracking-wider text-[#ffcc00] mb-1">{hint.label}</div>}
+                <div className="text-[#c9d1d9]">{hint.text}</div>
+                {hint.explanation && <div className="mt-2 text-xs text-[#8b949e]">{hint.explanation}</div>}
+              </div>
             )}
-            {state.completed && <button onClick={newVariant} className="cyber-btn-outline flex-1 text-xs py-2 flex items-center justify-center gap-1"><RotateCcw size={12} /> Neue Variante</button>}
-          </div>
-        </div>
-      )}
 
-      <div className="cyber-card flex flex-col">
-        <div className="flex items-center gap-2 text-[#00ff66] text-xs uppercase tracking-wider mb-2">
-          <TermIcon size={14} /> Cisco IOS Terminal
-        </div>
-        {/*
-          Fixed, bounded height (not flex-1 against an unbounded page) so the
-          terminal never stretches the whole mission page. Only this inner
-          area scrolls; the page height stays stable regardless of history
-          length. touch-pan-y / overscroll-contain keep mobile scrolling
-          inside the terminal instead of bouncing the whole page.
-        */}
-        <div
-          ref={terminalRef}
-          onScroll={handleTerminalScroll}
-          className="h-64 sm:h-80 overflow-y-auto overscroll-contain touch-pan-y font-mono text-sm bg-[#0a0a0a] rounded p-2 text-[#c9d1d9] whitespace-pre-wrap"
-        >
-          {history.map((entry, index) => (
-            <div key={index} className="mb-2">
-              <div className="text-[#00f0ff]">{entry.prompt} {entry.command}</div>
-              {entry.output && <div className="text-[#c9d1d9]">{entry.output}</div>}
-            </div>
-          ))}
-          {helpOutput && (
-            <div className="mb-2 text-[#c9d1d9]">
-              {helpOutput}
-            </div>
-          )}
-          <div className="text-[#00f0ff]">{buildPrompt(device)}</div>
-        </div>
-        <div className="mt-2 flex items-center gap-2">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={handleKey}
-            className="cyber-input flex-1 font-mono text-sm"
-            placeholder="Cisco-Befehl eingeben..."
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck="false"
-            autoComplete="off"
-          />
-          <button onClick={sendCommand} className="cyber-btn p-2"><Send size={18} /></button>
+            {feedback && (
+              <div className={`cyber-card p-4 text-sm ${feedback.title.includes('abgeschlossen') ? 'border-[#00ff66]/30 text-[#00ff66]' : 'border-[#ffcc00]/30 text-[#ffcc00]'}`}>
+                <div className="font-bold mb-2">{feedback.title}</div>
+                <ul className="grid gap-1 text-[#c9d1d9] sm:grid-cols-2">
+                  {feedback.checks.map((c, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      {c.ok ? <CheckCircle size={14} className="text-[#00ff66]" /> : <AlertCircle size={14} className="text-[#ffcc00]" />}
+                      <span>{c.label}</span>
+                    </li>
+                  ))}
+                </ul>
+                {feedback.endingText && <div className="mt-3 text-sm text-[#c9d1d9]">{feedback.endingText}</div>}
+                <div className="mt-3 flex flex-wrap gap-3 text-xs text-[#8b949e]"><span>Hinweise: {feedback.hintsUsed}</span><span>Lösungen: {feedback.solutionRevealed}</span><span>Verifikationen: {feedback.showCommandsUsed}</span></div>
+                <div className="mt-3 flex gap-2">
+                  {state.completed ? <button onClick={returnToWorkspace} className="cyber-btn flex-1 text-xs py-2 flex items-center justify-center gap-1"><ChevronLeft size={12} /> Arbeitsplatz</button> : <button onClick={() => setFeedback(null)} className="cyber-btn-outline flex-1 text-xs py-2">Weiterarbeiten</button>}
+                  {state.completed && <button onClick={newVariant} className="cyber-btn-outline flex-1 text-xs py-2 flex items-center justify-center gap-1"><RotateCcw size={12} /> Neue Variante</button>}
+                </div>
+              </div>
+            )}
+
+            <section className="cyber-card flex min-h-[28rem] flex-1 flex-col p-3 lg:min-h-0 lg:p-4">
+              <div className="flex items-center justify-between border-b border-[#30363d] pb-3">
+                <div className="flex items-center gap-2 text-[#00ff66] text-xs uppercase tracking-wider"><TermIcon size={14} /> Cisco IOS Terminal</div>
+                <div className="hidden text-[10px] text-[#8b949e] sm:block">Tab: vervollständigen · ?: Hilfe · ↑/↓: Verlauf</div>
+              </div>
+              <div ref={terminalRef} onScroll={handleTerminalScroll} className="mt-3 h-64 overflow-y-auto overscroll-contain touch-pan-y font-mono text-sm bg-[#050806] rounded p-3 text-[#c9d1d9] whitespace-pre-wrap sm:h-80 lg:h-[calc(100vh-14rem)] lg:min-h-[24rem]">
+                {history.map((entry, index) => <div key={index} className="mb-2"><div className="text-[#00f0ff]">{entry.prompt} {entry.command}</div>{entry.output && <div className="text-[#c9d1d9]">{entry.output}</div>}</div>)}
+                {helpOutput && <div className="mb-2 text-[#c9d1d9]">{helpOutput}</div>}
+                <div className="text-[#00f0ff]">{buildPrompt(device)}</div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <input ref={inputRef} value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={handleKey} className="cyber-input flex-1 font-mono text-sm" placeholder="Cisco-Befehl eingeben..." autoCapitalize="off" autoCorrect="off" spellCheck="false" autoComplete="off" />
+                <button onClick={sendCommand} className="cyber-btn p-2" aria-label="Befehl senden"><Send size={18} /></button>
+              </div>
+            </section>
+          </main>
+
+          <aside className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:pl-1">
+            <section className="cyber-card p-4">
+              <div className="mb-3 text-xs uppercase tracking-wider text-[#8b949e]">Abnahmekriterien</div>
+              <ul className="space-y-2">
+                {progress.checks.map((check) => <li key={check.id} className={`flex items-start gap-2 text-sm ${check.ok ? 'text-[#00ff66]' : 'text-[#c9d1d9]'}`}>{check.ok ? <CheckCircle size={15} className="mt-0.5 shrink-0" /> : <AlertCircle size={15} className="mt-0.5 shrink-0 text-[#8b949e]" />}<span>{check.label}</span></li>)}
+              </ul>
+            </section>
+            <section className="cyber-card p-4">
+              <div className="mb-3 text-xs uppercase tracking-wider text-[#8b949e]">Arbeitsunterstützung</div>
+              <select value={selectedRequirement || ''} onChange={(e) => setSelectedRequirement(e.target.value)} className="cyber-input w-full text-xs py-2">
+                {runtime.requirements.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+              </select>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button onClick={requestHint} className="cyber-btn-outline py-2 text-xs flex items-center justify-center gap-1"><Lightbulb size={14} /> Hinweis</button>
+                <button onClick={revealSolution} className="cyber-btn-outline py-2 text-xs flex items-center justify-center gap-1"><HelpCircle size={14} /> Lösung</button>
+              </div>
+              <button onClick={checkMission} className="cyber-btn-outline mt-2 w-full py-2 text-xs flex items-center justify-center gap-1"><Shield size={14} /> Zustand prüfen</button>
+            </section>
+            <button onClick={finishMission} disabled={progress.completed < progress.total} className={`w-full py-3 text-sm font-medium rounded flex items-center justify-center gap-2 ${progress.completed === progress.total ? 'bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/50 hover:bg-[#00ff66]/30' : 'bg-[#0d1117]/80 text-[#8b949e] border border-[#30363d] cursor-not-allowed'}`}><CheckCircle size={16} /> Auftrag abschließen</button>
+            {progress.completed < progress.total && <div className="text-[10px] text-center text-[#8b949e]">Noch {progress.total - progress.completed} Abnahmekriterium{progress.total - progress.completed === 1 ? '' : 'en'} offen.</div>}
+          </aside>
         </div>
       </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <select
-          value={selectedRequirement || ''}
-          onChange={(e) => setSelectedRequirement(e.target.value)}
-          className="cyber-input text-xs py-2"
-          style={{ gridColumn: '1 / 2' }}
-        >
-          {runtime.requirements.map((r) => (
-            <option key={r.id} value={r.id}>{r.label}</option>
-          ))}
-        </select>
-        <button onClick={requestHint} className="cyber-btn-outline py-2 text-xs flex items-center justify-center gap-1"><Lightbulb size={14} /> Hinweis</button>
-        <button onClick={revealSolution} className="cyber-btn-outline py-2 text-xs flex items-center justify-center gap-1"><HelpCircle size={14} /> Lösung</button>
-        <button onClick={checkMission} className="cyber-btn-outline py-2 text-xs flex items-center justify-center gap-1"><Shield size={14} /> Prüfen</button>
-      </div>
-
-      <button
-        onClick={finishMission}
-        disabled={progress.completed < progress.total}
-        className={`mt-2 w-full py-2 text-xs font-medium rounded flex items-center justify-center gap-1 ${
-          progress.completed === progress.total
-            ? 'bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/50'
-            : 'bg-[#0d1117]/80 text-[#8b949e] border border-[#30363d] cursor-not-allowed'
-        }`}
-      >
-        <CheckCircle size={14} /> Auftrag abschließen
-      </button>
-
-      {progress.completed < progress.total && (
-        <div className="mt-1 text-[10px] text-center text-[#8b949e]">
-          Erst nach {progress.total}/{progress.total} Erfüllung kannst du den Auftrag abschließen.
-        </div>
-      )}
     </div>
   );
 }

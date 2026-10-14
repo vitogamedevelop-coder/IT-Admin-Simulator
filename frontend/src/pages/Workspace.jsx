@@ -991,8 +991,8 @@ function NexusDesktop({ apps, badgeCounts, clock, onOpen, onClose }) {
       </div>
 
       {/* Desktop icon area */}
-      <div className="flex-1 p-4 pt-6">
-        <div className="grid grid-cols-4 gap-x-2 gap-y-4 max-w-xs">
+      <div className="flex-1 p-4 pt-6 sm:p-6 lg:p-10">
+        <div className="grid max-w-4xl grid-cols-4 gap-x-3 gap-y-5 sm:grid-cols-6 lg:grid-cols-8 lg:gap-x-6 lg:gap-y-7">
           {apps.map((dApp) => {
             const Icon = dApp.icon;
             const enabled = !!dApp.app;
@@ -1002,16 +1002,16 @@ function NexusDesktop({ apps, badgeCounts, clock, onOpen, onClose }) {
             const hasNotif = count > 0;
             return (
               <button key={dApp.id} onClick={() => onOpen(dApp)}
-                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all ${enabled ? 'active:bg-white/10 active:scale-90' : 'opacity-40'}`}>
-                <div className="relative w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${dApp.color}15`, border: `1px solid ${dApp.color}30` }}>
-                  <Icon size={20} style={{ color: dApp.color }} />
+                className={`group flex flex-col items-center gap-1.5 rounded-xl p-2 transition-all ${enabled ? 'hover:bg-white/10 hover:-translate-y-0.5 active:scale-95' : 'opacity-40'}`}>
+                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl transition-shadow lg:h-14 lg:w-14 lg:group-hover:shadow-[0_0_1.25rem_rgba(0,240,255,0.18)]" style={{ background: `${dApp.color}15`, border: `1px solid ${dApp.color}30` }}>
+                  <Icon size={22} className="lg:h-7 lg:w-7" style={{ color: dApp.color }} />
                   {hasNotif && (
                     <div className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-[#ff3355] flex items-center justify-center px-0.5 animate-[pulse_1.5s_ease-in-out_infinite]">
                       <span className="text-[8px] text-white font-bold">{count}</span>
                     </div>
                   )}
                 </div>
-                <span className="text-[9px] text-[#c9d1d9]/70 text-center leading-tight truncate w-full">{dApp.label}</span>
+                <span className="w-full truncate text-center text-[9px] leading-tight text-[#c9d1d9]/70 lg:text-xs">{dApp.label}</span>
                 {dApp.lockedReason && (
                   <span className="text-[7px] text-[#8b949e]/50 text-center leading-tight px-0.5 line-clamp-2">{dApp.lockedReason}</span>
                 )}
