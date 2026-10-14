@@ -4,11 +4,15 @@ import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(__dirname, '..', 'src', 'components', 'EmailApp.jsx'), 'utf8');
+const layout = readFileSync(join(__dirname, '..', 'src', 'components', 'Layout.jsx'), 'utf8');
+const workspace = readFileSync(join(__dirname, '..', 'src', 'pages', 'Workspace.jsx'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+assert(layout.includes("isWorkspace ? 'app-main-fullbleed'"), 'Workspace must bypass the narrow app-container on desktop');
+assert(workspace.includes('flex-1 min-h-0 w-full overflow-y-auto'), 'Opened desktop apps must receive the full workspace width');
 assert(source.includes('lg:grid-cols-[minmax(250px,0.72fr)_minmax(420px,1.35fr)_minmax(250px,0.72fr)]'), 'Desktop mail must use a three-column ticket workbench');
 assert(source.includes('Posteingang'), 'Workbench must keep the inbox visible');
 assert(source.includes('Auftragskontext'), 'Workbench must provide mission context');

@@ -55,7 +55,7 @@ export default function Layout({ children, title, showLogout = true }) {
           </div>
         </div>
       )}
-      <main className="app-container flex-1 min-h-0 overflow-y-auto">{children}</main>
+      <main className={isWorkspace ? 'app-main-fullbleed' : 'app-container flex-1 min-h-0 overflow-y-auto'}>{children}</main>
       <PlayerNameGate onDone={() => setNamePrompted(true)} />
       {namePrompted && <Onboarding />}
     </div>

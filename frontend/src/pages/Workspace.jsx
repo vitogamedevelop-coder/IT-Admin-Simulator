@@ -722,7 +722,7 @@ export default function Workspace() {
     return (
       <div className="fullscreen-overlay bg-[#030508]">
         <BackBar label={backLabel} onBack={handleAppClose} />
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2"><ActiveApp missionId={readGameState().activeQuest || 'first-day'} onClose={handleAppClose} /></div>
+        <div className="flex-1 min-h-0 w-full overflow-y-auto px-2 pb-2 lg:px-4 lg:pb-4"><ActiveApp missionId={readGameState().activeQuest || 'first-day'} onClose={handleAppClose} /></div>
       </div>
     );
   }
