@@ -37,7 +37,8 @@ import { notifyMissionCompleted } from '../lib/missionGenerator';
 import { recordKnownCredentialsFromMission001 } from '../lib/credentials';
 import { questById } from '../lib/questData';
 import { buildPrompt, getCommandHelp, completeInput } from '../lib/ciscoCliEngine';
-import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield, ClipboardList, Activity, Award } from 'lucide-react';
+import CiscoNetworkStatePanel from '../components/CiscoNetworkStatePanel';
+import { RotateCcw, CheckCircle, AlertCircle, HelpCircle, Lightbulb, Terminal as TermIcon, Send, ChevronLeft, Shield, ClipboardList, Activity, Award, Network } from 'lucide-react';
 
 const SIDE_REQUIREMENTS = {
   'cisco-side-basic-001': SIDE_001_REQUIREMENTS,
@@ -369,7 +370,12 @@ export default function MissionV2() {
           </div>
         </div>
 
-        <div className="grid flex-1 min-h-0 gap-3 lg:grid-cols-[minmax(280px,0.72fr)_minmax(560px,1.65fr)_minmax(280px,0.78fr)] lg:gap-4">
+        <details className="cyber-card mb-3 lg:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-2 p-3 text-xs font-bold uppercase tracking-wider text-[#00f0ff]"><Network size={15} /> Live-System anzeigen</summary>
+          <div className="px-3 pb-3"><CiscoNetworkStatePanel device={device} scenario={scenario} compact /></div>
+        </details>
+
+        <div className="grid flex-1 min-h-0 gap-3 lg:grid-cols-[minmax(280px,0.72fr)_minmax(560px,1.65fr)_minmax(300px,0.85fr)] lg:gap-4">
           <aside className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:pr-1">
             <section className="cyber-card p-4">
               <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-[#00f0ff]"><ClipboardList size={15} /> Einsatzbriefing</div>
@@ -438,6 +444,7 @@ export default function MissionV2() {
           </main>
 
           <aside className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:pl-1">
+            <CiscoNetworkStatePanel device={device} scenario={scenario} />
             <section className="cyber-card p-4">
               <div className="mb-3 text-xs uppercase tracking-wider text-[#8b949e]">Abnahmekriterien</div>
               <ul className="space-y-2">

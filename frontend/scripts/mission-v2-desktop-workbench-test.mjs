@@ -10,7 +10,7 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(mission.includes('lg:grid-cols-[minmax(280px,0.72fr)_minmax(560px,1.65fr)_minmax(280px,0.78fr)]'), 'Mission must provide a three-column desktop workbench');
+assert(mission.includes('lg:grid-cols-[minmax(280px,0.72fr)_minmax(560px,1.65fr)_minmax(300px,0.85fr)]'), 'Mission must provide a three-column desktop workbench');
 assert(mission.includes('Einsatzbriefing'), 'Desktop workbench must keep the briefing visible');
 assert(mission.includes('Abnahmekriterien'), 'Desktop workbench must expose live acceptance criteria');
 assert(mission.includes('Cisco IOS Terminal'), 'Desktop workbench must prioritize the IOS terminal');
