@@ -65,7 +65,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **2.1.0**
+Aktuelle Version: **2.2.0**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`
