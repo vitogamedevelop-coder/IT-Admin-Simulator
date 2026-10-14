@@ -20,6 +20,11 @@ assert(component.includes('trunkAllowedVlans'), 'System model must reflect curre
 assert(component.includes('encapsulationVlan'), 'System model must reflect current 802.1Q subinterfaces');
 assert(component.includes('ipDefaultGateway'), 'System model must reflect the configured management gateway');
 assert(component.includes('Beobachteter Zustand · keine Musterlösung'), 'Panel must explain that it exposes state, not the solution');
+assert(component.includes('Live-Topologie'), 'System model must provide a graphical live topology');
+assert(component.includes('linkObservation'), 'Topology links must be derived from observed interface state');
+assert(component.includes('STATUS OFFEN') && component.includes('UNBEKANNT'), 'Unknown connectivity must remain explicitly unknown');
+assert(component.includes('Sie bestätigen keine End-to-End-Erreichbarkeit'), 'Topology must not overclaim end-to-end reachability');
+assert(component.includes('parameters.uplinkPort') && component.includes('parameters.routerPhysicalPort'), 'Topology must use declared mission cabling metadata');
 assert(!component.includes('correctAnswer') && !component.includes('solution:'), 'System model must not embed answer or solution data');
 assert(mission.includes('<CiscoNetworkStatePanel device={device} scenario={scenario} />'), 'Desktop mission must render the live system model');
 assert(mission.includes('<CiscoNetworkStatePanel device={device} scenario={scenario} compact />'), 'Mobile mission must offer a compact system model');

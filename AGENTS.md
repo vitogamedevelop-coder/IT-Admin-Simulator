@@ -3,6 +3,13 @@
 ## Project
 Mobile-first PWA built with React + TailwindCSS frontend and Node.js + SQLite backend. UI and learning content are in German.
 
+## Verbindliche Planungsgrenzen
+Vor jeder größeren Änderung müssen zwei Grenzen ausdrücklich geprüft werden:
+- **Soll-Grenze:** Welches konkrete Spieler-, Lern- oder Systemproblem muss die Änderung lösen?
+- **No-Go-Grenze:** Welcher technisch, fachlich oder psychologisch schädliche Zustand darf auf keinen Fall entstehen?
+
+Die Implementierung gilt nur dann als korrekt, wenn sie innerhalb beider Grenzen bleibt. Insbesondere dürfen neue Simulator-Visualisierungen keine Musterlösungen verraten, keine nicht simulierten Zustände als Fakten darstellen, keine parallelen Engines erzeugen und das aktive Erinnern bzw. Anwenden von Fachwissen nicht durch automatische Lösungshilfen ersetzen.
+
 ## Commands
 
 ```bash
@@ -65,7 +72,7 @@ npx cap sync
 
 ## Versionierung (SemVer)
 
-Aktuelle Version: **2.3.0**
+Aktuelle Version: **2.4.0**
 
 - Quelle der Wahrheit: `frontend/package.json` und `frontend/src/lib/version.js`
 - Format: `MAJOR.MINOR.PATCH`

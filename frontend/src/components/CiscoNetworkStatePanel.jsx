@@ -1,4 +1,4 @@
-import { Activity, Cable, CheckCircle, CircleOff, Network, Router, Save, Server, ShieldCheck, Wifi } from 'lucide-react';
+import { Activity, Cable, CheckCircle, CircleHelp, CircleOff, Monitor, Network, Router, Save, Server, ShieldCheck, Wifi } from 'lucide-react';
 
 function shortInterface(name = '') {
   return name
@@ -55,6 +55,83 @@ function deviceLabel(type) {
   return 'Cisco L2-Switch';
 }
 
+function linkObservation(ifaces) {
+  if (!ifaces.length) return { label: 'UNBEKANNT', line: 'bg-[#8b949e]/50', text: 'text-[#8b949e]', icon: CircleHelp };
+  if (ifaces.some((iface) => iface.errDisabled)) return { label: 'FEHLER', line: 'bg-[#ff3355]', text: 'text-[#ff6677]', icon: CircleOff };
+  if (ifaces.every((iface) => iface.administrativelyDown)) return { label: 'DEAKTIVIERT', line: 'bg-[#ffcc00]', text: 'text-[#ffcc00]', icon: CircleOff };
+  if (ifaces.every((iface) => !iface.administrativelyDown && (iface.operationalStatus === 'connected' || iface.operationalStatus === 'up'))) return { label: 'PHYSISCH UP', line: 'bg-[#00ff66]', text: 'text-[#00ff66]', icon: CheckCircle };
+  return { label: 'STATUS OFFEN', line: 'bg-[#8b949e]/50', text: 'text-[#8b949e]', icon: CircleHelp };
+}
+
+function topologyGroups(parameters, interfaces) {
+  const groups = [];
+  const add = (id, label, portIds, kind = 'client') => {
+    const unique = [...new Set((portIds || []).filter(Boolean))];
+    if (!unique.length) return;
+    groups.push({ id, label, kind, portIds: unique, ifaces: unique.map((port) => interfaces[port]).filter(Boolean) });
+  };
+  add('personal', 'Personal', parameters.personalPorts);
+  add('accounting', 'Buchhaltung', parameters.buchhaltungPorts);
+  for (const vlan of parameters.vlans || []) add(`vlan-${vlan.id}`, vlan.name || `VLAN ${vlan.id}`, vlan.accessPorts);
+  add('unused', 'Unbelegte Ports', parameters.unusedPorts);
+  add('uplink', 'Uplink / Infrastruktur', [parameters.uplinkPort], 'network');
+  add('router', parameters.routerHostname || 'Router', [parameters.routerPhysicalPort], 'router');
+
+  Object.values(interfaces || {}).filter((iface) => iface.type === 'svi').forEach((iface) => {
+    add(`svi-${iface.id}`, `Management ${iface.id}`, [iface.id], 'network');
+  });
+
+  if (groups.length === 0) {
+    Object.values(interfaces || {}).filter((iface) => iface.operationalStatus === 'connected' || iface.switchportMode || iface.ipv4).slice(0, 4).forEach((iface) => {
+      add(`interface-${iface.id}`, interfaceRole(iface.id, parameters), [iface.id]);
+    });
+  }
+  return groups;
+}
+
+function LiveTopology({ device, parameters }) {
+  const interfaces = device.runningConfig.interfaces || {};
+  const groups = topologyGroups(parameters, interfaces);
+  return (
+    <div className="mt-3 rounded-lg border border-[#30363d] bg-[#050a10] p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#8b949e]">Live-Topologie</div>
+        <div className="text-[8px] uppercase text-[#8b949e]">lokale Beobachtung</div>
+      </div>
+      <div className="mt-3 flex items-center justify-center">
+        <div className="rounded-lg border border-[#00f0ff]/40 bg-[#00f0ff]/10 px-4 py-2 text-center">
+          <Server size={18} className="mx-auto text-[#00f0ff]" />
+          <div className="mt-1 max-w-32 truncate text-xs font-bold text-white">{device.hostname}</div>
+          <div className="text-[8px] text-[#8b949e]">{deviceLabel(device.type)}</div>
+        </div>
+      </div>
+      {groups.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {groups.map((group) => {
+            const observation = linkObservation(group.ifaces);
+            const Icon = group.kind === 'router' ? Router : group.kind === 'network' ? Network : Monitor;
+            const configuredVlans = [...new Set(group.ifaces.map((iface) => iface.accessVlan).filter(Boolean))];
+            return (
+              <div key={group.id} className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center gap-2">
+                <div className="min-w-0 text-right">
+                  <div className="truncate text-[10px] font-bold text-[#c9d1d9]">{group.portIds.map(shortInterface).join(', ')}</div>
+                  <div className={`text-[8px] ${observation.text}`}>{observation.label}</div>
+                </div>
+                <div className={`h-0.5 rounded ${observation.line}`} />
+                <div className="flex min-w-0 items-center gap-2 rounded border border-[#30363d] bg-[#0d1117] p-2">
+                  <Icon size={14} className="shrink-0 text-[#8b949e]" />
+                  <div className="min-w-0"><div className="truncate text-[10px] font-bold text-[#c9d1d9]">{group.label}</div><div className="truncate text-[8px] text-[#8b949e]">{configuredVlans.length ? `Ist-VLAN ${configuredVlans.join(', ')}` : 'VLAN nicht beobachtet'}</div></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : <div className="mt-3 rounded border border-dashed border-[#30363d] p-3 text-center text-[9px] text-[#8b949e]">Keine verlässlichen Endpunkte im Auftrag modelliert.</div>}
+      <div className="mt-3 text-[8px] leading-relaxed text-[#8b949e]">Die Leitungen zeigen ausschließlich lokalen Portstatus. Sie bestätigen keine End-to-End-Erreichbarkeit.</div>
+    </div>
+  );
+}
+
 export default function CiscoNetworkStatePanel({ device, scenario, compact = false }) {
   if (!device?.runningConfig) return null;
   const config = device.runningConfig;
@@ -94,6 +171,8 @@ export default function CiscoNetworkStatePanel({ device, scenario, compact = fal
           </div>
         </div>
       </div>
+
+      <LiveTopology device={device} parameters={parameters} />
 
       <div className={`mt-3 grid gap-2 text-[10px] ${showSsh ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <div className="rounded border border-[#30363d] bg-[#0d1117]/80 p-2">
